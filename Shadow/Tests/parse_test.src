@@ -1,0 +1,5 @@
+﻿use include stdio;
+
+func Main() int {
+	Println("Hello, world!");
+}

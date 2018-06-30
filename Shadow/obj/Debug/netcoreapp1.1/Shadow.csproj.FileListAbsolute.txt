@@ -1,0 +1,9 @@
+C:\Users\forlo\Desktop\Coding\C#\Shadow\Shadow\bin\Debug\netcoreapp1.1\Shadow.deps.json
+C:\Users\forlo\Desktop\Coding\C#\Shadow\Shadow\bin\Debug\netcoreapp1.1\Shadow.runtimeconfig.json
+C:\Users\forlo\Desktop\Coding\C#\Shadow\Shadow\bin\Debug\netcoreapp1.1\Shadow.runtimeconfig.dev.json
+C:\Users\forlo\Desktop\Coding\C#\Shadow\Shadow\bin\Debug\netcoreapp1.1\Shadow.dll
+C:\Users\forlo\Desktop\Coding\C#\Shadow\Shadow\obj\Debug\netcoreapp1.1\Shadow.csprojResolveAssemblyReference.cache
+C:\Users\forlo\Desktop\Coding\C#\Shadow\Shadow\obj\Debug\netcoreapp1.1\Shadow.AssemblyInfo.cs
+C:\Users\forlo\Desktop\Coding\C#\Shadow\Shadow\bin\Debug\netcoreapp1.1\Shadow.pdb
+C:\Users\forlo\Desktop\Coding\C#\Shadow\Shadow\obj\Debug\netcoreapp1.1\Shadow.dll
+C:\Users\forlo\Desktop\Coding\C#\Shadow\Shadow\obj\Debug\netcoreapp1.1\Shadow.pdb
