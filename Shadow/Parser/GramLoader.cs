@@ -112,6 +112,7 @@ namespace Shadow.Parser
                     production.Content.Add(new Terminal(CurrentToken.Value));
                     break;
                 case "NONTERMINAL":
+                    production.Content.Add(new Nonterminal(CurrentToken.Value));
                     break;
                 default:
                     throw new GrammarException(CurrentToken);
