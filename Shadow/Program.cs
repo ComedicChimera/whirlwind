@@ -20,9 +20,10 @@ namespace Shadow
                 return;
             }
 
-            Compiler compiler = new Compiler();
+            Compiler compiler = new Compiler("Config/tokens.json", "Config/grammar.ebnf");
             compiler.Build(text);
-            
+
+            Console.ReadKey();
         }
     }
 }

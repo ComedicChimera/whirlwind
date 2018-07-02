@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
-using System.IO;
 
 namespace Shadow.Parser
 {
@@ -10,9 +8,9 @@ namespace Shadow.Parser
         string Type();
     }
 
-    class Terminal : IGrammatical
+    sealed class Terminal : IGrammatical
     {
-        private string TokenType;
+        public readonly string TokenType;
         
         public Terminal(string tokenType)
         {
@@ -22,9 +20,9 @@ namespace Shadow.Parser
         public string Type() => "TERMINAL";
     }
 
-    class Nonterminal : IGrammatical
+    sealed class Nonterminal : IGrammatical
     {
-        public string Name;
+        public readonly string Name;
 
         public Nonterminal(string name)
         {
@@ -36,7 +34,7 @@ namespace Shadow.Parser
 
     class Production : IGrammatical
     {
-        private string _type;
+        private readonly string _type;
         public List<IGrammatical> Content;
 
         public Production(string type)
@@ -57,6 +55,14 @@ namespace Shadow.Parser
     class Grammar
     {
         private Dictionary<string, Production> _productions;
+        public string First
+        {
+            get; private set;
+        }
+
+        public Grammar() {
+            _productions = new Dictionary<string, Production>();
+        }
 
         public bool AddProduction(string nonterminal, Production production)
         {
@@ -66,6 +72,8 @@ namespace Shadow.Parser
             }
             else
             {
+                if (_productions.Keys.Count == 0)
+                    First = nonterminal;
                 _productions.Add(nonterminal, production);
                 return true;
             }
@@ -74,6 +82,16 @@ namespace Shadow.Parser
         public bool Lookup(string nonterminal)
         {
             return _productions.ContainsKey(nonterminal);
+        }
+
+        public Production GetProduction(string nonterminal)
+        {
+            if (!Lookup(nonterminal))
+            {
+                Console.WriteLine(nonterminal);
+                throw new GrammarException($"Grammar has no production \'{nonterminal}\'.");
+            }  
+            return _productions[nonterminal];
         }
     }
 }

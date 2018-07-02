@@ -1,5 +1,1 @@
-﻿use include stdio;
-
-func Main() int {
-	Println("Hello, world!");
-}
+﻿for([1, 2, 3]|x| => -x);

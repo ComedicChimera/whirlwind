@@ -2,8 +2,10 @@
   "ExpandedNodes": [
     "",
     "\\Shadow",
-    "\\Shadow\\bin\\Debug"
+    "\\Shadow\\bin",
+    "\\Shadow\\bin\\Debug",
+    "\\Shadow\\bin\\Debug\\netcoreapp1.1"
   ],
-  "SelectedNode": "\\Shadow",
+  "SelectedNode": "\\Shadow\\bin\\Debug\\netcoreapp1.1\\Shadow.dll",
   "PreviewInSolutionExplorer": false
 }

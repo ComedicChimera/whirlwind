@@ -5,18 +5,33 @@ namespace Shadow
 {
     class Compiler
     {
-        private Scanner _scanner = new Scanner("Config/tokens.json");
+        private Scanner _scanner;
+        private ShadowParser _parser;
+
+        public Compiler(string tokenPath, string grammarPath)
+        {
+            _scanner = new Scanner(tokenPath);
+
+            var gramloader = new GramLoader();
+            _parser = new ShadowParser(gramloader.Load(grammarPath));
+
+        }
 
         public void Build(string text)
         {
             var tokens = _scanner.Scan(text);
 
-            foreach (var token in tokens)
+            ASTNode ast;
+            try
             {
-                Console.WriteLine($"({token.Type}, {token.Value}) at {token.Index}");
+                ast = _parser.Parse(tokens);
             }
-
-            Console.ReadKey();
+            catch (InvalidSyntaxException isx)
+            {
+                Console.WriteLine($"Unexpected Token: \'{isx.Tok.Value}\' at {isx.Tok.Index}");
+                return;
+            }
+            Console.WriteLine(ast.ToString());
         }
     }
 }

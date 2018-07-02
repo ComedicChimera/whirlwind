@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Shadow.Parser
 {
@@ -33,10 +34,14 @@ namespace Shadow.Parser
 
         private Token CurrentToken
         {
-            get { return _tokens[_tokenPos]; }
+            get {
+                if (_done)
+                    return new Token("EOF", "$", -1);
+                return _tokens[_tokenPos];
+            }
         }
 
-        private void Next(int amount = 0)
+        private void Next(int amount = 1)
         {
             if (_tokenPos + amount < _tokens.Count)
             {
@@ -88,34 +93,61 @@ namespace Shadow.Parser
                 throw new GrammarException(CurrentToken);
             Next();
             var prod = _parseProductionContent();
+            if (CurrentToken.Type != ";")
+                throw new GrammarException(CurrentToken);
             if (!grammar.AddProduction(name, prod))
                 throw new GrammarException(name);
+            Next();
         }
 
         private Production _parseProductionContent()
         {
             var production = new Production("GROUP");
-            switch (CurrentToken.Type)
+            bool collecting = true;
+            while (collecting)
             {
-                case "(":
-                    Next();
-                    production.Content.Add(_parseProductionContent());
-                    Next();
-                    break;
-                case "[":
-                    Next();
-                    var subPro = new Production("OPTIONAL", _parseProductionContent().Content);
-                    production.Content.Add(subPro);
-                    Next();
-                    break;
-                case "TERMINAL":
-                    production.Content.Add(new Terminal(CurrentToken.Value));
-                    break;
-                case "NONTERMINAL":
-                    production.Content.Add(new Nonterminal(CurrentToken.Value));
-                    break;
-                default:
-                    throw new GrammarException(CurrentToken);
+                switch (CurrentToken.Type)
+                {
+                    case "(":
+                        Next();
+                        production.Content.Add(_parseProductionContent());
+                        Next();
+                        break;
+                    case "[":
+                        Next();
+                        var subPro = new Production("OPTIONAL", new List<IGrammatical>() { _parseProductionContent() });
+                        production.Content.Add(subPro);
+                        Next();
+                        break;
+                    case "TERMINAL":
+                        production.Content.Add(new Terminal(CurrentToken.Value.Substring(1, CurrentToken.Value.Length - 2)));
+                        Next();
+                        break;
+                    case "NONTERMINAL":
+                        production.Content.Add(new Nonterminal(CurrentToken.Value));
+                        Next();
+                        break;
+                    case "+":
+                    case "*":
+                        var lastProd = production.Content.Last();
+                        production.Content.RemoveAt(production.Content.Count - 1);
+                        production.Content.Add(new Production(CurrentToken.Type, new List<IGrammatical>() { lastProd }));
+                        Next();
+                        break;
+                    default:
+                        collecting = false;
+                        break;
+                }
+            }
+            if (CurrentToken.Type == "|")
+            {
+                production = new Production("ALTERNATOR", new List<IGrammatical>() { production });
+                Next();
+                var nPro = _parseProductionContent();
+                if (nPro.Type() == "ALTERNATOR")
+                    production.Content = production.Content.Concat(nPro.Content).ToList();
+                else
+                    production.Content.Add(nPro);
             }
             return production;
         }
