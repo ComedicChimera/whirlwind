@@ -2,8 +2,11 @@
 main: stmt+ ;
 
 // STATEMENTS
-// broken up for logical reasons
+// broken up for logical reasons - takes advantage of multiple solution parsing
 stmt: ( variable_decl
+| enum_const
+| assignment
+| expr
 | throw_stmt 
 | continue_stmt
 | break_stmt
@@ -22,6 +25,23 @@ variable_initializer: [ '=' expr
 | ':=' expr
 ] ;
 
+// enumerated constant
+enum_const: '@' '{' 'IDENTIFIER'+ '}' ;
+
+// variable assignment
+assignment: assign_var (',' assign_var)* assign_op expr (',' expr)* ;
+assign_var: 'IDENTIFIER' ( '.' 'IDENTIFIER'
+| '[' (expr [slice] | slice) ']'
+)* ;
+
+assign_op: '='
+| '+='
+| '-='
+| '*='
+| '/='
+| '%='
+| '^='
+;
 
 // simple statements
 continue_stmt: 'CONTINUE' ;
@@ -68,7 +88,7 @@ atom: [ 'NEW' ] [ 'AWAIT' ] base trailer*
 trailer: '[' (expr [slice] | slice) ']'
 | '(' args_list ')'
 | '{' init_list '}'
-| '.' base
+| '.' 'IDENTIFIER'
 | '|>' aggr_expr '|'
 | '...'
 ;
