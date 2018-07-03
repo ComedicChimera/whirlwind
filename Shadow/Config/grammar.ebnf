@@ -1,6 +1,34 @@
 ﻿// temporary
 main: stmt+ ;
-stmt: expr ';' ;
+
+// STATEMENTS
+// broken up for logical reasons
+stmt: ( variable_decl
+| throw_stmt 
+| continue_stmt
+| break_stmt
+| delete_stmt
+| return_stmt
+) ';' 
+;
+
+// variable declaration
+variable_decl: ('$' | '@') var extension variable_initializer  ;
+var: '(' 'IDENTIFIER' extension variable_initializer (',' 'IDENTIFIER' extension variable_initializer)* ')'
+| 'IDENTIFIER'
+;
+
+variable_initializer: [ '=' expr
+| ':=' expr
+] ;
+
+
+// simple statements
+continue_stmt: 'CONTINUE' ;
+break_stmt: 'BREAK' ;
+throw_stmt: 'THROW' expr ;
+delete_stmt: 'DELETE' 'IDENTIFIER' (',' 'IDENTIFIER')* ;
+return_stmt: ('YIELD' | 'RETURN') [expr (',' expr)*] ;
 
 // EXPRESSIONS - basic unit of statements 
 expr: or [expr_extension] ;
@@ -121,10 +149,14 @@ func_types: 'FUNC' '(' args_decl_list ')' '(' type_list ')'
 
 // COMMON CONSTRUCTIONS - common structures used repeatedly in grammar
 type_list: types (',' types)* ;
-args_decl_list: (['...'] ('$' | '@' | '&') IDENTIFIER initializer)* ;
+args_decl_list: (['...'] ('$' | '@' | '&') IDENTIFIER extension [initializer])* ;
 initializer: '=' expr ;
 iterator: '|' 'IDENTIFIER' (',' 'IDENTIFIER')* '|' ;
 
+// type extension
+extension: [':' types] ;
+
+// function body
 func_body: '{' main '}'
 | '=>' expr
 | stmt 
