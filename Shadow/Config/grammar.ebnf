@@ -1,8 +1,32 @@
 ﻿// temporary
 main: stmt+ ;
 stmt: expr ';' ;
-expr: unary_atom ;
 
+// EXPRESSIONS - basic unit of statements 
+expr: or [expr_extension] ;
+expr_extension: '?' or ':' or
+| ('??' or)+
+;
+
+// logical operators
+or: xor ('OR' xor)* ;
+xor: and ('XOR' and)* ;
+and: comparison ('AND' comparison)* ;
+
+// comparisons
+comparison: not (comparison_op not)*;
+comparison_op: '>' | '<' | '>=' | '<=' | '==' | '!=' | '===' | '!===' ;
+not: ['!'] shift ;
+
+// binary shifts
+shift: arithmetic (('>>' | '<<' | '>>>') arithmetic)* ;
+
+// arithmetic
+arithmetic: term (('+' | '-') term)* ;
+term: factor (('*' | '/' | '%') factor)* ;
+factor: unary_atom ('^' unary_atom)*;
+
+// unary operators
 unary_atom: ('&' | '-' | '++' | '--' | '*'+ ) atom
 | atom ['++' | '--']
 ;
@@ -30,9 +54,10 @@ init_list: (IDENTIFIER initializer)+ ;
 aggr_expr: expr
 | ... aggr_op
 ;
-aggr_op: '+' | '-' | '*' | '/' | '^' | '%' | '&&' | '||' | '^^' 
-| shifts
-| comparison_ops
+aggr_op: '+' | '-' | '*' | '/' | '^' | '%' 
+| '&&' | '||' | '^^' 
+| '>>' | '<<' | '>>>'
+| comparison_op
 ;
 
 // for comprehension

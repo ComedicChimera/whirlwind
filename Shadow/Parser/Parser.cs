@@ -30,8 +30,8 @@ namespace Shadow.Parser
         {
             _tokens = tokens;
 
-            // error position is position of token in THE TOKENS LIST, not the source string
-            if (_parseProduction(_grammar.First) == -1)
+            // error position is position of token in THE TOKENS LIST, not the source string            
+            if (_parseProduction(_grammar.First) != _tokens.Count)
                 throw new InvalidSyntaxException(GetToken(_errorPosition));
 
             var tree = _semanticStack[0];
