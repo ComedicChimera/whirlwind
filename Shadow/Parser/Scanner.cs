@@ -64,7 +64,7 @@ namespace Shadow.Parser
         private string _removeComments(string text)
         {
             var singlelineRegex = new Regex("//.*\n*");
-            var multilineRegex = new Regex("/\\*.*\\*/", RegexOptions.Multiline);
+            var multilineRegex = new Regex(@"/\*(?:(?!\*/).)*\*/", RegexOptions.Singleline);
 
             text = singlelineRegex.Replace(text, _replaceRepeater);
             return multilineRegex.Replace(text, _replaceRepeater);

@@ -1,4 +1,5 @@
-﻿++i;
-i--;
-a = 4;
-b -= 43 * 2;
+﻿include math;
+use include stdio;
+extern include myPackage.Part2;
+
+include longname "shortname";

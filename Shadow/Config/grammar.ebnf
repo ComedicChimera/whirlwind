@@ -1,9 +1,49 @@
 ﻿// temporary
-main: stmt+ ;
+main: ( block_stmt 
+| stmt
+)+ ;
+
+// block statements (control flow, context managers and except blocks)
+block_stmt: if_stmt
+| select_stmt
+| match_stmt
+| for_loop
+;
+
+/*
+| for_stmt
+| do_stmt
+| except_stmt
+| with_stmt
+; */
+
+// if statement
+if_stmt: 'IF' '(' expr ')' block elif_block* [else_block] ;
+elif_block: 'ELIF' '(' expr ')' block ;
+else_block: 'ELSE' block ;
+
+// select statement
+select_stmt: 'SELECT' '(' expr ')' '{' select_block '}' ;
+select_block: case+ [default] ;
+case: 'CASE' expr (',' expr)* ':' main ;
+default: 'DEFAULT' ':' main ;
+
+// match statement
+match_stmt: 'MATCH' '{' match_case+ '}' ;
+match_case: '?' expr ':' main ;
+
+// for loop
+for_loop: 'FOR' [for_body] block ;
+for_body: '(' (c_for | expr) ')'
+| expr iterator '=>'
+;
+
+c_for: ['$' 'IDENTIFIER' '=' expr] ';' [expr] ';' [expr | assignment] ;
 
 // STATEMENTS
 // broken up for logical reasons - takes advantage of multiple solution parsing
 stmt: ( variable_decl
+| include_stmt
 | enum_const
 | assignment
 | expr
@@ -16,7 +56,7 @@ stmt: ( variable_decl
 ;
 
 // variable declaration
-variable_decl: ('$' | '@') var extension variable_initializer  ;
+variable_decl: ['LOCK'] ['EXTERN'] ('$' | '@') var extension variable_initializer  ;
 var: '(' 'IDENTIFIER' extension variable_initializer (',' 'IDENTIFIER' extension variable_initializer)* ')'
 | 'IDENTIFIER'
 ;
@@ -24,6 +64,10 @@ var: '(' 'IDENTIFIER' extension variable_initializer (',' 'IDENTIFIER' extension
 variable_initializer: [ '=' expr
 | ':=' expr
 ] ;
+
+// include statement
+include_stmt: ['EXTERN'] ['USE'] 'INCLUDE' pkg_name ['STRING_LITERAL'] ;
+pkg_name: 'IDENTIFIER' ('.' 'IDENTIFIER')* ;
 
 // enumerated constant
 enum_const: '@' '{' 'IDENTIFIER'+ '}' ;
@@ -96,7 +140,7 @@ trailer: '[' (expr [slice] | slice) ']'
 // trailer components
 slice: ':' [expr [':' expr]] ;
 args_list: [['...'] expr [initializer] (',' ['...'] expr [initializer])*]  ;
-init_list: (IDENTIFIER initializer)+ ;
+init_list: ('IDENTIFIER' initializer)+ ;
 
 // aggregator
 aggr_expr: expr
@@ -140,7 +184,7 @@ inline_function: 'FUNC' '(' args_decl_list ')' func_body
 
 // DATA TYPES - data type literals
 types: atom_types
-| IDENTIFIER
+| 'IDENTIFIER'
 ;
 
 atom_types: simple_types
@@ -169,7 +213,7 @@ func_types: 'FUNC' '(' args_decl_list ')' '(' type_list ')'
 
 // COMMON CONSTRUCTIONS - common structures used repeatedly in grammar
 type_list: types (',' types)* ;
-args_decl_list: (['...'] ('$' | '@' | '&') IDENTIFIER extension [initializer])* ;
+args_decl_list: (['...'] ('$' | '@' | '&') 'IDENTIFIER' extension [initializer])* ;
 initializer: '=' expr ;
 iterator: '|' 'IDENTIFIER' (',' 'IDENTIFIER')* '|' ;
 
@@ -180,4 +224,9 @@ extension: [':' types] ;
 func_body: '{' main '}'
 | '=>' expr
 | stmt 
+;
+
+// standard block
+block: '{' main '}'
+| stmt
 ;
