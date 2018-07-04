@@ -1,5 +1,10 @@
-﻿include math;
-use include stdio;
-extern include myPackage.Part2;
+﻿use include stdio;
 
-include longname "shortname";
+func fib($mx: int, $a = 0, $b = 1) int {
+	if (mx == 0) return [a];
+	return [a] + fib(mx - 1, b, a + b);
+}
+
+func Main() int {
+	Print(fib(10));
+}
