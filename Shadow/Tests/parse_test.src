@@ -1,10 +1,14 @@
-﻿use include stdio;
-
-func fib($mx: int, $a = 0, $b = 1) int {
-	if (mx == 0) return [a];
-	return [a] + fib(mx - 1, b, a + b);
+﻿interface Math {
+	func Add() int;
+	func Sub($a: int, $b: int) int;
 }
 
-func Main() int {
-	Print(fib(10));
+module MyModule {
+	interface private ModuleInterface {
+		async DoThing();
+	}
+
+	union extern typename<> {
+
+	}
 }

@@ -16,17 +16,28 @@ subscope: '{' main '}' ;
 
 // BLOCK DECLARATION (functions and modules)
 block_decl: func_decl
+| interface_decl
+| union_decl
 | module_decl
 ;
 
 // function declaration
 func_decl: ('FUNC' | 'ASYNC') ['EXTERN'] 'IDENTIFIER' '(' args_decl_list ')' [type_list] func_body ;
 
+// interface decl
+interface_decl: 'INTERFACE' ['EXTERN'] 'IDENTIFIER' '{' interface_main+ '}' ;
+interface_main: ('FUNC' | 'ASYNC') 'IDENTIFIER' '(' args_decl_list ')' [type_list] ';' ;
+
+// type union declaration
+union_decl: 'UNION' ['EXTERN'] 'IDENTIFIER' '<' [type_list] '>' (block | ';') ;
+
 // module declaration
 module_decl: 'MODULE' ('EXTERN' | 'PARTIAL')* 'IDENTIFIER' partial* '{' module_main+ '}' ;
 module_main: constructor_decl
 | method_decl
 | member_decl
+| module_interface
+| module_union
 ;
 
 // constructor declaration
@@ -38,11 +49,16 @@ method_decl: ('FUNC' | 'ASYNC') ('EXTERN' | 'PARTIAL')* modifiers* 'IDENTIFIER' 
 // member declaration (variables)
 member_decl: modifiers* (variable_decl | enum_const) ';' ;
 
+// interface declared in module
+module_interface: 'INTERFACE' ('EXTERN' | 'PRIVATE') 'IDENTIFIER' '{' interface_main '}' ;
+
+// union declared in module
+module_union: 'UNION' ('EXTERN' | 'PRIVATE') 'IDENTIFIER' '<' [type_list] '>' (block | ';') ;
+
 
 // COMMON MODULE PATTERNS
 partial: ':' 'IDENTIFIER' ; // partial extension
 modifiers: 'PRIVATE' | 'PROPERTY' ; // variable and function modifiers
-
 
 // BLOCK STATEMENTS (control flow, context managers and except blocks)
 block_stmt: if_stmt
