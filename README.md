@@ -1,4 +1,4 @@
-# Shadow
+# Whirlwind
 The New Home of the Formerly Known as SyClone Language
 
 ## Grammatical Notes
