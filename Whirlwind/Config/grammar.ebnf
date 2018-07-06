@@ -121,7 +121,7 @@ stmt: ( variable_decl
 ;
 
 // variable declaration
-variable_decl: ('LOCK' | 'EXTERN')* ('$' | '@') var extension variable_initializer  ;
+variable_decl: ('VOLATILE' | 'EXTERN')* ('$' | '@') var extension variable_initializer  ;
 var: '(' 'IDENTIFIER' extension variable_initializer (',' 'IDENTIFIER' extension variable_initializer)* ')'
 | 'IDENTIFIER'
 ;
