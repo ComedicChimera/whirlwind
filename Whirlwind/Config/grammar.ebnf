@@ -22,14 +22,15 @@ block_decl: func_decl
 ;
 
 // function declaration
-func_decl: ('FUNC' | 'ASYNC') ['EXTERN'] 'IDENTIFIER' '(' args_decl_list ')' [type_list] func_body ;
+func_decl: ('FUNC' | 'ASYNC') ['EXTERN'] 'IDENTIFIER' '(' args_decl_list ')' [ '(' type_list ')' ] func_body ;
 
 // interface decl
 interface_decl: 'INTERFACE' ['EXTERN'] 'IDENTIFIER' '{' interface_main+ '}' ;
-interface_main: ('FUNC' | 'ASYNC') 'IDENTIFIER' '(' args_decl_list ')' [type_list] ';' ;
+interface_main: ('FUNC' | 'ASYNC') 'IDENTIFIER' '(' args_decl_list ')' [ '(' type_list ')' | type_list ] ';' ;
 
 // type union declaration
-union_decl: 'UNION' ['EXTERN'] 'IDENTIFIER' '<' [type_list] '>' (block | ';') ;
+union_decl: 'UNION' ['EXTERN'] 'IDENTIFIER' '<' [type_list] '>' 
+    (block | ';' | func_decl | module_decl | variable_decl) ;
 
 // module declaration
 module_decl: 'MODULE' ('EXTERN' | 'PARTIAL')* 'IDENTIFIER' partial* '{' module_main+ '}' ;
@@ -44,21 +45,22 @@ module_main: constructor_decl
 constructor_decl: 'CONSTRUCTOR' '(' args_decl_list ')' func_body ;
 
 // method declaration
-method_decl: ('FUNC' | 'ASYNC') ('EXTERN' | 'PARTIAL')* modifiers* 'IDENTIFIER' '(' args_decl_list ')' [type_list] partial* func_body ;
+method_decl: ('FUNC' | 'ASYNC') ['PRIVATE'] modifiers* 'IDENTIFIER' '(' args_decl_list ')' [ '(' type_list ')' | type_list ] partial* func_body ;
 
 // member declaration (variables)
 member_decl: modifiers* (variable_decl | enum_const) ';' ;
 
 // interface declared in module
-module_interface: 'INTERFACE' ('EXTERN' | 'PRIVATE') 'IDENTIFIER' '{' interface_main '}' ;
+module_interface: 'INTERFACE' ['PRIVATE'] 'IDENTIFIER' '{' interface_main '}' ;
 
 // union declared in module
-module_union: 'UNION' ('EXTERN' | 'PRIVATE') 'IDENTIFIER' '<' [type_list] '>' (block | ';') ;
+module_union: 'UNION' ['PRIVATE'] 'IDENTIFIER' '<' [type_list] '>' 
+    (block | ';' | func_decl | module_decl | variable_decl) ;
 
 
 // COMMON MODULE PATTERNS
 partial: ':' 'IDENTIFIER' ; // partial extension
-modifiers: 'PRIVATE' | 'PROPERTY' ; // variable and function modifiers
+modifiers: 'PRIVATE' | 'PROPERTY' | 'PROTECTED'; // variable and function modifiers
 
 // BLOCK STATEMENTS (control flow, context managers and except blocks)
 block_stmt: if_stmt
@@ -185,7 +187,7 @@ term: factor (('*' | '/' | '%') factor)* ;
 factor: unary_atom ('^' unary_atom)*;
 
 // unary operators
-unary_atom: ('&' | '-' | '++' | '--' | '*'+ ) atom
+unary_atom: ('&' | '-' | '++' | '--' | '*'+ | 'REF') atom
 | atom ['++' | '--']
 ;
 
@@ -201,7 +203,6 @@ trailer: '[' (expr [slice] | slice) ']'
 | '{' init_list '}'
 | '.' 'IDENTIFIER'
 | '|>' aggr_expr '|'
-| '...'
 ;
 
 // trailer components
@@ -251,7 +252,7 @@ inline_function: 'FUNC' '(' args_decl_list ')' func_body
 ;
 
 // DATA TYPES - data type literals
-types: atom_types
+types: ['REF'] '*'* atom_types
 | 'IDENTIFIER'
 ;
 
@@ -283,7 +284,7 @@ func_types: 'FUNC' '(' args_decl_list ')' '(' type_list ')'
 // COMMON CONSTRUCTIONS - common structures used repeatedly in grammar
 type_list: types (',' types)* ;
 args_decl_list: [param (',' param)*] ;
-param: ['...'] ('$' | '@' | '&') 'IDENTIFIER' extension [initializer] ;
+param: ['...'] ['REF'] ('$' | '@') 'IDENTIFIER' extension [initializer] ;
 initializer: '=' expr ;
 iterator: '|' 'IDENTIFIER' (',' 'IDENTIFIER')* '|' ;
 
@@ -291,10 +292,10 @@ iterator: '|' 'IDENTIFIER' (',' 'IDENTIFIER')* '|' ;
 extension: [':' types] ;
 
 // function body
-func_body: '{' [main] '}'
-| '=>' expr (',' expr)*
+func_body: ['MUT'] ( '{' [main] '}'
+| '=>' expr (',' expr)* ';'
 | stmt 
-;
+);
 
 // standard block
 block: '{' [main] '}'

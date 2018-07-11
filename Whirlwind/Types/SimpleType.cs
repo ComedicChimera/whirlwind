@@ -18,6 +18,8 @@ namespace Whirlwind.Types
 
         public DataType Type { get; private set; }
 
+        public bool IsReference = false;
+
         public SimpleType(DataType dt)
         {
             Type = dt;
