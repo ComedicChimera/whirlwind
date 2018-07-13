@@ -46,8 +46,6 @@ namespace Whirlwind.Types
                         return !new[] { DataType.BOOL, DataType.TYPE }.Contains(Type);
                 }
             }
-            else if (other.Classify() == "UNION")
-                return other.Coerce(this);
             return false; 
         }
     }

@@ -2,3 +2,10 @@ C:\Users\forlo\Desktop\Coding\Whirlwind\compiler\Whirlwind\obj\Debug\netcoreapp1
 C:\Users\forlo\Desktop\Coding\Whirlwind\compiler\Whirlwind\obj\Debug\netcoreapp1.1\Whirlwind.csproj.CoreCompileInputs.cache
 C:\Users\forlo\Desktop\Coding\Whirlwind\compiler\Whirlwind\obj\Debug\netcoreapp1.1\Whirlwind.AssemblyInfoInputs.cache
 C:\Users\forlo\Desktop\Coding\Whirlwind\compiler\Whirlwind\obj\Debug\netcoreapp1.1\Whirlwind.AssemblyInfo.cs
+C:\Users\forlo\Desktop\Coding\Whirlwind\compiler\Whirlwind\bin\Debug\netcoreapp1.1\Whirlwind.deps.json
+C:\Users\forlo\Desktop\Coding\Whirlwind\compiler\Whirlwind\bin\Debug\netcoreapp1.1\Whirlwind.runtimeconfig.json
+C:\Users\forlo\Desktop\Coding\Whirlwind\compiler\Whirlwind\bin\Debug\netcoreapp1.1\Whirlwind.runtimeconfig.dev.json
+C:\Users\forlo\Desktop\Coding\Whirlwind\compiler\Whirlwind\bin\Debug\netcoreapp1.1\Whirlwind.dll
+C:\Users\forlo\Desktop\Coding\Whirlwind\compiler\Whirlwind\bin\Debug\netcoreapp1.1\Whirlwind.pdb
+C:\Users\forlo\Desktop\Coding\Whirlwind\compiler\Whirlwind\obj\Debug\netcoreapp1.1\Whirlwind.dll
+C:\Users\forlo\Desktop\Coding\Whirlwind\compiler\Whirlwind\obj\Debug\netcoreapp1.1\Whirlwind.pdb

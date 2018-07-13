@@ -25,7 +25,7 @@ namespace Whirlwind.Parser
 
     class GramLoader
     {
-        private Scanner _scanner = new Scanner("Config/ebnf.json");
+        private Scanner _scanner = new Scanner("config/ebnf.json");
         private List<Token> _tokens;
         private int _tokenPos = 0;
         private bool _done;

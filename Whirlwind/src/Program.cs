@@ -20,7 +20,7 @@ namespace Whirlwind
                 return;
             }
 
-            Compiler compiler = new Compiler("Config/tokens.json", "Config/grammar.ebnf");
+            Compiler compiler = new Compiler("config/tokens.json", "config/grammar.ebnf");
             compiler.Build(text);
 
             Console.ReadKey();

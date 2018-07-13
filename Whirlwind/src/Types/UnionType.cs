@@ -14,6 +14,8 @@ namespace Whirlwind.Types
 
         public bool Coerce(IDataType other)
         {
+            if (other.Classify() == "UNION" && this == (UnionType)other)
+                return true;
             return ValidTypes.Any(x => x.Coerce(other));
         }
 

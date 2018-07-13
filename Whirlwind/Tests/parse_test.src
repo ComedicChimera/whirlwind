@@ -1,14 +1,7 @@
-﻿interface Math {
-	func Add() int;
-	func Sub($a: int, $b: int) int;
+﻿func Main() mut {
+
 }
 
-module MyModule {
-	interface private ModuleInterface {
-		async DoThing();
-	}
+func Main() {
 
-	union extern typename<> {
-
-	}
 }
