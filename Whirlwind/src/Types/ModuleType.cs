@@ -43,6 +43,7 @@ namespace Whirlwind.Types
         private readonly List<Tuple<FunctionType, TreeNode>> _constructors;
 
         public readonly List<IDataType> Inherits;
+        public bool Partial;
 
         public bool AddConstructor(FunctionType ft, TreeNode body)
         {

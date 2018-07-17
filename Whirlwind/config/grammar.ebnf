@@ -194,7 +194,7 @@ unary_atom: ('&' | '-' | '++' | '--' | '*'+ | 'REF') atom
 
 // ATOMS - basic unit of expressions
 atom: [ 'NEW' ] [ 'AWAIT' ] base trailer*
-| '(' expr ')'
+| '(' expr ')' trailer*
 | comprehension trailer*
 ;
 
@@ -203,6 +203,7 @@ trailer: '[' (expr [slice] | slice) ']'
 | '{' init_list '}'
 | '.' 'IDENTIFIER'
 | '|>' aggr_expr '|'
+| '->' 'IDENTIFIER'
 ;
 
 // trailer components
@@ -284,7 +285,7 @@ func_types: 'FUNC' '(' args_decl_list ')' '(' type_list ')'
 // COMMON CONSTRUCTIONS - common structures used repeatedly in grammar
 type_list: types (',' types)* ;
 args_decl_list: [param (',' param)*] ;
-param: ['...'] ['REF'] ('$' | '@') 'IDENTIFIER' extension [initializer] ;
+param: ['...'] ('$' | '@') 'IDENTIFIER' extension [initializer] ;
 initializer: '=' expr ;
 iterator: '|' 'IDENTIFIER' (',' 'IDENTIFIER')* '|' ;
 

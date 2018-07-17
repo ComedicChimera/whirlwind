@@ -14,7 +14,7 @@ namespace Whirlwind.Generator
         private readonly string _name;
         private readonly IDataType _type;
 
-        public List<ITypeNode> Nodes;
+        public readonly List<ITypeNode> Nodes;
 
         public TreeNode(string name, IDataType type)
         {
