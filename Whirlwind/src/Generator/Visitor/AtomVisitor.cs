@@ -38,11 +38,6 @@ namespace Whirlwind.Generator.Visitor
             }
         }
 
-        private void _visitBase(ASTNode node)
-        {
-
-        }
-
         private void _visitComprehension(ASTNode node)
         {
 
