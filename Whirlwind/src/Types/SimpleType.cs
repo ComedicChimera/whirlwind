@@ -13,7 +13,9 @@ namespace Whirlwind.Types
             CHAR,
             BYTE,
             LONG,
-            TYPE
+            TYPE,
+            NULL,
+            VALUE
         }
 
         public DataType Type { get; private set; }
@@ -42,6 +44,9 @@ namespace Whirlwind.Types
                     // byte to everything except boolean and data type
                     case DataType.BYTE:
                         return !new[] { DataType.BOOL, DataType.TYPE }.Contains(Type);
+                    // null coerces to all
+                    case DataType.NULL:
+                        return true;
                 }
             }
             return false; 

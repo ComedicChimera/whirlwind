@@ -1,7 +1,9 @@
 ﻿using Whirlwind.Parser;
 using Whirlwind.Types;
 
+using System;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace Whirlwind.Generator.Visitor
 {
@@ -11,9 +13,14 @@ namespace Whirlwind.Generator.Visitor
         {
             if (node.Content[0].Name() == "TOKEN")
             {
-                SimpleType.DataType dt;
+                SimpleType.DataType dt = SimpleType.DataType.NULL; // default to null
                 switch (((TokenNode)node.Content[0]).Tok.Type)
                 {
+                    case "VALUE":
+                        dt = SimpleType.DataType.VALUE;
+                        _nodes.Add(new ValueNode("Value", new SimpleType(dt)));
+                        MergeBack();
+                        return;
                     case "INTEGER_LITERAL":
                         dt = SimpleType.DataType.INTEGER;
                         break;
@@ -34,8 +41,29 @@ namespace Whirlwind.Generator.Visitor
                         _generateByteLiteral(((TokenNode)node.Content[0]).Tok);
                         MergeBack();
                         return;
-                    default:
-                        return;
+                    case "IDENTIFIER":
+                        if (_table.Lookup(((TokenNode)node.Content[0]).Tok.Value, out Symbol sym))
+                        {
+                            _nodes.Add(new ValueNode("Identifier", sym.DataType, sym.Name));
+                            MergeBack();
+                            return;
+                        }
+                        {
+                            var token = ((TokenNode)node.Content[0]).Tok;
+                            throw new SemanticException("Undefined Identifier", token.Index, token.Value.Length);
+                        }
+  
+                    case "THIS":
+                        if (_table.Lookup("$THIS", out Symbol instance))
+                        {
+                            _nodes.Add(new ValueNode("This", instance.DataType));
+                            MergeBack();
+                            return;
+                        }
+                        {
+                            var token = ((TokenNode)node.Content[0]).Tok;
+                            throw new SemanticException("Use of \'this\' outside of property", token.Index, token.Value.Length);
+                        }
                 }
 
                 _nodes.Add(new ValueNode("Literal", new SimpleType(dt), ((TokenNode)node.Content[0]).Tok.Value));
@@ -45,9 +73,48 @@ namespace Whirlwind.Generator.Visitor
             {
                 switch (node.Content[0].Name())
                 {
-
+                    case "array":
+                        var arr = _processSet((ASTNode)node.Content[0]);
+                        _nodes.Add(new TreeNode("Array", new ArrayType(arr.Item1, arr.Item2)));
+                        PushForward(arr.Item2);
+                        break;
+                    case "list":
+                        var list = _processSet((ASTNode)node.Content[0]);
+                        _nodes.Add(new TreeNode("List", new ListType(list.Item1)));
+                        PushForward(list.Item2);
+                        break;
+                    case "map":
+                        break;
+                    case "inline_function":
+                        break;
+                    case "atom_types":
+                        break;
                 }
             }
+        }
+
+        private Tuple<IDataType, int> _processSet(ASTNode node)
+        {
+            IDataType dataType = new SimpleType(SimpleType.DataType.NULL);
+            int size = 0;
+            foreach (var element in node.Content)
+            {
+                if (element.Name() == "expr")
+                {
+                    _visitExpr((ASTNode)element);
+                    if (!dataType.Coerce(_nodes.Last().Type()))
+                    {
+                        if (_nodes.Last().Type().Coerce(dataType))
+                            dataType = _nodes.Last().Type();
+                        else if (dataType.Classify() == "UNION")
+                            ((UnionType)dataType).ValidTypes.Add(_nodes.Last().Type());
+                        else
+                            dataType = new UnionType(new List<IDataType>() { dataType, _nodes.Last().Type() });
+                    }
+                    size++;
+                }     
+            }
+            return new Tuple<IDataType, int>(dataType, size);
         }
 
         private void _generateByteLiteral(Token token)
