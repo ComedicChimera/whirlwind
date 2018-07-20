@@ -114,7 +114,7 @@ namespace Whirlwind.Generator.Visitor
                 if (element.Name() == "expr")
                 {
                     _visitExpr((ASTNode)element);
-                    _coerceSet(ref elementType);
+                    _coerceSet(ref elementType, element.Position);
                     size++;
                 }
             }
@@ -134,7 +134,7 @@ namespace Whirlwind.Generator.Visitor
                     _visitExpr((ASTNode)element);
                     if (isKey)
                     {
-                        _coerceSet(ref keyType);
+                        _coerceSet(ref keyType, element.Position);
 
                         if (!TypeInterfaceChecker.Hashable(keyType))
                         {
@@ -144,7 +144,7 @@ namespace Whirlwind.Generator.Visitor
                     }
                     else
                     {
-                        _coerceSet(ref valueType);
+                        _coerceSet(ref valueType, element.Position);
                         // map pairs hold the key type
                         _nodes.Add(new TreeNode("MapPair", keyType));
                         // add 2 expr nodes to map pair
@@ -157,16 +157,14 @@ namespace Whirlwind.Generator.Visitor
             return new Tuple<IDataType, IDataType, int>(keyType, valueType, size);
         }
 
-        private void _coerceSet(ref IDataType baseType)
+        private void _coerceSet(ref IDataType baseType, TextPosition pos)
         {
             if (!baseType.Coerce(_nodes.Last().Type()))
             {
                 if (_nodes.Last().Type().Coerce(baseType))
                     baseType = _nodes.Last().Type();
-                else if (baseType.Classify() == "UNION")
-                    ((UnionType)baseType).ValidTypes.Add(_nodes.Last().Type());
                 else
-                    baseType = new UnionType(new List<IDataType>() { baseType, _nodes.Last().Type() });
+                    throw new SemanticException("All values in a collection must be the same type", pos);
             }
         }
 
