@@ -49,10 +49,9 @@ namespace Whirlwind.Generator.Visitor
                             return;
                         }
                         {
-                            var token = ((TokenNode)node.Content[0]).Tok;
-                            throw new SemanticException("Undefined Identifier", token.Index, token.Value.Length);
+                            throw new SemanticException("Undefined Identifier", node.Position);
                         }
-  
+
                     case "THIS":
                         if (_table.Lookup("$THIS", out Symbol instance))
                         {
@@ -61,8 +60,7 @@ namespace Whirlwind.Generator.Visitor
                             return;
                         }
                         {
-                            var token = ((TokenNode)node.Content[0]).Tok;
-                            throw new SemanticException("Use of \'this\' outside of property", token.Index, token.Value.Length);
+                            throw new SemanticException("Use of \'this\' outside of property", node.Content[0].Position);
                         }
                 }
 
@@ -74,16 +72,22 @@ namespace Whirlwind.Generator.Visitor
                 switch (node.Content[0].Name())
                 {
                     case "array":
-                        var arr = _processSet((ASTNode)node.Content[0]);
+                        var arr = _visitSet((ASTNode)node.Content[0]);
                         _nodes.Add(new TreeNode("Array", new ArrayType(arr.Item1, arr.Item2)));
-                        PushForward(arr.Item2);
+                        if (arr.Item2 > 0)
+                            PushForward(arr.Item2);
                         break;
                     case "list":
-                        var list = _processSet((ASTNode)node.Content[0]);
+                        var list = _visitSet((ASTNode)node.Content[0]);
                         _nodes.Add(new TreeNode("List", new ListType(list.Item1)));
-                        PushForward(list.Item2);
+                        if (list.Item2 > 0)
+                            PushForward(list.Item2);
                         break;
                     case "map":
+                        var map = _visitMap((ASTNode)node.Content[0]);
+                        _nodes.Add(new TreeNode("Map", new MapType(map.Item1, map.Item2)));
+                        // will default to array if value is too small, so check not needed
+                        PushForward(map.Item3);
                         break;
                     case "inline_function":
                         break;
@@ -93,28 +97,69 @@ namespace Whirlwind.Generator.Visitor
             }
         }
 
-        private Tuple<IDataType, int> _processSet(ASTNode node)
+        private Tuple<IDataType, int> _visitSet(ASTNode node)
         {
-            IDataType dataType = new SimpleType(SimpleType.DataType.NULL);
+            IDataType elementType = new SimpleType(SimpleType.DataType.NULL);
             int size = 0;
             foreach (var element in node.Content)
             {
                 if (element.Name() == "expr")
                 {
                     _visitExpr((ASTNode)element);
-                    if (!dataType.Coerce(_nodes.Last().Type()))
-                    {
-                        if (_nodes.Last().Type().Coerce(dataType))
-                            dataType = _nodes.Last().Type();
-                        else if (dataType.Classify() == "UNION")
-                            ((UnionType)dataType).ValidTypes.Add(_nodes.Last().Type());
-                        else
-                            dataType = new UnionType(new List<IDataType>() { dataType, _nodes.Last().Type() });
-                    }
+                    _coerceSet(ref elementType);
                     size++;
-                }     
+                }
             }
-            return new Tuple<IDataType, int>(dataType, size);
+            return new Tuple<IDataType, int>(elementType, size);
+        }
+
+        private Tuple<IDataType, IDataType, int> _visitMap(ASTNode node)
+        {
+            IDataType keyType = new SimpleType(SimpleType.DataType.NULL), valueType = new SimpleType(SimpleType.DataType.NULL);
+            bool isKey = true;
+            int size = 0;
+
+            foreach (var element in node.Content)
+            {
+                if (element.Name() == "expr")
+                {
+                    _visitExpr((ASTNode)element);
+                    if (isKey)
+                    {
+                        _coerceSet(ref keyType);
+
+                        if (!TypeInterfaceChecker.Hashable(keyType))
+                        {
+                            throw new SemanticException("Unable to create map with unhashable type", element.Position);
+                        }               
+                        size++;
+                    }
+                    else
+                    {
+                        _coerceSet(ref valueType);
+                        // map pairs hold the key type
+                        _nodes.Add(new TreeNode("MapPair", keyType));
+                        // add 2 expr nodes to map pair
+                        PushForward(2);
+                    }
+                    isKey = !isKey;
+                }
+            }
+
+            return new Tuple<IDataType, IDataType, int>(keyType, valueType, size);
+        }
+
+        private void _coerceSet(ref IDataType baseType)
+        {
+            if (!baseType.Coerce(_nodes.Last().Type()))
+            {
+                if (_nodes.Last().Type().Coerce(baseType))
+                    baseType = _nodes.Last().Type();
+                else if (baseType.Classify() == "UNION")
+                    ((UnionType)baseType).ValidTypes.Add(_nodes.Last().Type());
+                else
+                    baseType = new UnionType(new List<IDataType>() { baseType, _nodes.Last().Type() });
+            }
         }
 
         private void _generateByteLiteral(Token token)

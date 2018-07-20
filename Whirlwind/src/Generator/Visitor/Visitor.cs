@@ -8,14 +8,13 @@ namespace Whirlwind.Generator.Visitor
 {
     class SemanticException : Exception
     {
-        public readonly int Start, Length;
+        public readonly TextPosition Position;
         public readonly new string Message;
 
-        public SemanticException(string message, int start, int len)
+        public SemanticException(string message, TextPosition pos)
         {
             Message = message;
-            Start = start;
-            Length = len;
+            Position = pos;
         }
     }
 
