@@ -41,6 +41,14 @@ namespace Whirlwind.Generator.Visitor
                         _generateByteLiteral(((TokenNode)node.Content[0]).Tok);
                         MergeBack();
                         return;
+                    case "RANGE_LITERAL":
+                        _nodes.Add(new ValueNode(
+                            "Range",
+                            new ListType(new SimpleType(SimpleType.DataType.INTEGER)),
+                            ((TokenNode)node.Content[0]).Tok.Value
+                        ));
+                        MergeBack();
+                        return;
                     case "IDENTIFIER":
                         if (_table.Lookup(((TokenNode)node.Content[0]).Tok.Value, out Symbol sym))
                         {
