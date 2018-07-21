@@ -1,7 +1,7 @@
-﻿func Main() mut {
-
-}
+﻿use include stdio;
 
 func Main() {
-
+	for 0..10|i| => {
+		Println(i);
+	}
 }
