@@ -2,6 +2,7 @@
 using Whirlwind.Types;
 
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Whirlwind.Generator.Visitor
 {
@@ -30,7 +31,9 @@ namespace Whirlwind.Generator.Visitor
                         case "IDENTIFIER":
                             if (_table.Lookup(tokenNode.Tok.Value, out Symbol symbol))
                             {
-                                dt = symbol.DataType;
+                                if (!new[] { "MODULE", "INTERFACE"}.Contains(symbol.DataType.Classify()))
+                                    throw new SemanticException("Identifier data type must be a module or an interface", tokenNode.Position);
+                                dt = symbol.DataType.Classify() == "MODULE" ? ((ModuleType)symbol.DataType).GetInstance() : symbol.DataType;
                             }
                             else
                             {

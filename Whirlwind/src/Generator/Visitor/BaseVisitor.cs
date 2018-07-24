@@ -276,6 +276,10 @@ namespace Whirlwind.Generator.Visitor
                             dt = SimpleType.DataType.TYPE;
                             break;
                     }
+                    if (new[] {
+                        SimpleType.DataType.STRING, SimpleType.DataType.BYTE, SimpleType.DataType.TYPE, SimpleType.DataType.BOOL
+                    }.Contains(dt) && unsigned)
+                        throw new SemanticException("Invalid type for unsigned modifier", subNode.Position);
                     return new SimpleType(dt, unsigned);
                 }
                 else if (subNode.Name() == "collection_types")
