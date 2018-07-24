@@ -1,5 +1,6 @@
 ﻿using Whirlwind.Parser;
 using Whirlwind.Types;
+using Whirlwind.Generator.Constexpr;
 
 using System;
 using System.Linq;
@@ -73,7 +74,6 @@ namespace Whirlwind.Generator.Visitor
                 }
 
                 _nodes.Add(new ValueNode("Literal", new SimpleType(dt), ((TokenNode)node.Content[0]).Tok.Value));
-                MergeBack();
             }
             else
             {
@@ -100,9 +100,14 @@ namespace Whirlwind.Generator.Visitor
                     case "inline_function":
                         break;
                     case "atom_types":
+                        var dt = _generateAtomType((ASTNode)node.Content[0]);
+                        _nodes.Add(new TreeNode("DataTypeLiteral", new SimpleType(SimpleType.DataType.TYPE)));
+                        _nodes.Add(new ValueNode("DataTypeValue", dt));
+                        MergeBack();
                         break;
                 }
             }
+            MergeBack();
         }
 
         private Tuple<IDataType, int> _visitSet(ASTNode node)
@@ -227,6 +232,142 @@ namespace Whirlwind.Generator.Visitor
                     MergeBack();
                 }
             }
+        }
+
+        private IDataType _generateAtomType(ASTNode node)
+        {
+            bool unsigned = false;
+
+            foreach (var subNode in node.Content)
+            {
+                // only one token node
+                if (subNode.Name() == "TOKEN")
+                    unsigned = true;
+                else if (subNode.Name() == "simple_types")
+                {
+                    SimpleType.DataType dt;
+                    switch (((TokenNode)((ASTNode)subNode).Content[0]).Tok.Type)
+                    {
+                        case "BOOL_TYPE":
+                            dt = SimpleType.DataType.BOOL;
+                            break;
+                        case "INT_TYPE":
+                            dt = SimpleType.DataType.INTEGER;
+                            break;
+                        case "FLOAT_TYPE":
+                            dt = SimpleType.DataType.FLOAT;
+                            break;
+                        case "DOUBLE_TYPE":
+                            dt = SimpleType.DataType.DOUBLE;
+                            break;
+                        case "LONG_TYPE":
+                            dt = SimpleType.DataType.LONG;
+                            break;
+                        case "BYTE_TYPE":
+                            dt = SimpleType.DataType.BYTE;
+                            break;
+                        case "STRING_TYPE":
+                            dt = SimpleType.DataType.STRING;
+                            break;
+                        case "CHAR_TYPE":
+                            dt = SimpleType.DataType.CHAR;
+                            break;
+                        default:
+                            dt = SimpleType.DataType.TYPE;
+                            break;
+                    }
+                    return new SimpleType(dt, unsigned);
+                }
+                else if (subNode.Name() == "collection_types")
+                {
+                    string collectionType = "";
+                    int size = 0;
+                    var subTypes = new List<IDataType>();
+
+                    foreach(var component in ((ASTNode)subNode).Content)
+                    {
+                        if (component.Name() == "TOKEN")
+                        {
+                            switch (((TokenNode)component).Tok.Type)
+                            {
+                                case "ARRAY_TYPE":
+                                    collectionType = "array";
+                                    break;
+                                case "LIST_TYPE":
+                                    collectionType = "list";
+                                    break;
+                                case "MAP_TYPE":
+                                    collectionType = "map";
+                                    break;
+                            }
+                        }
+                        else if (component.Name() == "expr" && collectionType == "array")
+                        {
+                            _visitExpr((ASTNode)component);
+                            if (!Evaluator.TryEval((TreeNode)_nodes.Last()))
+                            {
+                                throw new SemanticException("Unable to initialize array with non constexpr array bound", component.Position);
+                            }
+
+                            var val = Evaluator.Evaluate((TreeNode)_nodes.Last());
+
+                            if (val.Type() != new SimpleType(SimpleType.DataType.INTEGER))
+                            {
+                                throw new SemanticException("Invalid data type for array bound", component.Position);
+                            }
+
+                            size = Int32.Parse(val.Value);
+                        }
+                        else if (component.Name() == "types")
+                        {
+                            subTypes.Add(_generateType((ASTNode)component));
+                        }
+                    }
+
+                    switch (collectionType)
+                    {
+                        case "array":
+                            return new ArrayType(subTypes[0], size);
+                        case "list":
+                            return new ListType(subTypes[0]);
+                        case "map":
+                            if (!TypeInterfaceChecker.Hashable(subTypes[0]))
+                            {
+                                throw new SemanticException("Unable to create map with an unhashable type", subNode.Position);
+                            }
+                            return new MapType(subTypes[0], subTypes[1]);
+                    }
+                }
+                // assume function type
+                else
+                {
+                    bool async = false;
+
+                    var args = new List<Parameter>();
+                    var returnTypes = new List<IDataType>();
+
+                    foreach (var item in ((ASTNode)subNode).Content)
+                    {
+                        switch (item.Name()) {
+                            case "TOKEN":
+                                if (((TokenNode)item).Tok.Type == "ASYNC")
+                                    async = true;
+                                break;
+                            case "args_decl_list":
+                                args = _generateArgsDecl((ASTNode)item);
+                                break;
+                            case "type_list":
+                                returnTypes = _generateTypeList((ASTNode)item);
+                                break;
+                        }
+                    }
+
+                    return new FunctionType(args, returnTypes, async);
+                }
+            }
+
+            // cover all your bases ;)
+            return new SimpleType(SimpleType.DataType.NULL);
         }
     }
 }

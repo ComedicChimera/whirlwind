@@ -2,7 +2,7 @@
   "profiles": {
     "Whirlwind": {
       "commandName": "Project",
-      "workingDirectory": "C:\\Users\\forlo\\Desktop\\Coding\\Whirlwind\\Whirlwind"
+      "workingDirectory": "C:\\Users\\forlo\\Desktop\\Coding\\Whirlwind\\compiler\\Whirlwind"
     }
   }
 }

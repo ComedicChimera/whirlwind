@@ -2,6 +2,7 @@
 | enum_const ';'
 | block_decl
 | include_stmt ';'
+| export_decl
 )+ ;
 
 
@@ -22,18 +23,18 @@ block_decl: func_decl
 ;
 
 // function declaration
-func_decl: ('FUNC' | 'ASYNC') ['EXTERN'] 'IDENTIFIER' '(' args_decl_list ')' [ '(' type_list ')' ] func_body ;
+func_decl: ('FUNC' | 'ASYNC') 'IDENTIFIER' '(' args_decl_list ')' [ '(' type_list ')' | type_list ] func_body ;
 
 // interface decl
-interface_decl: 'INTERFACE' ['EXTERN'] 'IDENTIFIER' '{' interface_main+ '}' ;
+interface_decl: 'INTERFACE' 'IDENTIFIER' '{' interface_main+ '}' ;
 interface_main: ('FUNC' | 'ASYNC') 'IDENTIFIER' '(' args_decl_list ')' [ '(' type_list ')' | type_list ] ';' ;
 
 // type union declaration
-union_decl: 'UNION' ['EXTERN'] 'IDENTIFIER' '<' [type_list] '>' 
-    (block | ';' | func_decl | module_decl | variable_decl) ;
+union_decl: 'UNION' 'IDENTIFIER' '<' [type_list] '>' 
+    (block | ';' | block_decl) ;
 
 // module declaration
-module_decl: 'MODULE' ('EXTERN' | 'PARTIAL')* 'IDENTIFIER' partial* '{' module_main+ '}' ;
+module_decl: 'MODULE' ['PARTIAL'] 'IDENTIFIER' partial* '{' module_main+ '}' ;
 module_main: constructor_decl
 | method_decl
 | member_decl
@@ -61,6 +62,13 @@ module_union: 'UNION' ['PRIVATE'] 'IDENTIFIER' '<' [type_list] '>'
 // COMMON MODULE PATTERNS
 partial: ':' 'IDENTIFIER' ; // partial extension
 modifiers: 'PRIVATE' | 'PROPERTY' | 'PROTECTED'; // variable and function modifiers
+
+// export_stmt
+export_decl: 'EXPORT' ( block_decl
+| include_stmt ';'
+| variable_decl ';'
+| enum_const ';'
+);
 
 // BLOCK STATEMENTS (control flow, context managers and except blocks)
 block_stmt: if_stmt
@@ -123,7 +131,7 @@ stmt: ( variable_decl
 ;
 
 // variable declaration
-variable_decl: ('VOLATILE' | 'EXTERN')* ('$' | '@') var extension variable_initializer  ;
+variable_decl: ['VOLATILE'] ('$' | '@') var extension variable_initializer  ;
 var: '(' 'IDENTIFIER' extension variable_initializer (',' 'IDENTIFIER' extension variable_initializer)* ')'
 | 'IDENTIFIER'
 ;
@@ -133,7 +141,7 @@ variable_initializer: [ '=' expr
 ] ;
 
 // include statement
-include_stmt: ['EXTERN'] ['USE'] 'INCLUDE' pkg_name ['STRING_LITERAL'] ;
+include_stmt: ['USE'] 'INCLUDE' pkg_name ['STRING_LITERAL'] ;
 pkg_name: 'IDENTIFIER' ('.' 'IDENTIFIER')* ;
 
 // enumerated constant
@@ -254,11 +262,11 @@ inline_function: 'FUNC' '(' args_decl_list ')' func_body
 ;
 
 // DATA TYPES - data type literals
-types: ['REF'] '*'* atom_types
+types: ['REF' | '*'+] atom_types
 | 'IDENTIFIER'
 ;
 
-atom_types: simple_types
+atom_types: ['UNSIGNED'] simple_types
 | collection_types
 | func_types
 ;
@@ -271,6 +279,7 @@ simple_types: 'BOOL_TYPE'
 | 'DATA_TYPE'
 | 'BYTE_TYPE'
 | 'LONG_TYPE'
+| 'DOUBLE_TYPE'
 ;
 
 collection_types: 'ARRAY_TYPE' '[' types ',' expr ']'

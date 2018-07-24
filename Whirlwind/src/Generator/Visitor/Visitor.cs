@@ -56,6 +56,6 @@ namespace Whirlwind.Generator.Visitor
             ((TreeNode)ending).Nodes.AddRange(items);
 
             _nodes.Add(ending);
-        }
+        }        
     }
 }

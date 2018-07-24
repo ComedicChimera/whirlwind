@@ -13,16 +13,19 @@ namespace Whirlwind.Types
             CHAR,
             BYTE,
             LONG,
+            DOUBLE,
             TYPE,
             NULL,
             VALUE
         }
 
         public DataType Type { get; private set; }
+        public readonly bool Unsigned;
 
-        public SimpleType(DataType dt)
+        public SimpleType(DataType dt, bool unsigned = false)
         {
             Type = dt;
+            Unsigned = unsigned;
         }
 
         public string Classify() => "SIMPLE_TYPE";
@@ -33,6 +36,9 @@ namespace Whirlwind.Types
             {
                 if (((SimpleType)other).Type == Type)
                     return true;
+                // make sure that you are not coercing signed to unsigned
+                if (!((SimpleType)other).Unsigned && Unsigned)
+                    return false;
                 switch (((SimpleType)other).Type)
                 {
                     // integer to long and float

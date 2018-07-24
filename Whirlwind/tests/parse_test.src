@@ -5,3 +5,11 @@ func Main() {
 		Println(i);
 	}
 }
+
+export func SomeFunc() int {
+	$val: unsigned int;
+
+	val = 3 + 4;
+
+	return val;
+}
