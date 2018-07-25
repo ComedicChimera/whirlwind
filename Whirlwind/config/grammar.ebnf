@@ -167,7 +167,7 @@ continue_stmt: 'CONTINUE' ;
 break_stmt: 'BREAK' ;
 throw_stmt: 'THROW' expr ;
 delete_stmt: 'DELETE' 'IDENTIFIER' (',' 'IDENTIFIER')* ;
-return_stmt: ('YIELD' | 'RETURN') [expr (',' expr)*] ;
+return_stmt: 'RETURN' [expr (',' expr)*] ;
 
 
 // EXPRESSIONS - basic unit of statements 
@@ -229,7 +229,7 @@ aggr_op: '+' | '-' | '*' | '/' | '^' | '%'
 ;
 
 // for comprehension
-comprehension: 'FOR' '(' expr iterator '=>' expr ['IF' expr] ')' ;
+comprehension: 'FOR' '(' expr iterator '=>' expr [':' expr] ['IF' expr] ')' ;
 
 
 // BASES - lowest component of an atom

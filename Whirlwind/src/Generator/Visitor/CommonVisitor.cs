@@ -77,5 +77,48 @@ namespace Whirlwind.Generator.Visitor
             }
             return dataTypes;
         }
+
+        public void _visitIterator(ASTNode node)
+        {
+            // expects previous node to be the iterable value
+            var iterable = _nodes.Last().Type();
+            var iteratorTypes = new List<IDataType>();
+
+            if (TypeInterfaceChecker.Iterable(iterable))
+            {
+                if (iterable is IIterable)
+                    iteratorTypes.AddRange((iterable as IIterable).GetIterator());
+                // should never fail
+                else if (((ModuleInstance)iterable).GetProperty("__next__", out Symbol method))
+                {
+                    iteratorTypes.AddRange(((FunctionType)method.DataType).ReturnTypes);
+                }
+            }
+            else
+                throw new SemanticException("Unable to create iterator over non-iterable value", node.Position);
+
+            // all are tokens
+            string[] identifiers = node.Content.Select(x => ((TokenNode)x).Tok)
+                .Where(x => x.Type == "IDENTIFIER")
+                .Select(x => x.Value)
+                .ToArray();
+
+            if (identifiers.Length != iteratorTypes.Count)
+                throw new SemanticException("Base iterator and it's alias's don't match", node.Position);
+
+            for (int i = 0; i < identifiers.Length; i++)
+            {
+                _table.AddSymbol(new Symbol(identifiers[i], iteratorTypes[i]));
+            }
+
+            _nodes.Add(new TreeNode(
+                "Iterator",
+                new SimpleType(SimpleType.DataType.NULL),
+                Enumerable.Range(0, identifiers.Length)
+                    .Select(i => new ValueNode("Identifier", iteratorTypes[i], identifiers[i]))
+                    .Select(x => x as ITypeNode)
+                    .ToList()
+            ));
+        }
     }
 }

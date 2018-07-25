@@ -1,8 +1,14 @@
 ﻿using System.Linq;
+using System.Collections.Generic;
 
 namespace Whirlwind.Types
 {
-    class ArrayType : IDataType
+    interface IIterable
+    {
+        List<IDataType> GetIterator();
+    }
+
+    class ArrayType : IDataType, IIterable
     {
         public readonly IDataType ElementType;
         public readonly int Size;
@@ -23,9 +29,14 @@ namespace Whirlwind.Types
             }
             return false;
         }
+
+        public List<IDataType> GetIterator()
+        {
+            return new List<IDataType>() { ElementType };
+        }
     }
 
-    class ListType : IDataType
+    class ListType : IDataType, IIterable
     {
         public readonly IDataType ElementType;
 
@@ -44,9 +55,14 @@ namespace Whirlwind.Types
             }
             return false;
         }
+
+        public List<IDataType> GetIterator()
+        {
+            return new List<IDataType>() { ElementType };
+        }
     }
 
-    class MapType : IDataType
+    class MapType : IDataType, IIterable
     {
         public readonly IDataType KeyType, ValueType;
 
@@ -65,6 +81,11 @@ namespace Whirlwind.Types
                 return KeyType == ((MapType)other).KeyType && ValueType == ((MapType)other).ValueType;
             }
             return false;
+        }
+
+        public List<IDataType> GetIterator()
+        {
+            return new List<IDataType>() { KeyType, ValueType };
         }
     }
 }
