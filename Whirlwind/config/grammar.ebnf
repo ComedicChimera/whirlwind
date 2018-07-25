@@ -202,7 +202,6 @@ unary_atom: ('&' | '-' | '++' | '--' | '*'+ | 'REF') atom
 
 // ATOMS - basic unit of expressions
 atom: [ 'NEW' ] [ 'AWAIT' ] base trailer*
-| '(' expr ')' trailer*
 | comprehension trailer*
 ;
 
@@ -251,6 +250,7 @@ base: 'INTEGER_LITERAL'
 | map
 | atom_types
 | inline_function
+| sub_expr
 ;
 
 array: '{' [ expr ( ',' expr )* ] '}' ;
@@ -260,6 +260,9 @@ map: '{' [ expr ':' expr (',' expr ':' expr)* ] '}' ;
 inline_function: 'FUNC' '(' args_decl_list ')' func_body
 | 'ASYNC' '(' args_decl_list ')' func_body
 ;
+
+// sub expr declared so that it could be easier to parse
+sub_expr: '(' expr ')' ;
 
 // DATA TYPES - data type literals
 types: ['REF' | '*'+] atom_types

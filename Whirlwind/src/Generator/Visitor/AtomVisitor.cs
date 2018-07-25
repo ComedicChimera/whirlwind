@@ -21,9 +21,6 @@ namespace Whirlwind.Generator.Visitor
                     case "trailer":
                         _visitTrailer((ASTNode)subNode);
                         break;
-                    // add test case for subNodes
-                    case "expr":
-                        break;
                     case "TOKEN":
                         switch (((TokenNode)subNode).Tok.Type) {
                             case "AWAIT":

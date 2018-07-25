@@ -98,12 +98,18 @@ namespace Whirlwind.Generator.Visitor
                         PushForward(map.Item3);
                         break;
                     case "inline_function":
+                        _visitInlineFunction((ASTNode)node.Content[0]);
                         break;
                     case "atom_types":
                         var dt = _generateAtomType((ASTNode)node.Content[0]);
                         _nodes.Add(new TreeNode("DataTypeLiteral", new SimpleType(SimpleType.DataType.TYPE)));
                         _nodes.Add(new ValueNode("DataTypeValue", dt));
                         MergeBack();
+                        break;
+                    case "sub_expr":
+                        // base -> sub_expr -> ( expr ) 
+                        // select expr
+                        _visitExpr(((ASTNode)((ASTNode)node.Content[0]).Content[1]));
                         break;
                 }
             }
@@ -372,6 +378,35 @@ namespace Whirlwind.Generator.Visitor
 
             // cover all your bases ;)
             return new SimpleType(SimpleType.DataType.NULL);
+        }
+
+        private void _visitInlineFunction(ASTNode node)
+        {
+            var args = new List<Parameter>();
+            var rtType = new List<IDataType>();
+            bool async = false;
+
+            foreach (var item in node.Content)
+            {
+                switch (item.Name())
+                {
+                    case "TOKEN":
+                        if (((TokenNode)item).Tok.Type == "ASYNC")
+                            async = true;
+                        break;
+                    case "args_decl_list":
+                        args = _generateArgsDecl((ASTNode)item);
+                        break;
+                    case "func_body":
+                        rtType = _visitFuncBody((ASTNode)item);
+                        break;
+                }
+            }
+
+            var fType = new FunctionType(args, rtType, async); 
+
+            _nodes.Add(new TreeNode("InlineFunction", fType));
+            PushForward();
         }
     }
 }
