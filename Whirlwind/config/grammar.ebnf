@@ -1,10 +1,10 @@
-﻿whirlwind: ( variable_decl ';'
+﻿// WHIRLWIND STANDARD GRAMMAR
+whirlwind: ( variable_decl ';'
 | enum_const ';'
 | block_decl
 | include_stmt ';'
 | export_decl
 )+ ;
-
 
 main: ( block_decl
 | block_stmt 
@@ -15,60 +15,66 @@ main: ( block_decl
 subscope: '{' main '}' ;
 
 
-// BLOCK DECLARATION (functions and modules)
-block_decl: func_decl
-| interface_decl
-| union_decl
-| module_decl
-;
-
-// function declaration
-func_decl: ('FUNC' | 'ASYNC') 'IDENTIFIER' '(' args_decl_list ')' [ '(' type_list ')' | type_list ] func_body ;
-
-// interface decl
-interface_decl: 'INTERFACE' 'IDENTIFIER' '{' interface_main+ '}' ;
-interface_main: ('FUNC' | 'ASYNC') 'IDENTIFIER' '(' args_decl_list ')' [ '(' type_list ')' | type_list ] ';' ;
-
-// type union declaration
-union_decl: 'UNION' 'IDENTIFIER' '<' [type_list] '>' 
-    (block | ';' | block_decl) ;
-
+// MODULES AND MODULAR COMPONENTS
 // module declaration
 module_decl: 'MODULE' ['PARTIAL'] 'IDENTIFIER' partial* '{' module_main+ '}' ;
 module_main: constructor_decl
-| method_decl
 | member_decl
-| module_interface
-| module_union
+| static_decl
 ;
 
 // constructor declaration
 constructor_decl: 'CONSTRUCTOR' '(' args_decl_list ')' func_body ;
 
-// method declaration
-method_decl: ('FUNC' | 'ASYNC') ['PRIVATE'] modifiers* 'IDENTIFIER' '(' args_decl_list ')' [ '(' type_list ')' | type_list ] partial* func_body ;
-
 // member declaration (variables)
-member_decl: modifiers* (variable_decl | enum_const) ';' ;
+member_decl: modifiers* ( variable_decl ';' 
+| enum_const ';'
+| method_decl
+| method_template
+) ;
 
-// interface declared in module
-module_interface: 'INTERFACE' ['PRIVATE'] 'IDENTIFIER' '{' interface_main '}' ;
+// static declarations (structs, interfaces, and templates)
+static_decl: ['PRIVATE'] ( struct_decl
+| interface_decl
+| template_decl 
+) ;
 
-// union declared in module
-module_union: 'UNION' ['PRIVATE'] 'IDENTIFIER' '<' [type_list] '>' 
-    (block | ';' | func_decl | module_decl | variable_decl) ;
+// method declaration
+method_decl: ('FUNC' | 'ASYNC') 'IDENTIFIER' '(' args_decl_list ')' [ '(' type_list ')' | type_list ] partial* func_body ;
 
+// method template
+method_template: 'TEMPLATE' '<' template (',' template)* '>' method_decl ;
 
-// COMMON MODULE PATTERNS
+// common module patterns
 partial: ':' 'IDENTIFIER' ; // partial extension
 modifiers: 'PRIVATE' | 'PROPERTY' | 'PROTECTED'; // variable and function modifiers
 
-// export_stmt
-export_decl: 'EXPORT' ( block_decl
-| include_stmt ';'
-| variable_decl ';'
-| enum_const ';'
-);
+
+// BLOCK DECLARATIONS
+block_decl: func_decl
+| interface_decl
+| module_decl
+| struct_decl
+| template_decl
+;
+
+// function declaration
+func_decl: ('FUNC' | 'ASYNC') 'IDENTIFIER' '(' args_decl_list ')' [ '(' type_list ')' | type_list ] func_body ;
+
+// interface declaration
+interface_decl: 'INTERFACE' 'IDENTIFIER' '{' interface_main '}' ;
+interface_main: (interface_func ';')+ ;
+interface_func: ('FUNC' | 'ASYNC') 'IDENTIFIER' '(' args_decl_list ')' [ '(' type_list ')' | type_list ] ;
+
+// struct declaration
+struct_decl: 'STRUCT' 'IDENTIFIER' '{' struct_main '}' ;
+struct_main: (struct_var ';')+ ;
+struct_var: 'IDENTIFIER' (',' 'IDENTIFIER')* ':' types ;
+
+// template declaration
+template_decl: 'TEMPLATE' '<' template (',' template)* '>' block_decl ;
+template: 'IDENTIFIER' [':' type_list] ;
+
 
 // BLOCK STATEMENTS (control flow, context managers and except blocks)
 block_stmt: if_stmt
@@ -78,6 +84,7 @@ block_stmt: if_stmt
 | do_loop
 | except_block
 | with_block
+| export_decl
 ;
 
 // if statement
@@ -113,6 +120,13 @@ handle_block: expr ':' '(' 'IDENTIFIER' ')' '=>' block ;
 
 // context manager
 with_block: 'WITH' '(' variable_decl ')' block ;
+
+// export declaration
+export_decl: 'EXPORT' ( block_decl
+| include_stmt ';'
+| variable_decl ';'
+| enum_const ';'
+);
 
 
 // STATEMENTS

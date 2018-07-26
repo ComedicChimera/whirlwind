@@ -31,7 +31,7 @@ namespace Whirlwind.Generator.Visitor
                         case "IDENTIFIER":
                             if (_table.Lookup(tokenNode.Tok.Value, out Symbol symbol))
                             {
-                                if (!new[] { "MODULE", "INTERFACE"}.Contains(symbol.DataType.Classify()))
+                                if (!new[] { "MODULE", "INTERFACE", "STRUCT"}.Contains(symbol.DataType.Classify()))
                                     throw new SemanticException("Identifier data type must be a module or an interface", tokenNode.Position);
                                 dt = symbol.DataType.Classify() == "MODULE" ? ((ModuleType)symbol.DataType).GetInstance() : symbol.DataType;
                             }

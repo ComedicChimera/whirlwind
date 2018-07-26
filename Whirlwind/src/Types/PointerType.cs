@@ -12,13 +12,7 @@
         }
 
         public bool Coerce(IDataType other)
-        {
-            if (other.Classify() == "POINTER")
-            {
-                return Type.Coerce(((PointerType)other).Type) && Pointers == ((PointerType)other).Pointers;
-            }
-            return false;
-        }
+            => false;
 
         public string Classify() => "POINTER";
     }

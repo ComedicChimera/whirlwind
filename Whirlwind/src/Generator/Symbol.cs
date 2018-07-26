@@ -7,7 +7,7 @@ namespace Whirlwind.Generator
     {
         PRIVATE,
         PARTIAL,
-        EXTERN,
+        EXPORTED,
         PROPERTY,
         PROTECTED
     }

@@ -44,9 +44,12 @@ namespace Whirlwind.Types
                     return false;
                 switch (((SimpleType)other).Type)
                 {
-                    // integer to long and float
+                    // integer to long, double, and float
                     case DataType.INTEGER:
-                        return new[] { DataType.FLOAT, DataType.LONG }.Contains(Type);
+                        return new[] { DataType.FLOAT, DataType.LONG, DataType.DOUBLE }.Contains(Type);
+                    // float to double
+                    case DataType.FLOAT:
+                        return Type == DataType.DOUBLE;
                     // char to integer and string
                     case DataType.CHAR:
                         return new[] { DataType.STRING, DataType.INTEGER }.Contains(Type);

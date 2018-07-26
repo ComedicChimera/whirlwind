@@ -10,10 +10,13 @@ namespace Whirlwind.Types
     class ModuleInstance : IDataType
     {
         private readonly List<Symbol> _instance;
+
+        public readonly string Name;
         public readonly List<IDataType> Inherits;
 
-        public ModuleInstance(SymbolTable table, List<IDataType> inherits)
+        public ModuleInstance(string name, SymbolTable table, List<IDataType> inherits)
         {
+            Name = name;
             _instance = table.Filter(Modifier.PROPERTY).Where(x => !x.Modifiers.Contains(Modifier.PRIVATE)).ToList();
             Inherits = inherits;
         }
@@ -42,8 +45,18 @@ namespace Whirlwind.Types
         private readonly SymbolTable _table;
         private readonly List<Tuple<FunctionType, TreeNode>> _constructors;
 
+        private readonly string Name;
         public readonly List<IDataType> Inherits;
         public bool Partial;
+
+        public ModuleType(string name, bool partial)
+        {
+            Name = name;
+            _table = new SymbolTable();
+            _constructors = new List<Tuple<FunctionType, TreeNode>>();
+            Inherits = new List<IDataType>();
+            Partial = partial;
+        }
 
         public bool AddConstructor(FunctionType ft, TreeNode body)
         {
@@ -89,7 +102,7 @@ namespace Whirlwind.Types
 
         public ModuleInstance GetInstance()
         {
-            return new ModuleInstance(_table, Inherits);
+            return new ModuleInstance(Name, _table, Inherits);
         }
 
         public string Classify() => "MODULE";

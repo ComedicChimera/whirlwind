@@ -1,15 +1,12 @@
-﻿use include stdio;
+﻿template <T> func Test($x: T) {
 
-func Main() {
-	for 0..10|i| => {
-		Println(i);
-	}
 }
 
-export func SomeFunc() int {
-	$val: unsigned int;
+struct Point {
+	x, y: int;
+}
 
-	val = 3 + 4;
-
-	return val;
+struct Force {
+	direction: Point;
+	mag: float;
 }

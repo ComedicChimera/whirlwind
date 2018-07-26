@@ -12,6 +12,24 @@ namespace Whirlwind.Types
         public bool Indefinite;
         public TreeNode DefaultValue;
 
+        public Parameter(string name, IDataType dt)
+        {
+            Name = name;
+            DataType = dt;
+            Optional = false;
+            Indefinite = false;
+            DefaultValue = new TreeNode("", DataType);
+        }
+
+        public Parameter(string name, IDataType dt, bool optional, bool indefinite, TreeNode defaultVal)
+        {
+            Name = name;
+            DataType = dt;
+            Optional = optional;
+            Indefinite = indefinite;
+            DefaultValue = defaultVal;
+        }
+
         public bool Compare(Parameter other)
         {
             if (other.Name != Name)
@@ -29,7 +47,22 @@ namespace Whirlwind.Types
     {
         public bool HasName;
         public string Name;
-        public IDataType dataType;
+        public IDataType DataType;
+
+        public ParameterValue(IDataType dt)
+        {
+            HasName = false;
+            Name = "";
+            DataType = dt;
+        }
+
+        public ParameterValue(string name, IDataType dt)
+        {
+            HasName = true;
+            Name = name;
+            DataType = dt;
+
+        }
     }
 
     class FunctionType : IDataType
