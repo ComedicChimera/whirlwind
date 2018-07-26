@@ -7,7 +7,7 @@ namespace Whirlwind.Types
         static public bool Hashable(IDataType dt)
         {
             // add body
-            return false;
+            return true;
         }
 
         static public bool Iterable(IDataType dt)

@@ -11,6 +11,12 @@ namespace Whirlwind.Generator
             public List<Symbol> Symbols;
             public List<Scope> SubScopes;
 
+            public Scope()
+            {
+                Symbols = new List<Symbol>();
+                SubScopes = new List<Scope>();
+            }
+
             public bool AddSymbol(Symbol symbol)
             {
                 if (Symbols.Contains(symbol))
@@ -38,6 +44,12 @@ namespace Whirlwind.Generator
 
         private Scope _table;
         private int[] _scopePath;
+
+        public SymbolTable()
+        {
+            _table = new Scope();
+            _scopePath = new int[] { };
+        }
 
         public bool AddSymbol(Symbol symbol)
         {

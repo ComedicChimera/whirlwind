@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
+
 using Whirlwind.Types;
 
 namespace Whirlwind.Generator
@@ -20,6 +22,7 @@ namespace Whirlwind.Generator
         {
             _name = name;
             _type = type;
+            Nodes = new List<ITypeNode>();
         }
 
         public TreeNode(string name, IDataType type, List<ITypeNode> nodes)
@@ -31,6 +34,11 @@ namespace Whirlwind.Generator
 
         public string Name() => _name;
         public IDataType Type() => _type;
+
+        public override string ToString()
+        {
+            return $"{_name}:[{string.Join(", ", Nodes.Select(x => x.ToString()))}]";
+        }
     }
 
     class ValueNode : ITypeNode
@@ -55,5 +63,10 @@ namespace Whirlwind.Generator
 
         public string Name() => _name;
         public IDataType Type() => _type;
+
+        public override string ToString()
+        {
+            return $"Value({_name}, {_type}, {Value})";
+        }
     }
 }

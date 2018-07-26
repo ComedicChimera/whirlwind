@@ -37,7 +37,7 @@ namespace Whirlwind.Generator.Visitor
                             }
                             else
                             {
-                                throw new SemanticException($"Undeclared identifier '{tokenNode.Tok.Value}'", tokenNode.Position);
+                                throw new SemanticException($"Undefined Identifier: '{tokenNode.Tok.Value}'", tokenNode.Position);
                             }
                             break;
                     }

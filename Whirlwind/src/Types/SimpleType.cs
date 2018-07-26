@@ -32,6 +32,9 @@ namespace Whirlwind.Types
 
         public bool Coerce(IDataType other)
         {
+            // null can coerce to anything
+            if (Type == DataType.NULL)
+                return true;
             if (other.Classify() == "SIMPLE_TYPE")
             {
                 if (((SimpleType)other).Type == Type)
@@ -50,9 +53,6 @@ namespace Whirlwind.Types
                     // byte to everything except boolean and data type
                     case DataType.BYTE:
                         return !new[] { DataType.BOOL, DataType.TYPE }.Contains(Type);
-                    // null coerces to all
-                    case DataType.NULL:
-                        return true;
                 }
             }
             return false; 

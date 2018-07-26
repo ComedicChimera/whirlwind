@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using Whirlwind.Parser;
+using Whirlwind.Generator.Visitor;
 
 namespace Whirlwind
 {
@@ -33,14 +34,33 @@ namespace Whirlwind
                     Console.WriteLine("Unexpected End of File");
                 else
                 {
-                    int line = GetLine(text, isx.Tok.Index), column = GetColumn(text, isx.Tok.Index);
-                    Console.WriteLine($"Unexpected Token: \'{isx.Tok.Value}\' at (Line:{line + 1}, Column: {column})");
-                    Console.WriteLine($"\n\t{text.Split('\n')[line].Trim('\t')}");
-                    Console.WriteLine("\t" + String.Concat(Enumerable.Repeat(" ", column - 1)) + String.Concat(Enumerable.Repeat("^", isx.Tok.Value.Length)));
+                    WriteError(text, $"Unexpected Token: '{isx.Tok.Value}'", isx.Tok.Index, isx.Tok.Value.Length);
                 }
                 return;
             }
-            Console.WriteLine(ast.ToString());
+            // Console.WriteLine(ast.ToString());
+
+            var visitor = new Visitor();
+
+            try
+            {
+                visitor.Visit(ast);
+            }
+            catch (SemanticException smex)
+            {
+                WriteError(text, smex.Message, smex.Position.Start, smex.Position.Length);
+                return;
+            }
+
+            Console.WriteLine(visitor.Result().ToString());
+        }
+
+        private void WriteError(string text, string message, int position, int length)
+        {
+            int line = GetLine(text, position), column = GetColumn(text, position);
+            Console.WriteLine($"{message} at (Line: {line + 1}, Column: {column})");
+            Console.WriteLine($"\n\t{text.Split('\n')[line].Trim('\t')}");
+            Console.WriteLine("\t" + String.Concat(Enumerable.Repeat(" ", column - 1)) + String.Concat(Enumerable.Repeat("^", length)));
         }
 
         private int GetLine(string text, int ndx)

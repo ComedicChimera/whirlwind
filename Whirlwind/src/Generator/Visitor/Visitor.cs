@@ -23,7 +23,13 @@ namespace Whirlwind.Generator.Visitor
         private List<ITypeNode> _nodes;
         private SymbolTable _table;
 
-        public ITypeNode Visit(ASTNode ast)
+        public Visitor()
+        {
+            _nodes = new List<ITypeNode>();
+            _table = new SymbolTable();
+        }
+
+        public void Visit(ASTNode ast)
         {
             foreach (INode node in ast.Content)
             {
@@ -32,30 +38,44 @@ namespace Whirlwind.Generator.Visitor
                     case "atom":
                         _visitAtom((ASTNode)node);
                         break;
+                    // prevent tokens from being recognized
+                    case "TOKEN":
+                        break;       
+                    default:
+                        Visit((ASTNode)node);
+                        break;
                 }
             }
-            return _nodes[0];
         }
 
         private void MergeBack(int depth = 1)
         {
-            depth++;
-            for (int i = 1; i < depth; i++)
+            if (_nodes.Count <= depth)
+                return;
+            for (int i = 0; i < depth; i++)
             {
-                ((TreeNode)_nodes[_nodes.Count - depth]).Nodes.Add(_nodes[_nodes.Count - i]);
+                ((TreeNode)_nodes[_nodes.Count - (depth + 1)]).Nodes.Add(_nodes[_nodes.Count - 1]);
+                _nodes.RemoveAt(_nodes.Count - 1);
             }
         }
 
-        public void PushForward(int depth = 1)
+        private void PushForward(int depth = 1)
         {
-            var ending = _nodes.Last();
+            if (_nodes.Count <= depth)
+                return;
+            var ending = (TreeNode)_nodes.Last();
             _nodes.RemoveAt(_nodes.Count - 1);
-            var items = Enumerable.Range(_nodes.Count - (depth + 1), _nodes.Count - 1)
-                .Select(i => _nodes[i]).Reverse().ToList();
 
-            ((TreeNode)ending).Nodes.AddRange(items);
+            for (int i = 0; i < depth; i++)
+            {
+                int pos = _nodes.Count - (depth - i);
+                ending.Nodes.Add(_nodes[pos]);
+                _nodes.RemoveAt(pos);
+            }
 
             _nodes.Add(ending);
-        }        
+        }
+
+        public ITypeNode Result() => _nodes.First();
     }
 }

@@ -18,9 +18,7 @@ namespace Whirlwind.Generator.Visitor
                 switch (((TokenNode)node.Content[0]).Tok.Type)
                 {
                     case "VALUE":
-                        dt = SimpleType.DataType.VALUE;
-                        _nodes.Add(new ValueNode("Value", new SimpleType(dt)));
-                        MergeBack();
+                        _nodes.Add(new ValueNode("Value", new SimpleType(SimpleType.DataType.VALUE)));
                         return;
                     case "INTEGER_LITERAL":
                         dt = SimpleType.DataType.INTEGER;
@@ -39,8 +37,7 @@ namespace Whirlwind.Generator.Visitor
                         break;
                     case "HEX_LITERAL":
                     case "BINARY_LITERAL":
-                        _generateByteLiteral(((TokenNode)node.Content[0]).Tok);
-                        MergeBack();
+                        _visitByteLiteral(((TokenNode)node.Content[0]).Tok);
                         return;
                     case "RANGE_LITERAL":
                         _nodes.Add(new ValueNode(
@@ -48,24 +45,21 @@ namespace Whirlwind.Generator.Visitor
                             new ListType(new SimpleType(SimpleType.DataType.INTEGER)),
                             ((TokenNode)node.Content[0]).Tok.Value
                         ));
-                        MergeBack();
                         return;
                     case "IDENTIFIER":
                         if (_table.Lookup(((TokenNode)node.Content[0]).Tok.Value, out Symbol sym))
                         {
                             _nodes.Add(new ValueNode("Identifier", sym.DataType, sym.Name));
-                            MergeBack();
                             return;
                         }
                         {
-                            throw new SemanticException("Undefined Identifier", node.Position);
+                            throw new SemanticException($"Undefined Identifier: '{((TokenNode)node.Content[0]).Tok.Value}'", node.Position);
                         }
 
                     case "THIS":
                         if (_table.Lookup("$THIS", out Symbol instance))
                         {
                             _nodes.Add(new ValueNode("This", instance.DataType));
-                            MergeBack();
                             return;
                         }
                         {
@@ -113,7 +107,6 @@ namespace Whirlwind.Generator.Visitor
                         break;
                 }
             }
-            MergeBack();
         }
 
         private Tuple<IDataType, int> _visitSet(ASTNode node)
@@ -179,7 +172,7 @@ namespace Whirlwind.Generator.Visitor
             }
         }
 
-        private void _generateByteLiteral(Token token)
+        private void _visitByteLiteral(Token token)
         {
             if (token.Type == "HEX_LITERAL")
             {
@@ -189,11 +182,11 @@ namespace Whirlwind.Generator.Visitor
                 }
                 else
                 {
+                    token.Value = token.Value.Substring(2);
                     string value = token.Value.Length % 2 == 0 ? token.Value : "0" + token.Value;
                     var pairs = Enumerable.Range(0, value.Length)
                         .Where(x => x % 2 == 0)
                         .Select(x => "0x" + value[x] + value[x + 1])
-                        .Skip(1)
                         .Select(x => new ValueNode("Literal",
                             new SimpleType(SimpleType.DataType.BYTE),
                             x))
@@ -206,7 +199,6 @@ namespace Whirlwind.Generator.Visitor
                         _nodes.Add(node);
                         MergeBack();
                     }
-                    MergeBack();
                 }
             }
             else
@@ -217,12 +209,12 @@ namespace Whirlwind.Generator.Visitor
                 }
                 else
                 {
+                    token.Value = token.Value.Substring(2);
                     string value = token.Value.Length % 8 == 0 ? token.Value :
-                        Enumerable.Repeat("0", 8 - token.Value.Length % 8) + token.Value;
+                        string.Join("", Enumerable.Repeat("0", 8 - token.Value.Length % 8)) + token.Value;
                     var pairs = Enumerable.Range(0, value.Length)
                         .Where(x => x % 8 == 0)
-                        .Select(x => "0x" + value.Substring(x, 8))
-                        .Skip(1)
+                        .Select(x => "0b" + value.Substring(x, 8))
                         .Select(x => new ValueNode("Literal",
                             new SimpleType(SimpleType.DataType.BYTE),
                             x))
@@ -235,7 +227,6 @@ namespace Whirlwind.Generator.Visitor
                         _nodes.Add(node);
                         MergeBack();
                     }
-                    MergeBack();
                 }
             }
         }
