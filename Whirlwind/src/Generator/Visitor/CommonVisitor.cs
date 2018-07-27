@@ -31,6 +31,10 @@ namespace Whirlwind.Generator.Visitor
                         case "IDENTIFIER":
                             if (_table.Lookup(tokenNode.Tok.Value, out Symbol symbol))
                             {
+                                if (symbol.DataType.Classify() == "TEMPLATE_ALIAS")
+                                {
+                                    dt = ((TemplateAlias)symbol.DataType).ReplacementType;
+                                }
                                 if (!new[] { "MODULE", "INTERFACE", "STRUCT"}.Contains(symbol.DataType.Classify()))
                                     throw new SemanticException("Identifier data type must be a module or an interface", tokenNode.Position);
                                 dt = symbol.DataType.Classify() == "MODULE" ? ((ModuleType)symbol.DataType).GetInstance() : symbol.DataType;
@@ -42,10 +46,15 @@ namespace Whirlwind.Generator.Visitor
                             break;
                     }
                 }
-                // only AST is atom_types
+                else if (subNode.Name() == "template_spec")
+                {
+                    if (dt.Classify() != "TEMPLATE")
+                        throw new SemanticException("Unable to apply template specifier to non-template type", subNode.Position);
+                    dt = _generateTemplate((TemplateType)dt, (ASTNode)subNode);
+                }
                 else
                 {
-                    dt = _generateAtomType((ASTNode)subNode);
+                    dt = _generateBaseType((ASTNode)subNode);
                 }
             }
 
@@ -119,6 +128,25 @@ namespace Whirlwind.Generator.Visitor
                     .Select(x => x as ITypeNode)
                     .ToList()
             ));
+        }
+
+        private IDataType _generateTemplate(TemplateType baseType, ASTNode templateSpecifier)
+        {
+            var typeList = new List<IDataType>();
+
+            foreach (var item in templateSpecifier.Content)
+            {
+                if (item.Name() == "type_list")
+                {
+                    typeList = _generateTypeList((ASTNode)item);
+                }
+            }
+            
+            if (baseType.CreateTemplate(typeList, out IDataType dt))
+                return dt;
+            else
+                throw new SemanticException("Invalid type specifier for the given template", templateSpecifier.Position);
+
         }
     }
 }

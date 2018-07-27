@@ -8,6 +8,11 @@ namespace Whirlwind.Types
     {
         private readonly List<Symbol> _functions;
 
+        public InterfaceType()
+        {
+            _functions = new List<Symbol>();
+        }
+
         public bool AddFunction(Symbol fn)
         {
             if (!_functions.Contains(fn))

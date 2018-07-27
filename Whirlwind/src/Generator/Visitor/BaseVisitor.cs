@@ -17,9 +17,6 @@ namespace Whirlwind.Generator.Visitor
                 SimpleType.DataType dt = SimpleType.DataType.NULL; // default to null
                 switch (((TokenNode)node.Content[0]).Tok.Type)
                 {
-                    case "VALUE":
-                        _nodes.Add(new ValueNode("Value", new SimpleType(SimpleType.DataType.VALUE)));
-                        return;
                     case "INTEGER_LITERAL":
                         dt = SimpleType.DataType.INTEGER;
                         break;
@@ -94,16 +91,13 @@ namespace Whirlwind.Generator.Visitor
                     case "inline_function":
                         _visitInlineFunction((ASTNode)node.Content[0]);
                         break;
-                    case "atom_types":
-                        var dt = _generateAtomType((ASTNode)node.Content[0]);
-                        _nodes.Add(new TreeNode("DataTypeLiteral", new SimpleType(SimpleType.DataType.TYPE)));
-                        _nodes.Add(new ValueNode("DataTypeValue", dt));
-                        MergeBack();
-                        break;
                     case "sub_expr":
                         // base -> sub_expr -> ( expr ) 
                         // select expr
                         _visitExpr(((ASTNode)((ASTNode)node.Content[0]).Content[1]));
+                        break;
+                    case "type_cast":
+                        _visitTypeCast((ASTNode)node.Content[0]);
                         break;
                 }
             }
@@ -231,7 +225,7 @@ namespace Whirlwind.Generator.Visitor
             }
         }
 
-        private IDataType _generateAtomType(ASTNode node)
+        private IDataType _generateBaseType(ASTNode node)
         {
             bool unsigned = false;
 
@@ -266,15 +260,12 @@ namespace Whirlwind.Generator.Visitor
                         case "STRING_TYPE":
                             dt = SimpleType.DataType.STRING;
                             break;
-                        case "CHAR_TYPE":
-                            dt = SimpleType.DataType.CHAR;
-                            break;
                         default:
-                            dt = SimpleType.DataType.TYPE;
+                            dt = SimpleType.DataType.CHAR;
                             break;
                     }
                     if (new[] {
-                        SimpleType.DataType.STRING, SimpleType.DataType.BYTE, SimpleType.DataType.TYPE, SimpleType.DataType.BOOL
+                        SimpleType.DataType.STRING, SimpleType.DataType.BYTE, SimpleType.DataType.BOOL
                     }.Contains(dt) && unsigned)
                         throw new SemanticException("Invalid type for unsigned modifier", subNode.Position);
                     return new SimpleType(dt, unsigned);
@@ -397,6 +388,25 @@ namespace Whirlwind.Generator.Visitor
             var fType = new FunctionType(args, rtType, async); 
 
             _nodes.Add(new TreeNode("InlineFunction", fType));
+            PushForward();
+        }
+
+        private void _visitTypeCast(ASTNode node)
+        {
+            IDataType dt = new SimpleType(SimpleType.DataType.NULL);
+
+            foreach (var item in node.Content)
+            {
+                if (item.Name() == "types")
+                    dt = _generateType(node);
+                else if (item.Name() == "expr")
+                    _visitExpr((ASTNode)item);
+            }
+
+            if (!_typeCast(dt))
+                throw new SemanticException("Invalid type cast", node.Position);
+
+            _nodes.Add(new TreeNode("TypeCast", dt));
             PushForward();
         }
     }

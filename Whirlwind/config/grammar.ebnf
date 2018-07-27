@@ -225,11 +225,12 @@ trailer: '[' (expr [slice] | slice) ']'
 | '.' 'IDENTIFIER'
 | '|>' aggr_expr '|'
 | '->' 'IDENTIFIER'
+| template_spec
 ;
 
 // trailer components
 slice: ':' [expr [':' expr]] ;
-args_list: [['...'] expr [initializer] (',' ['...'] expr [initializer])*]  ;
+args_list: [expr [initializer] (',' expr [initializer])*]  ;
 init_list: ('IDENTIFIER' initializer)+ ;
 
 // aggregator
@@ -256,21 +257,22 @@ base: 'INTEGER_LITERAL'
 | 'BINARY_LITERAL'
 | 'RANGE_LITERAL'
 | 'NULL'
-| 'VALUE'
 | 'THIS'
 | 'IDENTIFIER'
 | array
 | list
 | map
-| atom_types
 | inline_function
 | sub_expr
+| type_cast
 ;
 
+// collection types
 array: '{' [ expr ( ',' expr )* ] '}' ;
 list: '[' [ expr ( ',' expr )* ] ']' ;
 map: '{' [ expr ':' expr (',' expr ':' expr)* ] '}' ;
 
+// both inline functions
 inline_function: 'FUNC' '(' args_decl_list ')' func_body
 | 'ASYNC' '(' args_decl_list ')' func_body
 ;
@@ -278,12 +280,16 @@ inline_function: 'FUNC' '(' args_decl_list ')' func_body
 // sub expr declared so that it could be easier to parse
 sub_expr: '(' expr ')' ;
 
+// casting syntax includes call
+type_cast: 'CAST' '<' (types | 'VALUE') '>' '(' expr ')' ;
+
 // DATA TYPES - data type literals
-types: ['REF' | '*'+] atom_types
-| 'IDENTIFIER'
+types: ['REF' | '*'+] ( base_types
+| 'IDENTIFIER' [template_spec]
+)
 ;
 
-atom_types: ['UNSIGNED'] simple_types
+base_types: ['UNSIGNED'] simple_types
 | collection_types
 | func_types
 ;
@@ -293,7 +299,6 @@ simple_types: 'BOOL_TYPE'
 | 'INT_TYPE'
 | 'STRING_TYPE'
 | 'CHAR_TYPE'
-| 'DATA_TYPE'
 | 'BYTE_TYPE'
 | 'LONG_TYPE'
 | 'DOUBLE_TYPE'
@@ -315,6 +320,7 @@ args_decl_list: [param (',' param)*] ;
 param: ['...'] ('$' | '@') 'IDENTIFIER' extension [initializer] ;
 initializer: '=' expr ;
 iterator: '|' 'IDENTIFIER' (',' 'IDENTIFIER')* '|' ;
+template_spec: '<' type_list '>' ;
 
 // type extension
 extension: [':' types] ;
