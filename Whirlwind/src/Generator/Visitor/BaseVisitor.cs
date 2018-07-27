@@ -398,7 +398,7 @@ namespace Whirlwind.Generator.Visitor
             foreach (var item in node.Content)
             {
                 if (item.Name() == "types")
-                    dt = _generateType(node);
+                    dt = _generateType((ASTNode)item);
                 else if (item.Name() == "expr")
                     _visitExpr((ASTNode)item);
             }

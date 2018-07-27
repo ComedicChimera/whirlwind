@@ -10,3 +10,8 @@ struct Force {
 	direction: Point;
 	mag: float;
 }
+
+func Main() {
+	$y = 2 >> cast<int>(2 > 3);
+	uniform $static: int;
+}
