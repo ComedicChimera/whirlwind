@@ -9,7 +9,8 @@ namespace Whirlwind.Generator
         PARTIAL,
         EXPORTED,
         PROPERTY,
-        PROTECTED
+        PROTECTED,
+        UNIFORM
     }
 
     class Package : IDataType

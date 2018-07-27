@@ -31,6 +31,7 @@ member_decl: modifiers* ( variable_decl ';'
 | enum_const ';'
 | method_decl
 | method_template
+| uniform_method
 ) ;
 
 // static declarations (structs, interfaces, and templates)
@@ -145,7 +146,7 @@ stmt: ( variable_decl
 ;
 
 // variable declaration
-variable_decl: ['VOLATILE'] ('$' | '@') var extension variable_initializer  ;
+variable_decl: ('UNIFORM' | 'VOLATILE')* ('$' | '@') var extension variable_initializer  ;
 var: '(' 'IDENTIFIER' extension variable_initializer (',' 'IDENTIFIER' extension variable_initializer)* ')'
 | 'IDENTIFIER'
 ;
