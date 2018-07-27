@@ -1,5 +1,5 @@
 ﻿// WHIRLWIND STANDARD GRAMMAR
-whirlwind: ( variable_decl ';'
+whirlwind: ( global_variable_decl ';'
 | enum_const ';'
 | block_decl
 | include_stmt ';'
@@ -12,6 +12,7 @@ main: ( block_decl
 | subscope
 )+ ;
 
+global_variable_decl: ['VOLATILE'] variable_decl ;
 subscope: '{' main '}' ;
 
 
@@ -132,7 +133,7 @@ export_decl: 'EXPORT' ( block_decl
 
 // STATEMENTS
 // broken up for logical reasons - takes advantage of multiple solution parsing
-stmt: ( variable_decl
+stmt: ( local_variable_decl
 | include_stmt
 | enum_const
 | assignment
@@ -145,8 +146,11 @@ stmt: ( variable_decl
 ) ';' 
 ;
 
+// local variable declaration
+local_variable_decl: ('UNIFORM' | 'VOLATILE')* variable_decl;
+
 // variable declaration
-variable_decl: ('UNIFORM' | 'VOLATILE')* ('$' | '@') var extension variable_initializer  ;
+variable_decl: ('$' | '@') var extension variable_initializer  ;
 var: '(' 'IDENTIFIER' extension variable_initializer (',' 'IDENTIFIER' extension variable_initializer)* ')'
 | 'IDENTIFIER'
 ;
