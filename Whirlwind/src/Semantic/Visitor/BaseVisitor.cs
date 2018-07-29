@@ -1,12 +1,14 @@
 ﻿using Whirlwind.Parser;
 using Whirlwind.Types;
-using Whirlwind.Generator.Constexpr;
+using Whirlwind.Semantic.Constexpr;
+
+using static Whirlwind.Semantic.Checker.Checker;
 
 using System;
 using System.Linq;
 using System.Collections.Generic;
 
-namespace Whirlwind.Generator.Visitor
+namespace Whirlwind.Semantic.Visitor
 {
     partial class Visitor
     {
@@ -134,7 +136,7 @@ namespace Whirlwind.Generator.Visitor
                     {
                         _coerceSet(ref keyType, element.Position);
 
-                        if (!TypeInterfaceChecker.Hashable(keyType))
+                        if (!Hashable(keyType))
                         {
                             throw new SemanticException("Unable to create map with unhashable type", element.Position);
                         }               
@@ -323,7 +325,7 @@ namespace Whirlwind.Generator.Visitor
                         case "list":
                             return new ListType(subTypes[0]);
                         case "map":
-                            if (!TypeInterfaceChecker.Hashable(subTypes[0]))
+                            if (!Hashable(subTypes[0]))
                             {
                                 throw new SemanticException("Unable to create map with an unhashable type", subNode.Position);
                             }
@@ -394,6 +396,7 @@ namespace Whirlwind.Generator.Visitor
         private void _visitTypeCast(ASTNode node)
         {
             IDataType dt = new SimpleType(SimpleType.DataType.NULL);
+            bool valueCast = false;
 
             foreach (var item in node.Content)
             {
@@ -401,12 +404,23 @@ namespace Whirlwind.Generator.Visitor
                     dt = _generateType((ASTNode)item);
                 else if (item.Name() == "expr")
                     _visitExpr((ASTNode)item);
+                else if (item.Name() == "TOKEN" && ((TokenNode)item).Tok.Type == "VALUE")
+                    valueCast = true;
             }
+            
+            if (valueCast)
+            {
+                dt = ValueCast(dt);
 
-            if (!_typeCast(dt))
-                throw new SemanticException("Invalid type cast", node.Position);
+                _nodes.Add(new TreeNode("ValueCast", dt));
+            }
+            else
+            {
+                if (!TypeCast(dt, _nodes.Last().Type()))
+                    throw new SemanticException("Invalid type cast", node.Position);
 
-            _nodes.Add(new TreeNode("TypeCast", dt));
+                _nodes.Add(new TreeNode("TypeCast", dt));
+            }
             PushForward();
         }
     }

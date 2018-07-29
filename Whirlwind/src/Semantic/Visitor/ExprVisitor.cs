@@ -1,6 +1,6 @@
 ﻿using Whirlwind.Parser;
 
-namespace Whirlwind.Generator.Visitor
+namespace Whirlwind.Semantic.Visitor
 {
     partial class Visitor
     {

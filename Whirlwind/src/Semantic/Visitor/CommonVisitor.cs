@@ -1,11 +1,11 @@
 ﻿using Whirlwind.Parser;
 using Whirlwind.Types;
+using static Whirlwind.Semantic.Checker.Checker;
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Whirlwind.Generator.Visitor
+namespace Whirlwind.Semantic.Visitor
 {
     partial class Visitor
     {
@@ -72,11 +72,6 @@ namespace Whirlwind.Generator.Visitor
             return dt;
         }
 
-        public List<Parameter> _generateArgsDecl(ASTNode node)
-        {
-            return new List<Parameter>();
-        }
-
         public List<IDataType> _generateTypeList(ASTNode node)
         {
             var dataTypes = new List<IDataType>();
@@ -94,7 +89,7 @@ namespace Whirlwind.Generator.Visitor
             var iterable = _nodes.Last().Type();
             var iteratorTypes = new List<IDataType>();
 
-            if (TypeInterfaceChecker.Iterable(iterable))
+            if (Iterable(iterable))
             {
                 if (iterable is IIterable)
                     iteratorTypes.AddRange((iterable as IIterable).GetIterator());
@@ -133,15 +128,8 @@ namespace Whirlwind.Generator.Visitor
 
         private IDataType _generateTemplate(TemplateType baseType, ASTNode templateSpecifier)
         {
-            var typeList = new List<IDataType>();
-
-            foreach (var item in templateSpecifier.Content)
-            {
-                if (item.Name() == "type_list")
-                {
-                    typeList = _generateTypeList((ASTNode)item);
-                }
-            }
+            // template_spec -> type_list
+            var typeList = _generateTypeList((ASTNode)templateSpecifier.Content[1]);
             
             if (baseType.CreateTemplate(typeList, out IDataType dt))
                 return dt;

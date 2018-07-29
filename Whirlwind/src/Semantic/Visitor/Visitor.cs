@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Whirlwind.Generator.Visitor
+namespace Whirlwind.Semantic.Visitor
 {
     class SemanticException : Exception
     {

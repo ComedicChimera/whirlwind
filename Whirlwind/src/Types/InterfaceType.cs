@@ -1,4 +1,4 @@
-﻿using Whirlwind.Generator;
+﻿using Whirlwind.Semantic;
 
 using System.Collections.Generic;
 

@@ -234,7 +234,7 @@ trailer: '[' (expr [slice] | slice) ']'
 ;
 
 // trailer components
-slice: ':' [expr [':' expr]] ;
+slice: ':' [expr [':' expr] | ':' expr] ;
 args_list: [expr [initializer] (',' expr [initializer])*]  ;
 init_list: ('IDENTIFIER' initializer)+ ;
 

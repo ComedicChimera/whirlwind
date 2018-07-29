@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using Whirlwind.Semantic;
+
+using System.Collections.Generic;
 
 namespace Whirlwind.Types
 {

@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using Whirlwind.Generator;
+using Whirlwind.Semantic;
 
 namespace Whirlwind.Types
 {

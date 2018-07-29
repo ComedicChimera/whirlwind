@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using Whirlwind.Types;
 
-namespace Whirlwind.Generator
+namespace Whirlwind.Semantic
 {
     enum Modifier
     {

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 using Whirlwind.Parser;
-using Whirlwind.Generator.Visitor;
+using Whirlwind.Semantic.Visitor;
 
 namespace Whirlwind
 {

@@ -2,7 +2,7 @@
 using System.Linq;
 using System;
 
-namespace Whirlwind.Generator
+namespace Whirlwind.Semantic
 {
     class SymbolTable
     {

@@ -1,6 +1,6 @@
 ﻿using Whirlwind.Types;
 
-namespace Whirlwind.Generator.Constexpr
+namespace Whirlwind.Semantic.Constexpr
 {
     class Evaluator
     {

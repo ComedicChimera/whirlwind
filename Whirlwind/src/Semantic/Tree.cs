@@ -3,7 +3,7 @@ using System.Linq;
 
 using Whirlwind.Types;
 
-namespace Whirlwind.Generator
+namespace Whirlwind.Semantic
 {
     interface ITypeNode
     {
