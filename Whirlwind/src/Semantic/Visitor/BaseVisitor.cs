@@ -107,7 +107,7 @@ namespace Whirlwind.Semantic.Visitor
 
         private Tuple<IDataType, int> _visitSet(ASTNode node)
         {
-            IDataType elementType = new SimpleType(SimpleType.DataType.NULL);
+            IDataType elementType = new SimpleType();
             int size = 0;
             foreach (var element in node.Content)
             {
@@ -123,7 +123,7 @@ namespace Whirlwind.Semantic.Visitor
 
         private Tuple<IDataType, IDataType, int> _visitMap(ASTNode node)
         {
-            IDataType keyType = new SimpleType(SimpleType.DataType.NULL), valueType = new SimpleType(SimpleType.DataType.NULL);
+            IDataType keyType = new SimpleType(), valueType = new SimpleType();
             bool isKey = true;
             int size = 0;
 
@@ -357,20 +357,34 @@ namespace Whirlwind.Semantic.Visitor
                         }
                     }
 
-                    return new FunctionType(args, returnTypes, async, false);
+                    IDataType returnType;
+
+                    switch (returnTypes.Count)
+                    {
+                        case 0:
+                            returnType = new SimpleType();
+                            break;
+                        case 1:
+                            returnType = returnTypes[0];
+                            break;
+                        default:
+                            returnType = new TupleType(returnTypes);
+                            break;
+                    }
+
+                    return new FunctionType(args, returnType, async);
                 }
             }
 
             // cover all your bases ;)
-            return new SimpleType(SimpleType.DataType.NULL);
+            return new SimpleType();
         }
 
         private void _visitClosure(ASTNode node)
         {
             var args = new List<Parameter>();
-            var rtType = new List<IDataType>();
+            IDataType rtType = new SimpleType();
             bool async = false;
-            bool enumerator = false;
 
             foreach (var item in node.Content)
             {
@@ -384,14 +398,12 @@ namespace Whirlwind.Semantic.Visitor
                         args = _generateArgsDecl((ASTNode)item);
                         break;
                     case "func_body":
-                        var bodyData = _visitFuncBody((ASTNode)item);
-                        rtType = bodyData.Item1;
-                        enumerator = bodyData.Item2;
+                        rtType = _visitFuncBody((ASTNode)item);
                         break;
                 }
             }
 
-            var fType = new FunctionType(args, rtType, async, enumerator); 
+            var fType = new FunctionType(args, rtType, async); 
 
             _nodes.Add(new TreeNode("Closure", fType));
             PushForward();
@@ -399,7 +411,7 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitTypeCast(ASTNode node)
         {
-            IDataType dt = new SimpleType(SimpleType.DataType.NULL);
+            IDataType dt = new SimpleType();
             bool valueCast = false;
 
             foreach (var item in node.Content)

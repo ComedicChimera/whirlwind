@@ -43,10 +43,10 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitComprehension(ASTNode node)
         {
-            IDataType elementType = new SimpleType(SimpleType.DataType.NULL);
+            IDataType elementType = new SimpleType();
 
             // used in case of map comprehension
-            IDataType valueType = new SimpleType(SimpleType.DataType.NULL);
+            IDataType valueType = new SimpleType();
 
             int sizeBack = 0;
             bool isKeyPair = false;
@@ -116,7 +116,7 @@ namespace Whirlwind.Semantic.Visitor
                         string identifier = ((TokenNode)node.Content[1]).Tok.Value;
                         _nodes.Add(new TreeNode("GetMember", _getMember(root.Type, identifier, node.Content[0].Position, node.Content[1].Position)));
                         PushForward();
-                        _nodes.Add(new ValueNode("Identifier", new SimpleType(SimpleType.DataType.NULL), identifier));
+                        _nodes.Add(new ValueNode("Identifier", new SimpleType(), identifier));
                         MergeBack();
                         break;
                     case "->":
@@ -125,7 +125,7 @@ namespace Whirlwind.Semantic.Visitor
                             string pointerIdentifier = ((TokenNode)node.Content[1]).Tok.Value;
                             _nodes.Add(new TreeNode("GetMember", _getMember(((PointerType)root.Type).Type, pointerIdentifier, node.Content[0].Position, node.Content[1].Position)));
                             PushForward();
-                            _nodes.Add(new ValueNode("Identifier", new SimpleType(SimpleType.DataType.NULL), pointerIdentifier));
+                            _nodes.Add(new ValueNode("Identifier", new SimpleType(), pointerIdentifier));
                             MergeBack();
                             break;
                         }
@@ -144,28 +144,14 @@ namespace Whirlwind.Semantic.Visitor
                             // generate args_list pushed all expressions on to stack in order
                             var args = _generateArgsList((ASTNode)node.Content[1]);
 
-                            if (isFunction)
-                                CheckParameters((FunctionType)root.Type, args);
+                            if (isFunction && !CheckParameters((FunctionType)root.Type, args))
+                                throw new SemanticException("Invalid parameters for function call", node.Position);
                             else if (!((ModuleType)root.Type).GetConstructor(args, out FunctionType constructor))
                                 throw new SemanticException($"Module '{((ModuleType)root.Type).Name}' has no constructor the accepts the given parameters", node.Position);
 
-                            List<IDataType> returnTypes = isFunction ? ((FunctionType)root.Type).ReturnTypes : new List<IDataType>() { ((ModuleType)root.Type).GetInstance() };
+                            IDataType returnType = isFunction ? ((FunctionType)root.Type).ReturnType : ((ModuleType)root.Type).GetInstance();
 
-                            IDataType dt;
-                            switch (returnTypes.Count)
-                            {
-                                case 0:
-                                    dt = new SimpleType(SimpleType.DataType.NULL);
-                                    break;
-                                case 1:
-                                    dt = returnTypes[0];
-                                    break;
-                                default:
-                                    dt = new ReturnTuple(returnTypes);
-                                    break;
-                            }
-
-                            _nodes.Add(new TreeNode(isFunction ? "Call" : "CallConstructor", dt));
+                            _nodes.Add(new TreeNode(isFunction ? "Call" : "CallConstructor", returnType));
                             
                             if (args.Count == 0)
                                 // add function to call
@@ -186,6 +172,7 @@ namespace Whirlwind.Semantic.Visitor
                         if (!Iterable(root.Type))
                             throw new SemanticException("Aggregated type must be iterable", node.Content[0].Position);
 
+                        var iteratorType = _getIterableElementType(root.Type);
 
                         if (node.Content[1].Name == "expr")
                         {
@@ -193,10 +180,25 @@ namespace Whirlwind.Semantic.Visitor
 
                             if (_nodes.Last().Type.Classify() == "FUNCTION")
                             {
-                                CheckParameters((FunctionType)_nodes.Last().Type, new List<ParameterValue>() {
-                                    new ParameterValue(root.Type),
-                                    new ParameterValue(root.Type)
+                                bool check1 = CheckParameters((FunctionType)_nodes.Last().Type, new List<ParameterValue>() {
+                                    new ParameterValue(iteratorType),
+                                    new ParameterValue(iteratorType)
                                 });
+
+                                var aggrFnReturnType = ((FunctionType)_nodes.Last().Type).ReturnType;
+
+                                bool check2 = CheckParameters((FunctionType)_nodes.Last().Type, new List<ParameterValue>() {
+                                    new ParameterValue(aggrFnReturnType),
+                                    new ParameterValue(iteratorType)
+                                });
+
+                                if (check1 && check2)
+                                {
+                                    _nodes.Add(new TreeNode("FunctionAggregator", aggrFnReturnType));
+                                    PushForward(2);
+                                }
+                                else
+                                    throw new SemanticException("The given function is not valid as an aggregator for the given iterable", node.Content[1].Position);
                             }
                             else
                                 throw new SemanticException("Aggregator expression must be a function", node.Content[1].Position);

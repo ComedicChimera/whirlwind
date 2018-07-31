@@ -41,7 +41,7 @@ static_decl: ['PRIVATE'] ( struct_decl
 ) ;
 
 // method declaration
-method_decl: ('FUNC' | 'ASYNC') 'IDENTIFIER' '(' args_decl_list ')' [ '(' type_list ')' | type_list ] partial* func_body ;
+method_decl: ('FUNC' | 'ASYNC') 'IDENTIFIER' '(' args_decl_list ')' [ types ] partial* func_body ;
 
 // method template
 method_template: 'TEMPLATE' '<' template (',' template)* '>' method_decl ;
@@ -60,12 +60,12 @@ block_decl: func_decl
 ;
 
 // function declaration
-func_decl: ('FUNC' | 'ASYNC') 'IDENTIFIER' '(' args_decl_list ')' [ '(' type_list ')' | type_list ] func_body ;
+func_decl: ('FUNC' | 'ASYNC') 'IDENTIFIER' '(' args_decl_list ')' [ types ] func_body ;
 
 // interface declaration
 interface_decl: 'INTERFACE' 'IDENTIFIER' '{' interface_main '}' ;
 interface_main: (interface_func ';')+ ;
-interface_func: ('FUNC' | 'ASYNC') 'IDENTIFIER' '(' args_decl_list ')' [ '(' type_list ')' | type_list ] ;
+interface_func: ('FUNC' | 'ASYNC') 'IDENTIFIER' '(' args_decl_list ')' [ types ] ;
 
 // struct declaration
 struct_decl: 'STRUCT' 'IDENTIFIER' '{' struct_main '}' ;
@@ -142,6 +142,7 @@ stmt: ( local_variable_decl
 | break_stmt
 | delete_stmt
 | return_stmt
+| yield_stmt
 ) ';' 
 ;
 
@@ -185,7 +186,8 @@ continue_stmt: 'CONTINUE' ;
 break_stmt: 'BREAK' ;
 throw_stmt: 'THROW' expr ;
 delete_stmt: 'DELETE' 'IDENTIFIER' (',' 'IDENTIFIER')* ;
-return_stmt: ('RETURN' | 'YIELD') [expr (',' expr)*] ;
+return_stmt: 'RETURN' [expr (',' expr)*] ;
+yield_stmt: 'YIELD' [expr (',' expr)*] ;
 
 
 // EXPRESSIONS - basic unit of statements 
@@ -266,6 +268,7 @@ base: 'INTEGER_LITERAL'
 | array
 | list
 | map
+| tuple
 | closure
 | sub_expr
 | type_cast
@@ -275,6 +278,9 @@ base: 'INTEGER_LITERAL'
 array: '{' [ expr ( ',' expr )* ] '}' ;
 list: '[' [ expr ( ',' expr )* ] ']' ;
 map: '{' [ expr ':' expr (',' expr ':' expr)* ] '}' ;
+
+// tuple literal
+tuple: '(' expr (',' expr)+ ')' ;
 
 // both inline functions (closures)
 closure: 'FUNC' '(' args_decl_list ')' func_body
@@ -296,6 +302,7 @@ types: '*'* ( base_types
 base_types: ['UNSIGNED'] simple_types
 | collection_types
 | func_types
+| tuple_type
 ;
 
 simple_types: 'BOOL_TYPE'
@@ -316,6 +323,8 @@ collection_types: 'ARRAY_TYPE' '[' types ',' expr ']'
 func_types: 'FUNC' '(' args_decl_list ')' '(' type_list ')'
 | 'ASYNC' '(' args_decl_list ')' '(' type_list ')'
 ;
+
+tuple_type: '(' type_list ')' ;
 
 
 // COMMON CONSTRUCTIONS - common structures used repeatedly in grammar

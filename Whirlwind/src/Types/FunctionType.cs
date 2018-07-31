@@ -65,32 +65,17 @@ namespace Whirlwind.Types
         }
     }
 
-    class ReturnTuple : IDataType
-    {
-        public readonly List<IDataType> Types;
-
-        public ReturnTuple(List<IDataType> types)
-        {
-            Types = types;
-        }
-
-        public string Classify() => "RETURN_TUPLE";
-        public bool Coerce(IDataType other) => false;
-    }
-
     class FunctionType : IDataType
     {
-        public readonly List<IDataType> ReturnTypes;
+        public readonly IDataType ReturnType;
         public readonly List<Parameter> Parameters;
         public readonly bool Async;
-        public readonly bool Generator;
 
-        public FunctionType(List<Parameter> parameters, List<IDataType> returnTypes, bool async, bool generator)
+        public FunctionType(List<Parameter> parameters, IDataType returnType, bool async)
         {
             Parameters = parameters;
-            ReturnTypes = returnTypes;
+            ReturnType = returnType;
             Async = async;
-            Generator = generator;
         }
 
         public string Classify() => "FUNCTION";
@@ -109,15 +94,9 @@ namespace Whirlwind.Types
                     if (!Parameters[i].Compare(otherFunction.Parameters[i]))
                         return false;
                 }
-                if (otherFunction.ReturnTypes.Count != ReturnTypes.Count)
-                    return false;
-                for (int i = 0; i < ReturnTypes.Count; i++)
-                {
-                    if (!ReturnTypes[i].Coerce(otherFunction.ReturnTypes[i]))
-                        return false;
-                }
-                // add check for enumerators?
-                return true;
+                if (ReturnType.Coerce(((FunctionType)other).ReturnType))
+                    return true;
+                return false;
             }
             return false;
         }

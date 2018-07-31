@@ -6,7 +6,7 @@ namespace Whirlwind.Semantic.Constexpr
     {
         public static ValueNode Evaluate(TreeNode node)
         {
-            return new ValueNode("blank", new SimpleType(SimpleType.DataType.NULL));
+            return new ValueNode("blank", new SimpleType());
         }
 
         public static bool TryEval(TreeNode node)

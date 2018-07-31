@@ -20,6 +20,12 @@ namespace Whirlwind.Types
         public DataType Type { get; private set; }
         public readonly bool Unsigned;
 
+        public SimpleType()
+        {
+            Type = DataType.NULL;
+            Unsigned = false;
+        }
+
         public SimpleType(DataType dt, bool unsigned = false)
         {
             Type = dt;

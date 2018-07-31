@@ -11,7 +11,7 @@ namespace Whirlwind.Semantic.Visitor
     {
         public IDataType _generateType(ASTNode node)
         {
-            IDataType dt = new SimpleType(SimpleType.DataType.NULL);
+            IDataType dt = new SimpleType();
             int pointers = 0;
 
             foreach (var subNode in node.Content)
@@ -78,17 +78,11 @@ namespace Whirlwind.Semantic.Visitor
         {
             // expects previous node to be the iterable value
             var iterable = _nodes.Last().Type;
-            var iteratorTypes = new List<IDataType>();
+            IDataType iteratorType;
 
             if (Iterable(iterable))
             {
-                if (iterable is IIterable)
-                    iteratorTypes.AddRange((iterable as IIterable).GetIterator());
-                // should never fail
-                else if (((ModuleInstance)iterable).GetProperty("__next__", out Symbol method))
-                {
-                    iteratorTypes.AddRange(((FunctionType)method.DataType).ReturnTypes);
-                }
+                iteratorType = _getIterableElementType(iterable);
             }
             else
                 throw new SemanticException("Unable to create iterator over non-iterable value", node.Position);
@@ -98,6 +92,8 @@ namespace Whirlwind.Semantic.Visitor
                 .Where(x => x.Type == "IDENTIFIER")
                 .Select(x => x.Value)
                 .ToArray();
+
+            var iteratorTypes = iteratorType.Classify().StartsWith("TUPLE") ? ((TupleType)iteratorType).Types : new List<IDataType>() { iteratorType };
 
             if (identifiers.Length != iteratorTypes.Count)
                 throw new SemanticException("Base iterator and it's alias's don't match", node.Position);
@@ -109,12 +105,27 @@ namespace Whirlwind.Semantic.Visitor
 
             _nodes.Add(new TreeNode(
                 "Iterator",
-                new SimpleType(SimpleType.DataType.NULL),
+                new SimpleType(),
                 Enumerable.Range(0, identifiers.Length)
                     .Select(i => new ValueNode("Identifier", iteratorTypes[i], identifiers[i]))
                     .Select(x => x as ITypeNode)
                     .ToList()
             ));
+        }
+
+        private IDataType _getIterableElementType(IDataType iterable)
+        {
+            if (iterable is IIterable)
+                return (iterable as IIterable).GetIterator();
+            // should never fail
+            else if (((ModuleInstance)iterable).GetProperty("__next__", out Symbol method))
+            {
+                // all iterable __next__ methods return a specific element type (Element<T>)
+                var elementType = ((FunctionType)method.DataType).ReturnType;
+
+                return ((StructType)elementType).Members["val"];
+            }
+            return new SimpleType();
         }
 
         private IDataType _generateTemplate(TemplateType baseType, ASTNode templateSpecifier)

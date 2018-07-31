@@ -5,7 +5,7 @@ namespace Whirlwind.Types
 {
     interface IIterable
     {
-        List<IDataType> GetIterator();
+        IDataType GetIterator();
     }
 
     class ArrayType : IDataType, IIterable
@@ -30,8 +30,7 @@ namespace Whirlwind.Types
             return false;
         }
 
-        public List<IDataType> GetIterator()
-            => new List<IDataType>() { ElementType };
+        public IDataType GetIterator() => ElementType;
     }
 
     class ListType : IDataType, IIterable
@@ -54,8 +53,7 @@ namespace Whirlwind.Types
             return false;
         }
 
-        public List<IDataType> GetIterator() 
-            => new List<IDataType>() { ElementType };
+        public IDataType GetIterator() => ElementType;
     }
 
     class MapType : IDataType, IIterable
@@ -79,7 +77,6 @@ namespace Whirlwind.Types
             return false;
         }
 
-        public List<IDataType> GetIterator()
-            => new List<IDataType>() { KeyType, ValueType };
+        public IDataType GetIterator() => new TupleType(new List<IDataType>() { KeyType, ValueType });
     }
 }

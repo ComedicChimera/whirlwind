@@ -13,9 +13,9 @@ namespace Whirlwind.Semantic.Visitor
             return new List<Parameter>();
         }
 
-        private Tuple<List<IDataType>, bool> _visitFuncBody(ASTNode node)
+        private IDataType _visitFuncBody(ASTNode node)
         {
-            return new Tuple<List<IDataType>, bool>(new List<IDataType>(), false);
+            return new SimpleType();
         }
 
         private List<ParameterValue> _generateArgsList(ASTNode node)
