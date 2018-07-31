@@ -32,7 +32,6 @@ member_decl: modifiers* ( variable_decl ';'
 | enum_const ';'
 | method_decl
 | method_template
-| uniform_method
 ) ;
 
 // static declarations (structs, interfaces, and templates)
@@ -186,7 +185,7 @@ continue_stmt: 'CONTINUE' ;
 break_stmt: 'BREAK' ;
 throw_stmt: 'THROW' expr ;
 delete_stmt: 'DELETE' 'IDENTIFIER' (',' 'IDENTIFIER')* ;
-return_stmt: 'RETURN' [expr (',' expr)*] ;
+return_stmt: ('RETURN' | 'YIELD') [expr (',' expr)*] ;
 
 
 // EXPRESSIONS - basic unit of statements 
@@ -214,7 +213,7 @@ term: factor (('*' | '/' | '%') factor)* ;
 factor: unary_atom ('^' unary_atom)*;
 
 // unary operators
-unary_atom: ('&' | '-' | '++' | '--' | '*'+ | 'REF') atom
+unary_atom: ('&' | '-' | '++' | '--' | '*'+) atom
 | atom ['++' | '--']
 ;
 
@@ -240,7 +239,7 @@ init_list: ('IDENTIFIER' initializer)+ ;
 
 // aggregator
 aggr_expr: expr
-| ... aggr_op
+| '...' aggr_op
 ;
 aggr_op: '+' | '-' | '*' | '/' | '^' | '%' 
 | '&&' | '||' | '^^' 
@@ -267,7 +266,7 @@ base: 'INTEGER_LITERAL'
 | array
 | list
 | map
-| inline_function
+| closure
 | sub_expr
 | type_cast
 ;
@@ -277,8 +276,8 @@ array: '{' [ expr ( ',' expr )* ] '}' ;
 list: '[' [ expr ( ',' expr )* ] ']' ;
 map: '{' [ expr ':' expr (',' expr ':' expr)* ] '}' ;
 
-// both inline functions
-inline_function: 'FUNC' '(' args_decl_list ')' func_body
+// both inline functions (closures)
+closure: 'FUNC' '(' args_decl_list ')' func_body
 | 'ASYNC' '(' args_decl_list ')' func_body
 ;
 
@@ -289,7 +288,7 @@ sub_expr: '(' expr ')' ;
 type_cast: 'CAST' '<' (types | 'VALUE') '>' '(' expr ')' ;
 
 // DATA TYPES - data type literals
-types: ['REF' | '*'+] ( base_types
+types: '*'* ( base_types
 | 'IDENTIFIER' [template_spec]
 )
 ;

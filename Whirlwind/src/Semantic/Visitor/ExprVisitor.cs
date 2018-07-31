@@ -8,9 +8,9 @@ namespace Whirlwind.Semantic.Visitor
         {
             foreach (var subNode in node.Content)
             {
-                if (subNode.Name() == "atom")
+                if (subNode.Name == "atom")
                     _visitAtom((ASTNode)subNode);
-                else if (subNode.Name() != "TOKEN")
+                else if (subNode.Name != "TOKEN")
                     _visitExpr((ASTNode)subNode);
             }
         }

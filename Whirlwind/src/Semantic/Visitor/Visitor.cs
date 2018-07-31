@@ -33,7 +33,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             foreach (INode node in ast.Content)
             {
-                switch (node.Name())
+                switch (node.Name)
                 {
                     case "atom":
                         _visitAtom((ASTNode)node);

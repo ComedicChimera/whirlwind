@@ -14,7 +14,7 @@ namespace Whirlwind.Semantic.Visitor
     {
         private void _visitBase(ASTNode node)
         {
-            if (node.Content[0].Name() == "TOKEN")
+            if (node.Content[0].Name == "TOKEN")
             {
                 SimpleType.DataType dt = SimpleType.DataType.NULL; // default to null
                 switch (((TokenNode)node.Content[0]).Tok.Type)
@@ -70,7 +70,7 @@ namespace Whirlwind.Semantic.Visitor
             }
             else
             {
-                switch (node.Content[0].Name())
+                switch (node.Content[0].Name)
                 {
                     case "array":
                         var arr = _visitSet((ASTNode)node.Content[0]);
@@ -90,8 +90,8 @@ namespace Whirlwind.Semantic.Visitor
                         // will default to array if value is too small, so check not needed
                         PushForward(map.Item3);
                         break;
-                    case "inline_function":
-                        _visitInlineFunction((ASTNode)node.Content[0]);
+                    case "closure":
+                        _visitClosure((ASTNode)node.Content[0]);
                         break;
                     case "sub_expr":
                         // base -> sub_expr -> ( expr ) 
@@ -111,7 +111,7 @@ namespace Whirlwind.Semantic.Visitor
             int size = 0;
             foreach (var element in node.Content)
             {
-                if (element.Name() == "expr")
+                if (element.Name == "expr")
                 {
                     _visitExpr((ASTNode)element);
                     _coerceSet(ref elementType, element.Position);
@@ -129,7 +129,7 @@ namespace Whirlwind.Semantic.Visitor
 
             foreach (var element in node.Content)
             {
-                if (element.Name() == "expr")
+                if (element.Name == "expr")
                 {
                     _visitExpr((ASTNode)element);
                     if (isKey)
@@ -159,10 +159,11 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _coerceSet(ref IDataType baseType, TextPosition pos)
         {
-            if (!baseType.Coerce(_nodes.Last().Type()))
+            IDataType newType = _nodes.Last().Type;
+            if (baseType.Coerce(newType))
             {
-                if (_nodes.Last().Type().Coerce(baseType))
-                    baseType = _nodes.Last().Type();
+                if (newType.Coerce(baseType))
+                    baseType = newType;
                 else
                     throw new SemanticException("All values in a collection must be the same type", pos);
             }
@@ -234,9 +235,9 @@ namespace Whirlwind.Semantic.Visitor
             foreach (var subNode in node.Content)
             {
                 // only one token node
-                if (subNode.Name() == "TOKEN")
+                if (subNode.Name == "TOKEN")
                     unsigned = true;
-                else if (subNode.Name() == "simple_types")
+                else if (subNode.Name == "simple_types")
                 {
                     SimpleType.DataType dt;
                     switch (((TokenNode)((ASTNode)subNode).Content[0]).Tok.Type)
@@ -272,7 +273,7 @@ namespace Whirlwind.Semantic.Visitor
                         throw new SemanticException("Invalid type for unsigned modifier", subNode.Position);
                     return new SimpleType(dt, unsigned);
                 }
-                else if (subNode.Name() == "collection_types")
+                else if (subNode.Name == "collection_types")
                 {
                     string collectionType = "";
                     int size = 0;
@@ -280,7 +281,7 @@ namespace Whirlwind.Semantic.Visitor
 
                     foreach(var component in ((ASTNode)subNode).Content)
                     {
-                        if (component.Name() == "TOKEN")
+                        if (component.Name == "TOKEN")
                         {
                             switch (((TokenNode)component).Tok.Type)
                             {
@@ -295,7 +296,7 @@ namespace Whirlwind.Semantic.Visitor
                                     break;
                             }
                         }
-                        else if (component.Name() == "expr" && collectionType == "array")
+                        else if (component.Name == "expr" && collectionType == "array")
                         {
                             _visitExpr((ASTNode)component);
                             if (!Evaluator.TryEval((TreeNode)_nodes.Last()))
@@ -305,14 +306,14 @@ namespace Whirlwind.Semantic.Visitor
 
                             var val = Evaluator.Evaluate((TreeNode)_nodes.Last());
 
-                            if (val.Type() != new SimpleType(SimpleType.DataType.INTEGER))
+                            if (val.Type != new SimpleType(SimpleType.DataType.INTEGER))
                             {
                                 throw new SemanticException("Invalid data type for array bound", component.Position);
                             }
 
                             size = Int32.Parse(val.Value);
                         }
-                        else if (component.Name() == "types")
+                        else if (component.Name == "types")
                         {
                             subTypes.Add(_generateType((ASTNode)component));
                         }
@@ -342,7 +343,7 @@ namespace Whirlwind.Semantic.Visitor
 
                     foreach (var item in ((ASTNode)subNode).Content)
                     {
-                        switch (item.Name()) {
+                        switch (item.Name) {
                             case "TOKEN":
                                 if (((TokenNode)item).Tok.Type == "ASYNC")
                                     async = true;
@@ -356,7 +357,7 @@ namespace Whirlwind.Semantic.Visitor
                         }
                     }
 
-                    return new FunctionType(args, returnTypes, async);
+                    return new FunctionType(args, returnTypes, async, false);
                 }
             }
 
@@ -364,15 +365,16 @@ namespace Whirlwind.Semantic.Visitor
             return new SimpleType(SimpleType.DataType.NULL);
         }
 
-        private void _visitInlineFunction(ASTNode node)
+        private void _visitClosure(ASTNode node)
         {
             var args = new List<Parameter>();
             var rtType = new List<IDataType>();
             bool async = false;
+            bool enumerator = false;
 
             foreach (var item in node.Content)
             {
-                switch (item.Name())
+                switch (item.Name)
                 {
                     case "TOKEN":
                         if (((TokenNode)item).Tok.Type == "ASYNC")
@@ -382,14 +384,16 @@ namespace Whirlwind.Semantic.Visitor
                         args = _generateArgsDecl((ASTNode)item);
                         break;
                     case "func_body":
-                        rtType = _visitFuncBody((ASTNode)item);
+                        var bodyData = _visitFuncBody((ASTNode)item);
+                        rtType = bodyData.Item1;
+                        enumerator = bodyData.Item2;
                         break;
                 }
             }
 
-            var fType = new FunctionType(args, rtType, async); 
+            var fType = new FunctionType(args, rtType, async, enumerator); 
 
-            _nodes.Add(new TreeNode("InlineFunction", fType));
+            _nodes.Add(new TreeNode("Closure", fType));
             PushForward();
         }
 
@@ -400,11 +404,11 @@ namespace Whirlwind.Semantic.Visitor
 
             foreach (var item in node.Content)
             {
-                if (item.Name() == "types")
+                if (item.Name == "types")
                     dt = _generateType((ASTNode)item);
-                else if (item.Name() == "expr")
+                else if (item.Name == "expr")
                     _visitExpr((ASTNode)item);
-                else if (item.Name() == "TOKEN" && ((TokenNode)item).Tok.Type == "VALUE")
+                else if (item.Name == "TOKEN" && ((TokenNode)item).Tok.Type == "VALUE")
                     valueCast = true;
             }
             
@@ -416,7 +420,7 @@ namespace Whirlwind.Semantic.Visitor
             }
             else
             {
-                if (!TypeCast(dt, _nodes.Last().Type()))
+                if (!TypeCast(dt, _nodes.Last().Type))
                     throw new SemanticException("Invalid type cast", node.Position);
 
                 _nodes.Add(new TreeNode("TypeCast", dt));

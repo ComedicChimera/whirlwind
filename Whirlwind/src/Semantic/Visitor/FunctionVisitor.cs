@@ -1,6 +1,7 @@
 ﻿using Whirlwind.Types;
 using Whirlwind.Parser;
 
+using System;
 using System.Collections.Generic;
 
 namespace Whirlwind.Semantic.Visitor
@@ -12,9 +13,9 @@ namespace Whirlwind.Semantic.Visitor
             return new List<Parameter>();
         }
 
-        private List<IDataType> _visitFuncBody(ASTNode node)
+        private Tuple<List<IDataType>, bool> _visitFuncBody(ASTNode node)
         {
-            return new List<IDataType>();
+            return new Tuple<List<IDataType>, bool>(new List<IDataType>(), false);
         }
 
         private List<ParameterValue> _generateArgsList(ASTNode node)

@@ -13,19 +13,15 @@ namespace Whirlwind.Semantic.Visitor
         {
             IDataType dt = new SimpleType(SimpleType.DataType.NULL);
             int pointers = 0;
-            bool reference = false;
 
             foreach (var subNode in node.Content)
             {
-                if (subNode.Name() == "TOKEN")
+                if (subNode.Name == "TOKEN")
                 {
                     var tokenNode = ((TokenNode)subNode);
 
                     switch (tokenNode.Tok.Type)
                     {
-                        case "REF":
-                            reference = true;
-                            break;
                         case "*":
                             pointers++;
                             break;
@@ -47,7 +43,7 @@ namespace Whirlwind.Semantic.Visitor
                             break;
                     }
                 }
-                else if (subNode.Name() == "template_spec")
+                else if (subNode.Name == "template_spec")
                 {
                     if (dt.Classify() != "TEMPLATE")
                         throw new SemanticException("Unable to apply template specifier to non-template type", subNode.Position);
@@ -59,12 +55,7 @@ namespace Whirlwind.Semantic.Visitor
                 }
             }
 
-            // reference and pointers differentiated by grammar
-            if (reference)
-            {
-                dt = new ReferenceType(dt);
-            }
-            else if (pointers != 0)
+            if (pointers != 0)
             {
                 dt = new PointerType(dt, pointers);
             }
@@ -77,7 +68,7 @@ namespace Whirlwind.Semantic.Visitor
             var dataTypes = new List<IDataType>();
             foreach (var subNode in node.Content)
             {
-                if (subNode.Name() == "types")
+                if (subNode.Name == "types")
                     dataTypes.Add(_generateType((ASTNode)subNode));
             }
             return dataTypes;
@@ -86,7 +77,7 @@ namespace Whirlwind.Semantic.Visitor
         public void _visitIterator(ASTNode node)
         {
             // expects previous node to be the iterable value
-            var iterable = _nodes.Last().Type();
+            var iterable = _nodes.Last().Type;
             var iteratorTypes = new List<IDataType>();
 
             if (Iterable(iterable))

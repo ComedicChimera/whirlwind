@@ -45,7 +45,7 @@ namespace Whirlwind.Types
         private readonly SymbolTable _table;
         private readonly List<Tuple<FunctionType, TreeNode>> _constructors;
 
-        private readonly string Name;
+        public readonly string Name;
         public readonly List<IDataType> Inherits;
         public bool Partial;
 
@@ -95,9 +95,17 @@ namespace Whirlwind.Types
             return false;
         }
 
-        public bool GetConstructor(List<ParameterValue> parameters)
+        public bool GetConstructor(List<ParameterValue> parameters, out FunctionType constructor)
         {
-            return _constructors.Where(x => x.Item1.MatchParameters(parameters)).Count() > 0;
+            var constructors = _constructors.Where(x => x.Item1.MatchParameters(parameters)).ToList();
+            
+            if (constructors.Count() == 1)
+            {
+                constructor = constructors[0].Item1;
+                return true;
+            }
+            constructor = null;
+            return false;
         }
 
         public ModuleInstance GetInstance()

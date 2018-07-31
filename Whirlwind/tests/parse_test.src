@@ -1,17 +1,9 @@
-﻿template <T> func Test($x: T) {
+﻿module MyModule {
+	template<T>
+	interface SomeInterface {
+		func Add() (int);
+	}
 
-}
-
-struct Point {
-	x, y: int;
-}
-
-struct Force {
-	direction: Point;
-	mag: float;
-}
-
-func Main() {
-	$y = 2 >> cast<int>(2 > 3);
-	uniform $static: int;
+	template<T: int, str>
+	func Sum(... $n: T) T => n |> ... + |;
 }

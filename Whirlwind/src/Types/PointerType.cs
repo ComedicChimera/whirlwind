@@ -16,25 +16,4 @@
 
         public string Classify() => "POINTER";
     }
-
-    class ReferenceType : IDataType
-    {
-        public readonly IDataType Type;
-
-        public ReferenceType(IDataType dt)
-        {
-            Type = dt;
-        }
-
-        public bool Coerce(IDataType other)
-        {
-            if (other.Classify() == "REFERENCE")
-            {
-                return Type.Coerce(((ReferenceType)other).Type);
-            }
-            return false;
-        }
-
-        public string Classify() => "REFERENCE";
-    }
 }

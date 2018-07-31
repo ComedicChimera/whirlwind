@@ -18,20 +18,19 @@ namespace Whirlwind.Parser
 
     interface INode
     {
-        string Name();
+        string Name { get; }
         TextPosition Position { get; }
     }
 
     class TokenNode : INode
     {
         public readonly Token Tok;
+        public string Name { get { return "TOKEN"; } }
 
         public TokenNode(Token token)
         {
             Tok = token;
         }
-
-        public string Name() => "TOKEN";
 
         public override string ToString()
         {
@@ -43,20 +42,18 @@ namespace Whirlwind.Parser
 
     class ASTNode : INode
     {
-        private readonly string _name;
+        public string Name { get; }
         public List<INode> Content;
 
         public ASTNode(string name)
         {
-            _name = name;
+            Name = name;
             Content = new List<INode>();
         }
 
-        public string Name() => _name;
-
         public override string ToString()
         {
-            return $"{_name}:[{string.Join(", ", Content.Select(x => x.ToString()))}]";
+            return $"{Name}:[{string.Join(", ", Content.Select(x => x.ToString()))}]";
         }
 
         public TextPosition Position
