@@ -275,9 +275,9 @@ base: 'INTEGER_LITERAL'
 ;
 
 // collection types
-array: '{' [ expr ( ',' expr )* ] '}' ;
-list: '[' [ expr ( ',' expr )* ] ']' ;
-map: '{' [ expr ':' expr (',' expr ':' expr)* ] '}' ;
+array: '{' expr ( ',' expr )* '}' ;
+list: '[' expr ( ',' expr )* ']' ;
+map: '{' expr ':' expr (',' expr ':' expr)* '}' ;
 
 // tuple literal
 tuple: '(' expr (',' expr)+ ')' ;
