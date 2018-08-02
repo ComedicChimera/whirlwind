@@ -166,6 +166,14 @@ namespace Whirlwind.Semantic.Visitor
                             }
                             break;
                         }
+                        else if (root.Type.Classify() == "METHOD_GROUP")
+                        {
+
+                        }
+                        else if (root.Type.Classify() == "TEMPLATE")
+                        {
+
+                        }
                         else
                             throw new SemanticException("Unable to call non-callable type", node.Content[0].Position);
                     case "|>":

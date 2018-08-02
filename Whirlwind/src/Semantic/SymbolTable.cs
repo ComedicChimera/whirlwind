@@ -33,6 +33,19 @@ namespace Whirlwind.Semantic
                     return SubScopes[scopePath[0]].AddSymbol(symbol, scopePath.Skip(1).ToArray());
             }
 
+            public void ReplaceSymbol(string name, Symbol newSymbol)
+            {
+                Symbols[Symbols.Select(x => x.Name).ToList().IndexOf(name)] = newSymbol;
+            }
+
+            public void ReplaceSymbol(string name, Symbol newSymbol, int[] scopePath)
+            {
+                if (scopePath.Length == 1)
+                    SubScopes[scopePath[0]].ReplaceSymbol(name, newSymbol);
+                else
+                    SubScopes[scopePath[0]].ReplaceSymbol(name, newSymbol, scopePath.Skip(1).ToArray());
+            }
+
             public void AddScope(int[] scopePath)
             {
                 if (scopePath.Length == 1)
@@ -109,6 +122,15 @@ namespace Whirlwind.Semantic
         public List<Symbol> Filter(Modifier modifier)
         {
             return _table.Symbols.Where(x => x.Modifiers.Contains(modifier)).ToList();
+        }
+
+        // no need for boolean since this is only called internally
+        public void ReplaceSymbol(string name, Symbol newSymbol)
+        {
+            if (_scopePath.Length == 0)
+                _table.ReplaceSymbol(name, newSymbol);
+            else
+                _table.ReplaceSymbol(name, newSymbol, _scopePath);
         }
     }
 }

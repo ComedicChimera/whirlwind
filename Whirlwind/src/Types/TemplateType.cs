@@ -70,6 +70,12 @@ namespace Whirlwind.Types
             return false;
         }
 
+        public bool Infer(List<ParameterValue> parameters, out IDataType inferredType)
+        {
+            inferredType = null;
+            return false;
+        }
+
         public bool Coerce(IDataType other) => false;
 
         public string Classify() => "TEMPLATE";
