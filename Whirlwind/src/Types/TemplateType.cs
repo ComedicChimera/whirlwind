@@ -4,6 +4,20 @@ using Whirlwind.Parser;
 
 namespace Whirlwind.Types
 {
+    // represents the template placeholder in the template signature
+    class TemplatePlaceholder : IDataType
+    {
+        public readonly string Name;
+        
+        public TemplatePlaceholder(string name)
+        {
+            Name = name;
+        }
+
+        public bool Coerce(IDataType other) => false;
+        public string Classify() => "TEMPLATE_PLACEHOLDER";
+    }
+
     // function returns data type of evaluated body and tests it
     delegate IDataType TemplateEvaluator(Dictionary<string, TemplateAlias> aliases, ASTNode body);
 
@@ -29,6 +43,7 @@ namespace Whirlwind.Types
         private readonly IDataType _templateType;
         private readonly TemplateEvaluator _evaluator;
         private readonly ASTNode _body;
+        private readonly Dictionary<List<IDataType>, ASTNode> _variants;
 
         public TemplateType(Dictionary<string, List<IDataType>> templates, IDataType templateType, ASTNode body, TemplateEvaluator evaluator)
         {
@@ -70,10 +85,34 @@ namespace Whirlwind.Types
             return false;
         }
 
-        public bool Infer(List<ParameterValue> parameters, out IDataType inferredType)
+        public bool Infer(List<ParameterValue> parameters, out List<IDataType> inferredTypes)
         {
-            inferredType = null;
+            inferredTypes = new List<IDataType>();
             return false;
+        }
+
+        public bool AddVariant(List<IDataType> dataTypes, ASTNode variant_body)
+        {
+            if (dataTypes.Count != _templates.Count)
+                return false;
+
+            if (_variants.ContainsKey(dataTypes))
+                return false;
+
+            using (var e1 = _templates.Values.GetEnumerator())
+            using (var e2 = dataTypes.GetEnumerator())
+            {
+                while (e1.MoveNext() && e2.MoveNext())
+                {
+                    if (e1.Current.Count == 0)
+                        continue;
+                    if (!e1.Current.Contains(e2.Current))
+                        return false;
+                }
+            }
+
+            _variants[dataTypes] = variant_body;
+            return true;
         }
 
         public bool Coerce(IDataType other) => false;

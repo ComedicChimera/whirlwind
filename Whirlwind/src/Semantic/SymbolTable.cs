@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using Whirlwind.Types;
+
+using System.Collections.Generic;
 using System.Linq;
 using System;
 
@@ -8,20 +10,20 @@ namespace Whirlwind.Semantic
     {
         private class Scope
         {
-            public List<Symbol> Symbols;
+            public Dictionary<string, Symbol> Symbols;
             public List<Scope> SubScopes;
 
             public Scope()
             {
-                Symbols = new List<Symbol>();
+                Symbols = new Dictionary<string, Symbol>();
                 SubScopes = new List<Scope>();
             }
 
             public bool AddSymbol(Symbol symbol)
             {
-                if (Symbols.Contains(symbol))
+                if (Symbols.ContainsKey(symbol.Name))
                     return false;
-                Symbols.Add(symbol);
+                Symbols.Add(symbol.Name, symbol);
                 return true;
             }
 
@@ -35,7 +37,7 @@ namespace Whirlwind.Semantic
 
             public void ReplaceSymbol(string name, Symbol newSymbol)
             {
-                Symbols[Symbols.Select(x => x.Name).ToList().IndexOf(name)] = newSymbol;
+                Symbols[name] = newSymbol;
             }
 
             public void ReplaceSymbol(string name, Symbol newSymbol, int[] scopePath)
@@ -109,9 +111,9 @@ namespace Whirlwind.Semantic
             visibleScopes.Reverse();
             foreach (Scope scope in visibleScopes)
             {
-                if (scope.Symbols.Select(x => x.Name).Contains(name))
+                if (scope.Symbols.ContainsKey(name))
                 {
-                    symbol = scope.Symbols.Where(x => x.Name == name).First();
+                    symbol = scope.Symbols[name];
                     return true;
                 }
             }
@@ -119,9 +121,9 @@ namespace Whirlwind.Semantic
             return false;
         }
         
-        public List<Symbol> Filter(Modifier modifier)
+        public Dictionary<string, Symbol> Filter(Modifier modifier)
         {
-            return _table.Symbols.Where(x => x.Modifiers.Contains(modifier)).ToList();
+            return _table.Symbols.Where(x => x.Value.Modifiers.Contains(modifier)).Select(x => x.Value).ToDictionary(x => x.Name);
         }
 
         // no need for boolean since this is only called internally

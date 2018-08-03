@@ -136,46 +136,8 @@ namespace Whirlwind.Semantic.Visitor
                     case "{":
                         break;
                     case "(":
-                        if (new[] { "MODULE", "FUNCTION" }.Contains(root.Type.Classify()))
-                        {
-                            bool isFunction = root.Type.Classify() == "FUNCTION";
-
-                            // trailer -> args_list
-                            // generate args_list pushed all expressions on to stack in order
-                            var args = _generateArgsList((ASTNode)node.Content[1]);
-
-                            if (isFunction && !CheckParameters((FunctionType)root.Type, args))
-                                throw new SemanticException("Invalid parameters for function call", node.Position);
-                            else if (!((ModuleType)root.Type).GetConstructor(args, out FunctionType constructor))
-                                throw new SemanticException($"Module '{((ModuleType)root.Type).Name}' has no constructor the accepts the given parameters", node.Position);
-
-                            IDataType returnType = isFunction ? ((FunctionType)root.Type).ReturnType : ((ModuleType)root.Type).GetInstance();
-
-                            _nodes.Add(new TreeNode(isFunction ? "Call" : "CallConstructor", returnType));
-                            
-                            if (args.Count == 0)
-                                // add function to call
-                                PushForward();
-                            else
-                            {
-                                // capture just arguments
-                                PushForward(args.Count);
-                                // add function to beginning of call
-                                ((TreeNode)_nodes[_nodes.Count - 1]).Nodes.Insert(0, _nodes[_nodes.Count - 2]);
-                                _nodes.RemoveAt(_nodes.Count - 2);
-                            }
-                            break;
-                        }
-                        else if (root.Type.Classify() == "METHOD_GROUP")
-                        {
-
-                        }
-                        else if (root.Type.Classify() == "TEMPLATE")
-                        {
-
-                        }
-                        else
-                            throw new SemanticException("Unable to call non-callable type", node.Content[0].Position);
+                        _visitFunctionCall(node, root);
+                        break;
                     case "|>":
                         if (!Iterable(root.Type))
                             throw new SemanticException("Aggregated type must be iterable", node.Content[0].Position);
@@ -243,6 +205,58 @@ namespace Whirlwind.Semantic.Visitor
             }
 
             return symbol.DataType;
+        }
+
+        private void _visitFunctionCall(ASTNode node, ITypeNode root)
+        {
+            var args = _generateArgsList((ASTNode)node.Content[0]);
+
+            if (new[] { "MODULE", "FUNCTION" }.Contains(root.Type.Classify()))
+            {
+                bool isFunction = root.Type.Classify() == "FUNCTION";
+
+                if (isFunction && !CheckParameters((FunctionType)root.Type, args))
+                    throw new SemanticException("Invalid parameters for function call", node.Position);
+                else if (!((ModuleType)root.Type).GetConstructor(args, out FunctionType constructor))
+                    throw new SemanticException($"Module '{((ModuleType)root.Type).Name}' has no constructor the accepts the given parameters", node.Position);
+
+                IDataType returnType = isFunction ? ((FunctionType)root.Type).ReturnType : ((ModuleType)root.Type).GetInstance();
+
+                _nodes.Add(new TreeNode(isFunction ? "Call" : "CallConstructor", returnType));
+
+                _generateFunctionCall((FunctionType)root.Type, args.Count);
+            }
+            else if (root.Type.Classify() == "TEMPLATE")
+            {
+                if (((TemplateType)root.Type).Infer(args, out List<IDataType> inferredTypes))
+                {
+                    // always works - try auto eval if possible
+                    ((TemplateType)root.Type).CreateTemplate(inferredTypes, out IDataType templateType);
+
+                    _nodes.Add(new TreeNode("CreateTemplate", templateType));
+                    PushForward();
+
+                    _visitFunctionCall(node, root);
+                }
+                else
+                    throw new SemanticException("Unable to infer type of template arguments", node.Position);
+            }
+            else
+                throw new SemanticException("Unable to call non-callable type", node.Content[0].Position);
+        }
+
+        private void _generateFunctionCall(FunctionType fn, int argCount)
+        {
+            _nodes.Add(new TreeNode("Call", fn.ReturnType));
+            if (argCount == 0)
+                PushForward();
+            else
+            {
+                PushForward(argCount);
+                // add function to beginning of call
+                ((TreeNode)_nodes[_nodes.Count - 1]).Nodes.Insert(0, _nodes[_nodes.Count - 2]);
+                _nodes.RemoveAt(_nodes.Count - 2);
+            }
         }
     }
 }

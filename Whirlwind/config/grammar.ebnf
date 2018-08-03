@@ -32,6 +32,7 @@ member_decl: modifiers* ( variable_decl ';'
 | enum_const ';'
 | method_decl
 | method_template
+| variant_decl
 ) ;
 
 // static declarations (structs, interfaces, and templates)
@@ -57,6 +58,7 @@ block_decl: func_decl
 | module_decl
 | struct_decl
 | template_decl
+| variant_decl
 ;
 
 // function declaration
@@ -75,6 +77,9 @@ struct_var: 'IDENTIFIER' (',' 'IDENTIFIER')* ':' types ;
 // template declaration
 template_decl: 'TEMPLATE' '<' template (',' template)* '>' block_decl ;
 template: 'IDENTIFIER' [':' type_list] ;
+
+// variant declaration
+variant_decl: 'VARIANT' '<' type_list '>' 'IDENTIFIER' func_body ;
 
 
 // BLOCK STATEMENTS (control flow, context managers and except blocks)
