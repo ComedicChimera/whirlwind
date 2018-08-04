@@ -242,7 +242,7 @@ trailer: '[' (expr [slice] | slice) ']'
 // trailer components
 slice: ':' [expr [':' expr] | ':' expr] ;
 args_list: [expr [initializer] (',' expr [initializer])*]  ;
-init_list: ('IDENTIFIER' initializer)+ ;
+init_list: 'IDENTIFIER' initializer (',' 'IDENTIFIER' initializer)* ;
 
 // aggregator
 aggr_expr: expr
