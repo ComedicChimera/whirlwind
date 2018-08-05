@@ -39,6 +39,25 @@ namespace Whirlwind.Semantic.Visitor
                         break;
                 }
             }
+
+            bool needsNew = new[] { "CallConstructor", "InitList" }.Contains(_nodes.Last().Name);
+
+            if (needsNew && !hasNew)
+                throw new SemanticException("Missing `new` keyword to properly create instance.", node.Position);
+            else if (!needsNew && hasNew)
+                // new is first unless there is an await
+                throw new SemanticException("The `new` keyword is not valid for the given type", node.Content[hasAwait ? 1 : 0].Position);
+
+
+            if (_nodes.Last().Name == "CallAsync" && hasAwait)
+            {
+                _nodes.Add(new TreeNode("Await", ((Future)_nodes.Last().Type).Type));
+                PushForward();
+                return;
+            }
+            else if (hasAwait)
+                // await always first element
+                throw new SemanticException("The given expression is not awaitable", node.Content[0].Position);
         }
 
         private void _visitComprehension(ASTNode node)
@@ -282,8 +301,9 @@ namespace Whirlwind.Semantic.Visitor
                     throw new SemanticException($"Module '{((ModuleType)root.Type).Name}' has no constructor the accepts the given parameters", node.Position);
 
                 IDataType returnType = isFunction ? ((FunctionType)root.Type).ReturnType : ((ModuleType)root.Type).GetInstance();
+                string callTreeName = isFunction && ((FunctionType)root.Type).Async ? "Call" : "AsyncCall";
 
-                _nodes.Add(new TreeNode(isFunction ? "Call" : "CallConstructor", returnType));
+                _nodes.Add(new TreeNode(isFunction ? callTreeName : "CallConstructor", returnType));
 
                 _generateFunctionCall((FunctionType)root.Type, args.Count);
             }

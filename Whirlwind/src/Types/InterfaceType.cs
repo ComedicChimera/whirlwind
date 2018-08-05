@@ -1,4 +1,5 @@
 ﻿using Whirlwind.Semantic;
+using Whirlwind.Parser;
 
 using System.Collections.Generic;
 
@@ -7,6 +8,7 @@ namespace Whirlwind.Types
     class InterfaceType : IDataType
     {
         private readonly List<Symbol> _functions;
+        private readonly List<ASTNode> _bodies;
 
         public InterfaceType()
         {
@@ -21,6 +23,15 @@ namespace Whirlwind.Types
                 return true;
             }
             return false;
+        }
+
+        public bool AddFunction(Symbol fn, ASTNode body)
+        {
+            if (!AddFunction(fn))
+                return false;
+
+            _bodies.Add(body);
+            return true;
         }
 
         public bool MatchModule(ModuleType module)
