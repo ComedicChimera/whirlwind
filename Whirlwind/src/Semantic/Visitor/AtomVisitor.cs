@@ -142,11 +142,12 @@ namespace Whirlwind.Semantic.Visitor
 
                 switch (((TokenNode)node.Content[0]).Tok.Type)
                 {
+                    // make get member const correct
                     case ".":
                         string identifier = ((TokenNode)node.Content[1]).Tok.Value;
                         _nodes.Add(new TreeNode("GetMember", _getMember(root.Type, identifier, node.Content[0].Position, node.Content[1].Position)));
                         PushForward();
-                        _nodes.Add(new ValueNode("Identifier", new SimpleType(), identifier));
+                        _nodes.Add(new IdentifierNode(identifier, new SimpleType(), false));
                         MergeBack();
                         break;
                     case "->":
@@ -155,7 +156,7 @@ namespace Whirlwind.Semantic.Visitor
                             string pointerIdentifier = ((TokenNode)node.Content[1]).Tok.Value;
                             _nodes.Add(new TreeNode("GetMember", _getMember(((PointerType)root.Type).Type, pointerIdentifier, node.Content[0].Position, node.Content[1].Position)));
                             PushForward();
-                            _nodes.Add(new ValueNode("Identifier", new SimpleType(), pointerIdentifier));
+                            _nodes.Add(new IdentifierNode(pointerIdentifier, new SimpleType(), false));
                             MergeBack();
                             break;
                         }
@@ -174,7 +175,7 @@ namespace Whirlwind.Semantic.Visitor
                                 if (((TokenNode)item).Tok.Type == "IDENTIFIER")
                                 {
                                     positions.Add(item.Position);
-                                    _nodes.Add(new ValueNode("Identifier", new SimpleType(), ((TokenNode)item).Tok.Value));
+                                    _nodes.Add(new IdentifierNode(((TokenNode)item).Tok.Value, new SimpleType(), false));
                                 }
                                     
                             }
@@ -263,6 +264,11 @@ namespace Whirlwind.Semantic.Visitor
                             }
                             else
                                 throw new SemanticException("Aggregator expression must be a function", node.Content[1].Position);
+                        }
+                        // add in operator aggregator
+                        else
+                        {
+
                         }
                         break;
                 }

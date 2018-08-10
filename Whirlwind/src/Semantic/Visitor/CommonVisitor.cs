@@ -35,14 +35,14 @@ namespace Whirlwind.Semantic.Visitor
 
             for (int i = 0; i < identifiers.Length; i++)
             {
-                _table.AddSymbol(new Symbol(identifiers[i], iteratorTypes[i]));
+                _table.AddSymbol(new Symbol(identifiers[i], iteratorTypes[i], new List<Modifier>() { Modifier.CONSTANT }));
             }
 
             _nodes.Add(new TreeNode(
                 "Iterator",
                 new SimpleType(),
                 Enumerable.Range(0, identifiers.Length)
-                    .Select(i => new ValueNode("Identifier", iteratorTypes[i], identifiers[i]))
+                    .Select(i => new IdentifierNode(identifiers[i], iteratorTypes[i], true))
                     .Select(x => x as ITypeNode)
                     .ToList()
             ));
