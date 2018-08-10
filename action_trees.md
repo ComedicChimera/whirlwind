@@ -82,4 +82,4 @@ Represents a multi-value structure or some form of operation.
 | PostfixDecrement | Numeric | Postfix decrement a value |
 | Reference | Value | Create a reference to the given value |
 | Dereference | Value | Dereference a value a certain number of times equivalent to the **pointer difference** |
-| ^ | *Values* | Perform a raise operation |
+| ^ | *Values* | Perform an exponent operation |
