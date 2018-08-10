@@ -5,6 +5,7 @@ using static Whirlwind.Semantic.Checker.Checker;
 
 using System.Linq;
 using System.Collections.Generic;
+using System;
 
 namespace Whirlwind.Semantic.Visitor
 {
@@ -27,6 +28,9 @@ namespace Whirlwind.Semantic.Visitor
                     case "trailer":
                         _visitTrailer((ASTNode)subNode);
                         break;
+                    case "heap_alloc":
+                        _visitHeapAlloc((ASTNode)subNode);
+                        break;
                     case "TOKEN":
                         switch (((TokenNode)subNode).Tok.Type) {
                             case "AWAIT":
@@ -40,14 +44,21 @@ namespace Whirlwind.Semantic.Visitor
                 }
             }
 
-            bool needsNew = new[] { "CallConstructor", "InitList" }.Contains(_nodes.Last().Name);
+            bool needsNew = new[] { "CallConstructor", "InitList", "HeapAllocType" }.Contains(_nodes.Last().Name);
 
             if (needsNew && !hasNew)
                 throw new SemanticException("Missing `new` keyword to properly create instance.", node.Position);
             else if (!needsNew && hasNew)
-                // new is first unless there is an await
-                throw new SemanticException("The `new` keyword is not valid for the given type", node.Content[hasAwait ? 1 : 0].Position);
-
+            {
+                if (new SimpleType(SimpleType.DataType.INTEGER, true).Coerce(_nodes.Last().Type))
+                {
+                    _nodes.Add(new TreeNode("HeapAlloc", new PointerType(new SimpleType(), 1)));
+                    PushForward();
+                }
+                else
+                    // new is first unless there is an await
+                    throw new SemanticException("The `new` keyword is not valid for the given type", node.Content[hasAwait ? 1 : 0].Position);
+            }
 
             if (_nodes.Last().Name == "CallAsync" && hasAwait)
             {
@@ -289,7 +300,7 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitFunctionCall(ASTNode node, ITypeNode root)
         {
-            var args = _generateArgsList((ASTNode)node.Content[0]);
+            var args = node.Content.Count == 2 ? new List<ParameterValue>() : _generateArgsList((ASTNode)node.Content[1]);
 
             if (new[] { "MODULE", "FUNCTION" }.Contains(root.Type.Classify()))
             {
@@ -297,15 +308,22 @@ namespace Whirlwind.Semantic.Visitor
 
                 if (isFunction && !CheckParameters((FunctionType)root.Type, args))
                     throw new SemanticException("Invalid parameters for function call", node.Position);
-                else if (!((ModuleType)root.Type).GetConstructor(args, out FunctionType constructor))
+                else if (!isFunction && !((ModuleType)root.Type).GetConstructor(args, out FunctionType constructor))
                     throw new SemanticException($"Module '{((ModuleType)root.Type).Name}' has no constructor the accepts the given parameters", node.Position);
 
                 IDataType returnType = isFunction ? ((FunctionType)root.Type).ReturnType : ((ModuleType)root.Type).GetInstance();
-                string callTreeName = isFunction && ((FunctionType)root.Type).Async ? "Call" : "AsyncCall";
 
-                _nodes.Add(new TreeNode(isFunction ? callTreeName : "CallConstructor", returnType));
+                _nodes.Add(new TreeNode(isFunction ? (((FunctionType)root.Type).Async ? "CallAsync" : "Call") : "CallConstructor", returnType));
 
-                _generateFunctionCall((FunctionType)root.Type, args.Count);
+                if (args.Count == 0)
+                    PushForward();
+                else
+                {
+                    PushForward(args.Count);
+                    // add function to beginning of call
+                    ((TreeNode)_nodes[_nodes.Count - 1]).Nodes.Insert(0, _nodes[_nodes.Count - 2]);
+                    _nodes.RemoveAt(_nodes.Count - 2);
+                }
             }
             else if (root.Type.Classify() == "TEMPLATE")
             {
@@ -324,20 +342,6 @@ namespace Whirlwind.Semantic.Visitor
             }
             else
                 throw new SemanticException("Unable to call non-callable type", node.Content[0].Position);
-        }
-
-        private void _generateFunctionCall(FunctionType fn, int argCount)
-        {
-            _nodes.Add(new TreeNode("Call", fn.ReturnType));
-            if (argCount == 0)
-                PushForward();
-            else
-            {
-                PushForward(argCount);
-                // add function to beginning of call
-                ((TreeNode)_nodes[_nodes.Count - 1]).Nodes.Insert(0, _nodes[_nodes.Count - 2]);
-                _nodes.RemoveAt(_nodes.Count - 2);
-            }
         }
 
         private void _visitSubscript(IDataType rootType, ASTNode node)
@@ -402,8 +406,9 @@ namespace Whirlwind.Semantic.Visitor
             {
                 switch (expressionCount)
                 {
+                    // no modification, just step or end
                     case 1:
-                        name = "SliceEnd";
+                        name = colonCount == 1 ? "SliceEnd" : "SlicePureStep";
                         break;
                     // 2
                     default:
@@ -426,57 +431,51 @@ namespace Whirlwind.Semantic.Visitor
             }
             else if (rootType.Classify() == "MODULE_INSTANCE")
             {
-                if (((ModuleInstance)rootType).GetProperty(name == "Subscript" ? "__subscript__" : "__slice__", out Symbol symbol))
+                var args = new List<ParameterValue>();
+
+                switch (name)
                 {
-                    if (symbol.DataType.Classify() == "FUNCTION")
-                    {
-                        var args = new List<ParameterValue>();
-
-                        switch (name)
-                        {
-                            case "Subscript":
-                            case "SliceBegin":
-                                args.Add(new ParameterValue(types[0]));
-                                break;
-                            case "SliceEnd":
-                                args.Add(new ParameterValue("end", types[0]));
-                                break;
-                            case "SliceEndStep":
-                                args.Add(new ParameterValue("end", types[0]));
-                                args.Add(new ParameterValue("step", types[1]));
-                                break;
-                            case "SliceBeginStep":
-                                args.Add(new ParameterValue(types[0]));
-                                args.Add(new ParameterValue("step", types[1]));
-                                break;
-                            case "SliceStep":
-                                args.Add(new ParameterValue("step", types[0]));
-                                break;
-                            case "Slice":
-                                args.AddRange(types.Select(x => new ParameterValue(x)));
-                                break;
-                        }
-
-                        if (CheckParameters((FunctionType)symbol.DataType, args))
-                        {
-                            _nodes.Add(new TreeNode("OverloadCall", ((FunctionType)symbol.DataType).ReturnType, new List<ITypeNode>()));
-                            // capture root as well
-                            PushForward(args.Count + 1);
-                            // insert in call name
-                            ((TreeNode)_nodes[_nodes.Count - 1]).Nodes.Insert(1, new ValueNode("Identifier", new SimpleType(), name == "Subscript" ? "__subscript__" : "__slice__"));
-                        }
-                        else
-                            throw new SemanticException("The given module defines an invalid overload for the `[]` operator", node.Position);
-                    }
-                    else
-                        throw new SemanticException("The given module defines no overload for the `[]` operator", node.Position);
+                    case "Subscript":
+                    case "SliceBegin":
+                        args.Add(new ParameterValue(types[0]));
+                        break;
+                    case "SliceEnd":
+                        args.Add(new ParameterValue("end", types[0]));
+                        break;
+                    case "SliceEndStep":
+                        args.Add(new ParameterValue("end", types[0]));
+                        args.Add(new ParameterValue("step", types[1]));
+                        break;
+                    case "SliceBeginStep":
+                        args.Add(new ParameterValue(types[0]));
+                        args.Add(new ParameterValue("step", types[1]));
+                        break;
+                    case "SliceStep":
+                        args.Add(new ParameterValue("step", types[0]));
+                        break;
+                    case "Slice":
+                        args.AddRange(types.Select(x => new ParameterValue(x)));
+                        break;
                 }
+
+                string methodName = name == "Subscript" ? "__subscript__" : "__slice__";
+                if (HasOverload(rootType, methodName, args, out IDataType returnType))
+                {
+                    _nodes.Add(new TreeNode("OverloadCall", returnType));
+                    // add in callname
+                    _nodes.Add(new IdentifierNode(methodName, new SimpleType(), false));
+                    MergeBack();
+                    // capture root as well
+                    PushForward(args.Count + 1);
+                }
+                else
+                    throw new SemanticException("The given module defines an invalid overload for the `[]` operator", node.Position);
             }
             else
             {
                 var intType = new SimpleType(SimpleType.DataType.INTEGER);
                 if (!types.All(x => intType.Coerce(x))) {
-                    throw new SemanticException($"Invalid index type for {(expressionCount == 1 && hasStartingExpr ? "subscript" : "slice")} ", 
+                    throw new SemanticException($"Invalid index type for {(expressionCount == 1 && hasStartingExpr ? "subscript" : "slice")}", 
                         textPositions[Enumerable.Range(0, expressionCount).Where(x => !intType.Coerce(types[x])).First()]
                         );
                 }
@@ -484,10 +483,10 @@ namespace Whirlwind.Semantic.Visitor
                 IDataType elementType;
                 switch (rootType.Classify())
                 {
-                    case "ARRAY_TYPE":
+                    case "ARRAY":
                         elementType = ((ArrayType)rootType).ElementType;
                         break;
-                    case "LIST_TYPE":
+                    case "LIST":
                         elementType = ((ListType)rootType).ElementType;
                         break;
                     default:
@@ -499,6 +498,41 @@ namespace Whirlwind.Semantic.Visitor
                 // capture root as well
                 PushForward(expressionCount + 1);
             }
+        }
+
+        private void _visitHeapAlloc(ASTNode node)
+        {
+            // new ( alloc_body ) -> types , expr
+            var allocBody = (ASTNode)node.Content[2];
+
+            IDataType dt = new SimpleType();
+            bool hasSizeExpr = false;
+
+            foreach (var item in allocBody.Content)
+            {
+                if (item.Name == "types")
+                {
+                    dt = _generateType((ASTNode)item);
+                    _nodes.Add(new ValueNode("DataType", dt));
+                }
+                else if (item.Name == "expr")
+                {
+                    _visitExpr((ASTNode)item);
+                    hasSizeExpr = true;
+                }
+                    
+            }
+
+            if (new[] { "ARRAY_TYPE", "LIST_TYPE", "MAP_TYPE", "FUNCTION" }.Contains(dt.Classify()))
+                throw new SemanticException("Invalid data type for raw heap allocation", allocBody.Content[0].Position);
+
+            if (!hasSizeExpr)
+                _nodes.Add(new ValueNode("Literal", new SimpleType(SimpleType.DataType.INTEGER, true), "1"));
+            else if (!new SimpleType(SimpleType.DataType.INTEGER, true).Coerce(_nodes.Last().Type))
+                throw new SemanticException("Size of heap allocated type must be an integer", allocBody.Content[2].Position);
+
+            _nodes.Add(new TreeNode("HeapAllocType", new PointerType(dt, 1)));
+            PushForward(2);
         }
     }
 }

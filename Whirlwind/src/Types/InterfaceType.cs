@@ -10,9 +10,12 @@ namespace Whirlwind.Types
         private readonly List<Symbol> _functions;
         private readonly List<ASTNode> _bodies;
 
+        bool initialized = false;
+
         public InterfaceType()
         {
             _functions = new List<Symbol>();
+            _bodies = new List<ASTNode>();
         }
 
         public bool AddFunction(Symbol fn)
@@ -50,7 +53,7 @@ namespace Whirlwind.Types
             return true;
         }
 
-        public string Classify() => "INTERFACE";
+        public string Classify() => initialized ? "INTERFACE_INSTANCE" : "INTERFACE";
 
         public bool Coerce(IDataType other)
         {
@@ -72,5 +75,8 @@ namespace Whirlwind.Types
             }
             return false;
         }
+
+        public void Initialize() =>
+            initialized = true;
     }
 }

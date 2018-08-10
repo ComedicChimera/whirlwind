@@ -228,6 +228,7 @@ unary_atom: ('&' | '-' | '++' | '--' | '*'+) atom
 // ATOMS - basic unit of expressions
 atom: [ 'NEW' ] [ 'AWAIT' ] base trailer*
 | comprehension trailer*
+| heap_alloc
 ;
 
 trailer: '[' (expr [slice] | slice) ']'
@@ -257,6 +258,10 @@ aggr_op: '+' | '-' | '*' | '/' | '^' | '%'
 // for comprehension
 comprehension: 'FOR' '(' expr iterator '=>' expr [':' expr] ['IF' expr] ')' ;
 
+// allocate a type on the heap
+heap_alloc: 'NEW' '(' alloc_body ')' ;
+alloc_body: types [',' expr] ;
+
 
 // BASES - lowest component of an atom
 base: 'INTEGER_LITERAL'
@@ -277,6 +282,7 @@ base: 'INTEGER_LITERAL'
 | closure
 | sub_expr
 | type_cast
+| sizeof
 ;
 
 // collection types
@@ -296,7 +302,11 @@ closure: 'FUNC' '(' args_decl_list ')' func_body
 sub_expr: '(' expr ')' ;
 
 // casting syntax includes call
-type_cast: 'CAST' '<' (types | 'VALUE') '>' '(' expr ')' ;
+type_cast: 'CAST' '<' types '>' '(' expr ')' ;
+
+// size of operator call
+sizeof: 'SIZEOF' '(' ( types | expr ) ')' ;
+
 
 // DATA TYPES - data type literals
 types: '*'* ( base_types
@@ -318,6 +328,7 @@ simple_types: 'BOOL_TYPE'
 | 'BYTE_TYPE'
 | 'LONG_TYPE'
 | 'DOUBLE_TYPE'
+| 'VOID_TYPE'
 ;
 
 collection_types: 'ARRAY_TYPE' '[' types ',' expr ']'

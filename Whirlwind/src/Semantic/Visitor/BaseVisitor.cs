@@ -1,6 +1,5 @@
 ﻿using Whirlwind.Parser;
 using Whirlwind.Types;
-using Whirlwind.Semantic.Constexpr;
 
 using static Whirlwind.Semantic.Checker.Checker;
 
@@ -16,14 +15,17 @@ namespace Whirlwind.Semantic.Visitor
         {
             if (node.Content[0].Name == "TOKEN")
             {
-                SimpleType.DataType dt = SimpleType.DataType.NULL; // default to null
+                SimpleType.DataType dt = SimpleType.DataType.VOID; // default to null
+                bool unsigned = false;
                 switch (((TokenNode)node.Content[0]).Tok.Type)
                 {
                     case "INTEGER_LITERAL":
                         dt = SimpleType.DataType.INTEGER;
+                        unsigned = true;
                         break;
                     case "FLOAT_LITERAL":
                         dt = SimpleType.DataType.FLOAT;
+                        unsigned = true;
                         break;
                     case "BOOL_LITERAL":
                         dt = SimpleType.DataType.BOOL;
@@ -48,7 +50,7 @@ namespace Whirlwind.Semantic.Visitor
                     case "IDENTIFIER":
                         if (_table.Lookup(((TokenNode)node.Content[0]).Tok.Value, out Symbol sym))
                         {
-                            _nodes.Add(new ValueNode("Identifier", sym.DataType, sym.Name));
+                            _nodes.Add(new IdentifierNode(sym.Name, sym.DataType, sym.Modifiers.Contains(Modifier.CONSTANT)));
                             return;
                         }
                         {
@@ -58,7 +60,7 @@ namespace Whirlwind.Semantic.Visitor
                     case "THIS":
                         if (_table.Lookup("$THIS", out Symbol instance))
                         {
-                            _nodes.Add(new ValueNode("This", instance.DataType));
+                            _nodes.Add(new IdentifierNode("$THIS", instance.DataType, true));
                             return;
                         }
                         {
@@ -66,7 +68,7 @@ namespace Whirlwind.Semantic.Visitor
                         }
                 }
 
-                _nodes.Add(new ValueNode("Literal", new SimpleType(dt), ((TokenNode)node.Content[0]).Tok.Value));
+                _nodes.Add(new ValueNode("Literal", new SimpleType(dt, unsigned), ((TokenNode)node.Content[0]).Tok.Value));
             }
             else
             {
@@ -100,6 +102,20 @@ namespace Whirlwind.Semantic.Visitor
                         break;
                     case "type_cast":
                         _visitTypeCast((ASTNode)node.Content[0]);
+                        break;
+                    case "sizeof":
+                        var typeExpr = (ASTNode)((ASTNode)node.Content[0]).Content[2];
+                        _nodes.Add(new TreeNode("SizeOf", new SimpleType(SimpleType.DataType.INTEGER, true)));
+
+                        if (typeExpr.Name == "types")
+                            _nodes.Add(new ValueNode("DataType", _generateType(typeExpr)));
+                        else
+                            _visitExpr(typeExpr);
+
+                        MergeBack();
+                        break;
+                    case "tuple":
+                        _visitTuple((ASTNode)node.Content[0]);
                         break;
                 }
             }
@@ -160,13 +176,16 @@ namespace Whirlwind.Semantic.Visitor
         private void _coerceSet(ref IDataType baseType, TextPosition pos)
         {
             IDataType newType = _nodes.Last().Type;
-            if (baseType.Coerce(newType))
+            if (!baseType.Coerce(newType))
             {
                 if (newType.Coerce(baseType))
                     baseType = newType;
                 else
                     throw new SemanticException("All values in a collection must be the same type", pos);
             }
+
+            if (baseType.Classify() == "SIMPLE_TYPE" && ((SimpleType)baseType).Type == SimpleType.DataType.VOID)
+                baseType = newType;
         }
 
         private void _visitByteLiteral(Token token)
@@ -175,7 +194,7 @@ namespace Whirlwind.Semantic.Visitor
             {
                 if (token.Value.Length < 5 /* 5 to account for prefix */)
                 {
-                    _nodes.Add(new ValueNode("Literal", new SimpleType(SimpleType.DataType.BYTE), token.Value));
+                    _nodes.Add(new ValueNode("Literal", new SimpleType(SimpleType.DataType.BYTE, true), token.Value));
                 }
                 else
                 {
@@ -185,11 +204,11 @@ namespace Whirlwind.Semantic.Visitor
                         .Where(x => x % 2 == 0)
                         .Select(x => "0x" + value[x] + value[x + 1])
                         .Select(x => new ValueNode("Literal",
-                            new SimpleType(SimpleType.DataType.BYTE),
+                            new SimpleType(SimpleType.DataType.BYTE, true),
                             x))
                         .ToArray();
                     _nodes.Add(new TreeNode("Array",
-                        new ArrayType(new SimpleType(SimpleType.DataType.BYTE), pairs.Length)
+                        new ArrayType(new SimpleType(SimpleType.DataType.BYTE, true), pairs.Length)
                         ));
                     foreach (ValueNode node in pairs)
                     {
@@ -202,7 +221,7 @@ namespace Whirlwind.Semantic.Visitor
             {
                 if (token.Value.Length < 11 /* 11 to account for prefix */)
                 {
-                    _nodes.Add(new ValueNode("Literal", new SimpleType(SimpleType.DataType.BYTE), token.Value));
+                    _nodes.Add(new ValueNode("Literal", new SimpleType(SimpleType.DataType.BYTE, true), token.Value));
                 }
                 else
                 {
@@ -213,11 +232,11 @@ namespace Whirlwind.Semantic.Visitor
                         .Where(x => x % 8 == 0)
                         .Select(x => "0b" + value.Substring(x, 8))
                         .Select(x => new ValueNode("Literal",
-                            new SimpleType(SimpleType.DataType.BYTE),
+                            new SimpleType(SimpleType.DataType.BYTE, true),
                             x))
                         .ToArray();
                     _nodes.Add(new TreeNode("Array",
-                        new ArrayType(new SimpleType(SimpleType.DataType.BYTE), pairs.Length)
+                        new ArrayType(new SimpleType(SimpleType.DataType.BYTE, true), pairs.Length)
                         ));
                     foreach (ValueNode node in pairs)
                     {
@@ -226,158 +245,6 @@ namespace Whirlwind.Semantic.Visitor
                     }
                 }
             }
-        }
-
-        private IDataType _generateBaseType(ASTNode node)
-        {
-            bool unsigned = false;
-
-            foreach (var subNode in node.Content)
-            {
-                // only one token node
-                if (subNode.Name == "TOKEN")
-                    unsigned = true;
-                else if (subNode.Name == "simple_types")
-                {
-                    SimpleType.DataType dt;
-                    switch (((TokenNode)((ASTNode)subNode).Content[0]).Tok.Type)
-                    {
-                        case "BOOL_TYPE":
-                            dt = SimpleType.DataType.BOOL;
-                            break;
-                        case "INT_TYPE":
-                            dt = SimpleType.DataType.INTEGER;
-                            break;
-                        case "FLOAT_TYPE":
-                            dt = SimpleType.DataType.FLOAT;
-                            break;
-                        case "DOUBLE_TYPE":
-                            dt = SimpleType.DataType.DOUBLE;
-                            break;
-                        case "LONG_TYPE":
-                            dt = SimpleType.DataType.LONG;
-                            break;
-                        case "BYTE_TYPE":
-                            dt = SimpleType.DataType.BYTE;
-                            break;
-                        case "STRING_TYPE":
-                            dt = SimpleType.DataType.STRING;
-                            break;
-                        default:
-                            dt = SimpleType.DataType.CHAR;
-                            break;
-                    }
-                    if (new[] {
-                        SimpleType.DataType.STRING, SimpleType.DataType.BYTE, SimpleType.DataType.BOOL
-                    }.Contains(dt) && unsigned)
-                        throw new SemanticException("Invalid type for unsigned modifier", subNode.Position);
-                    return new SimpleType(dt, unsigned);
-                }
-                else if (subNode.Name == "collection_types")
-                {
-                    string collectionType = "";
-                    int size = 0;
-                    var subTypes = new List<IDataType>();
-
-                    foreach(var component in ((ASTNode)subNode).Content)
-                    {
-                        if (component.Name == "TOKEN")
-                        {
-                            switch (((TokenNode)component).Tok.Type)
-                            {
-                                case "ARRAY_TYPE":
-                                    collectionType = "array";
-                                    break;
-                                case "LIST_TYPE":
-                                    collectionType = "list";
-                                    break;
-                                case "MAP_TYPE":
-                                    collectionType = "map";
-                                    break;
-                            }
-                        }
-                        else if (component.Name == "expr" && collectionType == "array")
-                        {
-                            _visitExpr((ASTNode)component);
-                            if (!Evaluator.TryEval((TreeNode)_nodes.Last()))
-                            {
-                                throw new SemanticException("Unable to initialize array with non constexpr array bound", component.Position);
-                            }
-
-                            var val = Evaluator.Evaluate((TreeNode)_nodes.Last());
-
-                            if (val.Type != new SimpleType(SimpleType.DataType.INTEGER))
-                            {
-                                throw new SemanticException("Invalid data type for array bound", component.Position);
-                            }
-
-                            size = Int32.Parse(val.Value);
-                        }
-                        else if (component.Name == "types")
-                        {
-                            subTypes.Add(_generateType((ASTNode)component));
-                        }
-                    }
-
-                    switch (collectionType)
-                    {
-                        case "array":
-                            return new ArrayType(subTypes[0], size);
-                        case "list":
-                            return new ListType(subTypes[0]);
-                        case "map":
-                            if (!Hashable(subTypes[0]))
-                            {
-                                throw new SemanticException("Unable to create map with an unhashable type", subNode.Position);
-                            }
-                            return new MapType(subTypes[0], subTypes[1]);
-                    }
-                }
-                // assume function type
-                else
-                {
-                    bool async = false;
-
-                    var args = new List<Parameter>();
-                    var returnTypes = new List<IDataType>();
-
-                    foreach (var item in ((ASTNode)subNode).Content)
-                    {
-                        switch (item.Name) {
-                            case "TOKEN":
-                                if (((TokenNode)item).Tok.Type == "ASYNC")
-                                    async = true;
-                                break;
-                            case "args_decl_list":
-                                args = _generateArgsDecl((ASTNode)item);
-                                break;
-                            case "type_list":
-                                returnTypes = _generateTypeList((ASTNode)item);
-                                break;
-                        }
-                    }
-
-                    IDataType returnType;
-
-                    switch (returnTypes.Count)
-                    {
-                        case 0:
-                            returnType = new SimpleType();
-                            break;
-                        case 1:
-                            returnType = returnTypes[0];
-                            break;
-                        default:
-                            returnType = new TupleType(returnTypes);
-                            break;
-                    }
-
-                    return new FunctionType(args, returnType, async);
-                }
-            }
-
-            // cover all your bases ;)
-            return new SimpleType();
         }
 
         private void _visitClosure(ASTNode node)
@@ -412,7 +279,6 @@ namespace Whirlwind.Semantic.Visitor
         private void _visitTypeCast(ASTNode node)
         {
             IDataType dt = new SimpleType();
-            bool valueCast = false;
 
             foreach (var item in node.Content)
             {
@@ -420,24 +286,32 @@ namespace Whirlwind.Semantic.Visitor
                     dt = _generateType((ASTNode)item);
                 else if (item.Name == "expr")
                     _visitExpr((ASTNode)item);
-                else if (item.Name == "TOKEN" && ((TokenNode)item).Tok.Type == "VALUE")
-                    valueCast = true;
             }
-            
-            if (valueCast)
-            {
-                dt = ValueCast(dt);
 
-                _nodes.Add(new TreeNode("ValueCast", dt));
-            }
-            else
-            {
-                if (!TypeCast(dt, _nodes.Last().Type))
-                    throw new SemanticException("Invalid type cast", node.Position);
+            if (!TypeCast(dt, _nodes.Last().Type))
+                throw new SemanticException("Invalid type cast", node.Position);
 
-                _nodes.Add(new TreeNode("TypeCast", dt));
-            }
+            _nodes.Add(new TreeNode("TypeCast", dt));
             PushForward();
+        }
+
+        private void _visitTuple(ASTNode node)
+        {
+            int count = 0;
+            var types = new List<IDataType>();
+
+            foreach (var subNode in node.Content)
+            {
+                if (subNode.Name == "expr")
+                {
+                    _visitExpr((ASTNode)subNode);
+                    types.Add(_nodes.Last().Type);
+                    count++;
+                }
+            }
+
+            _nodes.Add(new TreeNode("Tuple", new TupleType(types)));
+            PushForward(count);
         }
     }
 }

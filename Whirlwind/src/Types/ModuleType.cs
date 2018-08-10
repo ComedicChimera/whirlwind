@@ -9,7 +9,7 @@ namespace Whirlwind.Types
 {
     class ModuleInstance : IDataType
     {
-        private readonly List<Symbol> _instance;
+        private readonly Dictionary<string, Symbol> _instance;
 
         public readonly string Name;
         public readonly List<IDataType> Inherits;
@@ -17,15 +17,15 @@ namespace Whirlwind.Types
         public ModuleInstance(string name, SymbolTable table, List<IDataType> inherits)
         {
             Name = name;
-            _instance = table.Filter(Modifier.PROPERTY).Where(x => !x.Modifiers.Contains(Modifier.PRIVATE)).ToList();
+            _instance = table.Filter(x => x.Modifiers.Contains(Modifier.PROPERTY) && !x.Modifiers.Any(y => new[] { Modifier.PRIVATE, Modifier.PROTECTED }.Contains(y)));
             Inherits = inherits;
         }
 
         public bool GetProperty(string name, out Symbol symbol)
         {
-            if (_instance.Select(x => x.Name).Contains(name))
+            if (_instance.ContainsKey(name))
             {
-                symbol = _instance.Where(x => x.Name == name).First();
+                symbol = _instance[name];
                 return true;
             }
             symbol = null;

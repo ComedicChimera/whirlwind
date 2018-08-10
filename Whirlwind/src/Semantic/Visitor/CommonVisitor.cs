@@ -9,71 +9,6 @@ namespace Whirlwind.Semantic.Visitor
 {
     partial class Visitor
     {
-        public IDataType _generateType(ASTNode node)
-        {
-            IDataType dt = new SimpleType();
-            int pointers = 0;
-
-            foreach (var subNode in node.Content)
-            {
-                if (subNode.Name == "TOKEN")
-                {
-                    var tokenNode = ((TokenNode)subNode);
-
-                    switch (tokenNode.Tok.Type)
-                    {
-                        case "*":
-                            pointers++;
-                            break;
-                        case "IDENTIFIER":
-                            if (_table.Lookup(tokenNode.Tok.Value, out Symbol symbol))
-                            {
-                                if (symbol.DataType.Classify() == "TEMPLATE_ALIAS")
-                                {
-                                    dt = ((TemplateAlias)symbol.DataType).ReplacementType;
-                                }
-                                if (!new[] { "MODULE", "INTERFACE", "STRUCT"}.Contains(symbol.DataType.Classify()))
-                                    throw new SemanticException("Identifier data type must be a module or an interface", tokenNode.Position);
-                                dt = symbol.DataType.Classify() == "MODULE" ? ((ModuleType)symbol.DataType).GetInstance() : symbol.DataType;
-                            }
-                            else
-                            {
-                                throw new SemanticException($"Undefined Identifier: '{tokenNode.Tok.Value}'", tokenNode.Position);
-                            }
-                            break;
-                    }
-                }
-                else if (subNode.Name == "template_spec")
-                {
-                    if (dt.Classify() != "TEMPLATE")
-                        throw new SemanticException("Unable to apply template specifier to non-template type", subNode.Position);
-                    dt = _generateTemplate((TemplateType)dt, (ASTNode)subNode);
-                }
-                else
-                {
-                    dt = _generateBaseType((ASTNode)subNode);
-                }
-            }
-
-            if (pointers != 0)
-            {
-                dt = new PointerType(dt, pointers);
-            }
-
-            return dt;
-        }
-
-        public List<IDataType> _generateTypeList(ASTNode node)
-        {
-            var dataTypes = new List<IDataType>();
-            foreach (var subNode in node.Content)
-            {
-                if (subNode.Name == "types")
-                    dataTypes.Add(_generateType((ASTNode)subNode));
-            }
-            return dataTypes;
-        }
-
         public void _visitIterator(ASTNode node)
         {
             // expects previous node to be the iterable value
@@ -117,7 +52,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             if (iterable is IIterable)
                 return (iterable as IIterable).GetIterator();
-            // should never fail
+            // should never fail - not a true overload so check not required
             else if (((ModuleInstance)iterable).GetProperty("__next__", out Symbol method))
             {
                 // all iterable __next__ methods return a specific element type (Element<T>)

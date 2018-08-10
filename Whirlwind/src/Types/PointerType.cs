@@ -12,7 +12,17 @@
         }
 
         public bool Coerce(IDataType other)
-            => false;
+        {
+            if (other == this)
+                return true;
+            else if (other.Classify() == "POINTER")
+            {
+                if (Type.Classify() == "SIMPLE_TYPE" && ((SimpleType)Type).Type == SimpleType.DataType.VOID)
+                    return true;
+            }
+
+            return false;
+        }
 
         public string Classify() => "POINTER";
     }

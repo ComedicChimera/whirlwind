@@ -1,7 +1,6 @@
 ﻿using Whirlwind.Types;
 using Whirlwind.Parser;
 
-using System;
 using System.Collections.Generic;
 
 namespace Whirlwind.Semantic.Visitor

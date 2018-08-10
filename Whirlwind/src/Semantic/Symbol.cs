@@ -10,7 +10,8 @@ namespace Whirlwind.Semantic
         EXPORTED,
         PROPERTY,
         PROTECTED,
-        UNIFORM
+        UNIFORM,
+        CONSTANT
     }
 
     class Package : IDataType

@@ -121,9 +121,9 @@ namespace Whirlwind.Semantic
             return false;
         }
         
-        public Dictionary<string, Symbol> Filter(Modifier modifier)
+        public Dictionary<string, Symbol> Filter(Func<Symbol, bool> compareFunc)
         {
-            return _table.Symbols.Where(x => x.Value.Modifiers.Contains(modifier)).Select(x => x.Value).ToDictionary(x => x.Name);
+            return _table.Symbols.Where(x => compareFunc(x.Value)).Select(x => x.Value).ToDictionary(x => x.Name);
         }
 
         // no need for boolean since this is only called internally

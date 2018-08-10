@@ -51,6 +51,7 @@ namespace Whirlwind.Types
             _templateType = templateType;
             _evaluator = evaluator;
             _body = body;
+            _variants = new Dictionary<List<IDataType>, ASTNode>();
         }
 
         public bool CreateTemplate(List<IDataType> dataTypes, out IDataType templateType)

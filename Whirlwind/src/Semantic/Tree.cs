@@ -63,4 +63,25 @@ namespace Whirlwind.Semantic
             return $"Value({Name}, {Type}, {Value})";
         }
     }
+
+    class IdentifierNode : ITypeNode
+    {
+        public string Name { get { return "Identifier"; } }
+        public IDataType Type { get; }
+
+        public string IdName { get; }
+        public bool Constant { get; }
+
+        public IdentifierNode(string name, IDataType type, bool constant)
+        {
+            IdName = name;
+            Type = type;
+            Constant = constant;
+        }
+
+        public override string ToString()
+        {
+            return $"{(Constant ? "Constant" : "Identifier")}({IdName}, {Type})";
+        }
+    }
 }

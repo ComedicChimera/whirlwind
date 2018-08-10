@@ -35,8 +35,8 @@ namespace Whirlwind.Semantic.Visitor
             {
                 switch (node.Name)
                 {
-                    case "atom":
-                        _visitAtom((ASTNode)node);
+                    case "unary_atom":
+                        _visitUnaryAtom((ASTNode)node);
                         break;
                     // prevent tokens from being recognized
                     case "TOKEN":

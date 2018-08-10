@@ -7,3 +7,7 @@
 	template<T: int, str>
 	func Sum(... $n: T) T => n |> ... + |;
 }
+
+func Main() {
+	$x = new (int, 2);
+}

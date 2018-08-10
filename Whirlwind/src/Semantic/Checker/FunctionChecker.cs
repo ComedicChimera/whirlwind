@@ -9,7 +9,7 @@ namespace Whirlwind.Semantic.Checker
         public static bool CheckParameters(FunctionType fn, List<ParameterValue> values)
         {
             // add body
-            return false;
+            return true;
         }
     }
 }

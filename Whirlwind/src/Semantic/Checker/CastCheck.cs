@@ -8,10 +8,5 @@ namespace Whirlwind.Semantic.Checker
         {
             return false;
         }
-
-        public static IDataType ValueCast(IDataType baseType)
-        {
-            return baseType;
-        }
     }
 }

@@ -14,7 +14,7 @@ namespace Whirlwind.Types
             BYTE,
             LONG,
             DOUBLE,
-            NULL
+            VOID
         }
 
         public DataType Type { get; private set; }
@@ -22,7 +22,7 @@ namespace Whirlwind.Types
 
         public SimpleType()
         {
-            Type = DataType.NULL;
+            Type = DataType.VOID;
             Unsigned = false;
         }
 
@@ -37,7 +37,7 @@ namespace Whirlwind.Types
         public bool Coerce(IDataType other)
         {
             // null can coerce to anything
-            if (Type == DataType.NULL)
+            if (Type == DataType.VOID)
                 return true;
             if (other.Classify() == "SIMPLE_TYPE")
             {
