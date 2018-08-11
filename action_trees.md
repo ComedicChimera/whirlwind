@@ -82,4 +82,11 @@ Represents a multi-value structure or some form of operation.
 | PostfixDecrement | Numeric | Postfix decrement a value |
 | Reference | Value | Create a reference to the given value |
 | Dereference | Value | Dereference a value a certain number of times equivalent to the **pointer difference** |
-| ^ | *Values* | Perform an exponent operation |
+| Pow | *Values* | Perform an exponent operation |
+| Add | *Values* | Perform an addition/concatination operation |
+| Sub | *Values* | Perforn a subtraction operation |
+| Mul | *Values* | Perform a multiplication operation |
+| Div | *Values* | Perform a division operation |
+| Mod | *Values* | Perform a modulo operation |
+| LShift | *Values* | Perform a left shift operation |
+| RShift | *Values* | Perform a right shift operation |
