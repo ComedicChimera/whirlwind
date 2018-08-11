@@ -56,7 +56,7 @@ namespace Whirlwind.Types
                         return Type == DataType.DOUBLE;
                     // char to integer and string
                     case DataType.CHAR:
-                        return new[] { DataType.STRING, DataType.INTEGER }.Contains(Type);
+                        return Type == DataType.STRING;
                     // byte to everything except boolean and data type
                     case DataType.BYTE:
                         return Type != DataType.BOOL;

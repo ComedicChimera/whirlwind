@@ -467,10 +467,7 @@ namespace Whirlwind.Semantic.Visitor
                 string methodName = name == "Subscript" ? "__subscript__" : "__slice__";
                 if (HasOverload(rootType, methodName, args, out IDataType returnType))
                 {
-                    _nodes.Add(new TreeNode("OverloadCall", returnType));
-                    // add in callname
-                    _nodes.Add(new IdentifierNode(methodName, new SimpleType(), false));
-                    MergeBack();
+                    _nodes.Add(new TreeNode(name, returnType));
                     // capture root as well
                     PushForward(args.Count + 1);
                 }
