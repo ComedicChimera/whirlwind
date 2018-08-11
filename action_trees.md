@@ -43,6 +43,7 @@ Represents a multi-value structure or some form of operation.
 
 | Name | Parameters | Purpose |
 | ---- | ---------- | ------- |
+| SubExpr | Expression | A sub expression enclosed in parentheses |
 | Array | *Array Elements* | An array |
 | List | *List Elements* | A list |
 | Map | *Map Pairs* | An array of key value pairs |
@@ -66,7 +67,6 @@ Represents a multi-value structure or some form of operation.
 | Call | Function, *Arguments* | Call a normal function with given arguments |
 | CallAsync | AsyncFunction, *Arguments* | Call an async function with the given arguments |
 | CallConstructor | Module, *Arguments* | Call a module constructor |
-| OverloadCall | Module, Identifier, *Arguments* | Call an operator overload of a module instance |
 | Subscript | Collection, Index | Get the element at a given index |
 | Slice | Collection, Begin, End | Create a slice between two indices |
 | SliceBegin | Collection, Begin | Create a slice from the beginning onward |
@@ -90,3 +90,15 @@ Represents a multi-value structure or some form of operation.
 | Mod | *Values* | Perform a modulo operation |
 | LShift | *Values* | Perform a left shift operation |
 | RShift | *Values* | Perform a right shift operation |
+| Not | Value | Perform a not/bitwise not operation |
+| Gt | *Values* | Perform a greater than comparison |
+| Lt | *Values* | Perform a less than comparison |
+| Eq | *Values* | Perform an equality comparison |
+| Neq | *Values* | Perform an unequality comparison |
+| GtEq | *Values* | Perform a greater than or equal to comparison |
+| LtEq | *Values* | Perform a less than or equal to comparison |
+| Or | *Values* | Perform an or/bitwise or logical operation |
+| Xor | *Values* | Perform a xor/bitwise xor logical operation |
+| And | *Values* | Perform an and/bitwise and logical operation |
+| InlineComparison | Comparison Expr, Option1, Option2 | Perform an inline comparison |
+| NullCoalesce | NullableExpr, DefaultExpr | Perform a null coalescion operation |
