@@ -43,7 +43,6 @@ Represents a multi-value structure or some form of operation.
 
 | Name | Parameters | Purpose |
 | ---- | ---------- | ------- |
-| SubExpr | Expression | A sub expression enclosed in parentheses |
 | Array | *Array Elements* | An array |
 | List | *List Elements* | A list |
 | Map | *Map Pairs* | An array of key value pairs |
