@@ -127,11 +127,9 @@ namespace Whirlwind.Semantic.Visitor
                     return "Pow";
                 case ">>":
                     return "RShift";
-                case "<<":
-                    return "LShift";
-                // "^"
+                // "<<"
                 default:
-                    return "ALShift";
+                    return "LShift";
             }
         }
 
