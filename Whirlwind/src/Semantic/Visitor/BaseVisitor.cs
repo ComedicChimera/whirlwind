@@ -50,7 +50,10 @@ namespace Whirlwind.Semantic.Visitor
                     case "IDENTIFIER":
                         if (_table.Lookup(((TokenNode)node.Content[0]).Tok.Value, out Symbol sym))
                         {
-                            _nodes.Add(new IdentifierNode(sym.Name, sym.DataType, sym.Modifiers.Contains(Modifier.CONSTANT)));
+                            if (sym.Modifiers.Contains(Modifier.CONSTEXPR))
+                                _nodes.Add(new IdentifierNode(sym.Name, sym.DataType, sym.Value));
+                            else
+                                _nodes.Add(new IdentifierNode(sym.Name, sym.DataType, sym.Modifiers.Contains(Modifier.CONSTANT)));
                             return;
                         }
                         {

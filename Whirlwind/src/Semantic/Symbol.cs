@@ -11,7 +11,8 @@ namespace Whirlwind.Semantic
         PROPERTY,
         PROTECTED,
         UNIFORM,
-        CONSTANT
+        CONSTANT,
+        CONSTEXPR
     }
 
     class Package : IDataType
@@ -37,6 +38,8 @@ namespace Whirlwind.Semantic
         public readonly IDataType DataType;
         public readonly List<Modifier> Modifiers;
 
+        public readonly string Value;
+
         public Symbol(string name, IDataType dt)
         {
             Name = name;
@@ -49,6 +52,22 @@ namespace Whirlwind.Semantic
             Name = name;
             DataType = dt;
             Modifiers = modifiers;
+        }
+
+        public Symbol(string name, IDataType dt, string value)
+        {
+            Name = name;
+            DataType = dt;
+            Modifiers = new List<Modifier> { Modifier.CONSTEXPR };
+            Value = value;
+        }
+
+        public Symbol(string name, IDataType dt, List<Modifier> modifiers, string value)
+        {
+            Name = name;
+            DataType = dt;
+            Modifiers = modifiers;
+            Value = value;
         }
     }
 }
