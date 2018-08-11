@@ -32,9 +32,9 @@ it takes.
 
 ## Tree References
 
-- [Raw](https://github.com/ComedicChimera/Whirlwind/blob/master/docs/raw_trees.md)
+- [Raw](https://github.com/ComedicChimera/Whirlwind/blob/master/Whirlwind/docs/raw_trees.md)
 
-- [Reduced](https://github.com/ComedicChimera/Whirlwind/blob/master/docs/reduced_trees.md)
+- [Reduced](https://github.com/ComedicChimera/Whirlwind/blob/master/Whirlwind/docs/reduced_trees.md)
 
 It can be helpful to think of these trees as somewhat similar to
 S-Expressions. However, they are strongly typed, type annotated and thoroughly
