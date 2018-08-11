@@ -13,44 +13,126 @@ namespace Whirlwind.Semantic.Visitor
         {
             foreach (var subNode in node.Content)
             {
-                if (subNode.Name == "unary_atom")
-                    _visitUnaryAtom((ASTNode)subNode);
+                if (subNode.Name == "shift")
+                    _visitShift((ASTNode)subNode);
                 else if (subNode.Name != "TOKEN")
                     _visitExpr((ASTNode)subNode);
             }
         }
 
-        private void _visitArithmetic(ASTNode node)
+        private void _visitShift(ASTNode node)
         {
-
-        }
-
-        private void _visitExponent(ASTNode node)
-        {
-            if (node.Content.Count == 1)
-            {
-                _visitUnaryAtom((ASTNode)node.Content[0]);
-                return;
-            }
-
-            int count = 0;
+            string op = "";
+            bool hitFirst = false;
             IDataType rootType = new SimpleType();
 
-            foreach (var item in node.Content)
+            using (var enumerator = node.Content.GetEnumerator())
             {
-                if (item.Name == "unary_atom")
+                while (enumerator.MoveNext())
                 {
-                    count++;
-                    _visitUnaryAtom((ASTNode)item);
-                    if (count == 1)
-                        rootType = _nodes.Last().Type;
+                    var subNode = enumerator.Current;
+
+                    if (subNode.Name == "TOKEN")
+                    {
+                        string tempOp = "";
+
+                        do
+                        {
+                            tempOp += ((TokenNode)subNode).Tok.Type;
+                            enumerator.MoveNext();
+                            subNode = enumerator.Current;
+                        } while (subNode.Name == "TOKEN");
+
+                        if (tempOp != op)
+                        {
+                            _nodes.Add(new TreeNode(_getOpTreeName(tempOp), rootType));
+                            PushForward();
+
+                            op = tempOp;
+
+                            if (!hitFirst)
+                                hitFirst = true;
+                        }
+                    }
+
+                    // will always be an ASTNode because of do/while loop
+                    _visitArithmetic((ASTNode)subNode);
+
+                    if (hitFirst)
+                    {
+                        CheckOperand(ref rootType, _nodes.Last().Type, op, subNode.Position);
+                        MergeBack();
+                    }
                     else
-                        CheckOperand(ref rootType, _nodes.Last().Type, "^", item.Position);
+                        rootType = _nodes.Last().Type;
                 }
             }
+        }
 
-            _nodes.Add(new TreeNode("^", rootType));
-            PushForward(count);
+        private void _visitArithmetic(ASTNode node)
+        {
+            string op = "";
+            bool hitFirst = false;
+            IDataType rootType = new SimpleType();
+
+            foreach (var subNode in node.Content)
+            {
+                if (subNode.Name == "TOKEN")
+                {
+                    var token = ((TokenNode)subNode).Tok;
+                    
+                    if (token.Type != op)
+                    {
+                        _nodes.Add(new TreeNode(_getOpTreeName(token.Type), rootType));
+                        PushForward();
+
+                        op = token.Type;
+
+                        if (!hitFirst)
+                            hitFirst = true;
+                    }
+
+                    continue;
+                }
+                else if (subNode.Name == "unary_atom")
+                    _visitUnaryAtom((ASTNode)subNode);
+                else
+                    _visitArithmetic((ASTNode)subNode);
+
+                if (hitFirst)
+                {
+                    CheckOperand(ref rootType, _nodes.Last().Type, op, subNode.Position);
+                    MergeBack();
+                }                
+                else
+                    rootType = _nodes.Last().Type;
+            }
+        }
+
+        private string _getOpTreeName(string tokenType)
+        {
+            switch (tokenType)
+            {
+                case "+":
+                    return "Add";
+                case "-":
+                    return "Sub";
+                case "*":
+                    return "Mul";
+                case "/":
+                    return "Div";
+                case "%":
+                    return "Mod";
+                case "^":
+                    return "Pow";
+                case ">>":
+                    return "RShift";
+                case "<<":
+                    return "LShift";
+                // "^"
+                default:
+                    return "ALShift";
+            }
         }
 
         private void _visitUnaryAtom(ASTNode node)

@@ -19,13 +19,9 @@ subscope: '{' main '}' ;
 // MODULES AND MODULAR COMPONENTS
 // module declaration
 module_decl: 'MODULE' ['PARTIAL'] 'IDENTIFIER' partial* '{' module_main+ '}' ;
-module_main: constructor_decl
-| member_decl
+module_main: member_decl
 | static_decl
 ;
-
-// constructor declaration
-constructor_decl: 'CONSTRUCTOR' '(' args_decl_list ')' func_body ;
 
 // member declaration (variables)
 member_decl: modifiers* ( variable_decl ';' 
@@ -208,7 +204,7 @@ and: comparison ('AND' comparison)* ;
 
 // comparisons
 comparison: not (comparison_op not)*;
-comparison_op: '>' | '<' | '>=' | '<=' | '==' | '!=' | '===' | '!===' ;
+comparison_op: '>' | '<' | '>=' | '<=' | '==' | '!=' ;
 not: ['!'] shift ;
 
 // binary shifts
