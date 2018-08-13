@@ -10,23 +10,26 @@ namespace Whirlwind.Types
         public IDataType DataType;
         public bool Optional;
         public bool Indefinite;
-        public TreeNode DefaultValue;
+        public bool Constant;
+        public ITypeNode DefaultValue;
 
-        public Parameter(string name, IDataType dt)
+        public Parameter(string name, IDataType dt, bool indefinite, bool constant)
         {
             Name = name;
             DataType = dt;
             Optional = false;
-            Indefinite = false;
-            DefaultValue = new TreeNode("", DataType);
+            Indefinite = indefinite;
+            Constant = constant;
+            DefaultValue = new ValueNode("", DataType);
         }
 
-        public Parameter(string name, IDataType dt, bool optional, bool indefinite, TreeNode defaultVal)
+        public Parameter(string name, IDataType dt, bool indefinite, bool constant, ITypeNode defaultVal)
         {
             Name = name;
             DataType = dt;
-            Optional = optional;
+            Optional = true;
             Indefinite = indefinite;
+            Constant = constant;
             DefaultValue = defaultVal;
         }
 

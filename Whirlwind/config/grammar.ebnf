@@ -238,7 +238,9 @@ trailer: '[' (expr [slice] | slice) ']'
 
 // trailer components
 slice: ':' [expr [':' expr] | ':' expr] ;
-args_list: [expr [initializer] (',' expr [initializer])*]  ;
+args_list: [arg (',' arg)*] ;
+arg: 'IDENTIFIER' initializer 
+| expr ;
 init_list: 'IDENTIFIER' initializer (',' 'IDENTIFIER' initializer)* ;
 
 // aggregator
@@ -341,8 +343,8 @@ tuple_type: '(' type_list ')' ;
 
 // COMMON CONSTRUCTIONS - common structures used repeatedly in grammar
 type_list: types (',' types)* ;
-args_decl_list: [param (',' param)*] ;
-param: ['...'] ('$' | '@') 'IDENTIFIER' extension [initializer] ;
+args_decl_list: [decl_arg (',' decl_arg)*] ;
+decl_arg: ['...'] ('$' | '@') 'IDENTIFIER' extension [initializer] ;
 initializer: '=' expr ;
 iterator: '|' 'IDENTIFIER' (',' 'IDENTIFIER')* '|' ;
 template_spec: '<' type_list '>' ;
