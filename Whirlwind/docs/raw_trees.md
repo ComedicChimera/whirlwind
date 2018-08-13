@@ -17,6 +17,7 @@ connote any operation or computation.
 | ---- | ------- | ----- |
 | Literal | Represents a literal value | *Any Literal Value* |
 | This | Represents an pointer to any valid instance | *empty* |
+| Operator | Represents an operator value use aggregator | OpName |
 
 ## Identifier Node
 

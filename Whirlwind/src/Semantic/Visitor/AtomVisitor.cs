@@ -5,7 +5,6 @@ using static Whirlwind.Semantic.Checker.Checker;
 
 using System.Linq;
 using System.Collections.Generic;
-using System;
 
 namespace Whirlwind.Semantic.Visitor
 {
@@ -268,7 +267,18 @@ namespace Whirlwind.Semantic.Visitor
                         // add in operator aggregator
                         else
                         {
+                            string op = ((TokenNode)node.Content[2]).Tok.Type;
 
+                            IDataType rootType = iteratorType;
+                            // check first with default root type
+                            CheckOperand(ref rootType, iteratorType, op, node.Content[2].Position);
+                            // check with changed root type
+                            if (rootType != iteratorType)
+                                CheckOperand(ref rootType, iteratorType, op, node.Content[2].Position);
+
+                            _nodes.Add(new ValueNode("Operator", new SimpleType(), op));
+                            _nodes.Add(new TreeNode("OperatorAggregator", rootType));
+                            PushForward(2);
                         }
                         break;
                 }
