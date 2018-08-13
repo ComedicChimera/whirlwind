@@ -132,13 +132,17 @@ namespace Whirlwind.Semantic.Checker
                 case "AND":
                 case "OR":
                 case "XOR":
-                    if (operandType.Classify() == "SIMPLE_TYPE" && rootType.Classify() == "SIMPLE_TYPE")
-                        return;
-
-                    if (HasOverload(rootType, $"__{op.ToLower()}__", new List<ParameterValue>() { new ParameterValue(operandType) }, out IDataType returnType))
                     {
-                        rootType = returnType;
-                        return;
+                        if (operandType.Classify() == "SIMPLE_TYPE" && rootType.Classify() == "SIMPLE_TYPE")
+                        {
+                            if (rootType == operandType)
+                                return;
+                        }
+                        else if (HasOverload(rootType, $"__{op.ToLower()}__", new List<ParameterValue>() { new ParameterValue(operandType) }, out IDataType returnType))
+                        {
+                            rootType = returnType;
+                            return;
+                        }
                     }
                     break;
             }
