@@ -313,7 +313,7 @@ namespace Whirlwind.Semantic.Visitor
             switch (op)
             {
                 case "++":
-                    if (Modifiable() && Numeric(rootType))
+                    if (Modifiable() && (Numeric(rootType) || rootType.Classify() == "POINTER"))
                     {
                         treeName = (postfix ? "Postfix" : "Prefix") + "Increment";
                         dt = rootType;
@@ -322,7 +322,7 @@ namespace Whirlwind.Semantic.Visitor
                         throw new SemanticException("Increment operator is not valid on non-numeric types", node.Content[postfix ? 2 : 0].Position);
                     break;
                 case "--":
-                    if (Modifiable() && Numeric(rootType))
+                    if (Modifiable() && (Numeric(rootType) || rootType.Classify() == "POINTER"))
                     {
                         treeName = (postfix ? "Postfix" : "Prefix") + "Decrement";
                         dt = rootType;

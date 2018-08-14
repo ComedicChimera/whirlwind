@@ -32,6 +32,7 @@ namespace Whirlwind.Semantic.Checker
         }
 
         // also not technically an interface, but it exhibits similar behavior
+        // checks if it is a number type (int, float, ect.)
         public static bool Numeric(IDataType dt)
         {
             if (dt.Classify() == "SIMPLE_TYPE")

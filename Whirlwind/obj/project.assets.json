@@ -7452,11 +7452,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\forlo\\Desktop\\Coding\\Whirlwind\\Whirlwind\\Whirlwind.csproj",
+      "projectUniqueName": "C:\\Users\\forlo\\Desktop\\Coding\\Whirlwind\\compiler\\Whirlwind\\Whirlwind.csproj",
       "projectName": "Whirlwind",
-      "projectPath": "C:\\Users\\forlo\\Desktop\\Coding\\Whirlwind\\Whirlwind\\Whirlwind.csproj",
+      "projectPath": "C:\\Users\\forlo\\Desktop\\Coding\\Whirlwind\\compiler\\Whirlwind\\Whirlwind.csproj",
       "packagesPath": "C:\\Users\\forlo\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\forlo\\Desktop\\Coding\\Whirlwind\\Whirlwind\\obj\\",
+      "outputPath": "C:\\Users\\forlo\\Desktop\\Coding\\Whirlwind\\compiler\\Whirlwind\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\forlo\\AppData\\Roaming\\NuGet\\NuGet.Config",

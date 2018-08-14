@@ -23,6 +23,8 @@ namespace Whirlwind.Semantic.Checker
                             valid = true;
                         else if (new[] { "ARRAY", "LIST" }.Contains(operandType.Classify()))
                             valid = true;
+                        else if (rootType.Classify() == "POINTER" && new SimpleType(SimpleType.DataType.INTEGER).Coerce(operandType))
+                            return;
                         else if (HasOverload(rootType, "__add__", new List<ParameterValue>() { new ParameterValue(operandType) }, out IDataType returnType))
                         {
                             rootType = returnType;
@@ -41,6 +43,8 @@ namespace Whirlwind.Semantic.Checker
                             valid = true;
                             break;
                         }
+                        if (rootType.Classify() == "POINTER" && new SimpleType(SimpleType.DataType.INTEGER).Coerce(operandType))
+                            return;
 
                         string methodName;
                         switch (op)
@@ -103,6 +107,8 @@ namespace Whirlwind.Semantic.Checker
                             valid = true;
                             break;
                         }
+                        if (rootType.Classify() == "POINTER" && operandType.Classify() == "POINTER")
+                            return;
 
                         string methodName;
                         switch (op)
