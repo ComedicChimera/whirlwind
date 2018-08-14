@@ -173,14 +173,19 @@ assign_var: 'IDENTIFIER' ( '.' 'IDENTIFIER'
 | '[' (expr [slice] | slice) ']'
 )* ;
 
-assign_op: '='
-| '+='
-| '-='
-| '*='
-| '/='
-| '%='
-| '^='
-;
+assign_op: [ '+'
+| '-'
+| '*'
+| '/'
+| '%'
+| '^'
+| '<<'
+| '>>'
+| 'AND'
+| 'OR'
+| 'XOR'
+] 
+'=' ;
 
 // simple statements
 continue_stmt: 'CONTINUE' ;
