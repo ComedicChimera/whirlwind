@@ -29,6 +29,7 @@ member_decl: modifiers* ( variable_decl ';'
 | method_decl
 | method_template
 | variant_decl
+| constructor_decl
 ) ;
 
 // static declarations (structs, interfaces, and templates)
@@ -42,6 +43,9 @@ method_decl: ('FUNC' | 'ASYNC') 'IDENTIFIER' '(' args_decl_list ')' [ types ] pa
 
 // method template
 method_template: 'TEMPLATE' '<' template (',' template)* '>' method_decl ;
+
+// constructor declaration
+constructor_decl: 'CONSTRUCTOR' '(' args_decl_list ')' func_body ;
 
 // common module patterns
 partial: ':' 'IDENTIFIER' ; // partial extension
