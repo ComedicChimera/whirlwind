@@ -72,19 +72,19 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     case "array":
                         var arr = _visitSet((ASTNode)node.Content[0]);
-                        _nodes.Add(new TreeNode("Array", new ArrayType(arr.Item1, arr.Item2)));
+                        _nodes.Add(new ExprNode("Array", new ArrayType(arr.Item1, arr.Item2)));
                         if (arr.Item2 > 0)
                             PushForward(arr.Item2);
                         break;
                     case "list":
                         var list = _visitSet((ASTNode)node.Content[0]);
-                        _nodes.Add(new TreeNode("List", new ListType(list.Item1)));
+                        _nodes.Add(new ExprNode("List", new ListType(list.Item1)));
                         if (list.Item2 > 0)
                             PushForward(list.Item2);
                         break;
                     case "map":
                         var map = _visitMap((ASTNode)node.Content[0]);
-                        _nodes.Add(new TreeNode("Map", new MapType(map.Item1, map.Item2)));
+                        _nodes.Add(new ExprNode("Map", new MapType(map.Item1, map.Item2)));
                         // will default to array if value is too small, so check not needed
                         PushForward(map.Item3);
                         break;
@@ -101,7 +101,7 @@ namespace Whirlwind.Semantic.Visitor
                         break;
                     case "sizeof":
                         var typeExpr = (ASTNode)((ASTNode)node.Content[0]).Content[2];
-                        _nodes.Add(new TreeNode("SizeOf", new SimpleType(SimpleType.DataType.INTEGER, true)));
+                        _nodes.Add(new ExprNode("SizeOf", new SimpleType(SimpleType.DataType.INTEGER, true)));
 
                         if (typeExpr.Name == "types")
                             _nodes.Add(new ValueNode("DataType", _generateType(typeExpr)));
@@ -158,7 +158,7 @@ namespace Whirlwind.Semantic.Visitor
                     {
                         _coerceSet(ref valueType, element.Position);
                         // map pairs hold the key type
-                        _nodes.Add(new TreeNode("MapPair", keyType));
+                        _nodes.Add(new ExprNode("MapPair", keyType));
                         // add 2 expr nodes to map pair
                         PushForward(2);
                     }
@@ -203,7 +203,7 @@ namespace Whirlwind.Semantic.Visitor
                             new SimpleType(SimpleType.DataType.BYTE, true),
                             x))
                         .ToArray();
-                    _nodes.Add(new TreeNode("Array",
+                    _nodes.Add(new ExprNode("Array",
                         new ArrayType(new SimpleType(SimpleType.DataType.BYTE, true), pairs.Length)
                         ));
                     foreach (ValueNode node in pairs)
@@ -231,7 +231,7 @@ namespace Whirlwind.Semantic.Visitor
                             new SimpleType(SimpleType.DataType.BYTE, true),
                             x))
                         .ToArray();
-                    _nodes.Add(new TreeNode("Array",
+                    _nodes.Add(new ExprNode("Array",
                         new ArrayType(new SimpleType(SimpleType.DataType.BYTE, true), pairs.Length)
                         ));
                     foreach (ValueNode node in pairs)
@@ -268,7 +268,7 @@ namespace Whirlwind.Semantic.Visitor
 
             var fType = new FunctionType(args, rtType, async); 
 
-            _nodes.Add(new TreeNode("Closure", fType));
+            _nodes.Add(new ExprNode("Closure", fType));
             PushForward();
         }
 
@@ -287,7 +287,7 @@ namespace Whirlwind.Semantic.Visitor
             if (!TypeCast(dt, _nodes.Last().Type))
                 throw new SemanticException("Invalid type cast", node.Position);
 
-            _nodes.Add(new TreeNode("TypeCast", dt));
+            _nodes.Add(new ExprNode("TypeCast", dt));
             PushForward();
         }
 
@@ -306,7 +306,7 @@ namespace Whirlwind.Semantic.Visitor
                 }
             }
 
-            _nodes.Add(new TreeNode("Tuple", new TupleType(types)));
+            _nodes.Add(new ExprNode("Tuple", new TupleType(types)));
             PushForward(count);
         }
     }

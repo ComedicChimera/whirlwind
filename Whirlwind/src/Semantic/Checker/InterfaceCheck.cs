@@ -23,7 +23,7 @@ namespace Whirlwind.Semantic.Checker
          * not a direct inferface mirror and really more predicated on checking constants
          * but it somewhat fits with the rest of these
          * 
-         * Checks if the last item in the OTNCL is modifiable
+         * Checks if the last item in the TNCL is modifiable
          */
         public static bool Modifiable()
         {

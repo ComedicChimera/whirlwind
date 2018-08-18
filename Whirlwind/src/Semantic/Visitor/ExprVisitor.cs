@@ -29,10 +29,10 @@ namespace Whirlwind.Semantic.Visitor
 
                     if (op == "?")
                     {
-                        _nodes.Add(new TreeNode("InlineCompare", _nodes.Last().Type));
+                        _nodes.Add(new ExprNode("InlineCompare", _nodes.Last().Type));
                         PushForward(3);
 
-                        var content = ((TreeNode)_nodes.Last()).Nodes;
+                        var content = ((ExprNode)_nodes.Last()).Nodes;
 
                         if (!new SimpleType(SimpleType.DataType.BOOL).Coerce(content[0].Type))
                             throw new SemanticException("Comparison expression of inline comparison must evaluate to a boolean", node.Content[0].Position);
@@ -42,10 +42,10 @@ namespace Whirlwind.Semantic.Visitor
                     }
                     else
                     {
-                        _nodes.Add(new TreeNode("NullCoalesce", _nodes.Last().Type));
+                        _nodes.Add(new ExprNode("NullCoalesce", _nodes.Last().Type));
                         PushForward(2);
 
-                        if (((TreeNode)_nodes.Last()).Nodes[0].Type != ((TreeNode)_nodes.Last()).Nodes[1].Type)
+                        if (((ExprNode)_nodes.Last()).Nodes[0].Type != ((ExprNode)_nodes.Last()).Nodes[1].Type)
                             throw new SemanticException("Base value and coalesced value of null coalescion must be the same type", ((ASTNode)subNode).Content.Last().Position);
                     }
                 }
@@ -66,7 +66,7 @@ namespace Whirlwind.Semantic.Visitor
 
                     if (tokenType != op)
                     {
-                        _nodes.Add(new TreeNode(_getOpTreeName(tokenType), rootType));
+                        _nodes.Add(new ExprNode(_getOpTreeName(tokenType), rootType));
                         PushForward();
 
                         op = tokenType;
@@ -106,7 +106,7 @@ namespace Whirlwind.Semantic.Visitor
 
                     if (tokenType != op)
                     {
-                        _nodes.Add(new TreeNode(_getOpTreeName(tokenType), rootType));
+                        _nodes.Add(new ExprNode(_getOpTreeName(tokenType), rootType));
                         PushForward();
 
                         op = tokenType;
@@ -127,17 +127,17 @@ namespace Whirlwind.Semantic.Visitor
 
                         if (new SimpleType(SimpleType.DataType.BOOL).Coerce(_nodes.Last().Type))
                         {
-                            _nodes.Add(new TreeNode("Not", new SimpleType(SimpleType.DataType.BOOL)));
+                            _nodes.Add(new ExprNode("Not", new SimpleType(SimpleType.DataType.BOOL)));
                             PushForward();
                         }
                         else if (_nodes.Last().Type.Classify() == "SIMPLE_TYPE")
                         {
-                            _nodes.Add(new TreeNode("Not", _nodes.Last().Type));
+                            _nodes.Add(new ExprNode("Not", _nodes.Last().Type));
                             PushForward();
                         }
                         else if (HasOverload(_nodes.Last().Type, "__not__", out IDataType returnType))
                         {
-                            _nodes.Add(new TreeNode("Not", returnType));
+                            _nodes.Add(new ExprNode("Not", returnType));
                             PushForward();
                         }
                         else
@@ -183,7 +183,7 @@ namespace Whirlwind.Semantic.Visitor
 
                         if (tempOp != op)
                         {
-                            _nodes.Add(new TreeNode(_getOpTreeName(tempOp), rootType));
+                            _nodes.Add(new ExprNode(_getOpTreeName(tempOp), rootType));
                             PushForward();
 
                             op = tempOp;
@@ -221,7 +221,7 @@ namespace Whirlwind.Semantic.Visitor
                     
                     if (tokenType != op)
                     {
-                        _nodes.Add(new TreeNode(_getOpTreeName(tokenType), rootType));
+                        _nodes.Add(new ExprNode(_getOpTreeName(tokenType), rootType));
                         PushForward();
 
                         op = tokenType;
@@ -339,7 +339,7 @@ namespace Whirlwind.Semantic.Visitor
                     }
                     else if (HasOverload(rootType, "__neg__", out IDataType newDt))
                     {
-                        _nodes.Add(new TreeNode("ChangeSign", newDt));
+                        _nodes.Add(new ExprNode("ChangeSign", newDt));
                         // push root type
                         PushForward();
                         return;
@@ -374,7 +374,7 @@ namespace Whirlwind.Semantic.Visitor
                     break;
             }
 
-            _nodes.Add(new TreeNode(treeName, dt));
+            _nodes.Add(new ExprNode(treeName, dt));
             PushForward();
         }
     }

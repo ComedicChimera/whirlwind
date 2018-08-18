@@ -152,12 +152,12 @@ namespace Whirlwind.Semantic.Visitor
                         else if (component.Name == "expr" && collectionType == "array")
                         {
                             _visitExpr((ASTNode)component);
-                            if (!Evaluator.TryEval((TreeNode)_nodes.Last()))
+                            if (!Evaluator.TryEval((ExprNode)_nodes.Last()))
                             {
                                 throw new SemanticException("Unable to initialize array with non constexpr array bound", component.Position);
                             }
 
-                            var val = Evaluator.Evaluate((TreeNode)_nodes.Last());
+                            var val = Evaluator.Evaluate((ExprNode)_nodes.Last());
 
                             if (val.Type != new SimpleType(SimpleType.DataType.INTEGER))
                             {

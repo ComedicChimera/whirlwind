@@ -51,7 +51,7 @@ namespace Whirlwind.Semantic.Visitor
             {
                 if (new SimpleType(SimpleType.DataType.INTEGER, true).Coerce(_nodes.Last().Type))
                 {
-                    _nodes.Add(new TreeNode("HeapAlloc", new PointerType(new SimpleType(), 1)));
+                    _nodes.Add(new ExprNode("HeapAlloc", new PointerType(new SimpleType(), 1)));
                     PushForward();
                 }
                 else
@@ -61,7 +61,7 @@ namespace Whirlwind.Semantic.Visitor
 
             if (_nodes.Last().Name == "CallAsync" && hasAwait)
             {
-                _nodes.Add(new TreeNode("Await", ((Future)_nodes.Last().Type).Type));
+                _nodes.Add(new ExprNode("Await", ((Future)_nodes.Last().Type).Type));
                 PushForward();
                 return;
             }
@@ -113,9 +113,9 @@ namespace Whirlwind.Semantic.Visitor
             _table.AscendScope();
 
             if (isKeyPair)
-                _nodes.Add(new TreeNode("MapComprehension", new MapType(elementType, valueType)));
+                _nodes.Add(new ExprNode("MapComprehension", new MapType(elementType, valueType)));
             else
-                _nodes.Add(new TreeNode("Comprehension", new ListType(elementType)));
+                _nodes.Add(new ExprNode("Comprehension", new ListType(elementType)));
 
             PushForward(sizeBack);
         }
@@ -128,7 +128,7 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     var templateType = _generateTemplate((TemplateType)_nodes.Last(), (ASTNode)node.Content[0]);
 
-                    _nodes.Add(new TreeNode("CreateTemplate", templateType));
+                    _nodes.Add(new ExprNode("CreateTemplate", templateType));
                     PushForward();
                 }
                 else
@@ -144,7 +144,7 @@ namespace Whirlwind.Semantic.Visitor
                     // make get member const correct
                     case ".":
                         string identifier = ((TokenNode)node.Content[1]).Tok.Value;
-                        _nodes.Add(new TreeNode("GetMember", _getMember(root.Type, identifier, node.Content[0].Position, node.Content[1].Position)));
+                        _nodes.Add(new ExprNode("GetMember", _getMember(root.Type, identifier, node.Content[0].Position, node.Content[1].Position)));
                         PushForward();
                         _nodes.Add(new IdentifierNode(identifier, new SimpleType(), false));
                         MergeBack();
@@ -153,7 +153,7 @@ namespace Whirlwind.Semantic.Visitor
                         if (root.Type.Classify() == "POINTER")
                         {
                             string pointerIdentifier = ((TokenNode)node.Content[1]).Tok.Value;
-                            _nodes.Add(new TreeNode("GetMember", _getMember(((PointerType)root.Type).Type, pointerIdentifier, node.Content[0].Position, node.Content[1].Position)));
+                            _nodes.Add(new ExprNode("GetMember", _getMember(((PointerType)root.Type).Type, pointerIdentifier, node.Content[0].Position, node.Content[1].Position)));
                             PushForward();
                             _nodes.Add(new IdentifierNode(pointerIdentifier, new SimpleType(), false));
                             MergeBack();
@@ -181,7 +181,7 @@ namespace Whirlwind.Semantic.Visitor
                             else if (item.Name == "initializer")
                             {
                                 _visitExpr((ASTNode)((ASTNode)item).Content[1]);
-                                _nodes.Add(new TreeNode("Initializer", _nodes.Last().Type));
+                                _nodes.Add(new ExprNode("Initializer", _nodes.Last().Type));
                                 PushForward(2);
                                 initCount++;
                             }
@@ -191,7 +191,7 @@ namespace Whirlwind.Semantic.Visitor
                             var moduleInstance = ((ModuleType)root.Type).GetInstance();
                             for (int i = 1; i < initCount; i++)
                             {
-                                var item = (TreeNode)_nodes[_nodes.Count - i];
+                                var item = (ExprNode)_nodes[_nodes.Count - i];
                                 if (moduleInstance.GetProperty(((ValueNode)item.Nodes[0]).Value, out Symbol sym))
                                 {
                                     if (!sym.DataType.Coerce(item.Type))
@@ -200,7 +200,7 @@ namespace Whirlwind.Semantic.Visitor
                                 else
                                     throw new SemanticException($"Module has no public property {((ValueNode)item.Nodes[0]).Value}", positions[i - 1]);
                             }
-                            _nodes.Add(new TreeNode("InitList", moduleInstance));
+                            _nodes.Add(new ExprNode("InitList", moduleInstance));
                             // add in root
                             PushForward(initCount + 1);
                             break;
@@ -212,7 +212,7 @@ namespace Whirlwind.Semantic.Visitor
                                 throw new SemanticException("Struct initializer list must initialize all struct members", node.Content[0].Position);
                             for (int i = 1; i < initCount; i++)
                             {
-                                var item = (TreeNode)_nodes[_nodes.Count - i];
+                                var item = (ExprNode)_nodes[_nodes.Count - i];
                                 string name = ((ValueNode)item.Nodes[0]).Value;
                                 if (!members.ContainsKey(name))
                                     throw new SemanticException($"Struct has no member {name}", positions[i - 1]);
@@ -220,7 +220,7 @@ namespace Whirlwind.Semantic.Visitor
                                     throw new SemanticException($"Unable to initialize member {name} with the given type", positions[i - 1]);
                             }
                             ((StructType)root.Type).Instantiate();
-                            _nodes.Add(new TreeNode("InitList", root.Type));
+                            _nodes.Add(new ExprNode("InitList", root.Type));
                             // add in root
                             PushForward(initCount + 1);
                             break;
@@ -241,21 +241,21 @@ namespace Whirlwind.Semantic.Visitor
 
                             if (_nodes.Last().Type.Classify() == "FUNCTION")
                             {
-                                bool check1 = CheckParameters((FunctionType)_nodes.Last().Type, new List<ParameterValue>() {
+                                bool check1 = !CheckParameters((FunctionType)_nodes.Last().Type, new List<ParameterValue>() {
                                     new ParameterValue(iteratorType),
                                     new ParameterValue(iteratorType)
-                                });
+                                }).IsError;
 
                                 var aggrFnReturnType = ((FunctionType)_nodes.Last().Type).ReturnType;
 
-                                bool check2 = CheckParameters((FunctionType)_nodes.Last().Type, new List<ParameterValue>() {
+                                bool check2 = !CheckParameters((FunctionType)_nodes.Last().Type, new List<ParameterValue>() {
                                     new ParameterValue(aggrFnReturnType),
                                     new ParameterValue(iteratorType)
-                                });
+                                }).IsError;
 
                                 if (check1 && check2)
                                 {
-                                    _nodes.Add(new TreeNode("FunctionAggregator", aggrFnReturnType));
+                                    _nodes.Add(new ExprNode("FunctionAggregator", aggrFnReturnType));
                                     PushForward(2);
                                 }
                                 else
@@ -277,7 +277,7 @@ namespace Whirlwind.Semantic.Visitor
                                 CheckOperand(ref rootType, iteratorType, op, node.Content[2].Position);
 
                             _nodes.Add(new ValueNode("Operator", new SimpleType(), op));
-                            _nodes.Add(new TreeNode("OperatorAggregator", rootType));
+                            _nodes.Add(new ExprNode("OperatorAggregator", rootType));
                             PushForward(2);
                         }
                         break;
@@ -322,14 +322,21 @@ namespace Whirlwind.Semantic.Visitor
             {
                 bool isFunction = root.Type.Classify() == "FUNCTION";
 
-                if (isFunction && !CheckParameters((FunctionType)root.Type, args))
-                    throw new SemanticException("Invalid parameters for function call", node.Position);
+                if (isFunction)
+                {
+                    var paramData = CheckParameters((FunctionType)root.Type, args);
+
+                    if (paramData.IsError)
+                        throw new SemanticException(paramData.ErrorMessage, paramData.ParameterPosition == -1 ? node.Position : 
+                            ((ASTNode)node.Content[1]).Content.Where(x => x.Name == "decl_arg").ToArray()[paramData.ParameterPosition].Position
+                        );
+                }
                 else if (!isFunction && !((ModuleType)root.Type).GetConstructor(args, out FunctionType constructor))
                     throw new SemanticException($"Module '{((ModuleType)root.Type).Name}' has no constructor the accepts the given parameters", node.Position);
 
                 IDataType returnType = isFunction ? ((FunctionType)root.Type).ReturnType : ((ModuleType)root.Type).GetInstance();
 
-                _nodes.Add(new TreeNode(isFunction ? (((FunctionType)root.Type).Async ? "CallAsync" : "Call") : "CallConstructor", returnType));
+                _nodes.Add(new ExprNode(isFunction ? (((FunctionType)root.Type).Async ? "CallAsync" : "Call") : "CallConstructor", returnType));
 
                 if (args.Count == 0)
                     PushForward();
@@ -337,7 +344,7 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     PushForward(args.Count);
                     // add function to beginning of call
-                    ((TreeNode)_nodes[_nodes.Count - 1]).Nodes.Insert(0, _nodes[_nodes.Count - 2]);
+                    ((ExprNode)_nodes[_nodes.Count - 1]).Nodes.Insert(0, _nodes[_nodes.Count - 2]);
                     _nodes.RemoveAt(_nodes.Count - 2);
                 }
             }
@@ -348,7 +355,7 @@ namespace Whirlwind.Semantic.Visitor
                     // always works - try auto eval if possible
                     ((TemplateType)root.Type).CreateTemplate(inferredTypes, out IDataType templateType);
 
-                    _nodes.Add(new TreeNode("CreateTemplate", templateType));
+                    _nodes.Add(new ExprNode("CreateTemplate", templateType));
                     PushForward();
 
                     _visitFunctionCall(node, root);
@@ -439,7 +446,7 @@ namespace Whirlwind.Semantic.Visitor
                     throw new SemanticException("Unable to perform slice on a map", node.Position);
                 if (((MapType)rootType).KeyType.Coerce(_nodes.Last().Type))
                 {
-                    _nodes.Add(new TreeNode(name, ((MapType)rootType).ValueType));
+                    _nodes.Add(new ExprNode(name, ((MapType)rootType).ValueType));
                     PushForward(2);
                 }
                 else
@@ -477,7 +484,7 @@ namespace Whirlwind.Semantic.Visitor
                 string methodName = name == "Subscript" ? "__subscript__" : "__slice__";
                 if (HasOverload(rootType, methodName, args, out IDataType returnType))
                 {
-                    _nodes.Add(new TreeNode(name, returnType));
+                    _nodes.Add(new ExprNode(name, returnType));
                     // capture root as well
                     PushForward(args.Count + 1);
                 }
@@ -507,7 +514,7 @@ namespace Whirlwind.Semantic.Visitor
                             node.Position);
                 }
 
-                _nodes.Add(new TreeNode(name, name == "Subscript" ? elementType : rootType));
+                _nodes.Add(new ExprNode(name, name == "Subscript" ? elementType : rootType));
                 // capture root as well
                 PushForward(expressionCount + 1);
             }
@@ -544,7 +551,7 @@ namespace Whirlwind.Semantic.Visitor
             else if (!new SimpleType(SimpleType.DataType.INTEGER, true).Coerce(_nodes.Last().Type))
                 throw new SemanticException("Size of heap allocated type must be an integer", allocBody.Content[2].Position);
 
-            _nodes.Add(new TreeNode("HeapAllocType", new PointerType(dt, 1)));
+            _nodes.Add(new ExprNode("HeapAllocType", new PointerType(dt, 1)));
             PushForward(2);
         }
     }

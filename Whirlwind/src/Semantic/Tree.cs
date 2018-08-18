@@ -11,21 +11,22 @@ namespace Whirlwind.Semantic
         string Name { get; }
     }
 
-    class TreeNode : ITypeNode
+    // operating expr node
+    class ExprNode : ITypeNode
     {
         public string Name { get; }
         public IDataType Type { get; }
 
         public readonly List<ITypeNode> Nodes;
 
-        public TreeNode(string name, IDataType type)
+        public ExprNode(string name, IDataType type)
         {
             Name = name;
             Type = type;
             Nodes = new List<ITypeNode>();
         }
 
-        public TreeNode(string name, IDataType type, List<ITypeNode> nodes)
+        public ExprNode(string name, IDataType type, List<ITypeNode> nodes)
         {
             Name = name;
             Type = type;
@@ -38,6 +39,7 @@ namespace Whirlwind.Semantic
         }
     }
 
+    // stores literal values
     class ValueNode : ITypeNode
     {
         public string Name { get; }
@@ -64,6 +66,7 @@ namespace Whirlwind.Semantic
         }
     }
 
+    // stores identifiers
     class IdentifierNode : ITypeNode
     {
         public string Name { get { return "Identifier"; } }

@@ -97,7 +97,7 @@ namespace Whirlwind.Semantic.Visitor
                     {
                         string name = ((TokenNode)arg.Content[0]).Tok.Value;
                         _visitExpr((ASTNode)((ASTNode)arg.Content[1]).Content[1]);
-                        _nodes.Add(new TreeNode("NamedArgument", _nodes.Last().Type, new List<ITypeNode>() {
+                        _nodes.Add(new ExprNode("NamedArgument", _nodes.Last().Type, new List<ITypeNode>() {
                             new IdentifierNode(name, new SimpleType(), false)
                         }));
                         PushForward();

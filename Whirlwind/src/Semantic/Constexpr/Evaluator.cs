@@ -4,12 +4,12 @@ namespace Whirlwind.Semantic.Constexpr
 {
     class Evaluator
     {
-        public static ValueNode Evaluate(TreeNode node)
+        public static ValueNode Evaluate(ExprNode node)
         {
             return new ValueNode("blank", new SimpleType());
         }
 
-        public static bool TryEval(TreeNode node)
+        public static bool TryEval(ExprNode node)
         {
             return false;
         }

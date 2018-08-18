@@ -30,17 +30,17 @@ An identifier node represents a symbol accessed in the tree.
 | IdName | string | The symbol's name |
 | Constant | bool | Whether or not the symbol is a constant |
 
-## Tree Node
+## Expr Node
 
 Represents a multi-value structure or some form of operation.
 
 | Name | Type | Value |
 | ---- | ---- | ----- |
-| Name | string | The name of the tree |
-| Type | IDataType | The return type of the tree |
+| Name | string | The name of the expr |
+| Type | IDataType | The return type of the expr |
 | Nodes | List\<ITypeNode\> | The list of subnodes / parameters |
 
-### Tree Names
+### Expr Names
 
 | Name | Parameters | Purpose |
 | ---- | ---------- | ------- |
@@ -102,3 +102,22 @@ Represents a multi-value structure or some form of operation.
 | And | *Values* | Perform an and/bitwise and logical operation |
 | InlineComparison | Comparison Expr, Option1, Option2 | Perform an inline comparison |
 | NullCoalesce | NullableExpr, DefaultExpr | Perform a null coalescion operation |
+
+## Statement Node
+
+Represents a single Whirlwind statement. 
+
+| Name | Type | Value |
+| ---- | ---- | ----- |
+| Name | string | The name of the statement |
+| Type | IDataType | `void` |
+| Nodes | List\<ITypeNode\> | The nodes that make up the statement args |
+
+### Statement Values 
+
+| Name | Parameters | Purpose | ErrorBubble |
+| ---- | ---------- | ------- | ----------- |
+| Break | `none` | Break out of a breakable loop or region | **STATEMENT** |
+| Continue | `none` | Continue onto the next cycle in a loop | **STATEMENT** |
+| DeclareVar | *Variable Nodes* | Declare a variable or set of variables | **BLOCK** |
+| DeclareConst | *Constant Nodes* | Declare a constant or set of constants | **BLOCK** |

@@ -14,7 +14,12 @@ namespace Whirlwind.Semantic.Checker
                 {
                     if (method.DataType.Classify() == "FUNCTION")
                     {
-                        CheckParameters((FunctionType)method.DataType, new List<ParameterValue>());
+                        if (CheckParameters((FunctionType)method.DataType, new List<ParameterValue>()).IsError)
+                        {
+                            returnType = new SimpleType();
+                            return false;
+                        }
+                            
                         returnType = ((FunctionType)method.DataType).ReturnType;
                         return true;
                     }             
@@ -32,7 +37,12 @@ namespace Whirlwind.Semantic.Checker
                 {
                     if (method.DataType.Classify() == "FUNCTION")
                     {
-                        CheckParameters((FunctionType)method.DataType, parameters);
+                        if (CheckParameters((FunctionType)method.DataType, parameters).IsError)
+                        {
+                            returnType = new SimpleType();
+                            return false;
+                        }
+                           
                         returnType = ((FunctionType)method.DataType).ReturnType;
                         return true;
                     }

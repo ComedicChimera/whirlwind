@@ -38,7 +38,7 @@ namespace Whirlwind.Semantic.Visitor
                 _table.AddSymbol(new Symbol(identifiers[i], iteratorTypes[i], new List<Modifier>() { Modifier.CONSTANT }));
             }
 
-            _nodes.Add(new TreeNode(
+            _nodes.Add(new ExprNode(
                 "Iterator",
                 new SimpleType(),
                 Enumerable.Range(0, identifiers.Length)

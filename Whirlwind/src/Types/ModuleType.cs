@@ -46,7 +46,7 @@ namespace Whirlwind.Types
     class ModuleType : IDataType
     {
         private readonly SymbolTable _table;
-        private readonly List<Tuple<FunctionType, TreeNode>> _constructors;
+        private readonly List<Tuple<FunctionType, ExprNode>> _constructors;
 
         public readonly string Name;
         public readonly List<IDataType> Inherits;
@@ -56,16 +56,16 @@ namespace Whirlwind.Types
         {
             Name = name;
             _table = new SymbolTable();
-            _constructors = new List<Tuple<FunctionType, TreeNode>>();
+            _constructors = new List<Tuple<FunctionType, ExprNode>>();
             Inherits = new List<IDataType>();
             Partial = partial;
         }
 
-        public bool AddConstructor(FunctionType ft, TreeNode body)
+        public bool AddConstructor(FunctionType ft, ExprNode body)
         {
             if (_constructors.Where(x => x.Item1.Coerce(ft)).Count() != 0)
                 return false;
-            _constructors.Add(new Tuple<FunctionType, TreeNode>(ft, body));
+            _constructors.Add(new Tuple<FunctionType, ExprNode>(ft, body));
             return true;
         }
 
