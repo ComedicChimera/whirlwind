@@ -8,9 +8,8 @@ namespace Whirlwind.Semantic
         PRIVATE,
         PARTIAL,
         EXPORTED,
-        PROPERTY,
         PROTECTED,
-        UNIFORM,
+        STATIC,
         CONSTANT,
         CONSTEXPR
     }

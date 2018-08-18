@@ -18,7 +18,7 @@ subscope: '{' main '}' ;
 
 // MODULES AND MODULAR COMPONENTS
 // module declaration
-module_decl: 'MODULE' ['PARTIAL'] 'IDENTIFIER' partial* '{' module_main+ '}' ;
+module_decl: 'MOD' ['PARTIAL'] 'IDENTIFIER' partial* '{' module_main+ '}' ;
 module_main: member_decl
 | static_decl
 ;
@@ -49,7 +49,7 @@ constructor_decl: 'CONSTRUCTOR' '(' args_decl_list ')' func_body ;
 
 // common module patterns
 partial: ':' 'IDENTIFIER' ; // partial extension
-modifiers: 'PRIVATE' | 'PROPERTY' | 'PROTECTED'; // variable and function modifiers
+modifiers: 'PRIVATE' | 'STATIC' | 'PROTECTED'; // variable and function modifiers
 
 
 // BLOCK DECLARATIONS
@@ -152,7 +152,7 @@ stmt: ( local_variable_decl
 ;
 
 // local variable declaration
-local_variable_decl: ('UNIFORM' | 'VOLATILE')* variable_decl;
+local_variable_decl: ('STATIC' | 'VOLATILE')* variable_decl;
 
 // variable declaration
 variable_decl: ('$' | '@') var extension variable_initializer  ;
@@ -362,7 +362,7 @@ template_spec: '<' type_list '>' ;
 extension: [':' types] ;
 
 // function body
-func_body: ['MUT'] ( '{' [main] '}'
+func_body: ['STATIC'] ( '{' [main] '}'
 | '=>' expr (',' expr)* ';'
 | stmt 
 );

@@ -14,10 +14,13 @@ namespace Whirlwind.Types
         public readonly string Name;
         public readonly List<IDataType> Inherits;
 
-        public ModuleInstance(string name, SymbolTable table, List<IDataType> inherits)
+        public ModuleInstance(string name, SymbolTable table, List<IDataType> inherits, bool internalInstance)
         {
             Name = name;
-            _instance = table.Filter(x => x.Modifiers.Contains(Modifier.PROPERTY) && !x.Modifiers.Any(y => new[] { Modifier.PRIVATE, Modifier.PROTECTED }.Contains(y)));
+            if (internalInstance)
+                _instance = table.Filter(x => !x.Modifiers.Contains(Modifier.STATIC));
+            else
+                _instance = table.Filter(x => !x.Modifiers.Contains(Modifier.STATIC) && !x.Modifiers.Any(y => new[] { Modifier.PRIVATE, Modifier.PROTECTED }.Contains(y)));
             Inherits = inherits;
         }
 
@@ -85,7 +88,7 @@ namespace Whirlwind.Types
         {
             if (_table.Lookup(name, out Symbol foundSymbol))
             {
-                if (!foundSymbol.Modifiers.Contains(Modifier.PRIVATE) && !foundSymbol.Modifiers.Contains(Modifier.PROPERTY))
+                if (!foundSymbol.Modifiers.Contains(Modifier.PRIVATE) && foundSymbol.Modifiers.Contains(Modifier.STATIC))
                 {
                     member = foundSymbol;
                     return true;
@@ -110,7 +113,12 @@ namespace Whirlwind.Types
 
         public ModuleInstance GetInstance()
         {
-            return new ModuleInstance(Name, _table, Inherits);
+            return new ModuleInstance(Name, _table, Inherits, false);
+        }
+
+        public ModuleInstance GetInternalInstance()
+        {
+            return new ModuleInstance(Name, _table, Inherits, true);
         }
 
         public string Classify() => "MODULE";
