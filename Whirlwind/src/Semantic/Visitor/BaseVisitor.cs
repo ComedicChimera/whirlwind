@@ -40,13 +40,6 @@ namespace Whirlwind.Semantic.Visitor
                     case "BINARY_LITERAL":
                         _visitByteLiteral(((TokenNode)node.Content[0]).Tok);
                         return;
-                    case "RANGE_LITERAL":
-                        _nodes.Add(new ValueNode(
-                            "Range",
-                            new ListType(new SimpleType(SimpleType.DataType.INTEGER)),
-                            ((TokenNode)node.Content[0]).Tok.Value
-                        ));
-                        return;
                     case "IDENTIFIER":
                         if (_table.Lookup(((TokenNode)node.Content[0]).Tok.Value, out Symbol sym))
                         {
