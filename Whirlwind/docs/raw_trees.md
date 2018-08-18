@@ -2,7 +2,7 @@
 
 ## Value Nodes
 
-A value node represents a concrete value, does not
+A concrete value, does not
 connote any operation or computation.
 
 | Name | Type | Value |
@@ -25,14 +25,25 @@ An identifier node represents a symbol accessed in the tree.
 
 | Name | Type | Value |
 | ---- | ---- | ----- |
-| Name | string | `"Identifier"`
+| Name | string | `"Identifier"` |
 | Type | IDataType | The symbol's data type |
 | IdName | string | The symbol's name |
 | Constant | bool | Whether or not the symbol is a constant |
 
+## Constexpr Node
+
+A constexpr identifier that also stores its value
+
+| Name | Type | Value |
+| ---- | ---- | ----- |
+| Name | string | `"Constexpr"` |
+| Type | IDataType | The symbol's data type |
+| IdName | string | The symbol's name |
+| ConstValue | string | The constexpr value of the symbol |
+
 ## Expr Node
 
-Represents a multi-value structure or some form of operation.
+A multi-value structure or some form of operation.
 
 | Name | Type | Value |
 | ---- | ---- | ----- |

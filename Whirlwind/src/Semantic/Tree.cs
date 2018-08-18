@@ -74,29 +74,39 @@ namespace Whirlwind.Semantic
 
         public readonly string IdName;
         public readonly bool Constant;
-        public readonly bool Constexpr;
-        public readonly string ConstValue;
 
         public IdentifierNode(string name, IDataType type, bool constant)
         {
             IdName = name;
             Type = type;
             Constant = constant;
-            Constexpr = false;
-        }
-
-        public IdentifierNode(string name, IDataType type, string constValue)
-        {
-            IdName = name;
-            Type = type;
-            Constant = true;
-            Constexpr = true;
-            ConstValue = constValue;
         }
 
         public override string ToString()
         {
             return $"{(Constant ? "Constant" : "Identifier")}({IdName}, {Type})";
+        }
+    }
+
+    // stores constexpr identifiers
+    class ConstexprNode : ITypeNode
+    {
+        public string Name { get { return "Constexpr"; } }
+        public IDataType Type { get; }
+
+        public readonly string IdName;
+        public readonly string ConstValue;
+
+        public ConstexprNode(string name, IDataType type, string constVal)
+        {
+            IdName = name;
+            Type = type;
+            ConstValue = constVal;
+        }
+
+        public override string ToString()
+        {
+            return $"ConstexprID({IdName}, {Type}, {ConstValue})";
         }
     }
 }

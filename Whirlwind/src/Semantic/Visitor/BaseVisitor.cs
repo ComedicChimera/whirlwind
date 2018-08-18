@@ -44,7 +44,7 @@ namespace Whirlwind.Semantic.Visitor
                         if (_table.Lookup(((TokenNode)node.Content[0]).Tok.Value, out Symbol sym))
                         {
                             if (sym.Modifiers.Contains(Modifier.CONSTEXPR))
-                                _nodes.Add(new IdentifierNode(sym.Name, sym.DataType, sym.Value));
+                                _nodes.Add(new ConstexprNode(sym.Name, sym.DataType, sym.Value));
                             else
                                 _nodes.Add(new IdentifierNode(sym.Name, sym.DataType, sym.Modifiers.Contains(Modifier.CONSTANT)));
                             return;
