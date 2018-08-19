@@ -41,6 +41,8 @@ namespace Whirlwind.Semantic.Visitor
                         _visitByteLiteral(((TokenNode)node.Content[0]).Tok);
                         return;
                     case "IDENTIFIER":
+                        if (((TokenNode)node.Content[0]).Tok.Value == "_")
+                            throw new SemanticException("Unable to reference the `_` variable in an expression context", node.Content[0].Position);
                         if (_table.Lookup(((TokenNode)node.Content[0]).Tok.Value, out Symbol sym))
                         {
                             if (sym.Modifiers.Contains(Modifier.CONSTEXPR))
