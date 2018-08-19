@@ -363,7 +363,6 @@ extension: [':' types] ;
 // function body
 func_body: ['STATIC'] ( '{' [main] '}'
 | '=>' expr (',' expr)* ';'
-| stmt 
 );
 
 // standard block

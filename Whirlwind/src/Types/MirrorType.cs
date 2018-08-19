@@ -1,19 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
 namespace Whirlwind.Types
 {
-    class Future : IDataType
+    static class MirrorType
     {
-        public readonly IDataType Type;
-
-        public Future(IDataType type)
+        public static StructType Element(IDataType dt)
         {
-            Type = type;
+            var elementStruct = new StructType("Element");
+            elementStruct.AddMember("next", new SimpleType(SimpleType.DataType.BOOL));
+            elementStruct.AddMember("val", dt);
+
+            return elementStruct;
         }
 
-        public string Classify() => "FUTURE";
-        public bool Coerce(IDataType other) => other == this;
+        public static ModuleInstance Future(IDataType dt)
+        {
+            // add body to future type
+            return new ModuleInstance("Future", new Semantic.SymbolTable(), new List<IDataType>(), false);
+        }
     }
 }

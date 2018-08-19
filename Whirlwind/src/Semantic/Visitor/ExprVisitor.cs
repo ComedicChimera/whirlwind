@@ -313,7 +313,7 @@ namespace Whirlwind.Semantic.Visitor
             switch (op)
             {
                 case "++":
-                    if (Modifiable() && (Numeric(rootType) || rootType.Classify() == "POINTER"))
+                    if (Modifiable(_nodes.Last()) && (Numeric(rootType) || rootType.Classify() == "POINTER"))
                     {
                         treeName = (postfix ? "Postfix" : "Prefix") + "Increment";
                         dt = rootType;
@@ -322,7 +322,7 @@ namespace Whirlwind.Semantic.Visitor
                         throw new SemanticException("Increment operator is not valid on non-numeric types", node.Content[postfix ? 2 : 0].Position);
                     break;
                 case "--":
-                    if (Modifiable() && (Numeric(rootType) || rootType.Classify() == "POINTER"))
+                    if (Modifiable(_nodes.Last()) && (Numeric(rootType) || rootType.Classify() == "POINTER"))
                     {
                         treeName = (postfix ? "Postfix" : "Prefix") + "Decrement";
                         dt = rootType;
@@ -366,8 +366,12 @@ namespace Whirlwind.Semantic.Visitor
                         int pointerCount = ((PointerType)rootType).Pointers;
                         if (op.Length > pointerCount)
                             throw new SemanticException("Unable to dereference a non-pointer", node.Content[op.Length - pointerCount - 1].Position);
+
                         treeName = "Dereference";
                         dt = op.Length == pointerCount ? ((PointerType)rootType).Type : new PointerType(((PointerType)rootType).Type, pointerCount - op.Length);
+
+                        if (dt.Classify() == "SIMPLE_TYPE" && ((SimpleType)dt).Type == SimpleType.DataType.VOID)
+                            throw new SemanticException("Unable to dereference a void pointer", node.Content[node.Content.Count - 1].Position);
                     }
                     else
                         throw new SemanticException("Unable to dereference a non-pointer", node.Content[op.Length - 1].Position);

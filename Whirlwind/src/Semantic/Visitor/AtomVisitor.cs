@@ -143,19 +143,28 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     // make get member const correct
                     case ".":
-                        string identifier = ((TokenNode)node.Content[1]).Tok.Value;
-                        _nodes.Add(new ExprNode("GetMember", _getMember(root.Type, identifier, node.Content[0].Position, node.Content[1].Position)));
-                        PushForward();
-                        _nodes.Add(new IdentifierNode(identifier, new SimpleType(), false));
-                        MergeBack();
+                        {
+                            string identifier = ((TokenNode)node.Content[1]).Tok.Value;
+
+                            var symbol = _getMember(root.Type, identifier, node.Content[0].Position, node.Content[1].Position);
+                            _nodes.Add(new ExprNode("GetMember", symbol.DataType));
+
+                            PushForward();
+                            _nodes.Add(new IdentifierNode(identifier, new SimpleType(), symbol.Modifiers.Contains(Modifier.CONSTANT)));
+                            MergeBack();
+                        }
+                        
                         break;
                     case "->":
                         if (root.Type.Classify() == "POINTER")
                         {
                             string pointerIdentifier = ((TokenNode)node.Content[1]).Tok.Value;
-                            _nodes.Add(new ExprNode("GetMember", _getMember(((PointerType)root.Type).Type, pointerIdentifier, node.Content[0].Position, node.Content[1].Position)));
+
+                            var symbol = _getMember(((PointerType)root.Type).Type, pointerIdentifier, node.Content[0].Position, node.Content[1].Position);
+                            _nodes.Add(new ExprNode("GetMember", symbol.DataType));
+
                             PushForward();
-                            _nodes.Add(new IdentifierNode(pointerIdentifier, new SimpleType(), false));
+                            _nodes.Add(new IdentifierNode(pointerIdentifier, new SimpleType(), symbol.Modifiers.Contains(Modifier.CONSTANT))));
                             MergeBack();
                             break;
                         }
@@ -285,7 +294,7 @@ namespace Whirlwind.Semantic.Visitor
             }
         }
 
-        private IDataType _getMember(IDataType type, string name, TextPosition opPos, TextPosition idPos)
+        private Symbol _getMember(IDataType type, string name, TextPosition opPos, TextPosition idPos)
         {
             Symbol symbol;
             switch (type.Classify())
@@ -311,7 +320,7 @@ namespace Whirlwind.Semantic.Visitor
                     throw new SemanticException("The '.' operator is not valid on the given type", opPos);
             }
 
-            return symbol.DataType;
+            return symbol;
         }
 
         private void _visitFunctionCall(ASTNode node, ITypeNode root)

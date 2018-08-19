@@ -7,27 +7,65 @@ namespace Whirlwind.Semantic.Checker
     // check all special type interfaces
     static partial class Checker
     {
+        static string[] _modifiableNodes =
+        {
+                "Dereference",
+                "Subscript",
+                "Slice",
+                "SliceBegin",
+                "SliceEnd",
+                "SliceStep",
+                "SlicePureStep",
+                "SliceBeginStep",
+                "SliceEndStep",
+                "GetMember"
+        };
+
         public static bool Hashable(IDataType dt)
         {
-            // add body
+            if (new[] { "ARRAY", "MAP", "LIST", "FUNCTION" }.Contains(dt.Classify()) || dt.Classify().StartsWith("TUPLE"))
+                return false;
             return true;
         }
 
         public static bool Iterable(IDataType dt)
         {
-            // add body
-            return true;
+            if (dt is IIterable)
+                return true;
+
+            if (HasOverload(dt, "__next__", out IDataType returnType))
+            {
+                if (returnType.Classify() == "STRUCT_INSTANCE")
+                {
+                    // only one element struct
+                    if (((StructType)returnType).Name == "Element")
+                        return true;
+                }
+            }
+
+            return false;
         }
 
         /* Check if a given node is modifiable
          * not a direct inferface mirror and really more predicated on checking constants
          * but it somewhat fits with the rest of these
          * 
-         * Checks if the last item in the TNCL is modifiable
+         * Checks if a given tree is modifiable
          */
-        public static bool Modifiable()
+        public static bool Modifiable(ITypeNode node)
         {
-            // add body
+            if (node.Name == "Identifier")
+                return !((IdentifierNode)node).Constant;
+
+            if (_modifiableNodes.Contains(node.Name))
+            {
+                if (node.Name == "GetMember" && ((IdentifierNode)((ExprNode)node).Nodes[1]).Constant)
+                    return false;
+
+                return Modifiable(((ExprNode)node).Nodes[0]);
+            }
+                
+
             return true;
         }
 

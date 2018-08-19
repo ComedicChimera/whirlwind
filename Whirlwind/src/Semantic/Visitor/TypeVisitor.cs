@@ -48,7 +48,23 @@ namespace Whirlwind.Semantic.Visitor
                                 }
                                 if (!new[] { "MODULE", "INTERFACE", "STRUCT" }.Contains(symbol.DataType.Classify()))
                                     throw new SemanticException("Identifier data type must be a module or an interface", tokenNode.Position);
-                                dt = symbol.DataType.Classify() == "MODULE" ? ((ModuleType)symbol.DataType).GetInstance() : symbol.DataType;
+                                
+                                switch (symbol.DataType.Classify())
+                                {
+                                    case "MODULE":
+                                        dt = ((ModuleType)symbol.DataType).GetInstance();
+                                        break;
+                                    case "STRUCT":
+                                        var structType = ((StructType)symbol.DataType);
+                                        structType.Instantiate();
+
+                                        dt = structType;
+                                        break;
+                                    // interface
+                                    default:
+                                        dt = symbol.DataType;
+                                        break;
+                                }
                             }
                             else
                             {
