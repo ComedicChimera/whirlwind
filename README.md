@@ -17,24 +17,16 @@ Our new parser is compatable with left recursive and partially ambiguous grammar
 
 ## Action Trees
 
-Whirlwind uses a system of Action Trees to represent its IR.
-There are two different variations of Action Trees:
-**raw** and **reduced**.  The raw action tree is generated
-directly from the code during semantic analysis. They are
-effectively typed ASTs.  However, the reduced tree is
-the deabstracted and optimized IR of Whirlwind.  There
-are a lot fewer nodes in the reduced tree, but the nodes
-contain significantly more information.
+An action tree represents a typed AST, more structured AST.
+They signify operations, literals and, all other values are a lot
+easier to process.  Furthermore, all action trees are pre-type-checked
+meaning nothing on them needs to be proofed during later phases of the compiler.
 
-Each of these trees has a reference for all of the tree variations
+There is an additional reference for all of the tree variations
 including an explanation of what each node is and the "parameters"
 it takes.
 
-## Tree References
-
-- [Raw](https://github.com/ComedicChimera/Whirlwind/blob/master/Whirlwind/docs/raw_trees.md)
-
-- [Reduced](https://github.com/ComedicChimera/Whirlwind/blob/master/Whirlwind/docs/reduced_trees.md)
+- [Tree Reference](https://github.com/ComedicChimera/Whirlwind/blob/master/Whirlwind/docs/trees.md)
 
 It can be helpful to think of these trees as somewhat similar to
 S-Expressions. However, they are strongly typed, type annotated and thoroughly
