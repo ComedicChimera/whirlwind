@@ -22,10 +22,6 @@ They signify operations, literals and, all other values are a lot
 easier to process.  Furthermore, all action trees are pre-type-checked
 meaning nothing on them needs to be proofed during later phases of the compiler.
 
-There is an additional reference for all of the tree variations
-including an explanation of what each node is and the "parameters"
-it takes.
-
 - [Tree Reference](https://github.com/ComedicChimera/Whirlwind/blob/master/Whirlwind/docs/trees.md)
 
 It can be helpful to think of these trees as somewhat similar to
