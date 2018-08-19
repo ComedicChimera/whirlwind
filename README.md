@@ -24,7 +24,7 @@ and I sincerely believe it will be worth it.
 If you would like to contribute to this compiler or this language, please review the information above
 and join our discord to get up to speed on the language in its current state.
 
- - [CompilerInfo](#compiler-info)
+ - [Compiler Info](#compiler-info)
  - [Discord](insert link here) *insert link*
 
 
