@@ -35,6 +35,8 @@ namespace Whirlwind.Types
             return false;
         }
 
+        public List<string> ListProperties() => _instance.Keys.ToList();
+
         public string Classify() => "MODULE_INSTANCE";
 
         public bool Coerce(IDataType other)

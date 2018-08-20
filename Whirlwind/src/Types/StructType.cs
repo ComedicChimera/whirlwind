@@ -1,6 +1,4 @@
-﻿using Whirlwind.Semantic;
-
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace Whirlwind.Types
 {
@@ -34,7 +32,7 @@ namespace Whirlwind.Types
         public bool Coerce(IDataType other) {
             if (other.Classify() == "STRUCT_INSTANCE")
             {
-                return Members == ((StructType)other).Members && Name == ((StructType)other).Name && !_instance;
+                return Members == ((StructType)other).Members && Name == ((StructType)other).Name && _instance;
             }
             return false;
         }

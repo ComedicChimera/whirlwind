@@ -2,6 +2,7 @@
 using Whirlwind.Parser;
 
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Whirlwind.Types
 {
@@ -35,6 +36,18 @@ namespace Whirlwind.Types
 
             _bodies.Add(body);
             return true;
+        }
+
+        public bool GetFunction(string fnName, out Symbol symbol)
+        {
+            if (_functions.Select(x => x.Name).Contains(fnName))
+            {
+                symbol = _functions.Where(x => x.Name == fnName).ToArray()[0];
+                return true;
+            }      
+
+            symbol = null;
+            return false;
         }
 
         public bool MatchModule(ModuleType module)

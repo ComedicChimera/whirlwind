@@ -61,8 +61,13 @@ namespace Whirlwind.Semantic.Visitor
 
             if (_nodes.Last().Name == "CallAsync" && hasAwait)
             {
-                _nodes.Add(new ExprNode("Await", ((Future)_nodes.Last().Type).Type));
-                PushForward();
+                // should never fail on future type
+                if (((ModuleInstance)_nodes.Last().Type).GetProperty("result", out Symbol resultFn))
+                {
+                    var rtType = ((FunctionType)resultFn.DataType).ReturnType;
+                    _nodes.Add(new ExprNode("Await", rtType));
+                    PushForward();
+                }
                 return;
             }
             else if (hasAwait)
@@ -164,7 +169,7 @@ namespace Whirlwind.Semantic.Visitor
                             _nodes.Add(new ExprNode("GetMember", symbol.DataType));
 
                             PushForward();
-                            _nodes.Add(new IdentifierNode(pointerIdentifier, new SimpleType(), symbol.Modifiers.Contains(Modifier.CONSTANT))));
+                            _nodes.Add(new IdentifierNode(pointerIdentifier, new SimpleType(), symbol.Modifiers.Contains(Modifier.CONSTANT)));
                             MergeBack();
                             break;
                         }
@@ -309,9 +314,13 @@ namespace Whirlwind.Semantic.Visitor
                     break;
                 case "STRUCT_INSTANCE":
                     if (((StructType)type).Members.ContainsKey(name))
-                        return ((StructType)type).Members[name];
+                        return new Symbol(name, ((StructType)type).Members[name]);
                     else
                         throw new SemanticException($"Struct has no member '{name}'", idPos);
+                case "INTERFACE_INSTANCE":
+                    if (!((InterfaceType)type).GetFunction(name, out symbol))
+                        throw new SemanticException($"Interface has no function '{name}'", idPos);
+                    break;
                 case "PACKAGE":
                     if (!((Package)type).ExternalTable.Lookup(name, out symbol))
                         throw new SemanticException($"Package has no member '{name}'", idPos);
