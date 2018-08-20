@@ -85,7 +85,6 @@ variant_decl: 'VARIANT' '<' type_list '>' 'IDENTIFIER' func_body ;
 // BLOCK STATEMENTS (control flow, context managers and except blocks)
 block_stmt: if_stmt
 | select_stmt
-| match_stmt
 | for_loop
 | do_loop
 | except_block
@@ -103,10 +102,6 @@ select_stmt: 'SELECT' '(' expr ')' '{' select_block '}' ;
 select_block: case+ [default] ;
 case: 'CASE' expr (',' expr)* ':' main ;
 default: 'DEFAULT' ':' main ;
-
-// match statement
-match_stmt: 'MATCH' '{' match_case+ '}' ;
-match_case: '?' expr ':' main ;
 
 // for loop
 for_loop: 'FOR' [for_body] block ;
@@ -361,9 +356,9 @@ template_spec: '<' type_list '>' ;
 extension: [':' types] ;
 
 // function body
-func_body: ['STATIC'] ( '{' [main] '}'
+func_body: '{' [main] '}'
 | '=>' expr (',' expr)* ';'
-);
+;
 
 // standard block
 block: '{' [main] '}'
