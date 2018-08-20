@@ -161,10 +161,12 @@ variable_initializer: [ '=' expr
 
 // include statement
 include_stmt: ['USE'] 'INCLUDE' pkg_name ['STRING_LITERAL'] ;
-pkg_name: 'IDENTIFIER' ('.' 'IDENTIFIER')* ;
+pkg_name: [pkg_back_move] 'IDENTIFIER' ('.' 'IDENTIFIER' | pkg_back_move )* ;
+pkg_back_move: '.' '.' ;
 
 // enumerated constant
-enum_const: '@' '{' 'IDENTIFIER'+ '}' ;
+enum_const: '@' '{' first_const 'IDENTIFIER'+ '}' ;
+first_const: 'IDENTIFIER' variable_initializer ;
 
 // variable assignment
 assignment: assign_var (',' assign_var)* assign_op expr (',' expr)* ;
