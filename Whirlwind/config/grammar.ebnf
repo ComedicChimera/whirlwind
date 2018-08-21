@@ -122,7 +122,6 @@ export_decl: 'EXPORT' ( block_decl
 // STATEMENTS
 // broken up for logical reasons - takes advantage of multiple solution parsing
 stmt: ( local_variable_decl
-| include_stmt
 | enum_const
 | assignment
 | expr
