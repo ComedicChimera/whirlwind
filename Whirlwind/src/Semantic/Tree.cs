@@ -7,7 +7,7 @@ namespace Whirlwind.Semantic
 {
     interface ITypeNode
     {
-        IDataType Type { get; }
+        IDataType Type { get; set; }
         string Name { get; }
     }
 
@@ -15,7 +15,7 @@ namespace Whirlwind.Semantic
     class ExprNode : ITypeNode
     {
         public string Name { get; }
-        public IDataType Type { get; }
+        public IDataType Type { get; set; }
 
         public readonly List<ITypeNode> Nodes;
 
@@ -43,9 +43,9 @@ namespace Whirlwind.Semantic
     class ValueNode : ITypeNode
     {
         public string Name { get; }
-        public IDataType Type { get; }
+        public IDataType Type { get; set; }
 
-        public string Value;
+    public string Value;
 
         public ValueNode(string name, IDataType type)
         {
@@ -70,7 +70,7 @@ namespace Whirlwind.Semantic
     class IdentifierNode : ITypeNode
     {
         public string Name { get { return "Identifier"; } }
-        public IDataType Type { get; }
+        public IDataType Type { get; set; }
 
         public readonly string IdName;
         public readonly bool Constant;
@@ -92,7 +92,7 @@ namespace Whirlwind.Semantic
     class ConstexprNode : ITypeNode
     {
         public string Name { get { return "Constexpr"; } }
-        public IDataType Type { get; }
+        public IDataType Type { get; set; }
 
         public readonly string IdName;
         public readonly string ConstValue;

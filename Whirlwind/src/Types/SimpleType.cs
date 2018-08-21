@@ -41,11 +41,13 @@ namespace Whirlwind.Types
                 return true;
             if (other.Classify() == "SIMPLE_TYPE")
             {
-                if (((SimpleType)other).Type == Type)
-                    return true;
                 // make sure that you are not coercing signed to unsigned
                 if (!((SimpleType)other).Unsigned && Unsigned)
                     return false;
+
+                if (((SimpleType)other).Type == Type)
+                    return true;
+
                 switch (((SimpleType)other).Type)
                 {
                     // integer to long, double, and float

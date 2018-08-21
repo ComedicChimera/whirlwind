@@ -203,7 +203,8 @@ comparison_op: '>' | '<' | '>=' | '<=' | '==' | '!=' ;
 not: ['!'] shift ;
 
 // binary shifts
-shift: arithmetic (('>' '>' | '<' '<') arithmetic)* ;
+shift: arithmetic (shift_op arithmetic)* ;
+shift_op: '>' '>' | '<' '<';
 
 // arithmetic
 arithmetic: term (('+' | '-') term)* ;

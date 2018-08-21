@@ -37,7 +37,7 @@ namespace Whirlwind.Semantic.Visitor
                         if (!new SimpleType(SimpleType.DataType.BOOL).Coerce(content[0].Type))
                             throw new SemanticException("Comparison expression of inline comparison must evaluate to a boolean", node.Content[0].Position);
 
-                        if (content[1].Type != content[2].Type)
+                        if (!content[1].Type.Coerce(content[2].Type) || !content[2].Type.Coerce(content[1].Type))
                             throw new SemanticException("Possible results of inline comparison must be the same type", ((ASTNode)subNode).Content.Last().Position);
                     }
                     else
@@ -45,7 +45,9 @@ namespace Whirlwind.Semantic.Visitor
                         _nodes.Add(new ExprNode("NullCoalesce", _nodes.Last().Type));
                         PushForward(2);
 
-                        if (((ExprNode)_nodes.Last()).Nodes[0].Type != ((ExprNode)_nodes.Last()).Nodes[1].Type)
+                        var content = ((ExprNode)_nodes.Last()).Nodes;
+
+                        if (!content[0].Type.Coerce(content[1].Type) || !content[1].Type.Coerce(content[0].Type))
                             throw new SemanticException("Base value and coalesced value of null coalescion must be the same type", ((ASTNode)subNode).Content.Last().Position);
                     }
                 }
@@ -80,12 +82,14 @@ namespace Whirlwind.Semantic.Visitor
                 else if (subNode.Name == "comparison")
                     _visitComparison((ASTNode)subNode);
                 else
-                    _visitArithmetic((ASTNode)subNode);
+                    _visitLogical((ASTNode)subNode);
 
                 if (hitFirst)
                 {
                     CheckOperand(ref rootType, _nodes.Last().Type, op, subNode.Position);
                     MergeBack();
+
+                    _nodes[_nodes.Count - 1].Type = rootType;
                 }
                 else
                     rootType = _nodes.Last().Type;
@@ -152,6 +156,8 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     CheckOperand(ref rootType, _nodes.Last().Type, op, subNode.Position);
                     MergeBack();
+
+                    _nodes[_nodes.Count - 1].Type = rootType;
                 }
                 else
                     rootType = _nodes.Last().Type;
@@ -164,42 +170,36 @@ namespace Whirlwind.Semantic.Visitor
             bool hitFirst = false;
             IDataType rootType = new SimpleType();
 
-            using (var enumerator = node.Content.GetEnumerator())
+            foreach (var subNode in node.Content)
             {
-                while (enumerator.MoveNext())
+
+                if (subNode.Name == "shift_op")
                 {
-                    var subNode = enumerator.Current;
+                    string tempOp = "";
 
-                    if (subNode.Name == "TOKEN")
+                    tempOp = string.Join("", ((ASTNode)subNode).Content.Select(x => ((TokenNode)x).Tok.Type));
+
+                    if (tempOp != op)
                     {
-                        string tempOp = "";
+                        _nodes.Add(new ExprNode(_getOpTreeName(tempOp), rootType));
+                        PushForward();
 
-                        do
-                        {
-                            tempOp += ((TokenNode)subNode).Tok.Type;
-                            enumerator.MoveNext();
-                            subNode = enumerator.Current;
-                        } while (subNode.Name == "TOKEN");
+                        op = tempOp;
 
-                        if (tempOp != op)
-                        {
-                            _nodes.Add(new ExprNode(_getOpTreeName(tempOp), rootType));
-                            PushForward();
-
-                            op = tempOp;
-
-                            if (!hitFirst)
-                                hitFirst = true;
-                        }
+                        if (!hitFirst)
+                            hitFirst = true;
                     }
-
-                    // will always be an ASTNode because of do/while loop
+                }
+                else
+                {
                     _visitArithmetic((ASTNode)subNode);
 
                     if (hitFirst)
                     {
                         CheckOperand(ref rootType, _nodes.Last().Type, op, subNode.Position);
                         MergeBack();
+
+                        _nodes[_nodes.Count - 1].Type = rootType;
                     }
                     else
                         rootType = _nodes.Last().Type;
@@ -241,6 +241,8 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     CheckOperand(ref rootType, _nodes.Last().Type, op, subNode.Position);
                     MergeBack();
+
+                    _nodes[_nodes.Count - 1].Type = rootType;
                 }                
                 else
                     rootType = _nodes.Last().Type;
@@ -275,6 +277,12 @@ namespace Whirlwind.Semantic.Visitor
                     return "Eq";
                 case "!=":
                     return "Neq";
+                case "AND":
+                    return "And";
+                case "OR":
+                    return "Or";
+                case "XOR":
+                    return "Xor";
                 case ">>":
                     return "RShift";
                 // "<<"

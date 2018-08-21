@@ -4,6 +4,7 @@ using Whirlwind.Semantic.Visitor;
 
 using System.Collections.Generic;
 using System.Linq;
+using System;
 
 namespace Whirlwind.Semantic.Checker
 {
@@ -102,13 +103,11 @@ namespace Whirlwind.Semantic.Checker
                 case ">=":
                 case "<=":
                     {
-                        if (Numeric(operandType))
+                        if ((Numeric(rootType) && Numeric(operandType)) || (rootType.Classify() == "POINTER" && operandType.Classify() == "POINTER"))
                         {
-                            valid = true;
-                            break;
-                        }
-                        if (rootType.Classify() == "POINTER" && operandType.Classify() == "POINTER")
+                            rootType = new SimpleType(SimpleType.DataType.BOOL);
                             return;
+                        }  
 
                         string methodName;
                         switch (op)
@@ -141,7 +140,9 @@ namespace Whirlwind.Semantic.Checker
                     {
                         if (operandType.Classify() == "SIMPLE_TYPE" && rootType.Classify() == "SIMPLE_TYPE")
                         {
-                            if (rootType == operandType)
+                            SimpleType simpleRoot = (SimpleType)rootType, simpleOperand = (SimpleType)operandType;
+
+                            if (simpleRoot.Type == simpleOperand.Type && simpleRoot.Unsigned == simpleOperand.Unsigned)
                                 return;
                         }
                         else if (HasOverload(rootType, $"__{op.ToLower()}__", new List<ParameterValue>() { new ParameterValue(operandType) }, out IDataType returnType))
@@ -164,7 +165,10 @@ namespace Whirlwind.Semantic.Checker
                 }
 
                 if (op == "/")
-                    rootType = new SimpleType(SimpleType.DataType.FLOAT);
+                    rootType = new SimpleType(SimpleType.DataType.FLOAT);  
+                
+                if (op == "==" || op == "!=")
+                    rootType = new SimpleType(SimpleType.DataType.BOOL);
             }
             else
                 throw new SemanticException($"Invalid operands for '{op}' operator", position);

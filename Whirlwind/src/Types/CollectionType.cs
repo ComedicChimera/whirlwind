@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace Whirlwind.Types
 {
@@ -46,9 +45,13 @@ namespace Whirlwind.Types
 
         public bool Coerce(IDataType other)
         {
-            if (new[]{ "LIST", "ARRAY" }.Contains(other.Classify()))
+            if (other.Classify() == "ARRAY")
             {
-                return ElementType.Coerce((other as ListType).ElementType);
+                return ElementType.Coerce(((ArrayType)other).ElementType);
+            }
+            else if (other.Classify() == "LIST")
+            {
+                return ElementType.Coerce(((ListType)other).ElementType);
             }
             return false;
         }
