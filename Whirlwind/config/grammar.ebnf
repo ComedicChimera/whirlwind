@@ -16,10 +16,10 @@ global_variable_decl: ['VOLATILE'] variable_decl ;
 subscope: '{' main '}' ;
 
 // include statement
-include_stmt: ['USE'] 'INCLUDE' pkg_name with_clause ['STRING_LITERAL'] ;
+include_stmt: ['USE'] 'INCLUDE' pkg_name [ with_clause ] ['STRING_LITERAL'] ;
 pkg_name: [pkg_back_move] 'IDENTIFIER' ('.' 'IDENTIFIER' | pkg_back_move )* ;
 pkg_back_move: '.' '.' ;
-with_clause: 'WITH' ( 'IDENTIFIER' (',' 'IDENTIFIER') ) ;
+with_clause: 'WITH' '{' 'IDENTIFIER' (',' 'IDENTIFIER') '}' ;
 
 
 // MODULES AND MODULAR COMPONENTS
