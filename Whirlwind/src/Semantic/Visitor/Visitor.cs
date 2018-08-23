@@ -21,11 +21,13 @@ namespace Whirlwind.Semantic.Visitor
     partial class Visitor
     {
         private List<ITypeNode> _nodes;
+        private List<SemanticException> _errorQueue;
         private SymbolTable _table;
 
         public Visitor()
         {
             _nodes = new List<ITypeNode>();
+            _errorQueue = new List<SemanticException>();
             _table = new SymbolTable();
         }
 

@@ -109,4 +109,27 @@ namespace Whirlwind.Semantic
             return $"ConstexprID({IdName}, {Type}, {ConstValue})";
         }
     }
+
+    // stores statements
+    class StatementNode : ITypeNode
+    {
+        public string Name { get; }
+        public IDataType Type { get; set; }
+
+        public readonly List<ITypeNode> Nodes;
+
+        public StatementNode(string name)
+        {
+            Name = name;
+            Type = new SimpleType();
+            Nodes = new List<ITypeNode>();
+        }
+
+        public StatementNode(string name, List<ITypeNode> nodes)
+        {
+            Name = name;
+            Type = new SimpleType();
+            Nodes = nodes;
+        }
+    }
 }

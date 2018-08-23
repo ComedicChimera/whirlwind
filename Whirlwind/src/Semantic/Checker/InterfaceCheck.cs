@@ -81,5 +81,10 @@ namespace Whirlwind.Semantic.Checker
             }
             return false;
         }
+
+        public static bool IsException(IDataType dt)
+        {
+            return false;
+        }
     }
 }
