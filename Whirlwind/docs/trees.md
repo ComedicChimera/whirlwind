@@ -112,7 +112,7 @@ A multi-value structure or some form of operation.
 | Xor | *Values* | Perform a xor/bitwise xor logical operation |
 | And | *Values* | Perform an and/bitwise and logical operation |
 | Complement | Value | Perform a bitwise complement operation |
-| Floordiv | Values* | Perform a floor division operation |
+| Floordiv | *Values* | Perform a floor division operation |
 | InlineComparison | Comparison Expr, Option1, Option2 | Perform an inline comparison |
 | NullCoalesce | NullableExpr, DefaultExpr | Perform a null coalescion operation |
 
@@ -134,3 +134,9 @@ Represents a single Whirlwind statement.
 | Continue | `none` | Continue onto the next cycle in a loop | **STATEMENT** |
 | DeclareVar | *Variable Nodes* | Declare a variable or set of variables | **BLOCK** |
 | DeclareConst | *Constant Nodes* | Declare a constant or set of constants | **BLOCK** |
+| ThrowException | Exception | Throw a normal exception | **BLOCK** |
+| ThrowObject | Object | Wrap an object in an exception and throw it | **BLOCK** |
+| Delete | *Identifiers* | Delete a set of symbols | **BLOCK** (**STATEMENT** in bytecode stage) |
+| Return | Value | Returns a value from a function | **BLOCK** |
+| Yield | Value | Calls a deferred return statement | **BLOCK** |
+
