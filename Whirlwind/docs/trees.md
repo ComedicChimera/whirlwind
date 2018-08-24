@@ -111,6 +111,8 @@ A multi-value structure or some form of operation.
 | Or | *Values* | Perform an or/bitwise or logical operation |
 | Xor | *Values* | Perform a xor/bitwise xor logical operation |
 | And | *Values* | Perform an and/bitwise and logical operation |
+| Complement | Value | Perform a bitwise complement operation |
+| Floordiv | Values* | Perform a floor division operation |
 | InlineComparison | Comparison Expr, Option1, Option2 | Perform an inline comparison |
 | NullCoalesce | NullableExpr, DefaultExpr | Perform a null coalescion operation |
 

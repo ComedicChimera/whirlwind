@@ -208,11 +208,11 @@ shift_op: '>' '>' | '<' '<';
 
 // arithmetic
 arithmetic: term (('+' | '-') term)* ;
-term: factor (('*' | '/' | '%') factor)* ;
+term: factor (('*' | '/' | '%' | '~/') factor)* ;
 factor: unary_atom ('^' unary_atom)*;
 
 // unary operators
-unary_atom: ('&' | '-' | '++' | '--' | '*'+) atom
+unary_atom: ('&' | '-' | '~' | '++' | '--' | '*'+) atom
 | atom ['++' | '--']
 ;
 

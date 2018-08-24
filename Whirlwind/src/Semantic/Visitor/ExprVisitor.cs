@@ -261,6 +261,8 @@ namespace Whirlwind.Semantic.Visitor
                     return "Mul";
                 case "/":
                     return "Div";
+                case "~/":
+                    return "Floordiv";
                 case "%":
                     return "Mod";
                 case "^":
@@ -354,6 +356,22 @@ namespace Whirlwind.Semantic.Visitor
                     }
                     else
                         throw new SemanticException("Unable to change sign of non-numeric type", node.Content[0].Position);
+                    break;
+                case "~":
+                    treeName = "Complement";
+
+                    if (rootType.Classify() == "SIMPLE_TYPE")
+                        dt = rootType;
+                    else if (HasOverload(rootType, "__comp__", out IDataType newDt))
+                    {
+                        _nodes.Add(new ExprNode("Complement", newDt));
+                        // push root type
+                        PushForward();
+                        return;
+
+                    }
+                    else
+                        throw new SemanticException("The complement operator is not valid for the given type", node.Content[0].Position);
                     break;
                 case "&":
                     if (new[] { "FUNCTION", "MODULE", "STRUCT", "TEMPLATE", "INTERFACE" }.Contains(rootType.Classify()))

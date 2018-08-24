@@ -36,6 +36,7 @@ namespace Whirlwind.Semantic.Checker
                 case "*":
                 case "-":
                 case "/":
+                case "~/":
                 case "%":
                 case "^":
                     {
@@ -165,13 +166,25 @@ namespace Whirlwind.Semantic.Checker
                 }
 
                 if (op == "/")
-                    rootType = new SimpleType(SimpleType.DataType.FLOAT);  
-                
-                if (op == "==" || op == "!=")
+                    // all roots that reach this point are simple
+                    rootType = new SimpleType(_large((SimpleType)rootType) ? SimpleType.DataType.DOUBLE : SimpleType.DataType.FLOAT);
+                else if (op == "~/")
+                    // all roots that reach this point are simple
+                    rootType = new SimpleType(_large((SimpleType)rootType) ? SimpleType.DataType.LONG : SimpleType.DataType.INTEGER);
+
+                else if (op == "==" || op == "!=")
                     rootType = new SimpleType(SimpleType.DataType.BOOL);
             }
             else
                 throw new SemanticException($"Invalid operands for '{op}' operator", position);
+        }
+
+        static private bool _large(SimpleType rootType)
+        {
+            if (new[] { SimpleType.DataType.LONG, SimpleType.DataType.DOUBLE }.Contains(rootType.Type))
+                return true;
+
+            return false;
         }
     }
 }
