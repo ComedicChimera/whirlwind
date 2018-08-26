@@ -11,13 +11,16 @@ namespace Whirlwind.Semantic
         string Name { get; }
     }
 
+    class TreeNode
+    {
+        public List<ITypeNode> Nodes;
+    }
+
     // operating expr node
-    class ExprNode : ITypeNode
+    class ExprNode : TreeNode, ITypeNode
     {
         public string Name { get; }
         public IDataType Type { get; set; }
-
-        public readonly List<ITypeNode> Nodes;
 
         public ExprNode(string name, IDataType type)
         {
@@ -111,12 +114,10 @@ namespace Whirlwind.Semantic
     }
 
     // stores statements
-    class StatementNode : ITypeNode
+    class StatementNode : TreeNode, ITypeNode
     {
         public string Name { get; }
         public IDataType Type { get; set; }
-
-        public readonly List<ITypeNode> Nodes;
 
         public StatementNode(string name)
         {

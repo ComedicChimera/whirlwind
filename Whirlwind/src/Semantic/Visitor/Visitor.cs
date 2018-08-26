@@ -56,7 +56,7 @@ namespace Whirlwind.Semantic.Visitor
                 return;
             for (int i = 0; i < depth; i++)
             {
-                ((ExprNode)_nodes[_nodes.Count - (depth + 1)]).Nodes.Add(_nodes[_nodes.Count - 1]);
+                ((TreeNode)_nodes[_nodes.Count - (depth + 1)]).Nodes.Add(_nodes[_nodes.Count - 1]);
                 _nodes.RemoveAt(_nodes.Count - 1);
             }
         }
@@ -65,7 +65,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             if (_nodes.Count <= depth)
                 return;
-            var ending = (ExprNode)_nodes.Last();
+            var ending = (TreeNode)_nodes.Last();
             _nodes.RemoveAt(_nodes.Count - 1);
 
             for (int i = 0; i < depth; i++)
@@ -75,7 +75,7 @@ namespace Whirlwind.Semantic.Visitor
                 _nodes.RemoveAt(pos);
             }
 
-            _nodes.Add(ending);
+            _nodes.Add((ITypeNode)ending);
         }
 
         public ITypeNode Result() => _nodes.First();
