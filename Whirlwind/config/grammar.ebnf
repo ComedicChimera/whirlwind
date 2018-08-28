@@ -74,7 +74,9 @@ template_decl: 'TEMPLATE' '<' template (',' template)* '>' block_decl ;
 template: 'IDENTIFIER' [':' type_list] ;
 
 // variant declaration
-variant_decl: 'VARIANT' '<' type_list '>' 'IDENTIFIER' func_body ;
+variant_decl: 'VARIANT' ( variant | variant_list ) 'IDENTIFIER' func_body ;
+variant_list: '(' variant (',' variant)+ ')' ;
+variant: '<' type_list '>' ;
 
 
 // BLOCK STATEMENTS (control flow, context managers and except blocks)

@@ -34,6 +34,7 @@ namespace Whirlwind.Semantic.Visitor
                 case "local_variable_decl":
                     break;
                 case "enum_const":
+                    _visitEnumConst(stmt);
                     break;
             }
 
@@ -153,6 +154,35 @@ namespace Whirlwind.Semantic.Visitor
                 _nodes.Add(new StatementNode(stmtName));
                 PushForward();
             }
+        }
+
+        private void _visitEnumConst(ASTNode node)
+        {
+            bool constexpr = false;
+            int idCount = 0;
+
+            foreach (var item in node.Content)
+            {
+                if (item.Name == "first_const")
+                {
+                    if (((ASTNode)item).Content.Count == 2)
+                    {
+
+                    }
+                    idCount++;
+                }
+                else if (item.Name == "IDENTIFIER")
+                {
+                    _nodes.Add(new IdentifierNode(
+                        ((TokenNode)item).Tok.Value, new SimpleType(SimpleType.DataType.INTEGER, true),
+                        true
+                        ));
+                    idCount++;
+                }
+            }
+
+            _nodes.Add(new StatementNode(treeName));
+            PushForward(idCount);
         }
     }
 }
