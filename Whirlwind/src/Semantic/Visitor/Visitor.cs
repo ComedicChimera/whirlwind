@@ -37,8 +37,8 @@ namespace Whirlwind.Semantic.Visitor
             {
                 switch (node.Name)
                 {
-                    case "expr":
-                        _visitExpr((ASTNode)node);
+                    case "stmt":
+                        _visitStatement((ASTNode)node, new StatementContext());
                         break;
                     // prevent tokens from being recognized
                     case "TOKEN":

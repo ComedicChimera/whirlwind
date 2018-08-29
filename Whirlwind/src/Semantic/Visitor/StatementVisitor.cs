@@ -3,6 +3,7 @@ using Whirlwind.Types;
 
 using static Whirlwind.Semantic.Checker.Checker;
 
+using System;
 using System.Linq;
 using System.Collections.Generic;
 
@@ -158,30 +159,71 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitEnumConst(ASTNode node)
         {
-            bool constexpr = false;
+            bool constexpr = true;
             int idCount = 0;
+            int startValue = 0;
 
             foreach (var item in node.Content)
             {
                 if (item.Name == "first_const")
                 {
+                    string name = ((TokenNode)((ASTNode)item).Content[0]).Tok.Value;
+
+                    _nodes.Add(new IdentifierNode(name,
+                            new SimpleType(SimpleType.DataType.INTEGER, true),
+                            true
+                        ));
+
                     if (((ASTNode)item).Content.Count == 2)
                     {
+                        // first_const -> variable_intializer
+                        var initializer = (ASTNode)((ASTNode)item).Content[1];
 
+                        if (((TokenNode)initializer.Content[0]).Tok.Type == "=")
+                            constexpr = false;
+
+                        _visitExpr((ASTNode)initializer.Content[1]);
+
+                        // catch type exception first and then calculate constexpr values
+                        if (!new SimpleType(SimpleType.DataType.INTEGER, true).Coerce(_nodes.Last().Type))
+                            throw new SemanticException("Enumerated constant must have an unsigned integer initializer", initializer.Position);
+
+                        if (constexpr)
+                            if (!Constexpr.Evaluator.TryEval((ExprNode)_nodes.Last()))
+                                throw new SemanticException("Value of constexpr initializer must a be constexpr", initializer.Content[0].Position);
+                            else
+                                startValue = Int32.Parse(Constexpr.Evaluator.Evaluate((ExprNode)_nodes.Last()).Value);
+
+                        _nodes.Add(new ExprNode("EnumConstInitializer", new SimpleType(SimpleType.DataType.INTEGER, true)));
+                        PushForward(2);
                     }
+
+                    var symbol = constexpr ? new Symbol(name, _nodes.Last().Type, startValue.ToString())
+                        : new Symbol(name, _nodes.Last().Type);
+
+                    if (!_table.AddSymbol(symbol))
+                        throw new SemanticException($"Variable `{name}` redeclared in scope", ((ASTNode)item).Content[0].Position);
+
                     idCount++;
                 }
-                else if (item.Name == "IDENTIFIER")
+                else if (item.Name == "TOKEN" && ((TokenNode)item).Tok.Type == "IDENTIFIER")
                 {
                     _nodes.Add(new IdentifierNode(
                         ((TokenNode)item).Tok.Value, new SimpleType(SimpleType.DataType.INTEGER, true),
                         true
                         ));
+
+                    var symbol = constexpr ? new Symbol(((TokenNode)item).Tok.Value, _nodes.Last().Type, (startValue + idCount).ToString())
+                        : new Symbol(((TokenNode)item).Tok.Value, _nodes.Last().Type);
+
+                    if (!_table.AddSymbol(symbol))
+                        throw new SemanticException($"Variable `{((TokenNode)item).Tok.Value}` redeclared in scope", item.Position);
+
                     idCount++;
                 }
             }
 
-            _nodes.Add(new StatementNode(treeName));
+            _nodes.Add(new StatementNode(constexpr ? "EnumConstExpr" : "EnumConst"));
             PushForward(idCount);
         }
     }

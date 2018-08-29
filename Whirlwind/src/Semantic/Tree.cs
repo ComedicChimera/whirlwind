@@ -132,5 +132,10 @@ namespace Whirlwind.Semantic
             Type = new SimpleType();
             Nodes = nodes;
         }
+
+        public override string ToString()
+        {
+            return $"{Name}:[{string.Join(", ", Nodes.Select(x => x.ToString()))}]";
+        }
     }
 }
