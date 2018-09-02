@@ -1,13 +1,12 @@
-﻿module MyModule {
-	template<T>
-	interface SomeInterface {
-		func Add() (int);
-	}
-
+﻿mod MyModule {
 	template<T: int, str>
 	func Sum(... $n: T) T => n |> ... + |;
 }
 
-func Main() {
+func Printf(@fmtString: str, ... @args) {
+
+}
+
+func main() {
 	$x = new (int, 2);
 }

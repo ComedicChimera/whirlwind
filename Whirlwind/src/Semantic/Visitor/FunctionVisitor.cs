@@ -15,8 +15,7 @@ namespace Whirlwind.Semantic.Visitor
             {
                 if (subNode.Name == "decl_arg")
                 {
-                    bool indefinite = false, 
-                        optional = false, 
+                    bool optional = false, 
                         constant = false,
                         setParamType = false;
                     string identifier = "";
@@ -29,9 +28,6 @@ namespace Whirlwind.Semantic.Visitor
                             case "TOKEN":
                                 switch (((TokenNode)argPart).Tok.Type)
                                 {
-                                    case "...":
-                                        indefinite = true;
-                                        break;
                                     case "@":
                                         constant = true;
                                         break;
@@ -59,11 +55,37 @@ namespace Whirlwind.Semantic.Visitor
 
                     if (optional)
                     {
-                        argsDeclList.Add(new Parameter(identifier, paramType, indefinite, constant, _nodes.Last()));
+                        argsDeclList.Add(new Parameter(identifier, paramType, false, constant, _nodes.Last()));
                         _nodes.RemoveAt(_nodes.Count - 1); // remove argument from node stack
                     }
                     else
-                        argsDeclList.Add(new Parameter(identifier, paramType, indefinite, constant));
+                        argsDeclList.Add(new Parameter(identifier, paramType, false, constant));
+                }
+                else if (subNode.Name == "ending_arg")
+                {
+                    bool constant = false;
+                    string name = "";
+                    IDataType dt = new SimpleType();
+
+                    foreach (var item in ((ASTNode)subNode).Content)
+                    {
+                        if (item.Name == "extension")
+                            dt = _generateType((ASTNode)((ASTNode)item).Content[1]);
+                        else if (item.Name == "TOKEN")
+                        {
+                            switch (((TokenNode)item).Tok.Type)
+                            {
+                                case "IDENTIFIER":
+                                    name = ((TokenNode)item).Tok.Value;
+                                    break;
+                                case "@":
+                                    constant = true;
+                                    break;
+                            }
+                        }
+                    }
+
+                    argsDeclList.Add(new Parameter(name, dt, true, constant));
                 }
             }
 

@@ -340,8 +340,9 @@ tuple_type: '(' type_list ')' ;
 
 // COMMON CONSTRUCTIONS - common structures used repeatedly in grammar
 type_list: types (',' types)* ;
-args_decl_list: [decl_arg (',' decl_arg)*] ;
-decl_arg: ['...'] ('$' | '@') 'IDENTIFIER' extension [initializer] ;
+args_decl_list: [ decl_arg (',' decl_arg)* [',' ending_arg] | ending_arg ] ;
+decl_arg: ('$' | '@') 'IDENTIFIER' extension [initializer] ;
+ending_arg: '...' ('$' | '@') 'IDENTIFIER' [ extension ] ;
 initializer: '=' expr ;
 iterator: '|' 'IDENTIFIER' (',' 'IDENTIFIER')* '|' ;
 template_spec: '<' type_list '>' ;
