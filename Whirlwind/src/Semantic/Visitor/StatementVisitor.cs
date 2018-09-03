@@ -45,6 +45,7 @@ namespace Whirlwind.Semantic.Visitor
                 switch (stmt.Name)
                 {
                     case "assignment":
+                        _visitAssignment(stmt);
                         break;
                     case "expr":
                         _visitExpr(stmt);
@@ -225,6 +226,127 @@ namespace Whirlwind.Semantic.Visitor
 
             _nodes.Add(new StatementNode(constexpr ? "EnumConstExpr" : "EnumConst"));
             PushForward(idCount);
+        }
+
+        private void _visitAssignment(ASTNode stmt)
+        {
+            var varTypes = new List<IDataType>();
+            var exprTypes = new List<IDataType>();
+            string op = "";
+
+            foreach (var node in stmt.Content)
+            {
+                switch (node.Name)
+                {
+                    case "assign_var":
+                        if (varTypes.Count == 0)
+                            _nodes.Add(new ExprNode("AssignVars", new SimpleType()));
+
+                        _visitAssignVar((ASTNode)node);
+                        varTypes.Add(_nodes.Last().Type);
+
+                        MergeBack();
+                        break;
+                    case "assign_op":
+                        op = string.Join("", ((ASTNode)node).Content.Select(x => ((TokenNode)x).Tok.Type));
+                        break;
+                    case "expr":
+                        if (exprTypes.Count == 0)
+                            _nodes.Add(new ExprNode("AssignExprs", new SimpleType()));
+
+                        _visitExpr((ASTNode)node);
+                        exprTypes.Add(_nodes.Last().Type);
+
+                        MergeBack();
+                        break;
+                }
+            }
+
+            if (varTypes.Count == exprTypes.Count)
+            {
+                for (int i = 0; i < varTypes.Count; i++)
+                {
+                    if (!varTypes[i].Coerce(exprTypes[i]))
+                        throw new SemanticException("Unable to assign to dissimilar types", stmt.Position);
+                }
+            }
+            else if (varTypes.Count < exprTypes.Count)
+            {
+                int metValues = 0;
+
+                using (var e1 = varTypes.GetEnumerator())
+                using (var e2 = exprTypes.GetEnumerator())
+                {
+                    while (e1.MoveNext() && e2.MoveNext())
+                    {
+                        if (e2.Current.Classify().StartsWith("TUPLE"))
+                        {
+                            foreach (var type in ((TupleType)e2.Current).Types)
+                            {
+                                if (e1.Current.Coerce(type))
+                                {
+                                    if (!e1.MoveNext()) break;
+                                } 
+                                else
+                                    throw new SemanticException("Unable to assign to dissimilar types", stmt.Position);
+                            }
+                        }
+                        else if (!e1.Current.Coerce(e2.Current))
+                            throw new SemanticException("Unable to assign to dissimilar types", stmt.Position);
+
+                        metValues++;
+                    }
+                }
+
+                if (metValues < exprTypes.Count)
+                    throw new SemanticException("Too many expressions for the given assignment", stmt.Position);
+            }
+            else
+                throw new SemanticException("Too many expressions for the given assignment", stmt.Position);
+
+            _nodes.Add(new StatementNode("Assignment"));
+            PushForward(2);
+        }
+
+        private void _visitAssignVar(ASTNode assignVar)
+        {
+            foreach (var node in assignVar.Content)
+            {
+                if (node.Name == "TOKEN")
+                {
+                    var token = ((TokenNode)node).Tok;
+
+                    if (token.Type == "IDENTIFIER")
+                    {
+                        if (token.Value == "_")
+                            _nodes.Add(new IdentifierNode("_", new SimpleType(), false));
+                        else if (_table.Lookup(token.Value, out Symbol symbol))
+                        {
+                            if (symbol.Modifiers.Contains(Modifier.CONSTEXPR) || symbol.Modifiers.Contains(Modifier.CONSTANT))
+                                throw new SemanticException("Unable to assign to immutable value", node.Position);
+                            else
+                                _nodes.Add(new IdentifierNode(symbol.Name, symbol.DataType, false));
+                        }
+                        else
+                            throw new SemanticException($"Undefined Identifier: `{token.Value}`", node.Position);
+                    }
+                    // this
+                    else
+                    {
+                        if (_table.Lookup("$THIS", out Symbol instance))
+                            _nodes.Add(new IdentifierNode("$THIS", instance.DataType, true));
+                        else
+                            throw new SemanticException("Use of `this` outside of property", node.Position);
+                    }
+                }
+                else if (node.Name == "trailer")
+                {
+                    _visitTrailer((ASTNode)node);
+                }
+            }
+
+            if (!Modifiable(_nodes.Last()))
+                throw new SemanticException("Unable to assign to immutable value", assignVar.Position);
         }
     }
 }

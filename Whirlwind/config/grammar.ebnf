@@ -161,9 +161,7 @@ first_const: 'IDENTIFIER' variable_initializer ;
 
 // variable assignment
 assignment: assign_var (',' assign_var)* assign_op expr (',' expr)* ;
-assign_var: 'IDENTIFIER' ( '.' 'IDENTIFIER'
-| '[' (expr [slice] | slice) ']'
-)* ;
+assign_var: ( 'IDENTIFIER' | 'THIS' ) trailer* ;
 
 assign_op: [ '+'
 | '-'
