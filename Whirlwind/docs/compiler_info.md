@@ -28,6 +28,8 @@ It can be helpful to think of these trees as somewhat similar to
 S-Expressions. However, they are strongly typed, type annotated and thoroughly
 checked.
 
+***NOTE*** *The _ character should never be declared, merely ignored*.
+
 ## Bytecode
 
 Whirlwind uses a specialized bytecode to represent its internal IR.  The bytecode is designed to
@@ -37,3 +39,5 @@ bytecode objects to save on parsing time.  Each bytecode instructions correspond
 form of an LLVM instruction (or instruction set) with zero redundancy or ambiguity.
 
  - [Bytecode Reference](https://github.com/ComedicChimera/Whirlwind/blob/master/Whirlwind/docs/bytecode.md)
+ 
+ ***Note*** *Ignore the _ character in assignment, it will be ignored in declaration*.
