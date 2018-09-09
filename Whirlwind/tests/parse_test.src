@@ -1,12 +1,18 @@
-﻿mod MyModule {
+﻿type MyModule {
 	template<T: int, str>
-	func Sum(... $n: T) T => n |> ... + |;
+	func Sum(... n: T) T => n |> ... + |;
 }
 
-func Printf(@fmtString: str, ... @args) {
+func Printf(fmtString: @str, ... args) {
 
 }
 
 func main() {
 	$x = new (int, 2);
+}
+
+func divisble(n: int)
+	where (n < 10)
+{
+
 }

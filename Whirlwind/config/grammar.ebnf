@@ -42,7 +42,7 @@ method_template: 'TEMPLATE' '<' template (',' template)* '>' method_decl ;
 // constructor declaration
 constructor_decl: 'CONSTRUCTOR' '(' args_decl_list ')' func_body ;
 
-// common module patterns
+// common object patterns
 partial: ':' 'IDENTIFIER' ; // partial extension
 modifiers: 'PRIVATE' | 'STATIC' | 'PROTECTED'; // variable and function modifiers
 
@@ -50,7 +50,7 @@ modifiers: 'PRIVATE' | 'STATIC' | 'PROTECTED'; // variable and function modifier
 // BLOCK DECLARATIONS
 block_decl: func_decl
 | interface_decl
-| module_decl
+| obj_decl
 | struct_decl
 | template_decl
 | variant_decl
@@ -345,7 +345,7 @@ tuple_type: '(' type_list ')' ;
 type_list: types (',' types)* ;
 
 args_decl_list: [ decl_arg (',' decl_arg)* [',' ending_arg] | ending_arg ] ;
-decl_arg: 'IDENTIFIER' (',' 'IDENTIFIER') arg_ext [initializer] ;
+decl_arg: 'IDENTIFIER' (',' 'IDENTIFIER')* arg_ext [initializer] ;
 arg_ext: ':' ['@'] types ;
 ending_arg: '...' 'IDENTIFIER' [ arg_ext ] ;
 
