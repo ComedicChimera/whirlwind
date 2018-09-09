@@ -18,7 +18,7 @@ namespace Whirlwind.Semantic.Visitor
                     bool optional = false, 
                         constant = false,
                         setParamType = false;
-                    string identifier = "";
+                    var identifiers = new List<string>();
                     IDataType paramType = new SimpleType();
 
                     foreach (var argPart in ((ASTNode)subNode).Content)
@@ -26,19 +26,24 @@ namespace Whirlwind.Semantic.Visitor
                         switch (argPart.Name)
                         {
                             case "TOKEN":
-                                switch (((TokenNode)argPart).Tok.Type)
-                                {
-                                    case "@":
-                                        constant = true;
-                                        break;
-                                    case "IDENTIFIER":
-                                        identifier = ((TokenNode)argPart).Tok.Value;
-                                        break;
-                                }
+                                if (((TokenNode)argPart).Tok.Type == "IDENTIFIER")
+                                    identifiers.Add(((TokenNode)argPart).Tok.Value);
                                 break;
-                            case "extension":
-                                paramType = _generateType((ASTNode)((ASTNode)argPart).Content[1]);
-                                setParamType = true;
+                            case "arg_ext":
+                                foreach (var extensionPart in ((ASTNode)argPart).Content)
+                                {
+                                    if (extensionPart.Name == "types")
+                                    {
+                                        paramType = _generateType((ASTNode)extensionPart);
+                                        setParamType = true;
+                                    }
+                                    else if (extensionPart.Name == "TOKEN")
+                                    {
+                                        if (((TokenNode)extensionPart).Tok.Type == "@")
+                                            constant = true;
+                                    }
+                                }
+                                
                                 break;
                             case "initializer":
                                 _visitExpr((ASTNode)((ASTNode)argPart).Content[1]);
@@ -55,11 +60,16 @@ namespace Whirlwind.Semantic.Visitor
 
                     if (optional)
                     {
-                        argsDeclList.Add(new Parameter(identifier, paramType, false, constant, _nodes.Last()));
+                        foreach (var identifier in identifiers)
+                            argsDeclList.Add(new Parameter(identifier, paramType, false, constant, _nodes.Last()));
+
                         _nodes.RemoveAt(_nodes.Count - 1); // remove argument from node stack
                     }
                     else
-                        argsDeclList.Add(new Parameter(identifier, paramType, false, constant));
+                    {
+                        foreach (var identifier in identifiers)
+                            argsDeclList.Add(new Parameter(identifier, paramType, false, constant));
+                    }
                 }
                 else if (subNode.Name == "ending_arg")
                 {

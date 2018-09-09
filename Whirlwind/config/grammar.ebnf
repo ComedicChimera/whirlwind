@@ -22,10 +22,10 @@ pkg_back_move: '.' '.' ;
 with_clause: 'WITH' '{' 'IDENTIFIER' (',' 'IDENTIFIER') '}' ;
 
 
-// MODULES AND MODULAR COMPONENTS
-// module declaration
-module_decl: 'MOD' ['PARTIAL'] 'IDENTIFIER' partial* '{' module_main+ '}' ;
-module_main:modifiers* ( variable_decl ';' 
+// OBJECTS AND OBJECT COMPONENTS
+// object declaration
+obj_decl: 'TYPE' ['PARTIAL'] 'IDENTIFIER' partial* '{' obj_main+ '}' ;
+obj_main: modifiers* ( variable_decl ';' 
 | enum_const ';'
 | method_decl
 | method_template
@@ -187,10 +187,15 @@ yield_stmt: 'YIELD' [expr (',' expr)*] ;
 
 
 // EXPRESSIONS - basic unit of statements 
-expr: or [expr_extension] ;
+expr: or [expr_extension] | select_expr ;
 expr_extension: '?' or ':' or
 | ('??' or)+
 ;
+
+// select expression
+select_expr: 'SELECT' '{' select_condition+ select_closer '}' ;
+select_condition: '?' expr '=>' expr ';' ;
+select_closer: ':' expr ';' ;
 
 // logical operators
 or: xor ('OR' xor)* ;
@@ -338,9 +343,12 @@ tuple_type: '(' type_list ')' ;
 
 // COMMON CONSTRUCTIONS - common structures used repeatedly in grammar
 type_list: types (',' types)* ;
+
 args_decl_list: [ decl_arg (',' decl_arg)* [',' ending_arg] | ending_arg ] ;
-decl_arg: ('$' | '@') 'IDENTIFIER' extension [initializer] ;
-ending_arg: '...' ('$' | '@') 'IDENTIFIER' [ extension ] ;
+decl_arg: 'IDENTIFIER' (',' 'IDENTIFIER') arg_ext [initializer] ;
+arg_ext: ':' ['@'] types ;
+ending_arg: '...' 'IDENTIFIER' [ arg_ext ] ;
+
 initializer: '=' expr ;
 iterator: '|' 'IDENTIFIER' (',' 'IDENTIFIER')* '|' ;
 template_spec: '<' type_list '>' ;
@@ -349,9 +357,13 @@ template_spec: '<' type_list '>' ;
 extension: [':' types] ;
 
 // function body
-func_body: '{' [main] '}'
+func_body: [func_guard] ('{' [main] '}'
 | '=>' expr (',' expr)* ';'
+)
 ;
+
+// function guard
+func_guard: 'WHERE' '(' expr ')' ;
 
 // standard block
 block: '{' [main] '}'
