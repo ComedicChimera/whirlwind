@@ -117,7 +117,7 @@ namespace Whirlwind.Semantic.Visitor
                 }
             }
             catch (SemanticException se) {
-                _errorQueue.Add(se);
+                ErrorQueue.Add(se);
             }
         }
 

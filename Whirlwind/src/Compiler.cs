@@ -52,6 +52,14 @@ namespace Whirlwind
                 return;
             }
 
+            if (visitor.ErrorQueue.Count > 0)
+            {
+                foreach (var error in visitor.ErrorQueue)
+                    WriteError(text, error.Message, error.Position.Start, error.Position.Length);
+
+                return;
+            }
+
             Console.WriteLine(visitor.Result().ToString());
         }
 
