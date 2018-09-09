@@ -182,7 +182,7 @@ namespace Whirlwind.Semantic.Visitor
                     throw new SemanticException("All values in a collection must be the same type", pos);
             }
 
-            if (baseType.Classify() == "SIMPLE_TYPE" && ((SimpleType)baseType).Type == SimpleType.DataType.VOID)
+            if (baseType.Classify() == TypeClassifier.SIMPLE && ((SimpleType)baseType).Type == SimpleType.DataType.VOID)
                 baseType = newType;
         }
 

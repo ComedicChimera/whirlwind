@@ -81,11 +81,11 @@ namespace Whirlwind.Types
             Async = async;
         }
 
-        public string Classify() => "FUNCTION";
+        public TypeClassifier Classify() => TypeClassifier.FUNCTION;
 
         public bool Coerce(IDataType other)
         {
-            if (other.Classify() == "FUNCTION")
+            if (other.Classify() == TypeClassifier.FUNCTION)
             {
                 var otherFunction = ((FunctionType)other);
                 if (otherFunction.Async != Async)

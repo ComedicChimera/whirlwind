@@ -28,7 +28,7 @@ namespace Whirlwind.Semantic.Visitor
                 .Select(x => x.Value)
                 .ToArray();
 
-            var iteratorTypes = iteratorType.Classify().StartsWith("TUPLE") ? ((TupleType)iteratorType).Types : new List<IDataType>() { iteratorType };
+            var iteratorTypes = iteratorType.Classify() == TypeClassifier.TUPLE ? ((TupleType)iteratorType).Types : new List<IDataType>() { iteratorType };
 
             if (identifiers.Length != iteratorTypes.Count)
                 throw new SemanticException("Base iterator and it's alias's don't match", node.Position);
@@ -53,7 +53,7 @@ namespace Whirlwind.Semantic.Visitor
             if (iterable is IIterable)
                 return (iterable as IIterable).GetIterator();
             // should never fail - not a true overload so check not required
-            else if (((ModuleInstance)iterable).GetProperty("__next__", out Symbol method))
+            else if (((ObjectInstance)iterable).GetProperty("__next__", out Symbol method))
             {
                 // all iterable __next__ methods return a specific element type (Element<T>)
                 var elementType = ((FunctionType)method.DataType).ReturnType;

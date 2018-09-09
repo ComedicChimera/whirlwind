@@ -15,15 +15,15 @@
         {
             if (other == this)
                 return true;
-            else if (other.Classify() == "POINTER")
+            else if (other.Classify() == TypeClassifier.POINTER)
             {
-                if (Type.Classify() == "SIMPLE_TYPE" && ((SimpleType)Type).Type == SimpleType.DataType.VOID)
+                if (Type.Classify() == TypeClassifier.SIMPLE && ((SimpleType)Type).Type == SimpleType.DataType.VOID)
                     return true;
             }
 
             return false;
         }
 
-        public string Classify() => "POINTER";
+        public TypeClassifier Classify() => TypeClassifier.POINTER;
     }
 }

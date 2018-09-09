@@ -18,11 +18,11 @@ namespace Whirlwind.Types
             Size = size;
         }
 
-        public string Classify() => "ARRAY";
+        public TypeClassifier Classify() => TypeClassifier.ARRAY;
 
         public bool Coerce(IDataType other)
         {
-            if (other.Classify() == "ARRAY")
+            if (other.Classify() == TypeClassifier.ARRAY)
             {
                 return ElementType.Coerce(((ArrayType)other).ElementType) && ((ArrayType)other).Size == Size;
             }
@@ -41,15 +41,15 @@ namespace Whirlwind.Types
             ElementType = elementType;
         }
 
-        public string Classify() => "LIST";
+        public TypeClassifier Classify() => TypeClassifier.LIST;
 
         public bool Coerce(IDataType other)
         {
-            if (other.Classify() == "ARRAY")
+            if (other.Classify() == TypeClassifier.ARRAY)
             {
                 return ElementType.Coerce(((ArrayType)other).ElementType);
             }
-            else if (other.Classify() == "LIST")
+            else if (other.Classify() == TypeClassifier.LIST)
             {
                 return ElementType.Coerce(((ListType)other).ElementType);
             }
@@ -69,11 +69,11 @@ namespace Whirlwind.Types
             ValueType = valueType;
         }
 
-        public string Classify() => "MAP";
+        public TypeClassifier Classify() => TypeClassifier.MAP;
 
         public bool Coerce(IDataType other)
         {
-            if (other.Classify() == "MAP")
+            if (other.Classify() == TypeClassifier.MAP)
             {
                 return KeyType == ((MapType)other).KeyType && ValueType == ((MapType)other).ValueType;
             }

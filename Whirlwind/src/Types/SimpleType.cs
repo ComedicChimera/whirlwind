@@ -32,14 +32,14 @@ namespace Whirlwind.Types
             Unsigned = unsigned;
         }
 
-        public string Classify() => "SIMPLE_TYPE";
+        public TypeClassifier Classify() => TypeClassifier.SIMPLE;
 
         public bool Coerce(IDataType other)
         {
             // null can coerce to anything
             if (Type == DataType.VOID)
                 return true;
-            if (other.Classify() == "SIMPLE_TYPE")
+            if (other.Classify() == TypeClassifier.SIMPLE)
             {
                 // make sure that you are not coercing signed to unsigned
                 if (!((SimpleType)other).Unsigned && Unsigned)

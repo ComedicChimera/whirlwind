@@ -42,19 +42,19 @@ namespace Whirlwind.Semantic.Visitor
                         case "IDENTIFIER":
                             if (_table.Lookup(tokenNode.Tok.Value, out Symbol symbol))
                             {
-                                if (symbol.DataType.Classify() == "TEMPLATE_ALIAS")
+                                if (symbol.DataType.Classify() == TypeClassifier.TEMPLATE_ALIAS)
                                 {
                                     dt = ((TemplateAlias)symbol.DataType).ReplacementType;
                                 }
-                                if (!new[] { "MODULE", "INTERFACE", "STRUCT" }.Contains(symbol.DataType.Classify()))
-                                    throw new SemanticException("Identifier data type must be a module or an interface", tokenNode.Position);
+                                if (!new[] { TypeClassifier.OBJECT, TypeClassifier.STRUCT, TypeClassifier.INTERFACE }.Contains(symbol.DataType.Classify()))
+                                    throw new SemanticException("Identifier data type must be a obj or an interface", tokenNode.Position);
                                 
                                 switch (symbol.DataType.Classify())
                                 {
-                                    case "MODULE":
-                                        dt = ((ModuleType)symbol.DataType).GetInstance();
+                                    case TypeClassifier.OBJECT:
+                                        dt = ((ObjectType)symbol.DataType).GetInstance();
                                         break;
-                                    case "STRUCT":
+                                    case TypeClassifier.STRUCT:
                                         var structType = ((StructType)symbol.DataType);
                                         structType.Instantiate();
 
@@ -75,7 +75,7 @@ namespace Whirlwind.Semantic.Visitor
                 }
                 else if (subNode.Name == "template_spec")
                 {
-                    if (dt.Classify() != "TEMPLATE")
+                    if (dt.Classify() != TypeClassifier.TEMPLATE)
                         throw new SemanticException("Unable to apply template specifier to non-template type", subNode.Position);
                     dt = _generateTemplate((TemplateType)dt, (ASTNode)subNode);
                 }
@@ -89,7 +89,7 @@ namespace Whirlwind.Semantic.Visitor
             {
                 dt = new PointerType(dt, pointers);
             }
-            else if (dt.Classify() == "SIMPLE_TYPE" && ((SimpleType)dt).Type == SimpleType.DataType.VOID)
+            else if (dt.Classify() == TypeClassifier.SIMPLE && ((SimpleType)dt).Type == SimpleType.DataType.VOID)
                 throw new SemanticException("Incomplete type", node.Position);
 
             return dt;

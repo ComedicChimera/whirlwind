@@ -134,7 +134,7 @@ namespace Whirlwind.Semantic.Visitor
                             _nodes.Add(new ExprNode("Not", new SimpleType(SimpleType.DataType.BOOL)));
                             PushForward();
                         }
-                        else if (_nodes.Last().Type.Classify() == "SIMPLE_TYPE")
+                        else if (_nodes.Last().Type.Classify() == TypeClassifier.SIMPLE)
                         {
                             _nodes.Add(new ExprNode("Not", _nodes.Last().Type));
                             PushForward();
@@ -323,7 +323,7 @@ namespace Whirlwind.Semantic.Visitor
             switch (op)
             {
                 case "++":
-                    if (Modifiable(_nodes.Last()) && (Numeric(rootType) || rootType.Classify() == "POINTER"))
+                    if (Modifiable(_nodes.Last()) && (Numeric(rootType) || rootType.Classify() == TypeClassifier.POINTER))
                     {
                         treeName = (postfix ? "Postfix" : "Prefix") + "Increment";
                         dt = rootType;
@@ -332,7 +332,7 @@ namespace Whirlwind.Semantic.Visitor
                         throw new SemanticException("Increment operator is not valid on non-numeric types", node.Content[postfix ? 2 : 0].Position);
                     break;
                 case "--":
-                    if (Modifiable(_nodes.Last()) && (Numeric(rootType) || rootType.Classify() == "POINTER"))
+                    if (Modifiable(_nodes.Last()) && (Numeric(rootType) || rootType.Classify() == TypeClassifier.POINTER))
                     {
                         treeName = (postfix ? "Postfix" : "Prefix") + "Decrement";
                         dt = rootType;
@@ -360,7 +360,7 @@ namespace Whirlwind.Semantic.Visitor
                 case "~":
                     treeName = "Complement";
 
-                    if (rootType.Classify() == "SIMPLE_TYPE")
+                    if (rootType.Classify() == TypeClassifier.SIMPLE)
                         dt = rootType;
                     else if (HasOverload(rootType, "__comp__", out IDataType newDt))
                     {
@@ -374,10 +374,12 @@ namespace Whirlwind.Semantic.Visitor
                         throw new SemanticException("The complement operator is not valid for the given type", node.Content[0].Position);
                     break;
                 case "&":
-                    if (new[] { "FUNCTION", "MODULE", "STRUCT", "TEMPLATE", "INTERFACE" }.Contains(rootType.Classify()))
+                    if (new[] {
+                        TypeClassifier.STRUCT, TypeClassifier.INTERFACE, TypeClassifier.OBJECT, TypeClassifier.TEMPLATE, TypeClassifier.FUNCTION
+                    }.Contains(rootType.Classify()))
                         throw new SemanticException("The given object is not reference able", node.Content[0].Position);
                     treeName = "Reference";
-                    if (rootType.Classify() == "POINTER")
+                    if (rootType.Classify() == TypeClassifier.POINTER)
                     {
                         ((PointerType)rootType).Pointers++;
                         dt = rootType;
@@ -387,7 +389,7 @@ namespace Whirlwind.Semantic.Visitor
                     break;
                 // dereference
                 default:
-                    if (rootType.Classify() == "POINTER")
+                    if (rootType.Classify() == TypeClassifier.POINTER)
                     {
                         int pointerCount = ((PointerType)rootType).Pointers;
                         if (op.Length > pointerCount)
@@ -396,7 +398,7 @@ namespace Whirlwind.Semantic.Visitor
                         treeName = "Dereference";
                         dt = op.Length == pointerCount ? ((PointerType)rootType).Type : new PointerType(((PointerType)rootType).Type, pointerCount - op.Length);
 
-                        if (dt.Classify() == "SIMPLE_TYPE" && ((SimpleType)dt).Type == SimpleType.DataType.VOID)
+                        if (dt.Classify() == TypeClassifier.POINTER && ((SimpleType)dt).Type == SimpleType.DataType.VOID)
                             throw new SemanticException("Unable to dereference a void pointer", node.Content[node.Content.Count - 1].Position);
                     }
                     else

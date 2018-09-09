@@ -13,10 +13,10 @@ namespace Whirlwind.Types
             return elementStruct;
         }
 
-        public static ModuleInstance Future(IDataType dt)
+        public static ObjectInstance Future(IDataType dt)
         {
             // add body to future type
-            return new ModuleInstance("Future", new Semantic.SymbolTable(), new List<IDataType>(), false);
+            return new ObjectInstance("Future", new Semantic.SymbolTable(), new List<IDataType>(), false);
         }
     }
 }

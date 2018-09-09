@@ -23,7 +23,7 @@ namespace Whirlwind.Semantic.Checker
 
         public static bool Hashable(IDataType dt)
         {
-            if (new[] { "ARRAY", "MAP", "LIST", "FUNCTION" }.Contains(dt.Classify()) || dt.Classify().StartsWith("TUPLE"))
+            if (new[] { TypeClassifier.ARRAY, TypeClassifier.MAP, TypeClassifier.LIST, TypeClassifier.FUNCTION, TypeClassifier.TUPLE }.Contains(dt.Classify()))
                 return false;
             return true;
         }
@@ -35,7 +35,7 @@ namespace Whirlwind.Semantic.Checker
 
             if (HasOverload(dt, "__next__", out IDataType returnType))
             {
-                if (returnType.Classify() == "STRUCT_INSTANCE")
+                if (returnType.Classify() == TypeClassifier.STRUCT_INSTANCE)
                 {
                     // only one element struct
                     if (((StructType)returnType).Name == "Element")
@@ -73,7 +73,7 @@ namespace Whirlwind.Semantic.Checker
         // checks if it is a number type (int, float, ect.)
         public static bool Numeric(IDataType dt)
         {
-            if (dt.Classify() == "SIMPLE_TYPE")
+            if (dt.Classify() == TypeClassifier.SIMPLE)
             {
                 return !new[] {
                         SimpleType.DataType.STRING, SimpleType.DataType.BYTE, SimpleType.DataType.BOOL, SimpleType.DataType.CHAR

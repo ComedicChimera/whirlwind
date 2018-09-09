@@ -50,12 +50,12 @@ namespace Whirlwind.Types
             return false;
         }
 
-        public bool MatchModule(ModuleType module)
+        public bool MatchObject(ObjectType obj)
         {
-            var moduleInstance = module.GetInstance();
+            var objInstance = obj.GetInstance();
             foreach(Symbol fn in _functions)
             {
-                if (moduleInstance.GetProperty(fn.Name, out Symbol match))
+                if (objInstance.GetProperty(fn.Name, out Symbol match))
                 {
                     if (!fn.DataType.Coerce(match.DataType))
                         return false;
@@ -66,19 +66,19 @@ namespace Whirlwind.Types
             return true;
         }
 
-        public string Classify() => initialized ? "INTERFACE_INSTANCE" : "INTERFACE";
+        public TypeClassifier Classify() => initialized ? TypeClassifier.INTERFACE_INSTANCE : TypeClassifier.INTERFACE;
 
         public bool Coerce(IDataType other)
         {
-            if (other.Classify() == "MODULE_INSTANCE")
+            if (other.Classify() == TypeClassifier.OBJECT_INSTANCE)
             {
-                if (((ModuleInstance)other).Inherits.Contains(this))
+                if (((ObjectInstance)other).Inherits.Contains(this))
                 {
                     return true;
                 }
                 foreach(Symbol function in _functions)
                 {
-                    if (((ModuleInstance)other).GetProperty(function.Name, out Symbol matchedFunction))
+                    if (((ObjectInstance)other).GetProperty(function.Name, out Symbol matchedFunction))
                     {
                         if (!function.DataType.Coerce(matchedFunction.DataType)) return false;
                     }

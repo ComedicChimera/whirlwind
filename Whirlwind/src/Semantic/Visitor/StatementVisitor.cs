@@ -101,7 +101,7 @@ namespace Whirlwind.Semantic.Visitor
                                 {
                                     if (_table.Lookup(token.Value, out Symbol sym))
                                     {
-                                        if (sym.DataType.Classify() == "POINTER")
+                                        if (sym.DataType.Classify() == TypeClassifier.POINTER)
                                             identifierList.Add(new IdentifierNode(sym.Name, sym.DataType, sym.Modifiers.Contains(Modifier.CONSTANT)));
                                         else
                                             throw new SemanticException("Delete statement must only contain pointers", subNode.Position);
@@ -279,7 +279,7 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     while (e1.MoveNext() && e2.MoveNext())
                     {
-                        if (e2.Current.Classify().StartsWith("TUPLE"))
+                        if (e2.Current.Classify() == TypeClassifier.TUPLE)
                         {
                             foreach (var type in ((TupleType)e2.Current).Types)
                             {

@@ -15,7 +15,7 @@ namespace Whirlwind.Types
         }
 
         public bool Coerce(IDataType other) => false;
-        public string Classify() => "TEMPLATE_PLACEHOLDER";
+        public TypeClassifier Classify() => TypeClassifier.TEMPLATE_PLACEHOLDER;
     }
 
     // function returns data type of evaluated body and tests it
@@ -33,10 +33,10 @@ namespace Whirlwind.Types
 
         public bool Coerce(IDataType other) => false;
 
-        public string Classify() => "TEMPLATE_ALIAS";
+        public TypeClassifier Classify() => TypeClassifier.TEMPLATE_ALIAS;
     }
 
-    // represents the full template object (entire template method, module, ect.
+    // represents the full template object (entire template method, obj, ect.
     class TemplateType : IDataType
     {
         private readonly Dictionary<string, List<IDataType>> _templates;
@@ -118,6 +118,6 @@ namespace Whirlwind.Types
 
         public bool Coerce(IDataType other) => false;
 
-        public string Classify() => "TEMPLATE";
+        public TypeClassifier Classify() => TypeClassifier.TEMPLATE;
     }
 }

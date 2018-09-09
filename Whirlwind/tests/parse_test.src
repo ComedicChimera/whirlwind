@@ -1,4 +1,4 @@
-﻿type MyModule {
+﻿type Myobj {
 	template<T: int, str>
 	func Sum(... n: T) T => n |> ... + |;
 }

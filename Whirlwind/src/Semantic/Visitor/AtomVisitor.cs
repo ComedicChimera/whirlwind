@@ -62,7 +62,7 @@ namespace Whirlwind.Semantic.Visitor
             if (_nodes.Last().Name == "CallAsync" && hasAwait)
             {
                 // should never fail on future type
-                if (((ModuleInstance)_nodes.Last().Type).GetProperty("result", out Symbol resultFn))
+                if (((ObjectInstance)_nodes.Last().Type).GetProperty("result", out Symbol resultFn))
                 {
                     var rtType = ((FunctionType)resultFn.DataType).ReturnType;
                     _nodes.Add(new ExprNode("Await", rtType));
@@ -129,7 +129,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             if (node.Content[0].Name == "template_spec")
             {
-                if (_nodes.Last().Type.Classify() == "TEMPLATE")
+                if (_nodes.Last().Type.Classify() == TypeClassifier.TEMPLATE)
                 {
                     var templateType = _generateTemplate((TemplateType)_nodes.Last(), (ASTNode)node.Content[0]);
 
@@ -161,7 +161,7 @@ namespace Whirlwind.Semantic.Visitor
                         
                         break;
                     case "->":
-                        if (root.Type.Classify() == "POINTER")
+                        if (root.Type.Classify() == TypeClassifier.POINTER)
                         {
                             string pointerIdentifier = ((TokenNode)node.Content[1]).Tok.Value;
 
@@ -200,26 +200,26 @@ namespace Whirlwind.Semantic.Visitor
                                 initCount++;
                             }
                         }
-                        if (root.Type.Classify() == "MODULE")
+                        if (root.Type.Classify() == TypeClassifier.OBJECT)
                         {
-                            var moduleInstance = ((ModuleType)root.Type).GetInstance();
+                            var objInstance = ((ObjectType)root.Type).GetInstance();
                             for (int i = 1; i < initCount; i++)
                             {
                                 var item = (ExprNode)_nodes[_nodes.Count - i];
-                                if (moduleInstance.GetProperty(((ValueNode)item.Nodes[0]).Value, out Symbol sym))
+                                if (objInstance.GetProperty(((ValueNode)item.Nodes[0]).Value, out Symbol sym))
                                 {
                                     if (!sym.DataType.Coerce(item.Type))
                                         throw new SemanticException($"Unable to initializer property {sym.Name} with the given type", positions[i - 1]);
                                 }
                                 else
-                                    throw new SemanticException($"Module has no public property {((ValueNode)item.Nodes[0]).Value}", positions[i - 1]);
+                                    throw new SemanticException($"obj has no public property {((ValueNode)item.Nodes[0]).Value}", positions[i - 1]);
                             }
-                            _nodes.Add(new ExprNode("InitList", moduleInstance));
+                            _nodes.Add(new ExprNode("InitList", objInstance));
                             // add in root
                             PushForward(initCount + 1);
                             break;
                         }
-                        else if (root.Type.Classify() == "STRUCT")
+                        else if (root.Type.Classify() == TypeClassifier.STRUCT)
                         {
                             var members = ((StructType)root).Members;
                             if (initCount != members.Count)
@@ -253,7 +253,7 @@ namespace Whirlwind.Semantic.Visitor
                         {
                             _visitExpr((ASTNode)node.Content[1]);
 
-                            if (_nodes.Last().Type.Classify() == "FUNCTION")
+                            if (_nodes.Last().Type.Classify() == TypeClassifier.FUNCTION)
                             {
                                 bool check1 = !CheckParameters((FunctionType)_nodes.Last().Type, new List<ParameterValue>() {
                                     new ParameterValue(iteratorType),
@@ -304,24 +304,24 @@ namespace Whirlwind.Semantic.Visitor
             Symbol symbol;
             switch (type.Classify())
             {
-                case "MODULE_INSTANCE":
-                    if (!((ModuleInstance)type).GetProperty(name, out symbol))
-                        throw new SemanticException($"Module instance has no property '{name}'", idPos);
+                case TypeClassifier.OBJECT_INSTANCE:
+                    if (!((ObjectInstance)type).GetProperty(name, out symbol))
+                        throw new SemanticException($"obj instance has no property '{name}'", idPos);
                     break;
-                case "MODULE":
-                    if (!((ModuleType)type).GetMember(name, out symbol))
-                        throw new SemanticException($"Module has no static member '{name}'", idPos);
+                case TypeClassifier.OBJECT:
+                    if (!((ObjectType)type).GetMember(name, out symbol))
+                        throw new SemanticException($"obj has no static member '{name}'", idPos);
                     break;
-                case "STRUCT_INSTANCE":
+                case TypeClassifier.STRUCT_INSTANCE:
                     if (((StructType)type).Members.ContainsKey(name))
                         return new Symbol(name, ((StructType)type).Members[name]);
                     else
                         throw new SemanticException($"Struct has no member '{name}'", idPos);
-                case "INTERFACE_INSTANCE":
+                case TypeClassifier.INTERFACE_INSTANCE:
                     if (!((InterfaceType)type).GetFunction(name, out symbol))
                         throw new SemanticException($"Interface has no function '{name}'", idPos);
                     break;
-                case "PACKAGE":
+                case TypeClassifier.PACKAGE:
                     if (!((Package)type).ExternalTable.Lookup(name, out symbol))
                         throw new SemanticException($"Package has no member '{name}'", idPos);
                     break;
@@ -336,9 +336,9 @@ namespace Whirlwind.Semantic.Visitor
         {
             var args = node.Content.Count == 2 ? new List<ParameterValue>() : _generateArgsList((ASTNode)node.Content[1]);
 
-            if (new[] { "MODULE", "FUNCTION" }.Contains(root.Type.Classify()))
+            if (new[] { TypeClassifier.OBJECT, TypeClassifier.OBJECT }.Contains(root.Type.Classify()))
             {
-                bool isFunction = root.Type.Classify() == "FUNCTION";
+                bool isFunction = root.Type.Classify() == TypeClassifier.FUNCTION;
 
                 if (isFunction)
                 {
@@ -349,10 +349,10 @@ namespace Whirlwind.Semantic.Visitor
                             ((ASTNode)node.Content[1]).Content.Where(x => x.Name == "decl_arg").ToArray()[paramData.ParameterPosition].Position
                         );
                 }
-                else if (!isFunction && !((ModuleType)root.Type).GetConstructor(args, out FunctionType constructor))
-                    throw new SemanticException($"Module '{((ModuleType)root.Type).Name}' has no constructor the accepts the given parameters", node.Position);
+                else if (!isFunction && !((ObjectType)root.Type).GetConstructor(args, out FunctionType constructor))
+                    throw new SemanticException($"obj '{((ObjectType)root.Type).Name}' has no constructor the accepts the given parameters", node.Position);
 
-                IDataType returnType = isFunction ? ((FunctionType)root.Type).ReturnType : ((ModuleType)root.Type).GetInstance();
+                IDataType returnType = isFunction ? ((FunctionType)root.Type).ReturnType : ((ObjectType)root.Type).GetInstance();
 
                 _nodes.Add(new ExprNode(isFunction ? (((FunctionType)root.Type).Async ? "CallAsync" : "Call") : "CallConstructor", returnType));
 
@@ -366,7 +366,7 @@ namespace Whirlwind.Semantic.Visitor
                     _nodes.RemoveAt(_nodes.Count - 2);
                 }
             }
-            else if (root.Type.Classify() == "TEMPLATE")
+            else if (root.Type.Classify() == TypeClassifier.TEMPLATE)
             {
                 if (((TemplateType)root.Type).Infer(args, out List<IDataType> inferredTypes))
                 {
@@ -458,7 +458,7 @@ namespace Whirlwind.Semantic.Visitor
                 }
             }
 
-            if (rootType.Classify() == "MAP")
+            if (rootType.Classify() == TypeClassifier.MAP)
             {
                 if (name != "Subscript")
                     throw new SemanticException("Unable to perform slice on a map", node.Position);
@@ -470,7 +470,7 @@ namespace Whirlwind.Semantic.Visitor
                 else
                     throw new SemanticException("The subscript type and the key type must match", textPositions[0]);
             }
-            else if (rootType.Classify() == "MODULE_INSTANCE")
+            else if (rootType.Classify() == TypeClassifier.OBJECT_INSTANCE)
             {
                 var args = new List<ParameterValue>();
 
@@ -507,7 +507,7 @@ namespace Whirlwind.Semantic.Visitor
                     PushForward(args.Count + 1);
                 }
                 else
-                    throw new SemanticException("The given module defines an invalid overload for the `[]` operator", node.Position);
+                    throw new SemanticException("The given obj defines an invalid overload for the `[]` operator", node.Position);
             }
             else
             {
@@ -521,10 +521,10 @@ namespace Whirlwind.Semantic.Visitor
                 IDataType elementType;
                 switch (rootType.Classify())
                 {
-                    case "ARRAY":
+                    case TypeClassifier.ARRAY:
                         elementType = ((ArrayType)rootType).ElementType;
                         break;
-                    case "LIST":
+                    case TypeClassifier.LIST:
                         elementType = ((ListType)rootType).ElementType;
                         break;
                     default:
@@ -561,7 +561,7 @@ namespace Whirlwind.Semantic.Visitor
                     
             }
 
-            if (new[] { "ARRAY_TYPE", "LIST_TYPE", "MAP_TYPE", "FUNCTION" }.Contains(dt.Classify()))
+            if (new[] { TypeClassifier.ARRAY, TypeClassifier.LIST, TypeClassifier.MAP, TypeClassifier.FUNCTION }.Contains(dt.Classify()))
                 throw new SemanticException("Invalid data type for raw heap allocation", allocBody.Content[0].Position);
 
             if (!hasSizeExpr)

@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace Whirlwind.Types
 {
@@ -12,7 +11,7 @@ namespace Whirlwind.Types
             Types = types;
         }
 
-        public string Classify() => $"TUPLE({string.Join(", ", Types.Select(x => x.Classify()))})";
+        public TypeClassifier Classify() => TypeClassifier.TUPLE;
 
         public bool Coerce(IDataType other)
         {

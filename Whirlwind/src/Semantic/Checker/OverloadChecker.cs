@@ -8,11 +8,11 @@ namespace Whirlwind.Semantic.Checker
     {
         public static bool HasOverload(IDataType type, string methodName, out IDataType returnType)
         {
-            if (type.Classify() == "MODULE_INSTANCE")
+            if (type.Classify() == TypeClassifier.OBJECT_INSTANCE)
             {
-                if (((ModuleInstance)type).GetProperty(methodName, out Symbol method))
+                if (((ObjectInstance)type).GetProperty(methodName, out Symbol method))
                 {
-                    if (method.DataType.Classify() == "FUNCTION")
+                    if (method.DataType.Classify() == TypeClassifier.FUNCTION)
                     {
                         if (CheckParameters((FunctionType)method.DataType, new List<ParameterValue>()).IsError)
                         {
@@ -31,11 +31,11 @@ namespace Whirlwind.Semantic.Checker
 
         public static bool HasOverload(IDataType type, string methodName, List<ParameterValue> parameters, out IDataType returnType)
         {
-            if (type.Classify() == "MODULE_INSTANCE")
+            if (type.Classify() == TypeClassifier.OBJECT_INSTANCE)
             {
-                if (((ModuleInstance)type).GetProperty(methodName, out Symbol method))
+                if (((ObjectInstance)type).GetProperty(methodName, out Symbol method))
                 {
-                    if (method.DataType.Classify() == "FUNCTION")
+                    if (method.DataType.Classify() == TypeClassifier.FUNCTION)
                     {
                         if (CheckParameters((FunctionType)method.DataType, parameters).IsError)
                         {

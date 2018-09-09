@@ -14,9 +14,9 @@ namespace Whirlwind.Semantic.Checker
 
             switch (start.Classify())
             {
-                case "SIMPLE_TYPE":
+                case TypeClassifier.SIMPLE:
                     {
-                        if (desired.Classify() == "SIMPLE_TYPE")
+                        if (desired.Classify() == TypeClassifier.SIMPLE)
                         {
                             switch (((SimpleType)start).Type)
                             {
@@ -31,30 +31,30 @@ namespace Whirlwind.Semantic.Checker
                             if (Numeric(start) && Numeric(desired))
                                 return true;
                         }
-                        else if (desired.Classify() == "POINTER")
+                        else if (desired.Classify() == TypeClassifier.POINTER)
                             return ((SimpleType)start).Type == SimpleType.DataType.INTEGER && ((SimpleType)start).Unsigned;
                     }
                     break;
-                case "ARRAY":
-                case "LIST":
-                    if (new[] { "ARRAY", "LIST" }.Contains(desired.Classify()))
+                case TypeClassifier.ARRAY:
+                case TypeClassifier.LIST:
+                    if (new[] { TypeClassifier.ARRAY, TypeClassifier.LIST }.Contains(desired.Classify()))
                         return TypeCast((start as ArrayType).ElementType, (desired as ArrayType).ElementType);
                     break;
-                case "MAP":
-                    if (desired.Classify() == "MAP")
+                case TypeClassifier.MAP:
+                    if (desired.Classify() == TypeClassifier.MAP)
                         return TypeCast(((MapType)start).KeyType, ((MapType)desired).KeyType) && TypeCast(((MapType)start).ValueType, ((MapType)desired).ValueType);
                     break;
-                case "POINTER":
-                    if (desired.Classify() == "POINTER")
+                case TypeClassifier.POINTER:
+                    if (desired.Classify() == TypeClassifier.POINTER)
                     {
                         PointerType startPointer = (PointerType)start, desiredPointer = (PointerType)desired;
                         return TypeCast(startPointer.Type, desiredPointer.Type) && startPointer.Pointers == desiredPointer.Pointers;
                     }
-                    else if (desired.Classify() == "SIMPLE_TYPE")
+                    else if (desired.Classify() == TypeClassifier.SIMPLE)
                         return ((SimpleType)desired).Type == SimpleType.DataType.INTEGER && ((SimpleType)desired).Unsigned;
                     break;
-                case "FUNCTION":
-                    if (desired.Classify() == "FUNCTION")
+                case TypeClassifier.FUNCTION:
+                    if (desired.Classify() == TypeClassifier.FUNCTION)
                     {
                         FunctionType startFn = (FunctionType)start, desiredFn = (FunctionType)desired;
 
@@ -93,17 +93,17 @@ namespace Whirlwind.Semantic.Checker
                         return desiredFn.ReturnType.Coerce(startFn.ReturnType);
                     }
                     break;
-                case "STRUCT_INSTANCE":
-                    if (desired.Classify() == "STRUCT")
+                case TypeClassifier.STRUCT_INSTANCE:
+                    if (desired.Classify() == TypeClassifier.STRUCT)
                     {
                         return ((StructType)start).Members == ((StructType)desired).Members;
                     }
                     break;
-                case "MODULE_INSTANCE":
-                    if (desired.Classify() == "MODULE")
+                case TypeClassifier.OBJECT_INSTANCE:
+                    if (desired.Classify() == TypeClassifier.OBJECT)
                     {
-                        ModuleInstance startInstance = (ModuleInstance)start,
-                            desiredInstance = ((ModuleType)desired).GetInstance();
+                        ObjectInstance startInstance = (ObjectInstance)start,
+                            desiredInstance = ((ObjectType)desired).GetInstance();
 
                         if (desiredInstance.Inherits == startInstance.Inherits)
                         {
@@ -129,19 +129,19 @@ namespace Whirlwind.Semantic.Checker
 
                     }
                     break;
-                case "INTERFACE_INSTANCE":
-                    if (desired.Classify() == "MODULE")
+                case TypeClassifier.INTERFACE_INSTANCE:
+                    if (desired.Classify() == TypeClassifier.OBJECT)
                     {
                         var startInstance = (InterfaceType)start;
-                        var desiredInstance = (ModuleType)desired;
+                        var desiredInstance = (ObjectType)desired;
 
-                        if (startInstance.MatchModule(desiredInstance))
+                        if (startInstance.MatchObject(desiredInstance))
                             return true;
                     }
                     break;
             }
 
-            if (start.Classify().StartsWith("TUPLE") && desired.Classify().StartsWith("TUPLE"))
+            if (start.Classify() == TypeClassifier.TUPLE && desired.Classify() == TypeClassifier.TUPLE)
             {
                 TupleType startTuple = (TupleType)start,
                     desiredTuple = (TupleType)desired;

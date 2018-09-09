@@ -7,14 +7,14 @@ using System.Collections.Generic;
 // add partials and interfaces
 namespace Whirlwind.Types
 {
-    class ModuleInstance : IDataType
+    class ObjectInstance : IDataType
     {
         private readonly Dictionary<string, Symbol> _instance;
 
         public readonly string Name;
         public readonly List<IDataType> Inherits;
 
-        public ModuleInstance(string name, SymbolTable table, List<IDataType> inherits, bool internalInstance)
+        public ObjectInstance(string name, SymbolTable table, List<IDataType> inherits, bool internalInstance)
         {
             Name = name;
             if (internalInstance)
@@ -37,7 +37,7 @@ namespace Whirlwind.Types
 
         public List<string> ListProperties() => _instance.Keys.ToList();
 
-        public string Classify() => "MODULE_INSTANCE";
+        public TypeClassifier Classify() => TypeClassifier.OBJECT_INSTANCE;
 
         public bool Coerce(IDataType other)
         {
@@ -45,7 +45,7 @@ namespace Whirlwind.Types
         }
     }
 
-    class ModuleType : IDataType
+    class ObjectType : IDataType
     {
         private readonly SymbolTable _table;
         private readonly List<Tuple<FunctionType, ExprNode>> _constructors;
@@ -54,7 +54,7 @@ namespace Whirlwind.Types
         public readonly List<IDataType> Inherits;
         public bool Partial;
 
-        public ModuleType(string name, bool partial)
+        public ObjectType(string name, bool partial)
         {
             Name = name;
             _table = new SymbolTable();
@@ -113,17 +113,17 @@ namespace Whirlwind.Types
             return false;
         }
 
-        public ModuleInstance GetInstance()
+        public ObjectInstance GetInstance()
         {
-            return new ModuleInstance(Name, _table, Inherits, false);
+            return new ObjectInstance(Name, _table, Inherits, false);
         }
 
-        public ModuleInstance GetInternalInstance()
+        public ObjectInstance GetInternalInstance()
         {
-            return new ModuleInstance(Name, _table, Inherits, true);
+            return new ObjectInstance(Name, _table, Inherits, true);
         }
 
-        public string Classify() => "MODULE";
+        public TypeClassifier Classify() => TypeClassifier.OBJECT_INSTANCE;
 
         public bool Coerce(IDataType dt)
         {
