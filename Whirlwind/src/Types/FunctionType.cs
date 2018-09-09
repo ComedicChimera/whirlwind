@@ -74,21 +74,11 @@ namespace Whirlwind.Types
         public readonly List<Parameter> Parameters;
         public readonly bool Async;
 
-        public ITypeNode Guard;
-
         public FunctionType(List<Parameter> parameters, IDataType returnType, bool async)
         {
             Parameters = parameters;
             ReturnType = async ? MirrorType.Future(returnType) : returnType;
             Async = async;
-        }
-
-        public FunctionType(List<Parameter> parameters, IDataType returnType, bool async, ITypeNode guard)
-        {
-            Parameters = parameters;
-            ReturnType = returnType;
-            Async = async;
-            Guard = guard;
         }
 
         public TypeClassifier Classify() => TypeClassifier.FUNCTION;
