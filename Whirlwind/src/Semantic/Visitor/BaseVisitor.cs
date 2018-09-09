@@ -15,7 +15,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             if (node.Content[0].Name == "TOKEN")
             {
-                SimpleType.DataType dt = SimpleType.DataType.VOID; // default to null
+                SimpleType.DataType dt = SimpleType.DataType.NULL; // default to null
                 bool unsigned = false;
                 switch (((TokenNode)node.Content[0]).Tok.Type)
                 {

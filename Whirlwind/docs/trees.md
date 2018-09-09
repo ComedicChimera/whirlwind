@@ -70,14 +70,14 @@ A multi-value structure or some form of operation.
 | Comprehension | Root, Iterator, Expression, \[Filter\] | Perform a comprehension |
 | Iterator | *Identifiers* | Create an iterator over the some list |
 | CreateTemplate | Template | Converts a template to a value, return type is template type |
-| GetMember | Root, Identifier | Gets a member of a struct, obj or other type |
+| GetMember | Root, Identifier | Gets a member of a struct, object or other type |
 | InitList | *Initializers* | Create an instance from an initializer list |
 | Intializer | Identifier, expr | Initializer a given value in an initializer list |
 | FunctionAggregator | Root, AggrFn | Call an aggregator using a function |
 | OperatorAggregator | Root, Operator | Call an aggregator using an operator |
 | Call | Function, *Arguments* | Call a normal function with given arguments |
 | CallAsync | AsyncFunction, *Arguments* | Call an async function with the given arguments |
-| CallConstructor | obj, *Arguments* | Call a obj constructor |
+| CallConstructor | obj, *Arguments* | Call an object constructor |
 | Subscript | Collection, Index | Get the element at a given index |
 | Slice | Collection, Begin, End | Create a slice between two indices |
 | SliceBegin | Collection, Begin | Create a slice from the beginning onward |
