@@ -36,7 +36,8 @@ namespace Whirlwind.Semantic
     {
         public readonly string Name;
         public readonly IDataType DataType;
-        public readonly List<Modifier> Modifiers;
+
+        public List<Modifier> Modifiers;
 
         public readonly string Value;
 
