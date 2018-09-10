@@ -34,7 +34,7 @@ obj_main: modifiers* ( variable_decl ';'
 ) ;
 
 // method declaration
-method_decl: ('FUNC' | 'ASYNC') 'IDENTIFIER' '(' args_decl_list ')' [ types ] partial* (func_body | ';') ;
+method_decl: ('FUNC' | 'ASYNC') ['PARTIAL'] 'IDENTIFIER' '(' args_decl_list ')' [ types ] partial* (func_body | ';') ;
 
 // method template
 method_template: 'TEMPLATE' '<' template (',' template)* '>' method_decl ;
