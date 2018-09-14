@@ -1,4 +1,4 @@
 ﻿func Main() {
-	$x: int;
-	$y;
+	$x: int = 4;
+	$y = x;
 }

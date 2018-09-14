@@ -124,7 +124,10 @@ namespace Whirlwind.Semantic.Visitor
                         PushForward();
 
                         if (!hasType)
+                        {
                             mainType = _nodes.Last().Type;
+                            hasType = true;
+                        }
                         else if (!mainType.Coerce(_nodes.Last().Type))
                             throw new SemanticException("Initializer type doesn't match type extension", item.Position);
 
@@ -160,14 +163,15 @@ namespace Whirlwind.Semantic.Visitor
             }
             else
             {
-                foreach (var item in variables)
+                for (int i = 0; i <variables.Count; i++)
                 {
-                    if (isVoid(item.Value.Item1))
+                    var key = variables.Keys.ToList()[i];
+                    if (isVoid(variables[key].Item1))
                     {
                         if (hasType)
-                            variables[item.Key] = new Tuple<IDataType, TextPosition>(mainType, item.Value.Item2);
+                            variables[key] = new Tuple<IDataType, TextPosition>(mainType, variables[key].Item2);
                         else
-                            throw new SemanticException("Unable to infer type of variable", item.Value.Item2);
+                            throw new SemanticException("Unable to infer type of variable", variables[key].Item2);
                     }
                 }
             }
