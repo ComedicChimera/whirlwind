@@ -1,4 +1,5 @@
 ﻿func Main() {
-	$x: int = 4;
-	$y = x;
+	$(b = 4, c: char, d, e): float;
+
+	d += 'a';
 }

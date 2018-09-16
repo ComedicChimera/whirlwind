@@ -9,12 +9,25 @@ namespace Whirlwind.Semantic.Visitor
 {
     partial class Visitor
     {
+        private struct Variable
+        {
+            public IDataType Type;
+            public TextPosition Position;
+
+            public Variable(IDataType type, TextPosition position)
+            {
+                Type = type;
+                Position = position;
+            }
+        }
+
+        // convert Tuple<IDataType, Position> to Variable
         private void _visitVarDecl(ASTNode stmt, List<Modifier> modifiers)
         {
             bool constant = false, constexpr = false, hasType = false, hasInitializer = false;
             IDataType mainType = new SimpleType();
 
-            var variables = new Dictionary<string, Tuple<IDataType, TextPosition>>();
+            var variables = new Dictionary<string, Variable>();
             var initializers = new Dictionary<string, Tuple<bool, ITypeNode>>();
 
             foreach (var item in stmt.Content)
@@ -31,31 +44,26 @@ namespace Whirlwind.Semantic.Visitor
 
                             if (variableBlock.Content.Count == 1)
                                 variables[((TokenNode)variableBlock.Content[0]).Tok.Value]
-                                    = new Tuple<IDataType, TextPosition>(new SimpleType(), variableBlock.Content[0].Position);
+                                    = new Variable(new SimpleType(), variableBlock.Content[0].Position);
                             else
                             {
                                 string currentIdentifier = "";
-                                var currentPosition = new TextPosition();
 
                                 foreach (var elem in variableBlock.Content)
                                 {
                                     switch (elem.Name)
                                     {
                                         case "TOKEN":
-                                            if (elem.Name == "IDENTIFIER")
+                                            if (((TokenNode)elem).Tok.Type == "IDENTIFIER")
                                             {
                                                 currentIdentifier = ((TokenNode)elem).Tok.Value;
-                                                currentPosition = elem.Position;
-                                            }
-                                            else if (elem.Name == ",")
-                                            {
-                                                if (!variables.ContainsKey(currentIdentifier))
-                                                    variables[currentIdentifier] = new Tuple<IDataType, TextPosition>(new SimpleType(), currentPosition);
+
+                                                variables[currentIdentifier] = new Variable(new SimpleType(), elem.Position);
                                             }
                                             break;
                                         case "extension":
                                             IDataType dt = _generateType((ASTNode)((ASTNode)elem).Content[1]);
-                                            variables[currentIdentifier] = new Tuple<IDataType, TextPosition>(dt, currentPosition);
+                                            variables[currentIdentifier] = new Variable(dt, variables[currentIdentifier].Position);
                                             break;
                                         case "variable_initializer":
                                             {
@@ -84,8 +92,10 @@ namespace Whirlwind.Semantic.Visitor
                                                 var initializer = _nodes.Last();
                                                 _nodes.RemoveAt(_nodes.Count - 1);
 
-                                                if (!variables.ContainsKey(currentIdentifier))
-                                                    variables[currentIdentifier] = new Tuple<IDataType, TextPosition>(initializer.Type, currentPosition);
+                                                if (!variables[currentIdentifier].Type.Coerce(initializer.Type))
+                                                    throw new SemanticException("Initializer type doesn't match type extension", variables[currentIdentifier].Position);
+
+                                                variables[currentIdentifier] = new Variable(initializer.Type, variables[currentIdentifier].Position);
 
                                                 initializers[currentIdentifier]
                                                     = new Tuple<bool, ITypeNode>(((TokenNode)((ASTNode)item).Content[1]).Tok.Type == ":=", initializer);
@@ -138,24 +148,30 @@ namespace Whirlwind.Semantic.Visitor
 
             bool isVoid(IDataType dt) => dt.Classify() == TypeClassifier.SIMPLE && ((SimpleType)dt).Type == SimpleType.DataType.VOID;
 
-            if (hasType && hasInitializer && mainType.Classify() == TypeClassifier.TUPLE)
+            if (hasType && hasInitializer && mainType.Classify() == TypeClassifier.TUPLE && variables.Keys.Count > 1)
             {
                 TupleType tupleType = (TupleType)mainType;
 
                 if (variables.Count == tupleType.Types.Count)
                 {
-                    using (var e1 = variables.GetEnumerator())
-                    using (var e2 = tupleType.Types.GetEnumerator())
+                    int i = 0, j = 0;
+                    string id;
+                    IDataType dt;
+
+                    while (i < variables.Count && j < tupleType.Types.Count)
                     {
-                        while (e1.MoveNext() && e2.MoveNext())
-                        {
-                            if (initializers.ContainsKey(e1.Current.Key))
-                                throw new SemanticException("Unable to perform tuple based initialization on pre initialized values", e1.Current.Value.Item2);
-                            else if (isVoid(e1.Current.Value.Item1))
-                                variables[e1.Current.Key] = new Tuple<IDataType, TextPosition>(e2.Current, e1.Current.Value.Item2);
-                            else if (!e1.Current.Value.Item1.Coerce(e2.Current))
-                                throw new SemanticException("Tuple types and variable types must match", e1.Current.Value.Item2);
-                        }
+                        id = variables.Keys.ElementAt(i);
+                        dt = tupleType.Types[j];
+
+                        if (initializers.ContainsKey(id))
+                            throw new SemanticException("Unable to perform tuple based initialization on pre initialized values", variables[id].Position);
+                        else if (isVoid(variables.Values.ElementAt(i).Type))
+                            variables[id] = new Variable(dt, variables[id].Position);
+                        else if (!variables[id].Type.Coerce(dt))
+                            throw new SemanticException("Tuple types and variable types must match", variables[id].Position);
+
+                        i++;
+                        j++;
                     }
                 }
                 else
@@ -166,12 +182,12 @@ namespace Whirlwind.Semantic.Visitor
                 for (int i = 0; i <variables.Count; i++)
                 {
                     var key = variables.Keys.ToList()[i];
-                    if (isVoid(variables[key].Item1))
+                    if (isVoid(variables[key].Type))
                     {
                         if (hasType)
-                            variables[key] = new Tuple<IDataType, TextPosition>(mainType, variables[key].Item2);
+                            variables[key] = new Variable(mainType, variables[key].Position);
                         else
-                            throw new SemanticException("Unable to infer type of variable", variables[key].Item2);
+                            throw new SemanticException("Unable to infer type of variable", variables[key].Position);
                     }
                 }
             }
@@ -184,12 +200,12 @@ namespace Whirlwind.Semantic.Visitor
                 Symbol symbol;
 
                 if (initializers.ContainsKey(variable) && initializers[variable].Item1)
-                    symbol = new Symbol(variable, variables[variable].Item1, ((ValueNode)((ExprNode)initializers[variable].Item2).Nodes[0]).Value);
+                    symbol = new Symbol(variable, variables[variable].Type, ((ValueNode)((ExprNode)initializers[variable].Item2).Nodes[0]).Value);
                 else if (constexpr && !initializers.ContainsKey(variable))
                     // last item on stack will always be the main initializer if constexpr
-                    symbol = new Symbol(variable, variables[variable].Item1, ((ValueNode)((ExprNode)_nodes.Last()).Nodes[0]).Value);
+                    symbol = new Symbol(variable, variables[variable].Type, ((ValueNode)((ExprNode)_nodes.Last()).Nodes[0]).Value);
                 else
-                    symbol = new Symbol(variable, variables[variable].Item1);
+                    symbol = new Symbol(variable, variables[variable].Type);
 
                 foreach (var modifier in modifiers)
                     symbol.Modifiers.Add(modifier);
@@ -198,19 +214,19 @@ namespace Whirlwind.Semantic.Visitor
                     symbol.Modifiers.Add(Modifier.CONSTANT);
 
                 if (!_table.AddSymbol(symbol))
-                    throw new SemanticException("Variable declared multiple times in the current scope", variables[variable].Item2);
+                    throw new SemanticException("Variable declared multiple times in the current scope", variables[variable].Position);
 
-                _nodes.Add(new IdentifierNode(variable, variables[variable].Item1, constant));
+                _nodes.Add(new IdentifierNode(variable, variables[variable].Type, constant));
 
                 if (initializers.ContainsKey(variable))
                 {
                     _nodes.Add(initializers[variable].Item2);
-                    _nodes.Add(new ExprNode("Var", variables[variable].Item1));
+                    _nodes.Add(new ExprNode("Var", variables[variable].Type));
                     PushForward(2);
                 }
                 else
                 {
-                    _nodes.Add(new ExprNode("Var", variables[variable].Item1));
+                    _nodes.Add(new ExprNode("Var", variables[variable].Type));
                     PushForward();
                 }
             }

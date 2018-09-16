@@ -246,6 +246,8 @@ namespace Whirlwind.Semantic.Visitor
             PushForward(idCount);
         }
 
+        // fix assignment error messages
+        // add compound operator checking
         private void _visitAssignment(ASTNode stmt)
         {
             var varTypes = new List<IDataType>();
@@ -280,12 +282,19 @@ namespace Whirlwind.Semantic.Visitor
                 }
             }
 
+            string subOp = string.Join("", op.Take(op.Length - 1));
+
             if (varTypes.Count == exprTypes.Count)
             {
                 for (int i = 0; i < varTypes.Count; i++)
                 {
                     if (!varTypes[i].Coerce(exprTypes[i]))
                         throw new SemanticException("Unable to assign to dissimilar types", stmt.Position);
+                    else
+                    {
+                        IDataType tt = varTypes[i];
+                        CheckOperand(ref tt, exprTypes[i], subOp, stmt.Position);
+                    }
                 }
             }
             else if (varTypes.Count < exprTypes.Count)
@@ -303,6 +312,9 @@ namespace Whirlwind.Semantic.Visitor
                             {
                                 if (e1.Current.Coerce(type))
                                 {
+                                    IDataType tt = e1.Current;
+                                    CheckOperand(ref tt, type, subOp, stmt.Position);
+                                   
                                     if (!e1.MoveNext()) break;
                                 } 
                                 else
@@ -311,6 +323,11 @@ namespace Whirlwind.Semantic.Visitor
                         }
                         else if (!e1.Current.Coerce(e2.Current))
                             throw new SemanticException("Unable to assign to dissimilar types", stmt.Position);
+                        else
+                        {
+                            IDataType tt = e1.Current;
+                            CheckOperand(ref tt, e2.Current, subOp, stmt.Position);
+                        }
 
                         metValues++;
                     }
