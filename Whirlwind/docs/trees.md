@@ -145,7 +145,7 @@ Represents a single Whirlwind statement.
 
 ### Statement Values 
 
-| Name | Parameters | Purpose | ErrorBubble |
+| Name | Parameters | Purpose | Error Bubble |
 | ---- | ---------- | ------- | ----------- |
 | Break | `none` | Break out of a breakable loop or region | **STATEMENT** |
 | Continue | `none` | Continue onto the next cycle in a loop | **STATEMENT** |
