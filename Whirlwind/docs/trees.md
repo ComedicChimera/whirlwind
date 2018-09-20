@@ -115,6 +115,23 @@ A multi-value structure or some form of operation.
 | Floordiv | *Values* | Perform a floor division operation |
 | InlineComparison | Comparison Expr, Option1, Option2 | Perform an inline comparison |
 | NullCoalesce | NullableExpr, DefaultExpr | Perform a null coalescion operation |
+| SelectExpr | *SelectCondition*+, Select Closer | Perform an inline select operation |
+| SelectCondition | Condition, Expr | Represents a single unit of a select expression |
+| SelectCloser | Expr | Represents the closing result of a select expression |
+
+### Statement Components
+
+ExprNodes made specifically for use in a certain statements as structural components.
+
+| Name | Parameters | Purpose |
+| ---- | ---------- | ------- |
+| EnumConstInitializer | Identifier, Expr | Initialize an enumerated constant with a custom start |
+| AssignVars | *Assignment Variables* | The list of variables being assigned to |
+| AssignExprs | *Exprs* | The list of corresponding variable assignment expressions |
+| ConstexprInitializer | Expr | A constexpr initializer for constexpr declarations |
+| Initializer | Expr | An initializer for variable / constant declarations |
+| Var | Identifier, \[*Initializer*\] | A single variable in variable declaration unit |
+| Variables | *Vars* | A list of all the individual variables in a single variable declaration |
 
 ## Statement Node
 
@@ -128,15 +145,20 @@ Represents a single Whirlwind statement.
 
 ### Statement Values 
 
-| Name | Parameters | Purpose | ErrorBubble |
+| Name | Parameters | Purpose | Error Bubble |
 | ---- | ---------- | ------- | ----------- |
 | Break | `none` | Break out of a breakable loop or region | **STATEMENT** |
 | Continue | `none` | Continue onto the next cycle in a loop | **STATEMENT** |
-| DeclareVar | *Variable Nodes* | Declare a variable or set of variables | **BLOCK** |
-| DeclareConst | *Constant Nodes* | Declare a constant or set of constants | **BLOCK** |
+| DeclareVariable | *Variable Nodes* | Declare a variable or set of variables | **BLOCK** |
+| DeclareConstant | *Constant Nodes* | Declare a constant or set of constants | **BLOCK** |
+| DeclareConstexpr | *Constexpr Nodes* | Declare a constexpr or set of constexprs | **BLOCK** |
 | ThrowException | Exception | Throw a normal exception | **BLOCK** |
 | ThrowObject | Object | Wrap an object in an exception and throw it | **BLOCK** |
 | Delete | *Identifiers* | Delete a set of symbols | **BLOCK** (**STATEMENT** in bytecode stage) |
-| Return | Value | Returns a value from a function | **BLOCK** |
-| Yield | Value | Calls a deferred return statement | **BLOCK** |
+| Return | Value | Return a value from a function | **BLOCK** |
+| Yield | Value | Call a deferred return statement | **BLOCK** |
+| ExprStmt | Expr | Represents an expression being asserted to a statement | **STATEMENT** |
+| EnumConst | \[*EnumConstInitializer*\], *Identifiers* | Declare an enumerated set of constants | **BLOCK**|
+| EnumConstExpr | \[*EnumConstInitializer*\], *Identifiers* | Declare an enum const with a custom constexpr initializer | **BLOCK** |
+| Assignment | Variables, Initializers | Assign a set of variables to a new value | **STATEMENT** |
 
