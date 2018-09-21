@@ -38,7 +38,9 @@ namespace Whirlwind.Semantic.Checker
                 case TypeClassifier.ARRAY:
                 case TypeClassifier.LIST:
                     if (new[] { TypeClassifier.ARRAY, TypeClassifier.LIST }.Contains(desired.Classify()))
-                        return TypeCast((start as ArrayType).ElementType, (desired as ArrayType).ElementType);
+                        return TypeCast((start as IIterable).GetIterator(), (desired as IIterable).GetIterator());
+                    else if (desired.Classify() == TypeClassifier.POINTER)
+                        return TypeCast((start as IIterable).GetIterator(), ((PointerType)desired).Type);
                     break;
                 case TypeClassifier.MAP:
                     if (desired.Classify() == TypeClassifier.MAP)
