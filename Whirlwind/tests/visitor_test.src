@@ -1,5 +1,5 @@
 ﻿func Main() {
-	$(b = 4, c: char, d, e): float;
+	$(b = 4, c: char, d: str, e): float;
 
 	d += 'a';
 }

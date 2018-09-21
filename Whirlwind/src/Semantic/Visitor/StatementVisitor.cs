@@ -287,11 +287,14 @@ namespace Whirlwind.Semantic.Visitor
                 for (int i = 0; i < varTypes.Count; i++)
                 {
                     if (!varTypes[i].Coerce(exprTypes[i]))
-                        throw new SemanticException("Unable to assign to dissimilar types", stmt.Position);
-                    else
                     {
-                        IDataType tt = varTypes[i];
-                        CheckOperand(ref tt, exprTypes[i], subOp, stmt.Position);
+                        if (subOp != "")
+                        {
+                            IDataType tt = varTypes[i];
+                            CheckOperand(ref tt, exprTypes[i], subOp, stmt.Position);
+                        }
+                        else
+                            throw new SemanticException("Unable to assign to dissimilar types", stmt.Position);
                     }
                 }
             }

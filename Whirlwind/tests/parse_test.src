@@ -1,18 +1,11 @@
-﻿type Myobj {
-	template<T: int, str>
-	func Sum(... n: T) T => n |> ... + |;
+﻿#[extern("glew32s.lib")]
+func glewInit() bool {}
+
+trait thing(elem: str) {
+	$x = 2;
 }
 
-func Printf(fmtString: @str, ... args) {
-
-}
-
-func main() {
-	$x = new (int, 2);
-}
-
-func divisble(n: int)
-	where (n < 10)
-{
-
+type Window {
+	#[extern("glew32s.lib")]
+	func openWindow() bool {}
 }
