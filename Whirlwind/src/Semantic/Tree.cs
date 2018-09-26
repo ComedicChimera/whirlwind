@@ -138,4 +138,25 @@ namespace Whirlwind.Semantic
             return $"{Name}:[{string.Join(", ", Nodes.Select(x => x.ToString()))}]";
         }
     }
+
+    class BlockNode : TreeNode, ITypeNode
+    {
+        public string Name { get; }
+        public IDataType Type { get; set; }
+
+        public List<ITypeNode> Block;
+
+        public BlockNode(string name)
+        {
+            Name = name;
+            Nodes = new List<ITypeNode>();
+            Block = new List<ITypeNode>();
+        }
+
+        public override string ToString()
+        {
+            return $"{Name}:[{string.Join(", ", Nodes.Select(x => x.ToString()))}] " +
+                $"{{\n\t{string.Join(", ", Block.Select(x => x.ToString()))}\n}}";
+        }
+    } 
 }

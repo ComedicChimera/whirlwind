@@ -79,6 +79,25 @@ namespace Whirlwind.Semantic.Visitor
             _nodes.Add((ITypeNode)ending);
         }
 
+        private void PushToBlock()
+        {
+            BlockNode parent = (BlockNode)_nodes.Last();
+            _nodes.RemoveAt(_nodes.Count - 1);
+
+            parent.Block.Add(_nodes.Last());
+            _nodes.RemoveAt(_nodes.Count - 1);
+
+            _nodes.Add(parent);
+        }
+
+        private void MergeToBlock()
+        {
+            ITypeNode child = _nodes.Last();
+            _nodes.RemoveAt(_nodes.Count - 1);
+
+            ((BlockNode)_nodes.Last()).Block.Add(child);
+        }
+
         public ITypeNode Result() => _nodes.First();
     }
 }
