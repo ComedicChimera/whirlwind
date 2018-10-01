@@ -14,8 +14,7 @@ namespace Whirlwind.Types
             BYTE,
             LONG,
             DOUBLE,
-            VOID,
-            NULL
+            VOID
         }
 
         public DataType Type { get; private set; }

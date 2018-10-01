@@ -99,7 +99,44 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitSelect(ASTNode blockStmt, StatementContext context)
         {
+            _nodes.Add(new BlockNode("Select"));
+            context.BreakValid = true;
 
+            _visitExpr((ASTNode)blockStmt.Content[2]);
+            MergeBack();
+
+            foreach (var item in ((ASTNode)blockStmt.Content[5]).Content)
+            {
+                if (item.Name == "case")
+                {
+                    _nodes.Add(new BlockNode("Case"));
+
+                    foreach (var caseItem in ((ASTNode)item).Content)
+                    {
+                        if (caseItem.Name == "expr")
+                        {
+                            _visitExpr((ASTNode)caseItem);
+                            MergeBack();
+                        }
+                        else if (caseItem.Name == "main")
+                        {
+                            _visitBlock((ASTNode)caseItem, context);
+                        }
+                    }
+
+                    MergeToBlock();
+                }
+                else
+                {
+                    _nodes.Add(new BlockNode("Default"));
+
+                    _visitBlock((ASTNode)((ASTNode)item).Content[2], context);
+
+                    MergeToBlock();
+                }
+
+                MergeToBlock();
+            }
         }
     }
 }

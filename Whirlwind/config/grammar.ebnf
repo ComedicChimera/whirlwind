@@ -140,9 +140,6 @@ do_for: 'FOR' '(' expr ')' ';' ;
 except_block: 'EXCEPT' '(' handle_block+ ')' (block | ';') ;
 handle_block: expr ':' '(' 'IDENTIFIER' ')' '=>' block ;
 
-// context manager
-with_block: 'WITH' '(' variable_decl ')' block ;
-
 // export declaration
 export_decl: 'EXPORT' ( block_decl
 | include_stmt ';'
@@ -294,7 +291,6 @@ base: 'INTEGER_LITERAL'
 | 'CHAR_LITERAL'
 | 'HEX_LITERAL'
 | 'BINARY_LITERAL'
-| 'NULL'
 | 'THIS'
 | 'IDENTIFIER'
 | array
