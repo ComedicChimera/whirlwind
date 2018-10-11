@@ -4,8 +4,7 @@ whirlwind: ( global_variable_decl ';'
 | block_decl
 | include_stmt ';'
 | export_decl
-| trait_decl
-| trait_impl
+| meta_decl
 )+ ;
 
 main: ( func_decl
@@ -23,23 +22,14 @@ pkg_name: [pkg_back_move] 'IDENTIFIER' ('.' 'IDENTIFIER' | pkg_back_move )* ;
 pkg_back_move: '.' '.' ;
 with_clause: 'WITH' '{' 'IDENTIFIER' (',' 'IDENTIFIER') '}' ;
 
-
-// TRAITS
-// trait declaration
-trait_decl: 'TRAIT' 'IDENTIFIER' [ '(' trait_arg_list ')' ] trait_block ;
-trait_arg_list: trait_arg (',' trait_arg )*;
-trait_arg: 'IDENTIFIER' extension ;
-
-trait_block: '{' main '}' ;
-
-// trait implementation
-trait_impl: '#' '[' trait_impl_arg (',' trait_impl_arg)* ']' trait_impl_block;
-trait_impl_block: global_variable_decl
+// metadata declaration
+meta_decl: '#' '[' meta_arg (',' meta_arg)* ']' meta_decl_block;
+meta_decl_block: global_variable_decl
 | func_decl 
 | obj_decl
 | struct_decl
 ;
-trait_impl_arg: 'IDENTIFIER' ['(' args_list ')'] ;
+meta_decl_arg: 'IDENTIFIER' ['(' args_list ')'] ;
 
 
 // OBJECTS AND OBJECT COMPONENTS
@@ -51,7 +41,6 @@ obj_main: modifiers* ( variable_decl ';'
 | method_template
 | variant_decl
 | constructor_decl
-| obj_trait_impl
 ) ;
 
 // method declaration
@@ -62,9 +51,6 @@ method_template: 'TEMPLATE' '<' template (',' template)* '>' method_decl ;
 
 // constructor declaration
 constructor_decl: 'CONSTRUCTOR' '(' args_decl_list ')' func_body ;
-
-// trait implementations for methods
-obj_trait_impl: '#' '[' trait_impl_arg (',' trait_impl_arg)* ']' method_decl ;
 
 // common object patterns
 partial: ':' 'IDENTIFIER' ; // partial extension
