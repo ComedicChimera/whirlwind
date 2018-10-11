@@ -20,6 +20,8 @@ namespace Whirlwind.Semantic.Visitor
                     _visitStatement(stmt, context);
                     break;
                 case "block_stmt":
+                    _table.DescendScope();
+
                     ASTNode blockStatement = (ASTNode)stmt.Content[0];
 
                     switch (blockStatement.Name)
@@ -34,6 +36,8 @@ namespace Whirlwind.Semantic.Visitor
                             _visitForLoop(blockStatement, context);
                             break;
                     }
+
+                    _table.AscendScope();
 
                     break;
                 case "func_stmt":
@@ -62,7 +66,7 @@ namespace Whirlwind.Semantic.Visitor
                         MergeBack();
                         break;
                     case "block":
-                        _visitBlock((ASTNode)item, context);
+                        _visitBlockNode((ASTNode)item, context);
                         break;
                     case "elif_stmt":
                         if (!compound)
@@ -83,7 +87,7 @@ namespace Whirlwind.Semantic.Visitor
 
                         PushForward();
 
-                        _visitBlock((ASTNode)((ASTNode)item).Content[4], context);
+                        _visitBlockNode((ASTNode)((ASTNode)item).Content[4], context);
                         MergeToBlock();
                         break;
                     case "else_stmt":
@@ -96,7 +100,7 @@ namespace Whirlwind.Semantic.Visitor
                         }
 
                         _nodes.Add(new BlockNode("Else"));
-                        _visitBlock((ASTNode)((ASTNode)item).Content[1], context);
+                        _visitBlockNode((ASTNode)((ASTNode)item).Content[1], context);
                         break;
                 }
             }
@@ -146,22 +150,14 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitForLoop(ASTNode node, StatementContext context)
         {
+            context.BreakValid = true;
+            context.ContinueValid = true;
+
             if (node.Content.Count == 2)
             {
-                _nodes.Add(new BlockNode("InfiniteLoop"));
+                _nodes.Add(new BlockNode("ForInfinite"));
 
-                var block = (ASTNode)node.Content[1];
-
-                context.BreakValid = true;
-                context.ContinueValid = true;
-
-                if (block.Content.Count == 1)
-                {
-                    _visitStatement((ASTNode)block.Content[0], context);
-                    MergeToBlock();
-                }
-                else if (block.Content.Count == 3)
-                    _visitBlock((ASTNode)block.Content[1], context);
+                _visitBlockNode((ASTNode)node.Content[1], context);
             }
             else
             {
@@ -185,11 +181,11 @@ namespace Whirlwind.Semantic.Visitor
                             if (!Iterable(_nodes.Last().Type))
                                 throw new SemanticException("Operand of iterator for loop must be iterable", subNode.Position);
 
-                            MergeBack();
+                            // wait for iterator before merging
                         }
                         else
                         {
-                            _nodes.Add(new BlockNode("ConditionFor"));
+                            _nodes.Add(new BlockNode("ForCondition"));
                             _visitExpr((ASTNode)subNode);
 
                             if (!new SimpleType(SimpleType.DataType.BOOL).Coerce(_nodes.Last().Type))
@@ -201,12 +197,110 @@ namespace Whirlwind.Semantic.Visitor
                     else if (subNode.Name == "iterator")
                     {
                         _visitIterator((ASTNode)subNode);
-                        MergeBack();
+                        MergeBack(2);
+                    }
+                    else if (subNode.Name == "c_for")
+                    {
+                        _visitCFor((ASTNode)subNode);
+                        
+                        if (((ExprNode)_nodes.Last()).Nodes.Count > 0)
+                        {
+                            _nodes.Add(new BlockNode("CFor"));
+                            MergeBack();
+                        }
+                        else
+                        {
+                            _nodes.RemoveAt(_nodes.Count - 1);
+                            _nodes.Add(new BlockNode("ForInfinite"));
+                        }                        
                     }
                 }
 
-                // visit block statements
+                _visitBlockNode((ASTNode)node.Content.Last(), context);
             }
+        }
+
+        private void _visitCFor(ASTNode node)
+        {
+            int componentPosition = 0;
+            string iterVarName = "";
+            Token token;
+
+            _nodes.Add(new ExprNode("CForExpr", new SimpleType()));
+
+            foreach (var item in node.Content)
+            {
+                if (item.Name == "TOKEN")
+                {
+                    token = ((TokenNode)item).Tok;
+
+                    switch (token.Type)
+                    {
+                        case ";":
+                            componentPosition++;
+                            break;
+                        case "IDENTIFIER":
+                            iterVarName = token.Value;
+
+                            if (iterVarName == "_")
+                                throw new SemanticException("Unable to declare variable as ignored value", item.Position);
+
+                            break;
+                    }
+                }
+                else if (item.Name == "expr")
+                {
+                    _visitExpr((ASTNode)item);
+
+                    switch (componentPosition)
+                    {
+                        case 0:
+                            _nodes.Add(new IdentifierNode(iterVarName, _nodes.Last().Type, false));
+                            _nodes.Add(new ExprNode("IterVarDecl", _nodes.Last().Type));
+                            PushForward(2);
+
+                            // first symbol defined a new scope so no need to check
+                            _table.AddSymbol(new Symbol(iterVarName, _nodes.Last().Type));
+
+                            MergeBack();
+                            break;
+                        case 1:
+                            if (!new SimpleType(SimpleType.DataType.BOOL).Coerce(_nodes.Last().Type))
+                                throw new SemanticException("Condition of for loop must be a boolean", item.Position);
+
+                            _nodes.Add(new ExprNode("CForCondition", _nodes.Last().Type));
+                            PushForward();
+
+                            MergeBack();
+                            break;
+                        case 2:
+                            _nodes.Add(new ExprNode("CForUpdateExpr", _nodes.Last().Type));
+                            PushForward();
+
+                            MergeBack();
+                            break;
+                    }
+                }
+                else if (item.Name == "assignment")
+                {
+                    _visitAssignment((ASTNode)item);
+                    _nodes.Add(new ExprNode("CForUpdateAssignment", new SimpleType()));
+                    PushForward();
+
+                    MergeBack();
+                }
+            }
+        }
+
+        private void _visitBlockNode(ASTNode block, StatementContext context)
+        {
+            if (block.Content.Count == 1)
+            {
+                _visitStatement((ASTNode)block.Content[0], context);
+                MergeToBlock();
+            }
+            else if (block.Content.Count == 3)
+                _visitBlock((ASTNode)block.Content[1], context);
         }
     }
 }

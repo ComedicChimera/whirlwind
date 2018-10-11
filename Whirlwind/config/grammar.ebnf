@@ -116,7 +116,7 @@ for_body: '(' (c_for | expr) ')'
 | expr iterator '=>'
 ;
 
-c_for: ['$' 'IDENTIFIER' '=' expr] ';' [expr] ';' [expr | assignment] ;
+c_for: ['IDENTIFIER' '=' expr] ';' [expr] ';' [expr | assignment] ;
 
 // do loop
 do_loop: 'DO' (block do_for | '(' expr ')' block ) ;

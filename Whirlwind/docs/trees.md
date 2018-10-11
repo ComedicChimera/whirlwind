@@ -133,9 +133,21 @@ ExprNodes made specifically for use in a certain statements as structural compon
 | Var | Identifier, \[*Initializer*\] | A single variable in variable declaration unit |
 | Variables | *Vars* | A list of all the individual variables in a single variable declaration |
 
+### Block Statement Components
+
+ExprNodes made specifically for use in certain block statements (`if`, `else`, ect.) as structural components.
+
+| Name | Parameters | Purpose |
+| ---- | ---------- | ------- |
+| CForExpr | \[IterVarDecl\] \[CForCondition\] \[CForUpdateExpr \| CForUpdateAssignment \] | Contains the contents of the C-style for loop |
+| IterVarDecl | Identifier, Expr | The iterator variable declared in a C-style for loop |
+| CForCondition | Expr | The end condition of a C-style for loop |
+| CForUpdateExpr | Expr | The expression to be called each cycle of a C-style for loop |
+| CForUpdateAssignment | Assignment | The assignment statement to evaluated after each cycle of a C-Style for loop |
+
 ## Statement Node
 
-Represents a single Whirlwind statement. 
+Represents a single Whirlwind statement.
 
 | Name | Type | Value |
 | ---- | ---- | ----- |
@@ -143,7 +155,7 @@ Represents a single Whirlwind statement.
 | Type | IDataType | `void` |
 | Nodes | List\<ITypeNode\> | The nodes that make up the statement args |
 
-### Statement Values 
+### Statement Values
 
 | Name | Parameters | Purpose | Error Bubble |
 | ---- | ---------- | ------- | ----------- |
@@ -162,3 +174,29 @@ Represents a single Whirlwind statement.
 | EnumConstExpr | \[*EnumConstInitializer*\], *Identifiers* | Declare an enum const with a custom constexpr initializer | **BLOCK** |
 | Assignment | Variables, Initializers | Assign a set of variables to a new value | **STATEMENT** |
 
+## Block Node
+
+Represents a single Whirlwind block statement or declaration.
+
+| Name | Type | Value |
+| ---- | ---- | ----- |
+| Name | string | The name of the block |
+| Type | IDataType | `void` |
+| Nodes | List\<ITypeNode\> | The nodes that make the defining factors of the block |
+| Block | List\<ITypeNode\> | All of the sub-nodes contained within each items block |
+
+### Block Values
+
+| Name | Parameters | Purpose |
+| ---- | ---------- | ------- |
+| If | Expr | A single, unchained if statement |
+| CompoundIf | `none` | A compound if chain containing at least two statements where each statement is stored in its block |
+| Elif | Expr | A chained elif statement |
+| Else | *Node* | A chained else statement |
+| Select | Expr | The select statement whose block contains each case and/or the default |
+| Case | *Expr* | A case block of a select statement |
+| Default | `none` | The default block of a select statement |
+| ForInfinite | `none` | An infinite loop |
+| ForIter | Expr, Iterator | A foreach / for-iterator loop |
+| ForCondition | Expr | A conditional for loop (while loop) |
+| CFor | CForExpr | A C-style for loop |
