@@ -1,6 +1,8 @@
 ﻿using Whirlwind.Parser;
 using Whirlwind.Types;
 
+using static Whirlwind.Semantic.Checker.Checker;
+
 using System.Linq;
 using System.Collections.Generic;
 
@@ -27,6 +29,9 @@ namespace Whirlwind.Semantic.Visitor
                             break;
                         case "select_stmt":
                             _visitSelect(blockStatement, context);
+                            break;
+                        case "for_loop":
+                            _visitForLoop(blockStatement, context);
                             break;
                     }
 
@@ -136,6 +141,71 @@ namespace Whirlwind.Semantic.Visitor
                 }
 
                 MergeToBlock();
+            }
+        }
+
+        private void _visitForLoop(ASTNode node, StatementContext context)
+        {
+            if (node.Content.Count == 2)
+            {
+                _nodes.Add(new BlockNode("InfiniteLoop"));
+
+                var block = (ASTNode)node.Content[1];
+
+                context.BreakValid = true;
+                context.ContinueValid = true;
+
+                if (block.Content.Count == 1)
+                {
+                    _visitStatement((ASTNode)block.Content[0], context);
+                    MergeToBlock();
+                }
+                else if (block.Content.Count == 3)
+                    _visitBlock((ASTNode)block.Content[1], context);
+            }
+            else
+            {
+                var body = (ASTNode)node.Content[1];
+
+                bool iterableFor = true;
+
+                foreach (var subNode in body.Content)
+                {
+                    if (subNode.Name == "TOKEN" && ((TokenNode)subNode).Tok.Type == "(")
+                    {
+                        iterableFor = false;
+                    }
+                    else if (subNode.Name == "expr")
+                    {
+                        if (iterableFor)
+                        {
+                            _nodes.Add(new BlockNode("ForIter"));
+                            _visitExpr((ASTNode)subNode);
+
+                            if (!Iterable(_nodes.Last().Type))
+                                throw new SemanticException("Operand of iterator for loop must be iterable", subNode.Position);
+
+                            MergeBack();
+                        }
+                        else
+                        {
+                            _nodes.Add(new BlockNode("ConditionFor"));
+                            _visitExpr((ASTNode)subNode);
+
+                            if (!new SimpleType(SimpleType.DataType.BOOL).Coerce(_nodes.Last().Type))
+                                throw new SemanticException("Condition of for loop must be a boolean", subNode.Position);
+
+                            MergeBack();
+                        }
+                    }
+                    else if (subNode.Name == "iterator")
+                    {
+                        _visitIterator((ASTNode)subNode);
+                        MergeBack();
+                    }
+                }
+
+                // visit block statements
             }
         }
     }
