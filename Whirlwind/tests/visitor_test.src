@@ -1,5 +1,6 @@
-﻿func Main() {
-	$(b = 4, c: char, d: str, e): float;
+﻿func main() {
+	$a = 5;
 
-	d += 'a';
+	select (a) {
+	}
 }

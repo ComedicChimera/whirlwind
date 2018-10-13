@@ -95,7 +95,6 @@ block_stmt: if_stmt
 | for_loop
 | do_loop
 | except_block
-| with_block
 | export_decl
 ;
 
@@ -123,8 +122,8 @@ do_loop: 'DO' (block do_for | '(' expr ')' block ) ;
 do_for: 'FOR' '(' expr ')' ';' ;
 
 // except block
-except_block: 'EXCEPT' '(' handle_block+ ')' (block | ';') ;
-handle_block: expr ':' '(' 'IDENTIFIER' ')' '=>' block ;
+except_block: 'EXCEPT' '(' handle_block+ ')' block ;
+handle_block: expr ':' '(' ['IDENTIFIER'] ')' '=>' block ;
 
 // export declaration
 export_decl: 'EXPORT' ( block_decl

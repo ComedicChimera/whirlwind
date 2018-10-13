@@ -200,3 +200,5 @@ Represents a single Whirlwind block statement or declaration.
 | ForIter | Expr, Iterator | A foreach / for-iterator loop |
 | ForCondition | Expr | A conditional for loop (while loop) |
 | CFor | CForExpr | A C-style for loop |
+| Repeat | Count | A do-repeat loop |
+| DoFor | Condition | A do-for loop |
