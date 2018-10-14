@@ -95,7 +95,6 @@ block_stmt: if_stmt
 | for_loop
 | do_loop
 | except_block
-| export_decl
 ;
 
 // if statement

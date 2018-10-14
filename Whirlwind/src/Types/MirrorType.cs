@@ -18,5 +18,11 @@ namespace Whirlwind.Types
             // add body to future type
             return new ObjectInstance("Future", new Semantic.SymbolTable(), new List<IDataType>(), false);
         }
+
+        public static ObjectInstance BaseException()
+        {
+            // add body
+            return new ObjectInstance("Exception", new Semantic.SymbolTable(), new List<IDataType>(), false);
+        }
     }
 }
