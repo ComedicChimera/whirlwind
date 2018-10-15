@@ -122,7 +122,6 @@ namespace Whirlwind.Semantic.Visitor
         private void _visitSelect(ASTNode blockStmt, StatementContext context)
         {
             _nodes.Add(new BlockNode("Select"));
-            context.BreakValid = true;
 
             _visitExpr((ASTNode)blockStmt.Content[2]);
             IDataType exprType = _nodes.Last().Type;
@@ -131,6 +130,9 @@ namespace Whirlwind.Semantic.Visitor
 
             foreach (var item in ((ASTNode)blockStmt.Content[5]).Content)
             {
+                _table.AddScope();
+                _table.DescendScope();
+
                 if (item.Name == "case")
                 {
                     _nodes.Add(new BlockNode("Case"));
@@ -164,6 +166,8 @@ namespace Whirlwind.Semantic.Visitor
                 }
 
                 MergeToBlock();
+
+                _table.AscendScope();
             }
         }
 
