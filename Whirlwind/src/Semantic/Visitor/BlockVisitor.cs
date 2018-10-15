@@ -165,8 +165,6 @@ namespace Whirlwind.Semantic.Visitor
                     MergeToBlock();
                 }
 
-                MergeToBlock();
-
                 _table.AscendScope();
             }
         }

@@ -2,5 +2,11 @@
 	$a = 5;
 
 	select (a) {
+		case 1:
+			a = 3;
+		case 2:
+			a = 4;
+		default:
+			a = -1;
 	}
 }

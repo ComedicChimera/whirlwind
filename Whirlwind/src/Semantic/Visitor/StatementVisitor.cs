@@ -51,13 +51,14 @@ namespace Whirlwind.Semantic.Visitor
                                 _visitVarDecl((ASTNode)item, modifiers);
                         }
                     }
-                    break;
+                    return;
                 case "enum_const":
                     _visitEnumConst(stmt);
-                    break;
+                    return;
             }
 
             // statement bubbling statements
+            int nodeLen = _nodes.Count;
             try
             {
                 switch (stmt.Name)
@@ -136,6 +137,11 @@ namespace Whirlwind.Semantic.Visitor
             }
             catch (SemanticException se) {
                 ErrorQueue.Add(se);
+
+                while (_nodes.Count > nodeLen)
+                    _nodes.RemoveAt(_nodes.Count - 1);
+
+                _nodes.Add(new StatementNode("None"));
             }
         }
 
