@@ -174,6 +174,11 @@ Represents a single Whirlwind statement.
 | EnumConstExpr | \[*EnumConstInitializer*\], *Identifiers* | Declare an enum const with a custom constexpr initializer | **BLOCK** |
 | Assignment | Variables, Initializers | Assign a set of variables to a new value | **STATEMENT** |
 
+### The `None` Statement
+The none statement is a statement that contains no children and is called `None`.  This statement is used as a placeholder
+during the visitation stage.  It is used to prevent errors in action tree construction and is never actually compiled as
+any program that contains none statements also contains errors.
+
 ## Block Node
 
 Represents a single Whirlwind block statement or declaration.
