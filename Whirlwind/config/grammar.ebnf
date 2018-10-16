@@ -28,6 +28,7 @@ meta_decl_block: global_variable_decl
 | func_decl 
 | obj_decl
 | struct_decl
+| export_decl
 ;
 meta_decl_arg: 'IDENTIFIER' ['(' args_list ')'] ;
 
