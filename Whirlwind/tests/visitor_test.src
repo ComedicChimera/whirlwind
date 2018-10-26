@@ -1,12 +1,7 @@
 ﻿func main() {
-	$a = 5;
+	$a: int;
 
-	select (a) {
-		case 1:
-			a = 3;
-		case 2:
-			a = 4;
-		default:
-			a = -1;
+	for [1, 2, 3]|item| => {
+		a -= item;
 	}
 }

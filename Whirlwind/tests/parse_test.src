@@ -1,11 +1,22 @@
-﻿#[extern("glew32s.lib")]
-func glewInit() bool {}
+﻿include { Println } from stdio;
 
-trait thing(elem: str) {
-	$x = 2;
-}
+#[extern("glew32.dll")]
+func test() {}
 
-type Window {
-	#[extern("glew32s.lib")]
-	func openWindow() bool {}
+func main() {
+	from pi -> pi;
+
+	from ($x = 0) {
+		Println("Hello, there!");
+	}
+
+	from cyka -> blyat except {
+		continue;
+	}
+
+	from ($y = 2) {
+		pi++;
+	} except {
+		
+	}
 }

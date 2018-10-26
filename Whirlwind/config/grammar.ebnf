@@ -17,10 +17,10 @@ global_variable_decl: ['VOLATILE'] variable_decl ;
 subscope: '{' main '}' ;
 
 // include statement
-include_stmt: ['USE'] 'INCLUDE' pkg_name [ with_clause ] ['STRING_LITERAL'] ;
+include_stmt: ['USE'] 'INCLUDE' ( pkg_name ['STRING_LITERAL'] | include_set 'FROM' pkg_name ) ;
 pkg_name: [pkg_back_move] 'IDENTIFIER' ('.' 'IDENTIFIER' | pkg_back_move )* ;
 pkg_back_move: '.' '.' ;
-with_clause: 'WITH' '{' 'IDENTIFIER' (',' 'IDENTIFIER') '}' ;
+include_set: '{' 'IDENTIFIER' (',' 'IDENTIFIER')* '}' ;
 
 // metadata declaration
 meta_decl: '#' '[' meta_arg (',' meta_arg)* ']' meta_decl_block;
@@ -30,7 +30,7 @@ meta_decl_block: global_variable_decl
 | struct_decl
 | export_decl
 ;
-meta_decl_arg: 'IDENTIFIER' ['(' args_list ')'] ;
+meta_arg: 'IDENTIFIER' ['(' args_list ')'] ;
 
 
 // OBJECTS AND OBJECT COMPONENTS
@@ -96,6 +96,7 @@ block_stmt: if_stmt
 | for_loop
 | do_loop
 | except_block
+| from_block
 ;
 
 // if statement
@@ -124,6 +125,12 @@ do_for: 'FOR' '(' expr ')' ';' ;
 // except block
 except_block: 'EXCEPT' '(' handle_block+ ')' block ;
 handle_block: expr ':' '(' ['IDENTIFIER'] ')' '=>' block ;
+
+// from block
+from_block: 'FROM' ( from_stmt ( from_except_clause | ';' ) | from_body [from_except_clause] ) ;
+from_stmt: 'IDENTIFIER' ('.' 'IDENTIFIER')* '->' 'IDENTIFIER' ;
+from_body: '(' variable_decl ')' block ;
+from_except_clause: 'EXCEPT' block ;
 
 // export declaration
 export_decl: 'EXPORT' ( block_decl

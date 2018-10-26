@@ -44,6 +44,9 @@ namespace Whirlwind.Semantic.Visitor
                             case "except_block":
                                 _visitExceptBlock(blockStatement, context);
                                 break;
+                            case "from_block":
+                                _visitFromBlock(blockStatement, context);
+                                break;
                         }
 
                         _table.AscendScope();
@@ -96,7 +99,7 @@ namespace Whirlwind.Semantic.Visitor
                         _visitExpr((ASTNode)((ASTNode)item).Content[2]);
 
                         if (!new SimpleType(SimpleType.DataType.BOOL).Coerce(_nodes.Last().Type))
-                            throw new SemanticException("Condition value of elif statement must be a boolean", 
+                            throw new SemanticException("Condition value of elif statement must be a boolean",
                                 ((ASTNode)item).Content[2].Position);
 
                         MergeBack();
@@ -115,7 +118,7 @@ namespace Whirlwind.Semantic.Visitor
 
                         _nodes.Add(new BlockNode("Else"));
                         _visitBlockNode((ASTNode)((ASTNode)item).Content[1], context);
-              
+
                         MergeToBlock();
                         break;
                 }
@@ -209,6 +212,7 @@ namespace Whirlwind.Semantic.Visitor
                         }
                         else
                         {
+
                             _nodes.Add(new BlockNode("ForCondition"));
                             _visitExpr((ASTNode)subNode);
 
@@ -226,7 +230,7 @@ namespace Whirlwind.Semantic.Visitor
                     else if (subNode.Name == "c_for")
                     {
                         _visitCFor((ASTNode)subNode);
-                        
+
                         if (((ExprNode)_nodes.Last()).Nodes.Count > 0)
                         {
                             _nodes.Add(new BlockNode("CFor"));
@@ -236,7 +240,7 @@ namespace Whirlwind.Semantic.Visitor
                         {
                             _nodes.RemoveAt(_nodes.Count - 1);
                             _nodes.Add(new BlockNode("ForInfinite"));
-                        }                        
+                        }
                     }
                 }
 
@@ -390,7 +394,7 @@ namespace Whirlwind.Semantic.Visitor
 
                                     _nodes.Add(new IdentifierNode(idName, exceptionType, true));
                                     MergeBack();
-                                    
+
                                     // new scope => always works
                                     _table.AddSymbol(new Symbol(idName, exceptionType));
                                 }
@@ -405,6 +409,78 @@ namespace Whirlwind.Semantic.Visitor
                 }
                 else if (item.Name == "block")
                     _visitBlockNode((ASTNode)item, context);
+            }
+        }
+
+        private void _visitFromBlock(ASTNode blockStmt, StatementContext context)
+        {
+            foreach (var item in blockStmt.Content)
+            {
+                switch (item.Name)
+                {
+                    case "from_stmt":
+                        _nodes.Add(new BlockNode("FromStmt"));
+
+                        {
+                            bool collectedName = false, hitFirstId = false;
+                            IDataType dt = new SimpleType();
+
+                            foreach (var elem in ((ASTNode)item).Content)
+                            {
+                                if (elem.Name == "TOKEN")
+                                {
+                                    Token tok = ((TokenNode)elem).Tok;
+
+                                    if (collectedName && tok.Type == "IDENTIFIER")
+                                    {
+                                        if (!_table.AddSymbol(new Symbol(tok.Value, dt)))
+                                            throw new SemanticException($"Unable to borrow under the name {tok.Value} because a " +
+                                                "variable by that name has already been declared", 
+                                                elem.Position);
+
+                                        _nodes.Add(new IdentifierNode(tok.Value, dt, false));
+                                        MergeBack();
+                                    }
+                                    else
+                                    {
+                                        if (tok.Type == "->")
+                                        {
+                                            collectedName = true;
+                                            MergeBack();
+                                        }
+                                        else if (tok.Type == "IDENTIFIER")
+                                        {
+                                            if (hitFirstId)
+                                            {
+                                                // add sub id checking and parsing
+                                            }
+                                            else if (_table.Lookup(tok.Value, out Symbol symbol))
+                                            {
+                                                dt = symbol.DataType;
+
+                                                _nodes.Add(new IdentifierNode(tok.Value, dt, false));
+                                                hitFirstId = true;
+                                            }
+                                            else
+                                                throw new SemanticException("Undefined symbol", elem.Position);
+
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    case "from_block":
+                        break;
+                    case "from_except_clause":
+                        _nodes.Add(new BlockNode("ExceptBlock"));
+
+                        context.ContinueValid = true;
+                        _visitBlockNode((ASTNode)((ASTNode)item).Content[1], context);
+
+                        MergeBack();
+                        break;
+                }
             }
         }
 
