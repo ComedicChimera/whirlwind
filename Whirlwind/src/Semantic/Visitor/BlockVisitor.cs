@@ -424,6 +424,7 @@ namespace Whirlwind.Semantic.Visitor
                         {
                             bool collectedName = false, hitFirstId = false;
                             IDataType dt = new SimpleType();
+                            TextPosition rootPos = new TextPosition();
 
                             foreach (var elem in ((ASTNode)item).Content)
                             {
@@ -452,7 +453,17 @@ namespace Whirlwind.Semantic.Visitor
                                         {
                                             if (hitFirstId)
                                             {
-                                                // add sub id checking and parsing
+                                                Symbol sym = _getMember(dt, tok.Value, rootPos, elem.Position);
+
+                                                _nodes.Add(new ExprNode("GetMember", sym.DataType));
+                                                PushForward();
+                                                _nodes.Add(new IdentifierNode(tok.Value, sym.DataType,
+                                                    sym.Modifiers.Contains(Modifier.CONSTANT)));
+                                                MergeBack();
+
+                                                dt = sym.DataType;
+
+                                                rootPos = elem.Position;
                                             }
                                             else if (_table.Lookup(tok.Value, out Symbol symbol))
                                             {
@@ -460,6 +471,7 @@ namespace Whirlwind.Semantic.Visitor
 
                                                 _nodes.Add(new IdentifierNode(tok.Value, dt, false));
                                                 hitFirstId = true;
+                                                rootPos = elem.Position;
                                             }
                                             else
                                                 throw new SemanticException("Undefined symbol", elem.Position);

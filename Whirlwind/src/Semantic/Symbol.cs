@@ -11,8 +11,7 @@ namespace Whirlwind.Semantic
         PROTECTED,
         STATIC,
         CONSTANT,
-        CONSTEXPR,
-        VOLATILE
+        CONSTEXPR
     }
 
     class Package : IDataType

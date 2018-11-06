@@ -1,7 +1,6 @@
 ﻿include { Println } from stdio;
 
-#[extern("glew32.dll")]
-func test() {}
+func test();
 
 func main() {
 	from pi -> pi;

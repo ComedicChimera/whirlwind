@@ -39,13 +39,8 @@ namespace Whirlwind.Semantic.Visitor
                         foreach (var item in stmt.Content)
                         {
                             if (item.Name == "TOKEN")
-                            {
-                                Modifier modifier = ((TokenNode)item).Tok.Type == "STATIC" ? Modifier.STATIC : Modifier.VOLATILE;
-
-                                if (modifiers.Contains(modifier))
-                                    throw new SemanticException("Variable cannot be initialized with duplicate modifiers", item.Position);
-
-                                modifiers.Add(modifier);
+                            { 
+                                modifiers.Add(Modifier.STATIC);
                             }
                             else
                                 _visitVarDecl((ASTNode)item, modifiers);

@@ -1,10 +1,9 @@
 ﻿// WHIRLWIND STANDARD GRAMMAR
-whirlwind: ( global_variable_decl ';'
+whirlwind: ( variable_decl ';'
 | enum_const ';'
 | block_decl
 | include_stmt ';'
 | export_decl
-| meta_decl
 )+ ;
 
 main: ( func_decl
@@ -13,7 +12,6 @@ main: ( func_decl
 | subscope
 )+ ;
 
-global_variable_decl: ['VOLATILE'] variable_decl ;
 subscope: '{' main '}' ;
 
 // include statement
@@ -21,16 +19,6 @@ include_stmt: ['USE'] 'INCLUDE' ( pkg_name ['STRING_LITERAL'] | include_set 'FRO
 pkg_name: [pkg_back_move] 'IDENTIFIER' ('.' 'IDENTIFIER' | pkg_back_move )* ;
 pkg_back_move: '.' '.' ;
 include_set: '{' 'IDENTIFIER' (',' 'IDENTIFIER')* '}' ;
-
-// metadata declaration
-meta_decl: '#' '[' meta_arg (',' meta_arg)* ']' meta_decl_block;
-meta_decl_block: global_variable_decl
-| func_decl 
-| obj_decl
-| struct_decl
-| export_decl
-;
-meta_arg: 'IDENTIFIER' ['(' args_list ')'] ;
 
 
 // OBJECTS AND OBJECT COMPONENTS
@@ -68,7 +56,7 @@ block_decl: func_decl
 ;
 
 // function declaration
-func_decl: ('FUNC' | 'ASYNC') 'IDENTIFIER' '(' args_decl_list ')' [ types ] func_body ;
+func_decl: ('FUNC' | 'ASYNC') 'IDENTIFIER' '(' args_decl_list ')' [ types ] (func_body | ';') ;
 
 // interface declaration
 interface_decl: 'INTERFACE' 'IDENTIFIER' '{' interface_main '}' ;
@@ -156,7 +144,7 @@ stmt: ( local_variable_decl
 ;
 
 // local variable declaration
-local_variable_decl: ('STATIC' | 'VOLATILE')* variable_decl;
+local_variable_decl: ['STATIC'] variable_decl;
 
 // variable declaration
 variable_decl: ('$' | '@') var extension variable_initializer  ;
