@@ -8,6 +8,83 @@ namespace Whirlwind.Semantic.Visitor
 {
     partial class Visitor
     {
+        private void _visitFunction(ASTNode function)
+        {
+            bool isAsync = false;
+            string name = "";
+            var parameters = new List<Parameter>();
+            var dataTypes = new List<IDataType>();
+            var namePosition = new TextPosition();
+
+            foreach (var item in function.Content)
+            {
+                switch (item.Name)
+                {
+                    case "TOKEN":
+                        {
+                            Token tok = ((TokenNode)item).Tok;
+
+                            switch (tok.Type)
+                            {
+                                case "ASYNC":
+                                    isAsync = true;
+                                    break;
+                                case "IDENTIFIER":
+                                    name = tok.Value;
+                                    namePosition = item.Position;
+                                    break;
+                                case ";":
+                                    {
+                                        _createFunction(parameters, dataTypes, name, namePosition, isAsync);
+                                        // try to complete body
+                                    }
+                                    break;
+                            }
+                        }
+                        break;
+                    case "args_decl_list":
+                        parameters = _generateArgsDecl((ASTNode)item);
+                        break;
+                    case "types":
+                        dataTypes = _generateTypeList((ASTNode)item);
+                        break;
+                    case "func_body":
+                        {
+                            _createFunction(parameters, dataTypes, name, namePosition, isAsync);
+                            _visitFuncBody((ASTNode)item);
+                        }
+                        break;
+                }
+            }
+        }
+
+        private void _createFunction(
+            List<Parameter> parameters, List<IDataType> dataTypes, string name, TextPosition namePosition, bool isAsync
+            )
+        {
+            _nodes.Add(new BlockNode(isAsync ? "AsyncFunction" : "Function"));
+
+            IDataType finalType;
+
+            if (dataTypes.Count == 0)
+                finalType = new SimpleType();
+            else if (dataTypes.Count == 1)
+                finalType = dataTypes[0];
+            else
+                finalType = new TupleType(dataTypes);
+
+            _nodes.Add(new IdentifierNode(name,
+                new FunctionType(
+                    parameters,
+                    finalType,
+                    isAsync),
+                true));
+
+            MergeBack();
+            if (!_table.AddSymbol(new Symbol(name, finalType, new List<Modifier>() { Modifier.CONSTANT })))
+                throw new SemanticException($"Unable to redeclare symbol by name {name}", namePosition);
+        }
+
         public List<Parameter> _generateArgsDecl(ASTNode node)
         {
             var argsDeclList = new List<Parameter>(); 
