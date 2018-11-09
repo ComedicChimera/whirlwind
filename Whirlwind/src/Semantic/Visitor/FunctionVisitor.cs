@@ -81,6 +81,7 @@ namespace Whirlwind.Semantic.Visitor
                 true));
 
             MergeBack();
+
             if (!_table.AddSymbol(new Symbol(name, finalType, new List<Modifier>() { Modifier.CONSTANT })))
                 throw new SemanticException($"Unable to redeclare symbol by name {name}", namePosition);
         }
@@ -183,6 +184,37 @@ namespace Whirlwind.Semantic.Visitor
         }
 
         private IDataType _visitFuncBody(ASTNode node)
+        {
+            IDataType rtType = new SimpleType();
+
+            foreach (var item in node.Content)
+            {
+                switch (item.Name)
+                {
+                    case "func_guard":
+                        _nodes.Add(new ExprNode("FunctionGuard", new SimpleType()));
+                        _visitExpr((ASTNode)((ASTNode)item).Content[2]);
+                        MergeBack(2);
+                        break;
+                    case "main":
+                        rtType = _extractReturnType((ASTNode)item);
+
+                        _visitBlock((ASTNode)item, new StatementContext(true, false, false));
+                        break;
+                    case "expr":
+                        _nodes.Add(new StatementNode("ExpressionReturn"));
+                        _visitExpr((ASTNode)item);
+
+                        rtType = _nodes.Last().Type;
+                        MergeBack();
+                        break;
+                }
+            }
+
+            return rtType;
+        }
+
+        private IDataType _extractReturnType(ASTNode node)
         {
             return new SimpleType();
         }

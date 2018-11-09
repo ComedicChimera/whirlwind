@@ -263,6 +263,7 @@ namespace Whirlwind.Semantic.Visitor
                         args = _generateArgsDecl((ASTNode)item);
                         break;
                     case "func_body":
+                        _nodes.Add(new BlockNode("FunctionBody"));
                         rtType = _visitFuncBody((ASTNode)item);
                         break;
                 }
@@ -271,7 +272,7 @@ namespace Whirlwind.Semantic.Visitor
             var fType = new FunctionType(args, rtType, async); 
 
             _nodes.Add(new ExprNode("Closure", fType));
-            PushForward();
+            PushForward(2);
         }
 
         private void _visitTypeCast(ASTNode node)
