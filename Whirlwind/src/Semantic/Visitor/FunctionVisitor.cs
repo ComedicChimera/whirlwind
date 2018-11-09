@@ -197,9 +197,8 @@ namespace Whirlwind.Semantic.Visitor
                         MergeBack(2);
                         break;
                     case "main":
-                        rtType = _extractReturnType((ASTNode)item);
-
                         _visitBlock((ASTNode)item, new StatementContext(true, false, false));
+                        rtType = _extractReturnType((ASTNode)item);
                         break;
                     case "expr":
                         _nodes.Add(new StatementNode("ExpressionReturn"));
@@ -216,7 +215,36 @@ namespace Whirlwind.Semantic.Visitor
 
         private IDataType _extractReturnType(ASTNode node)
         {
-            return new SimpleType();
+            var returnPositions = new List<TextPosition>();
+            _getReturnPositions(node, ref returnPositions);
+
+            return _extractReturnType(returnPositions, 0);
+        }
+
+        private IDataType _extractReturnType(List<TextPosition> positions, int pos)
+        {
+            IDataType rtType = new SimpleType();
+
+            foreach (var node in ((BlockNode)_nodes.Last()).Block)
+            {
+                if (node.Name == "Return" || node.Name == "Yield")
+                {
+
+                }
+            }
+
+            return rtType;
+        }
+
+        private void _getReturnPositions(ASTNode node, ref List<TextPosition> positions)
+        {
+            foreach (var item in node.Content)
+            {
+                if (item.Name == "return_stmt" || item.Name == "yield_stmt")
+                    positions.Add(item.Position);
+                else if (item.Name != "TOKEN")
+                    _getReturnPositions((ASTNode)item, ref positions);
+            }
         }
 
         // generate a parameter list from a function call and generate the corresponding tree
