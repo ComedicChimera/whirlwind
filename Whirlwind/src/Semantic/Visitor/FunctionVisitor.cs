@@ -86,6 +86,100 @@ namespace Whirlwind.Semantic.Visitor
                 throw new SemanticException($"Unable to redeclare symbol by name {name}", namePosition);
         }
 
+        private IDataType _visitFuncBody(ASTNode node)
+        {
+            IDataType rtType = new SimpleType();
+
+            foreach (var item in node.Content)
+            {
+                switch (item.Name)
+                {
+                    case "func_guard":
+                        _nodes.Add(new ExprNode("FunctionGuard", new SimpleType()));
+                        _visitExpr((ASTNode)((ASTNode)item).Content[2]);
+                        MergeBack(2);
+                        break;
+                    case "main":
+                        _visitBlock((ASTNode)item, new StatementContext(true, false, false));
+                        rtType = _extractReturnType((ASTNode)item);
+                        break;
+                    case "expr":
+                        _nodes.Add(new StatementNode("ExpressionReturn"));
+                        _visitExpr((ASTNode)item);
+
+                        rtType = _nodes.Last().Type;
+                        MergeBack();
+                        break;
+                }
+            }
+
+            return rtType;
+        }
+
+        private IDataType _extractReturnType(ASTNode node)
+        {
+            var returnPositions = new List<TextPosition>();
+            _getReturnPositions(node, ref returnPositions);
+
+            int pos = 0;
+            return _extractReturnType((BlockNode)_nodes.Last(), returnPositions, ref pos);
+        }
+
+        private IDataType _extractReturnType(BlockNode root, List<TextPosition> positions, ref int pos)
+        {
+            IDataType rtType = new SimpleType();
+            bool returnsValue = false;
+
+            foreach (var node in root.Block)
+            {
+                if (node.Name == "Return" || node.Name == "Yield")
+                {
+                    var typeList = new List<IDataType>();
+
+                    foreach (var expr in ((StatementNode)node).Nodes)
+                    {
+                        typeList.Add(expr.Type);
+                    }
+
+                    if (typeList.Count > 0)
+                    {
+                        IDataType dt = typeList.Count == 1 ? typeList[0] : new TupleType(typeList);
+
+                        if (!rtType.Coerce(dt))
+                        {
+                            if (dt.Coerce(rtType))
+                                rtType = dt;
+                            else
+                                throw new SemanticException("Inconsistent return types", positions[pos]);
+                        }
+
+                        returnsValue = true;
+                    }
+                    else if (returnsValue)
+                        throw new SemanticException("Inconsistent return types", positions[pos]);
+
+                    pos++;
+                }
+                else
+                {
+                    // add code path checking
+                }
+            }
+
+            return rtType;
+        }
+
+        private void _getReturnPositions(ASTNode node, ref List<TextPosition> positions)
+        {
+            foreach (var item in node.Content)
+            {
+                if (item.Name == "return_stmt" || item.Name == "yield_stmt")
+                    positions.Add(item.Position);
+                else if (item.Name != "TOKEN")
+                    _getReturnPositions((ASTNode)item, ref positions);
+            }
+        }
+
         public List<Parameter> _generateArgsDecl(ASTNode node)
         {
             var argsDeclList = new List<Parameter>(); 
@@ -181,70 +275,6 @@ namespace Whirlwind.Semantic.Visitor
                 throw new SemanticException("Function cannot be declared with duplicate arguments", node.Position);
 
             return argsDeclList;
-        }
-
-        private IDataType _visitFuncBody(ASTNode node)
-        {
-            IDataType rtType = new SimpleType();
-
-            foreach (var item in node.Content)
-            {
-                switch (item.Name)
-                {
-                    case "func_guard":
-                        _nodes.Add(new ExprNode("FunctionGuard", new SimpleType()));
-                        _visitExpr((ASTNode)((ASTNode)item).Content[2]);
-                        MergeBack(2);
-                        break;
-                    case "main":
-                        _visitBlock((ASTNode)item, new StatementContext(true, false, false));
-                        rtType = _extractReturnType((ASTNode)item);
-                        break;
-                    case "expr":
-                        _nodes.Add(new StatementNode("ExpressionReturn"));
-                        _visitExpr((ASTNode)item);
-
-                        rtType = _nodes.Last().Type;
-                        MergeBack();
-                        break;
-                }
-            }
-
-            return rtType;
-        }
-
-        private IDataType _extractReturnType(ASTNode node)
-        {
-            var returnPositions = new List<TextPosition>();
-            _getReturnPositions(node, ref returnPositions);
-
-            return _extractReturnType(returnPositions, 0);
-        }
-
-        private IDataType _extractReturnType(List<TextPosition> positions, int pos)
-        {
-            IDataType rtType = new SimpleType();
-
-            foreach (var node in ((BlockNode)_nodes.Last()).Block)
-            {
-                if (node.Name == "Return" || node.Name == "Yield")
-                {
-
-                }
-            }
-
-            return rtType;
-        }
-
-        private void _getReturnPositions(ASTNode node, ref List<TextPosition> positions)
-        {
-            foreach (var item in node.Content)
-            {
-                if (item.Name == "return_stmt" || item.Name == "yield_stmt")
-                    positions.Add(item.Position);
-                else if (item.Name != "TOKEN")
-                    _getReturnPositions((ASTNode)item, ref positions);
-            }
         }
 
         // generate a parameter list from a function call and generate the corresponding tree

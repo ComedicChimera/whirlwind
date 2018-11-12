@@ -482,10 +482,21 @@ namespace Whirlwind.Semantic.Visitor
                             }
                         }
                         break;
-                    case "from_block":
+                    case "from_body":
+                        _nodes.Add(new BlockNode("FromBlock"));
+
+                        _table.AddScope();
+                        _table.DescendScope();
+
+                        _visitVarDecl((ASTNode)((ASTNode)item).Content[1], new List<Modifier>());
+                        MergeBack();
+
+                        _visitBlockNode((ASTNode)((ASTNode)item).Content[3], context);
+
+                        _table.AscendScope();
                         break;
                     case "from_except_clause":
-                        _nodes.Add(new BlockNode("ExceptBlock"));
+                        _nodes.Add(new BlockNode("FromExcept"));
 
                         context.ContinueValid = true;
                         _visitBlockNode((ASTNode)((ASTNode)item).Content[1], context);

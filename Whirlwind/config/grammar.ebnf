@@ -184,7 +184,7 @@ break_stmt: 'BREAK' ;
 throw_stmt: 'THROW' expr ;
 delete_stmt: 'DELETE' 'IDENTIFIER' (',' 'IDENTIFIER')* ;
 return_stmt: 'RETURN' [expr (',' expr)*] ;
-yield_stmt: 'YIELD' [expr (',' expr)*] ;
+yield_stmt: 'YIELD' expr (',' expr)* ;
 
 
 // EXPRESSIONS - basic unit of statements 

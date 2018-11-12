@@ -197,7 +197,7 @@ Represents a single Whirlwind block statement or declaration.
 | If | Expr | A single, unchained if statement |
 | CompoundIf | `none` | A compound if chain containing at least two statements where each statement is stored in its block |
 | Elif | Expr | A chained elif statement |
-| Else | *Node* | A chained else statement |
+| Else | `none` | A chained else statement |
 | Select | Expr | The select statement whose block contains each case and/or the default |
 | Case | *Expr* | A case block of a select statement |
 | Default | `none` | The default block of a select statement |
@@ -207,3 +207,8 @@ Represents a single Whirlwind block statement or declaration.
 | CFor | CForExpr | A C-style for loop |
 | Repeat | Count | A do-repeat loop |
 | DoFor | Condition | A do-for loop |
+| Except | *Handle* | A block that contains a series of handles |
+| Handle | Expression, Identifier | A single handle expression |
+| FromStmt | Expr, Identifier, [FromExcept] | A from borrow statement |
+| FromExcept | `none` | A fail case for a from borrow statement |
+| FromBlock | VarDecl | A context manager |
