@@ -1,9 +1,10 @@
 {
   "ExpandedNodes": [
     "",
-    "\\Shadow",
-    "\\Whirlwind"
+    "\\Whirlwind",
+    "\\Whirlwind\\src",
+    "\\Whirlwind\\src\\Semantic",
+    "\\Whirlwind\\src\\Semantic\\Visitor"
   ],
-  "SelectedNode": "\\Whirlwind",
   "PreviewInSolutionExplorer": false
 }

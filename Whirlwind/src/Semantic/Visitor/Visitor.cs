@@ -34,21 +34,25 @@ namespace Whirlwind.Semantic.Visitor
 
         public void Visit(ASTNode ast)
         {
+            _nodes.Add(new BlockNode("Package"));
+
             foreach (INode node in ast.Content)
             {
                 switch (node.Name)
                 {
-                    case "main":
-                        _nodes.Add(new BlockNode("Main"));
-                        _visitBlock((ASTNode)node, new StatementContext());
+                    case "block_decl":
+                        _visitBlockDecl((ASTNode)node);
                         break;
-                    // prevent tokens from being recognized
-                    case "TOKEN":
-                        break;       
-                    default:
-                        Visit((ASTNode)node);
+                    case "enum_const":
+                        _visitEnumConst((ASTNode)node);
                         break;
+                    case "variable_decl":
+                        _visitVarDecl((ASTNode)node, new List<Modifier>());
+                        break;
+                    // add any logic surrounding includes and export declarations
                 }
+
+                MergeToBlock();
             }
         }
 

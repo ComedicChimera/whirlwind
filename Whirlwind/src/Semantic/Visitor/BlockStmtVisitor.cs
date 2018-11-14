@@ -52,7 +52,8 @@ namespace Whirlwind.Semantic.Visitor
                         _table.AscendScope();
 
                         break;
-                    case "func_stmt":
+                    case "func_decl":
+                        _visitFunction(stmt);
                         break;
                     case "subscope":
                         _nodes.Add(new BlockNode("Subscope"));
