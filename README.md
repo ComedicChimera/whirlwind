@@ -2,7 +2,7 @@
 
 Whirlwind is a compiled, modern, and multipurpose language designed with intentionality.
 It is strongly-typed, object-oriented, expressive, concurrent, and relatively easy to learn.
-It boasts numerous new and old features and is designed to represent the needs of any software developed.
+It boasts numerous new and old features and is designed to represent the needs of any software developer.
 
 ## Compiler Information and Contributing <a name="compiler-info">
 
