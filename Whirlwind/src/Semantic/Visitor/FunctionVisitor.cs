@@ -3,6 +3,7 @@ using Whirlwind.Parser;
 
 using System.Collections.Generic;
 using System.Linq;
+using System;
 
 namespace Whirlwind.Semantic.Visitor
 {
@@ -116,21 +117,26 @@ namespace Whirlwind.Semantic.Visitor
             return rtType;
         }
 
-        private IDataType _extractReturnType(ASTNode node)
+        private IDataType _extractReturnType(ASTNode ast)
         {
-            var returnPositions = new List<TextPosition>();
-            _getReturnPositions(node, ref returnPositions);
+            var positions = new List<TextPosition>();
+            _getReturnPositions(ast, ref positions);
 
             int pos = 0;
-            return _extractReturnType((BlockNode)_nodes.Last(), returnPositions, ref pos);
+            var returnData = _extractReturnType((BlockNode)_nodes.Last(), positions, ref pos);
+
+            if (!returnData.Item1)
+                throw new SemanticException("Inconsistent return type", positions.First());
+
+            return returnData.Item2;
         }
 
-        private IDataType _extractReturnType(BlockNode root, List<TextPosition> positions, ref int pos)
+        private Tuple<bool, IDataType> _extractReturnType(BlockNode block, List<TextPosition> positions, ref int pos)
         {
             IDataType rtType = new SimpleType();
-            bool returnsValue = false;
+            bool returnsValue = false, setReturn = false, terminatingReturn = false;
 
-            foreach (var node in root.Block)
+            foreach (var node in block.Block)
             {
                 if (node.Name == "Return" || node.Name == "Yield")
                 {
@@ -143,6 +149,9 @@ namespace Whirlwind.Semantic.Visitor
 
                     if (typeList.Count > 0)
                     {
+                        if (!returnsValue && setReturn)
+                            throw new SemanticException("Inconsistent return types", positions[pos]);
+
                         IDataType dt = typeList.Count == 1 ? typeList[0] : new TupleType(typeList);
 
                         if (!rtType.Coerce(dt))
@@ -158,15 +167,49 @@ namespace Whirlwind.Semantic.Visitor
                     else if (returnsValue)
                         throw new SemanticException("Inconsistent return types", positions[pos]);
 
+                    if (!setReturn)
+                        setReturn = true;
+
+                    if (!terminatingReturn)
+                        terminatingReturn = true;
+
                     pos++;
                 }
-                else
+                else if (node is BlockNode)
                 {
-                    // add code path checking
+                    int savedPos = pos;
+                    var blockReturn = _extractReturnType((BlockNode)node, positions, ref pos);
+                    savedPos = (pos - savedPos) > 0 ? (pos - 1) : pos;
+
+                    if (blockReturn.Item2.Classify() == TypeClassifier.SIMPLE && ((SimpleType)blockReturn.Item2).Type == SimpleType.DataType.VOID)
+                    {
+                        if (returnsValue && setReturn)
+                            throw new SemanticException("Inconsistent return type", positions[savedPos]);
+                        else
+                            continue;
+                    }
+
+                    if (!rtType.Coerce(blockReturn.Item2))
+                    {
+                        if (blockReturn.Item2.Coerce(rtType))
+                            rtType = blockReturn.Item2;
+                        else
+                            throw new SemanticException("Inconsistent return type", positions[savedPos]);
+                    }
+
+                    if (!terminatingReturn && blockReturn.Item1)
+                        terminatingReturn = true;
+
+                    if (!setReturn)
+                        setReturn = true;
+
+                    if (!returnsValue)
+                        returnsValue = true;
+                        
                 }
             }
 
-            return rtType;
+            return new Tuple<bool, IDataType>(!returnsValue || terminatingReturn, rtType);
         }
 
         private void _getReturnPositions(ASTNode node, ref List<TextPosition> positions)

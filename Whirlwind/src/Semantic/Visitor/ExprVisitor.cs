@@ -433,12 +433,13 @@ namespace Whirlwind.Semantic.Visitor
                     else
                         throw new SemanticException("The complement operator is not valid for the given type", node.Content[0].Position);
                     break;
+                case "&VOL":
                 case "&":
                     if (new[] {
                         TypeClassifier.STRUCT, TypeClassifier.INTERFACE, TypeClassifier.OBJECT, TypeClassifier.TEMPLATE, TypeClassifier.FUNCTION
                     }.Contains(rootType.Classify()))
                         throw new SemanticException("The given object is not reference able", node.Content[0].Position);
-                    treeName = "Reference";
+                    treeName = op == "&" ? "Reference" : "VolatileReference";
                     if (rootType.Classify() == TypeClassifier.POINTER)
                     {
                         ((PointerType)rootType).Pointers++;

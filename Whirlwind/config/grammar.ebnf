@@ -218,7 +218,7 @@ term: factor (('*' | '/' | '%' | '~/') factor)* ;
 factor: unary_atom ('^' unary_atom)*;
 
 // unary operators
-unary_atom: ('&' | '-' | '~' | '++' | '--' | '*'+) atom
+unary_atom: ('&' ['VOL'] | '-' | '~' | '++' | '--' | '*'+) atom
 | atom ['++' | '--']
 ;
 
