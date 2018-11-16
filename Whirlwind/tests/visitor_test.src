@@ -1,3 +1,5 @@
-﻿func main() {
+﻿func add(a: int, b: int) int => a + b;
+
+func main() {
 	$a: int;
 }

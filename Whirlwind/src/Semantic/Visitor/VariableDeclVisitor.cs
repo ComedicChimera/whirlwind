@@ -244,7 +244,7 @@ namespace Whirlwind.Semantic.Visitor
                 statementName = "DeclareVariable";
 
             _nodes.Add(new StatementNode(statementName));
-            PushForward(2);
+            PushForward();
             ((StatementNode)_nodes[_nodes.Count - 1]).Nodes.Reverse();
         }
     }

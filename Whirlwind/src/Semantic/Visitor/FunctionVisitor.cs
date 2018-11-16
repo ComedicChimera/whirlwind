@@ -52,7 +52,38 @@ namespace Whirlwind.Semantic.Visitor
                     case "func_body":
                         {
                             _createFunction(parameters, dataTypes, name, namePosition, isAsync);
+                            _table.DescendScope();
+
+                            // no symbol checking necessary since params have already been full filtered and override scope
+                            foreach (var param in parameters)
+                            {
+                                if (param.Indefinite)
+                                {
+                                    if (param.DataType.Classify() == TypeClassifier.SIMPLE && ((SimpleType)param.DataType).Type == SimpleType.DataType.VOID)
+                                    {
+                                        // add va_args param
+                                    }
+                                    else
+                                    {
+                                        _table.AddSymbol(new Symbol(
+                                            param.Name,
+                                            new ListType(param.DataType),
+                                            param.Constant ? new List<Modifier>() { Modifier.CONSTANT } : new List<Modifier>()
+                                            ));
+                                    }
+                                }
+                                else
+                                {
+                                    _table.AddSymbol(new Symbol(
+                                        param.Name,
+                                        param.DataType,
+                                        param.Constant ? new List<Modifier>() { Modifier.CONSTANT } : new List<Modifier>() 
+                                    ));
+                                }
+                            }
+
                             _visitFuncBody((ASTNode)item);
+                            _table.AscendScope();
                         }
                         break;
                 }
@@ -294,20 +325,21 @@ namespace Whirlwind.Semantic.Visitor
 
                     foreach (var item in ((ASTNode)subNode).Content)
                     {
-                        if (item.Name == "extension")
-                            dt = _generateType((ASTNode)((ASTNode)item).Content[1]);
-                        else if (item.Name == "TOKEN")
+                        if (item.Name == "arg_ext")
                         {
-                            switch (((TokenNode)item).Tok.Type)
+                            foreach (var extensionPart in ((ASTNode)item).Content)
                             {
-                                case "IDENTIFIER":
-                                    name = ((TokenNode)item).Tok.Value;
-                                    break;
-                                case "@":
-                                    constant = true;
-                                    break;
+                                if (extensionPart.Name == "types")
+                                    dt = _generateType((ASTNode)extensionPart);
+                                else if (extensionPart.Name == "TOKEN")
+                                {
+                                    if (((TokenNode)extensionPart).Tok.Type == "@")
+                                        constant = true;
+                                }
                             }
                         }
+                        else if (item.Name == "TOKEN" && ((TokenNode)item).Tok.Type == "IDENTIFIER")
+                            name = ((TokenNode)item).Tok.Value;
                     }
 
                     argsDeclList.Add(new Parameter(name, dt, true, constant));
