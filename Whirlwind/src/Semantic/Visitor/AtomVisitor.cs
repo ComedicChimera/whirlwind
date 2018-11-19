@@ -336,7 +336,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             var args = node.Content.Count == 2 ? new List<ParameterValue>() : _generateArgsList((ASTNode)node.Content[1]);
 
-            if (new[] { TypeClassifier.OBJECT, TypeClassifier.OBJECT }.Contains(root.Type.Classify()))
+            if (new[] { TypeClassifier.OBJECT, TypeClassifier.FUNCTION }.Contains(root.Type.Classify()))
             {
                 bool isFunction = root.Type.Classify() == TypeClassifier.FUNCTION;
 

@@ -1,5 +1,5 @@
 ﻿func add(a: int, b: int) int => a + b;
 
 func main() {
-	$a: int;
+	add(4, 5);
 }

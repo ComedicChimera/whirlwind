@@ -52,6 +52,8 @@ namespace Whirlwind.Semantic.Visitor
                     case "func_body":
                         {
                             _createFunction(parameters, dataTypes, name, namePosition, isAsync);
+
+                            _table.AddScope();
                             _table.DescendScope();
 
                             // no symbol checking necessary since params have already been full filtered and override scope
@@ -105,16 +107,13 @@ namespace Whirlwind.Semantic.Visitor
             else
                 finalType = new TupleType(dataTypes);
 
-            _nodes.Add(new IdentifierNode(name,
-                new FunctionType(
-                    parameters,
-                    finalType,
-                    isAsync),
-                true));
+            var fnType = new FunctionType(parameters, finalType, isAsync);
+
+            _nodes.Add(new IdentifierNode(name, fnType, true));
 
             MergeBack();
 
-            if (!_table.AddSymbol(new Symbol(name, finalType, new List<Modifier>() { Modifier.CONSTANT })))
+            if (!_table.AddSymbol(new Symbol(name, fnType, new List<Modifier>() { Modifier.CONSTANT })))
                 throw new SemanticException($"Unable to redeclare symbol by name {name}", namePosition);
         }
 
@@ -141,6 +140,8 @@ namespace Whirlwind.Semantic.Visitor
 
                         rtType = _nodes.Last().Type;
                         MergeBack();
+
+                        MergeToBlock();
                         break;
                 }
             }
