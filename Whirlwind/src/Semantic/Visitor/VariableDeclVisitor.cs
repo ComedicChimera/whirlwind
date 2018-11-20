@@ -21,7 +21,6 @@ namespace Whirlwind.Semantic.Visitor
             }
         }
 
-        // convert Tuple<IDataType, Position> to Variable
         private void _visitVarDecl(ASTNode stmt, List<Modifier> modifiers)
         {
             bool constant = false, constexpr = false, hasType = false, hasInitializer = false;
@@ -227,7 +226,7 @@ namespace Whirlwind.Semantic.Visitor
                 else
                 {
                     _nodes.Add(new ExprNode("Var", variables[variable].Type));
-                    PushForward();
+                    PushForward(hasInitializer ? 2 : 1);
                 }
             }
 

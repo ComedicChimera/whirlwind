@@ -152,6 +152,7 @@ namespace Whirlwind.Parser
             foreach (Production production in productions)
             {
                 localOffset = _match(production, offset);
+
                 if (localOffset != -1)
                     return localOffset;
             }
