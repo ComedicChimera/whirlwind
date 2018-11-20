@@ -14,7 +14,7 @@ namespace Whirlwind.Semantic.Visitor
             bool isAsync = false;
             string name = "";
             var parameters = new List<Parameter>();
-            var dataTypes = new List<IDataType>();
+            IDataType dataType = new SimpleType();
             var namePosition = new TextPosition();
 
             foreach (var item in function.Content)
@@ -36,7 +36,7 @@ namespace Whirlwind.Semantic.Visitor
                                     break;
                                 case ";":
                                     {
-                                        _createFunction(parameters, dataTypes, name, namePosition, isAsync);
+                                        _createFunction(parameters, dataType, name, namePosition, isAsync);
                                         // try to complete body
                                     }
                                     break;
@@ -47,11 +47,11 @@ namespace Whirlwind.Semantic.Visitor
                         parameters = _generateArgsDecl((ASTNode)item);
                         break;
                     case "types":
-                        dataTypes = _generateTypeList((ASTNode)item);
+                        dataType = _generateType((ASTNode)item);
                         break;
                     case "func_body":
                         {
-                            _createFunction(parameters, dataTypes, name, namePosition, isAsync);
+                            _createFunction(parameters, dataType, name, namePosition, isAsync);
 
                             _table.AddScope();
                             _table.DescendScope();
@@ -93,21 +93,12 @@ namespace Whirlwind.Semantic.Visitor
         }
 
         private void _createFunction(
-            List<Parameter> parameters, List<IDataType> dataTypes, string name, TextPosition namePosition, bool isAsync
+            List<Parameter> parameters, IDataType dataType, string name, TextPosition namePosition, bool isAsync
             )
         {
             _nodes.Add(new BlockNode(isAsync ? "AsyncFunction" : "Function"));
 
-            IDataType finalType;
-
-            if (dataTypes.Count == 0)
-                finalType = new SimpleType();
-            else if (dataTypes.Count == 1)
-                finalType = dataTypes[0];
-            else
-                finalType = new TupleType(dataTypes);
-
-            var fnType = new FunctionType(parameters, finalType, isAsync);
+            var fnType = new FunctionType(parameters, dataType, isAsync);
 
             _nodes.Add(new IdentifierNode(name, fnType, true));
 

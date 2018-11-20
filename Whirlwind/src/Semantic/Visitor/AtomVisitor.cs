@@ -346,7 +346,7 @@ namespace Whirlwind.Semantic.Visitor
 
                     if (paramData.IsError)
                         throw new SemanticException(paramData.ErrorMessage, paramData.ParameterPosition == -1 ? node.Position : 
-                            ((ASTNode)node.Content[1]).Content.Where(x => x.Name == "decl_arg").ToArray()[paramData.ParameterPosition].Position
+                            ((ASTNode)node.Content[1]).Content.Where(x => x.Name == "arg").ToArray()[paramData.ParameterPosition].Position
                         );
                 }
                 else if (!isFunction && !((ObjectType)root.Type).GetConstructor(args, out FunctionType constructor))

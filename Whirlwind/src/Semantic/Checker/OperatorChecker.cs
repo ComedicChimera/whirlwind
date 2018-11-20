@@ -10,6 +10,7 @@ namespace Whirlwind.Semantic.Checker
     partial class Checker
     {
         // takes in rootType by reference so it can handle overloads
+        // check root type in check operand
         public static void CheckOperand(ref IDataType rootType, IDataType operandType, string op, TextPosition position)
         {
             bool valid = false;
@@ -17,9 +18,10 @@ namespace Whirlwind.Semantic.Checker
             {
                 case "+":
                     {
-                        if (Numeric(operandType))
+                        if (Numeric(rootType) && Numeric(operandType))
                             valid = true;
-                        else if (new SimpleType(SimpleType.DataType.STRING).Coerce(operandType))
+                        else if (new SimpleType(SimpleType.DataType.STRING).Coerce(rootType) 
+                            && new SimpleType(SimpleType.DataType.STRING).Coerce(operandType))
                             valid = true;
                         else if (new[] { TypeClassifier.ARRAY, TypeClassifier.LIST }.Contains(operandType.Classify()))
                             valid = true;
