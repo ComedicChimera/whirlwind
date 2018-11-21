@@ -104,7 +104,9 @@ namespace Whirlwind.Semantic.Visitor
 
             MergeBack();
 
-            if (!_table.AddSymbol(new Symbol(name, fnType, new List<Modifier>() { Modifier.CONSTANT })))
+            if (!_table.AddSymbol(new Symbol(name, fnType, 
+                _exported ? new List<Modifier>() { Modifier.EXPORTED, Modifier.CONSTANT }
+                : new List<Modifier>() { Modifier.CONSTANT })))
                 throw new SemanticException($"Unable to redeclare symbol by name {name}", namePosition);
         }
 

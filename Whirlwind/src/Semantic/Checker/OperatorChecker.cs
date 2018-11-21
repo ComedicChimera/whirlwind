@@ -10,7 +10,6 @@ namespace Whirlwind.Semantic.Checker
     partial class Checker
     {
         // takes in rootType by reference so it can handle overloads
-        // check root type in check operand
         public static void CheckOperand(ref IDataType rootType, IDataType operandType, string op, TextPosition position)
         {
             bool valid = false;
@@ -18,10 +17,9 @@ namespace Whirlwind.Semantic.Checker
             {
                 case "+":
                     {
-                        if (Numeric(rootType) && Numeric(operandType))
+                        if (Numeric(operandType))
                             valid = true;
-                        else if (new SimpleType(SimpleType.DataType.STRING).Coerce(rootType) 
-                            && new SimpleType(SimpleType.DataType.STRING).Coerce(operandType))
+                        else if (new SimpleType(SimpleType.DataType.STRING).Coerce(operandType))
                             valid = true;
                         else if (new[] { TypeClassifier.ARRAY, TypeClassifier.LIST }.Contains(operandType.Classify()))
                             valid = true;
@@ -105,7 +103,7 @@ namespace Whirlwind.Semantic.Checker
                 case ">=":
                 case "<=":
                     {
-                        if ((Numeric(rootType) && Numeric(operandType)) || (rootType.Classify() == TypeClassifier.POINTER && operandType.Classify() == TypeClassifier.POINTER))
+                        if (Numeric(operandType) || (rootType.Classify() == TypeClassifier.POINTER && operandType.Classify() == TypeClassifier.POINTER))
                         {
                             rootType = new SimpleType(SimpleType.DataType.BOOL);
                             return;
@@ -158,6 +156,9 @@ namespace Whirlwind.Semantic.Checker
 
             if (valid)
             {
+                if (rootType.Classify() == TypeClassifier.SIMPLE && ((SimpleType)rootType).Type == SimpleType.DataType.VOID)
+                    throw new SemanticException("Unable to apply operator to root type of void", position);
+
                 if (!rootType.Coerce(operandType))
                 {
                     if (operandType.Coerce(rootType))

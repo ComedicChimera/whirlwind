@@ -1,14 +1,5 @@
-﻿func fac(n: int) int {
-	if (n > 2)
-		return n * fac(n - 1);
+﻿func main() {
+	$x = 3;
 
-	return n;
-}
-
-func add(a: int, b: int) int => a + b;
-
-func main() {
-	$sum = add(4, 5);
-
-	$n = fac(sum);
-}
+	x < 3 || x > 4;
+} 
