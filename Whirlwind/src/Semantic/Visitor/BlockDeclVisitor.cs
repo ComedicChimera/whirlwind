@@ -2,6 +2,7 @@
 using Whirlwind.Types;
 
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Whirlwind.Semantic.Visitor
 {
@@ -29,7 +30,30 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitInterface(ASTNode node)
         {
+            _nodes.Add(new BlockNode("Interface"));
+            TokenNode name = (TokenNode)node.Content[1];
 
+            var interfaceType = new InterfaceType();
+
+            foreach (var func in ((ASTNode)node.Content[3]).Content)
+            {
+                _visitFunction((ASTNode)func);
+                var fnNode = (IdentifierNode)((BlockNode)_nodes.Last()).Nodes[0];
+
+                if (((ASTNode)func).Content.Last().Name == "func_body")
+                {
+                    if (!interfaceType.AddFunction(new Symbol(fnNode.IdName, fnNode.Type), (ASTNode)((ASTNode)func).Content.Last()))
+                        throw new SemanticException("Interface cannot contain duplicate members", ((ASTNode)func).Content[1].Position);
+                }
+                else
+                {
+                    if (!interfaceType.AddFunction(new Symbol(fnNode.IdName, fnNode.Type)))
+                        throw new SemanticException("Interface cannot contain duplicate members", ((ASTNode)func).Content[1].Position);
+                }
+            }
+
+            if (!_table.AddSymbol(new Symbol(name.Tok.Value, interfaceType)))
+                throw new SemanticException($"Unable to redeclare symbol by name `{name.Tok.Value}`", name.Position);
         }
 
         private void _visitStruct(ASTNode node)
