@@ -12,9 +12,11 @@ namespace Whirlwind.PackageManager
     {
         private PackageGraph _pg;
 
+        private static readonly string extension = ".wrl";
+
         public SymbolTable Import(string name, TextPosition position)
         {
-            if (!OpenPackage(name.Replace("..", "../").Replace(".", "/"), out string text))
+            if (!OpenPackage(name.Replace("..", "../").Replace(".", "/") + extension, out string text))
             {
                 var st = new SymbolTable();
                 Program.compiler.Build(text, ref st);

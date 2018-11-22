@@ -7,6 +7,7 @@ namespace Whirlwind
     class Program
     {
         public static Compiler compiler;
+
         public static PackageManager.PackageManager packageManager;
 
         // TODO - reconfigure to use command line args for the final build
@@ -15,17 +16,17 @@ namespace Whirlwind
         {
             string fileName = Console.ReadLine();
 
-            if (packageManager.OpenPackage(fileName, out string text)) {
+            try
+            {
                 compiler = new Compiler("config/tokens.json", "config/grammar.ebnf");
-                compiler.Build(text);
-
-                Console.ReadKey();
+                packageManager.Import(fileName, new Parser.TextPosition());
             }
-            else
+            catch (Semantic.Visitor.SemanticException)
             {
                 Console.WriteLine($"Unable to open file at \'{fileName}\'.");
-                Console.ReadKey();
             }
+
+            Console.ReadKey();
         }
     }
 }
