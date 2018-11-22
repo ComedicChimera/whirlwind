@@ -64,6 +64,16 @@ namespace Whirlwind.Semantic
             _scopePath = new int[] { };
         }
 
+        public SymbolTable(Dictionary<string, Symbol> table)
+        {
+            _table = new Scope
+            {
+                Symbols = table
+            };
+
+            _scopePath = new int[] { };
+        }
+
         public bool AddSymbol(Symbol symbol)
         {
             if (_scopePath.Length == 0)

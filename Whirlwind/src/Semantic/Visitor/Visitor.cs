@@ -104,5 +104,10 @@ namespace Whirlwind.Semantic.Visitor
         }
 
         public ITypeNode Result() => _nodes.First();
+
+        public SymbolTable Table()
+        {
+            return new SymbolTable(_table.Filter(s => s.Modifiers.Contains(Modifier.EXPORTED)));
+        }
     }
 }

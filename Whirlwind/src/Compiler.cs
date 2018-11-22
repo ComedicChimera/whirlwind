@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Linq;
+
 using Whirlwind.Parser;
 using Whirlwind.Semantic.Visitor;
+using Whirlwind.Semantic;
 
 namespace Whirlwind
 {
@@ -20,6 +22,12 @@ namespace Whirlwind
         }
 
         public void Build(string text)
+        {
+            var st = new SymbolTable();
+            Build(text, ref st);
+        }
+
+        public void Build(string text, ref SymbolTable table)
         {
             var tokens = _scanner.Scan(text);
 
@@ -60,6 +68,7 @@ namespace Whirlwind
                 return;
             }
 
+            table = visitor.Table();
             Console.WriteLine(visitor.Result().ToString());
         }
 
