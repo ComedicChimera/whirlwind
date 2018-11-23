@@ -16,15 +16,11 @@ namespace Whirlwind
         {
             string fileName = Console.ReadLine();
 
-            try
-            {
-                compiler = new Compiler("config/tokens.json", "config/grammar.ebnf");
-                packageManager.Import(fileName, new Parser.TextPosition());
-            }
-            catch (Semantic.Visitor.SemanticException)
-            {
+            compiler = new Compiler("config/tokens.json", "config/grammar.ebnf");
+            packageManager = new PackageManager.PackageManager();
+
+            if (!packageManager.ImportRaw(fileName))
                 Console.WriteLine($"Unable to open file at \'{fileName}\'.");
-            }
 
             Console.ReadKey();
         }

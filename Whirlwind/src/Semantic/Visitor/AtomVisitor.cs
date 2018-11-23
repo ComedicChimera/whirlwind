@@ -179,9 +179,9 @@ namespace Whirlwind.Semantic.Visitor
                         _visitSubscript(root.Type, node);
                         break;
                     case "{":
-                        int initCount = 1;
+                        int initCount = 0;
                         var positions = new List<TextPosition>();
-                        foreach (var item in ((ASTNode)node.Content[0]).Content)
+                        foreach (var item in ((ASTNode)node.Content[1]).Content)
                         {
                             if (item.Name == "TOKEN")
                             {
@@ -203,7 +203,7 @@ namespace Whirlwind.Semantic.Visitor
                         if (root.Type.Classify() == TypeClassifier.OBJECT)
                         {
                             var objInstance = ((ObjectType)root.Type).GetInstance();
-                            for (int i = 1; i < initCount; i++)
+                            for (int i = 1; i < initCount + 1; i++)
                             {
                                 var item = (ExprNode)_nodes[_nodes.Count - i];
                                 if (objInstance.GetProperty(((ValueNode)item.Nodes[0]).Value, out Symbol sym))
@@ -221,13 +221,14 @@ namespace Whirlwind.Semantic.Visitor
                         }
                         else if (root.Type.Classify() == TypeClassifier.STRUCT)
                         {
-                            var members = ((StructType)root).Members;
+                            var members = ((StructType)root.Type).Members;
+
                             if (initCount != members.Count)
                                 throw new SemanticException("Struct initializer list must initialize all struct members", node.Content[0].Position);
-                            for (int i = 1; i < initCount; i++)
+                            for (int i = 1; i < initCount + 1; i++)
                             {
                                 var item = (ExprNode)_nodes[_nodes.Count - i];
-                                string name = ((ValueNode)item.Nodes[0]).Value;
+                                string name = ((IdentifierNode)item.Nodes[0]).IdName;
                                 if (!members.ContainsKey(name))
                                     throw new SemanticException($"Struct has no member {name}", positions[i - 1]);
                                 if (!members[name].Coerce(item.Nodes[1].Type))

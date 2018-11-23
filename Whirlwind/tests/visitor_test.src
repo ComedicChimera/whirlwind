@@ -1,5 +1,15 @@
-﻿func main() {
-	$x = 3;
+﻿struct A {
+	a: int;
+	b: str;
+	c: double;
+}
 
-	x < 3 || x > 4;
+func print(v: int) {
+	$vf = cast<double>(v);
+}
+
+func main() {
+	$vec = new A { a=0, b="b", c=5.2 };
+
+	print(vec.a);
 } 

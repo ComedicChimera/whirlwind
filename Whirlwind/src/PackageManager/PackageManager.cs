@@ -14,15 +14,19 @@ namespace Whirlwind.PackageManager
 
         private static readonly string extension = ".wrl";
 
+        public PackageManager()
+        {
+            _pg = new PackageGraph();
+        }
+
         public SymbolTable Import(string name, TextPosition position)
         {
-            if (!OpenPackage(name.Replace("..", "../").Replace(".", "/") + extension, out string text))
+            if (OpenPackage(name.Replace("..", "../").Replace(".", "/") + extension, out string text))
             {
                 var st = new SymbolTable();
                 Program.compiler.Build(text, ref st);
 
-                if (!_pg.AddPackage(new Package(st, name.Split('.').Last())))
-                    throw new SemanticException("Unable to include package multiple times", position);
+                _pg.AddPackage(new Package(st, name.Split('.').Last()));
 
                 return st;
             }
@@ -35,18 +39,32 @@ namespace Whirlwind.PackageManager
             if (_pg.ContainsPackage(parent))
                 throw new SemanticException("Unable to recursively import package", position);
 
-            if (!OpenPackage(name.Replace("..", "../").Replace(".", "/"), out string text))
+            if (OpenPackage(name.Replace("..", "../").Replace(".", "/"), out string text))
             {
                 var st = new SymbolTable();
                 Program.compiler.Build(text, ref st);
 
-                if (!_pg.AddPackage(parent, new Package(st, name.Split('.').Last())))
-                    throw new SemanticException("Unable to include package multiple times", position);
+                _pg.AddPackage(parent, new Package(st, name.Split('.').Last()));
 
                 return st;
             }
             else
                 throw new SemanticException("Unable to include package", position);
+        }
+
+        public bool ImportRaw(string path)
+        {
+            if (OpenPackage(path, out string text))
+            {
+                var st = new SymbolTable();
+                Program.compiler.Build(text, ref st);
+
+                _pg.AddPackage(new Package(st, path.Split('/').Last().Split('.').First()));
+
+                return true;
+            }
+            else
+                return false;
         }
 
         public bool OpenPackage(string path, out string text)
