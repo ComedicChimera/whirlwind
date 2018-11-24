@@ -1,15 +1,26 @@
-﻿struct A {
-	a: int;
-	b: str;
-	c: double;
+﻿@null = 0;
+
+struct Node {
+	val: int;
+	left, right: *Node;
 }
 
-func print(v: int) {
-	$vf = cast<double>(v);
+func insert(root: *Node, val: int) {
+	if (root == null)
+		root = new Node { val = val, left = null, right = null };
+
+	if (root->val > val)
+		insert(root->left, val);
+	else
+		insert(root->right, val);
 }
 
 func main() {
-	$vec = new A { a=0, b="b", c=5.2 };
+	$arr = [2, 3, 0, 1, 5, 4, 7, 6, 8];
 
-	print(vec.a);
-} 
+	$root = new Node { val = arr[0], left = null, right = null };
+
+	for (i = 1; i < 9; i++) {
+		insert(&root, arr[i]);
+	}
+}

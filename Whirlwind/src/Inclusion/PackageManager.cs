@@ -6,7 +6,7 @@ using Whirlwind.Parser;
 using System.IO;
 using System.Linq;
 
-namespace Whirlwind.PackageManager
+namespace Whirlwind.Inclusion
 {
     class PackageManager
     {
