@@ -83,21 +83,28 @@ namespace Whirlwind.Semantic.Visitor
             IDataType valueType = new SimpleType();
 
             int sizeBack = 0;
-            bool isKeyPair = false;
+            bool isKeyPair = false, isCondition = false;
+
+            var body = new List<ASTNode>();
 
             foreach (var item in node.Content)
             {
                 if (item.Name == "expr")
                 {
-                    _visitExpr((ASTNode)item);
+                    if (isCondition)
+                    {
+                        _visitExpr((ASTNode)item);
 
-                    // second expr
-                    if (sizeBack == 1)
-                        elementType = _nodes.Last().Type;
-                    else if (isKeyPair && sizeBack == 2)
-                        valueType = _nodes.Last().Type;
+                        if (!new SimpleType(SimpleType.DataType.BOOL).Coerce(_nodes.Last().Type))
+                            throw new SemanticException("The condition of the comprehension must evaluate to a boolean", item.Position);
 
-                    sizeBack++;
+                        _nodes.Add(new ExprNode("Filter", new SimpleType(SimpleType.DataType.BOOL)));
+                        MergeBack();
+
+                        sizeBack++;
+                    }
+                    else
+                        body.Add((ASTNode)item);
                 }
                 else if (item.Name == "iterator")
                 {
@@ -107,18 +114,33 @@ namespace Whirlwind.Semantic.Visitor
                     _visitIterator((ASTNode)item);
 
                     sizeBack++;
+
+                    foreach (var expr in body)
+                    {
+                        _visitExpr(expr);
+
+                        // first expression
+                        if (sizeBack == 1)
+                            elementType = _nodes.Last().Type;
+                        else if (isKeyPair && sizeBack == 2)
+                            valueType = _nodes.Last().Type;
+
+                        sizeBack++;
+                    }
                 }
                 else if (item.Name == "TOKEN")
                 {
                     if (((TokenNode)item).Tok.Type == ":")
                         isKeyPair = true;
+                    else if (((TokenNode)item).Tok.Type == "WHERE")
+                        isCondition = true;
                 }
             }
 
             _table.AscendScope();
 
             if (isKeyPair)
-                _nodes.Add(new ExprNode("MapComprehension", new MapType(elementType, valueType)));
+                _nodes.Add(new ExprNode("DictComprehension", new DictType(elementType, valueType)));
             else
                 _nodes.Add(new ExprNode("Comprehension", new ListType(elementType)));
 
@@ -407,13 +429,13 @@ namespace Whirlwind.Semantic.Visitor
                 }
             }
 
-            if (rootType.Classify() == TypeClassifier.MAP)
+            if (rootType.Classify() == TypeClassifier.DICT)
             {
                 if (name != "Subscript")
                     throw new SemanticException("Unable to perform slice on a map", node.Position);
-                if (((MapType)rootType).KeyType.Coerce(_nodes.Last().Type))
+                if (((DictType)rootType).KeyType.Coerce(_nodes.Last().Type))
                 {
-                    _nodes.Add(new ExprNode(name, ((MapType)rootType).ValueType));
+                    _nodes.Add(new ExprNode(name, ((DictType)rootType).ValueType));
                     PushForward(2);
                 }
                 else
@@ -510,7 +532,7 @@ namespace Whirlwind.Semantic.Visitor
                     
             }
 
-            if (new[] { TypeClassifier.ARRAY, TypeClassifier.LIST, TypeClassifier.MAP, TypeClassifier.FUNCTION }.Contains(dt.Classify()))
+            if (new[] { TypeClassifier.ARRAY, TypeClassifier.LIST, TypeClassifier.DICT, TypeClassifier.FUNCTION }.Contains(dt.Classify()))
                 throw new SemanticException("Invalid data type for raw heap allocation", allocBody.Content[0].Position);
 
             if (!hasSizeExpr)

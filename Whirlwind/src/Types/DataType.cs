@@ -13,7 +13,7 @@
         SIMPLE,
         ARRAY,
         LIST,
-        MAP,
+        DICT,
         POINTER,
         STRUCT,
         STRUCT_INSTANCE,

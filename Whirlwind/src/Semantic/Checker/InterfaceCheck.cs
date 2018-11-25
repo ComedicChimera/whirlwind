@@ -23,7 +23,7 @@ namespace Whirlwind.Semantic.Checker
 
         public static bool Hashable(IDataType dt)
         {
-            if (new[] { TypeClassifier.ARRAY, TypeClassifier.MAP, TypeClassifier.LIST, TypeClassifier.FUNCTION, TypeClassifier.TUPLE }.Contains(dt.Classify()))
+            if (new[] { TypeClassifier.ARRAY, TypeClassifier.DICT, TypeClassifier.LIST, TypeClassifier.FUNCTION, TypeClassifier.TUPLE }.Contains(dt.Classify()))
                 return false;
             return true;
         }

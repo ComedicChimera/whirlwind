@@ -11,7 +11,9 @@ namespace Whirlwind.Semantic.Visitor
     {
         public void _visitIterator(ASTNode node)
         {
-            // expects previous node to be the iterable value
+            // knows last node is expr
+            _visitExpr((ASTNode)node.Content.Last());
+
             var iterable = _nodes.Last().Type;
             IDataType iteratorType;
 
@@ -22,8 +24,9 @@ namespace Whirlwind.Semantic.Visitor
             else
                 throw new SemanticException("Unable to create iterator over non-iterable value", node.Position);
 
-            // all are tokens
-            string[] identifiers = node.Content.Select(x => ((TokenNode)x).Tok)
+            string[] identifiers = node.Content
+                .Where(x => x.Name == "TOKEN")
+                .Select(x => ((TokenNode)x).Tok)
                 .Where(x => x.Type == "IDENTIFIER")
                 .Select(x => x.Value)
                 .ToArray();
@@ -31,21 +34,20 @@ namespace Whirlwind.Semantic.Visitor
             var iteratorTypes = iteratorType.Classify() == TypeClassifier.TUPLE ? ((TupleType)iteratorType).Types : new List<IDataType>() { iteratorType };
 
             if (identifiers.Length != iteratorTypes.Count)
-                throw new SemanticException("Base iterator and it's alias's don't match", node.Position);
+                throw new SemanticException("Base iterator and its aliases don't match", node.Position);
+
+            _nodes.Add(new ExprNode("Iterator", new SimpleType()));
+            // push forward base expression
+            PushForward();
 
             for (int i = 0; i < identifiers.Length; i++)
             {
                 _table.AddSymbol(new Symbol(identifiers[i], iteratorTypes[i], new List<Modifier>() { Modifier.CONSTANT }));
+
+                _nodes.Add(new IdentifierNode(identifiers[i], iteratorTypes[i], true));
             }
 
-            _nodes.Add(new ExprNode(
-                "Iterator",
-                new SimpleType(),
-                Enumerable.Range(0, identifiers.Length)
-                    .Select(i => new IdentifierNode(identifiers[i], iteratorTypes[i], true))
-                    .Select(x => x as ITypeNode)
-                    .ToList()
-            ));
+            MergeBack(identifiers.Length);
         }
 
         private IDataType _getIterableElementType(IDataType iterable)

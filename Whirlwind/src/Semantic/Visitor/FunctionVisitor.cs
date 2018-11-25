@@ -13,7 +13,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             bool isAsync = false;
             string name = "";
-            var parameters = new List<Parameter>();
+            var arguments = new List<Parameter>();
             IDataType dataType = new SimpleType();
             var namePosition = new TextPosition();
 
@@ -36,7 +36,7 @@ namespace Whirlwind.Semantic.Visitor
                                     break;
                                 case ";":
                                     {
-                                        _createFunction(parameters, dataType, name, namePosition, isAsync);
+                                        _createFunction(arguments, dataType, name, namePosition, isAsync);
                                         // try to complete body
                                     }
                                     break;
@@ -44,47 +44,21 @@ namespace Whirlwind.Semantic.Visitor
                         }
                         break;
                     case "args_decl_list":
-                        parameters = _generateArgsDecl((ASTNode)item);
+                        arguments = _generateArgsDecl((ASTNode)item);
                         break;
                     case "types":
                         dataType = _generateType((ASTNode)item);
                         break;
                     case "func_body":
                         {
-                            _createFunction(parameters, dataType, name, namePosition, isAsync);
+                            _createFunction(arguments, dataType, name, namePosition, isAsync);
 
                             _table.AddScope();
                             _table.DescendScope();
 
-                            // no symbol checking necessary since params have already been full filtered and override scope
-                            foreach (var param in parameters)
-                            {
-                                if (param.Indefinite)
-                                {
-                                    if (param.DataType.Classify() == TypeClassifier.SIMPLE && ((SimpleType)param.DataType).Type == SimpleType.DataType.VOID)
-                                    {
-                                        // add va_args param
-                                    }
-                                    else
-                                    {
-                                        _table.AddSymbol(new Symbol(
-                                            param.Name,
-                                            new ListType(param.DataType),
-                                            param.Constant ? new List<Modifier>() { Modifier.CONSTANT } : new List<Modifier>()
-                                            ));
-                                    }
-                                }
-                                else
-                                {
-                                    _table.AddSymbol(new Symbol(
-                                        param.Name,
-                                        param.DataType,
-                                        param.Constant ? new List<Modifier>() { Modifier.CONSTANT } : new List<Modifier>() 
-                                    ));
-                                }
-                            }
-
+                            _declareArgs(arguments);
                             _visitFuncBody((ASTNode)item);
+
                             _table.AscendScope();
                         }
                         break;
@@ -108,6 +82,37 @@ namespace Whirlwind.Semantic.Visitor
                 _exported ? new List<Modifier>() { Modifier.EXPORTED, Modifier.CONSTANT }
                 : new List<Modifier>() { Modifier.CONSTANT })))
                 throw new SemanticException($"Unable to redeclare symbol by name {name}", namePosition);
+        }
+
+        private void _declareArgs(List<Parameter> args)
+        {
+            // no symbol checking necessary since params have already been full filtered and override scope
+            foreach (var arg in args)
+            {
+                if (arg.Indefinite)
+                {
+                    if (arg.DataType.Classify() == TypeClassifier.SIMPLE && ((SimpleType)arg.DataType).Type == SimpleType.DataType.VOID)
+                    {
+                        // add va_args param
+                    }
+                    else
+                    {
+                        _table.AddSymbol(new Symbol(
+                            arg.Name,
+                            new ListType(arg.DataType),
+                            arg.Constant ? new List<Modifier>() { Modifier.CONSTANT } : new List<Modifier>()
+                            ));
+                    }
+                }
+                else
+                {
+                    _table.AddSymbol(new Symbol(
+                        arg.Name,
+                        arg.DataType,
+                        arg.Constant ? new List<Modifier>() { Modifier.CONSTANT } : new List<Modifier>()
+                    ));
+                }
+            }
         }
 
         private IDataType _visitFuncBody(ASTNode node)
@@ -268,22 +273,12 @@ namespace Whirlwind.Semantic.Visitor
                             case "TOKEN":
                                 if (((TokenNode)argPart).Tok.Type == "IDENTIFIER")
                                     identifiers.Add(((TokenNode)argPart).Tok.Value);
+                                else if (((TokenNode)argPart).Tok.Type == "@")
+                                    constant = true;
                                 break;
-                            case "arg_ext":
-                                foreach (var extensionPart in ((ASTNode)argPart).Content)
-                                {
-                                    if (extensionPart.Name == "types")
-                                    {
-                                        paramType = _generateType((ASTNode)extensionPart);
-                                        setParamType = true;
-                                    }
-                                    else if (extensionPart.Name == "TOKEN")
-                                    {
-                                        if (((TokenNode)extensionPart).Tok.Type == "@")
-                                            constant = true;
-                                    }
-                                }
-                                
+                            case "extension":
+                                paramType = _generateType((ASTNode)((ASTNode)argPart).Content[1]);
+                                setParamType = true;
                                 break;
                             case "initializer":
                                 _visitExpr((ASTNode)((ASTNode)argPart).Content[1]);
@@ -319,19 +314,8 @@ namespace Whirlwind.Semantic.Visitor
 
                     foreach (var item in ((ASTNode)subNode).Content)
                     {
-                        if (item.Name == "arg_ext")
-                        {
-                            foreach (var extensionPart in ((ASTNode)item).Content)
-                            {
-                                if (extensionPart.Name == "types")
-                                    dt = _generateType((ASTNode)extensionPart);
-                                else if (extensionPart.Name == "TOKEN")
-                                {
-                                    if (((TokenNode)extensionPart).Tok.Type == "@")
-                                        constant = true;
-                                }
-                            }
-                        }
+                        if (item.Name == "extension")
+                            dt = _generateType((ASTNode)((ASTNode)item).Content[1]);
                         else if (item.Name == "TOKEN" && ((TokenNode)item).Tok.Type == "IDENTIFIER")
                             name = ((TokenNode)item).Tok.Value;
                     }
@@ -377,6 +361,7 @@ namespace Whirlwind.Semantic.Visitor
 
             if (argsList.Where(x => x.HasName).GroupBy(x => x.Name).Any(x => x.Count() > 1))
                 throw new SemanticException("Unable to initialize named argument with two different values", node.Position);
+
             return argsList;
         }
     }

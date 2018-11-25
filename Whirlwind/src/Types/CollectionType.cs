@@ -59,27 +59,27 @@ namespace Whirlwind.Types
         public IDataType GetIterator() => ElementType;
     }
 
-    class MapType : IDataType, IIterable
+    class DictType : IDataType, IIterable
     {
         public readonly IDataType KeyType, ValueType;
 
-        public MapType(IDataType keyType, IDataType valueType)
+        public DictType(IDataType keyType, IDataType valueType)
         {
             KeyType = keyType;
             ValueType = valueType;
         }
 
-        public TypeClassifier Classify() => TypeClassifier.MAP;
+        public TypeClassifier Classify() => TypeClassifier.DICT;
 
         public bool Coerce(IDataType other)
         {
-            if (other.Classify() == TypeClassifier.MAP)
+            if (other.Classify() == TypeClassifier.DICT)
             {
-                return KeyType == ((MapType)other).KeyType && ValueType == ((MapType)other).ValueType;
+                return KeyType.Coerce(((DictType)other).KeyType) && ValueType.Coerce(((DictType)other).ValueType);
             }
             return false;
         }
 
-        public IDataType GetIterator() => new TupleType(new List<IDataType>() { KeyType, ValueType });
+        public IDataType GetIterator() => KeyType;
     }
 }

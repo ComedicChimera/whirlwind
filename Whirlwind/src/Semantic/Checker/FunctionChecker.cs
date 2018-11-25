@@ -32,7 +32,7 @@ namespace Whirlwind.Semantic.Checker
             position = 0;
             foreach (var param in values)
             {
-                var fnParameter = param.HasName ? parameterDictionary[param.Name]: fn.Parameters[position];
+                var fnParameter = param.HasName ? parameterDictionary[param.Name] : fn.Parameters[position];
 
                 if (fnParameter.DataType.Coerce(param.DataType) && !setParameters[fnParameter.Name])
                 {

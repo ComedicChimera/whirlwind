@@ -188,42 +188,25 @@ namespace Whirlwind.Semantic.Visitor
             {
                 var body = (ASTNode)node.Content[1];
 
-                bool iterableFor = true;
-
                 foreach (var subNode in body.Content)
                 {
-                    if (subNode.Name == "TOKEN" && ((TokenNode)subNode).Tok.Type == "(")
+                    if (subNode.Name == "expr")
                     {
-                        iterableFor = false;
-                    }
-                    else if (subNode.Name == "expr")
-                    {
-                        if (iterableFor)
-                        {
-                            _nodes.Add(new BlockNode("ForIter"));
-                            _visitExpr((ASTNode)subNode);
+                        _nodes.Add(new BlockNode("ForCondition"));
+                        _visitExpr((ASTNode)subNode);
 
-                            if (!Iterable(_nodes.Last().Type))
-                                throw new SemanticException("Operand of iterator for loop must be iterable", subNode.Position);
+                        if (!new SimpleType(SimpleType.DataType.BOOL).Coerce(_nodes.Last().Type))
+                            throw new SemanticException("Condition of for loop must be a boolean", subNode.Position);
 
-                            // wait for iterator before merging
-                        }
-                        else
-                        {
-
-                            _nodes.Add(new BlockNode("ForCondition"));
-                            _visitExpr((ASTNode)subNode);
-
-                            if (!new SimpleType(SimpleType.DataType.BOOL).Coerce(_nodes.Last().Type))
-                                throw new SemanticException("Condition of for loop must be a boolean", subNode.Position);
-
-                            MergeBack();
-                        }
+                        MergeBack();
                     }
                     else if (subNode.Name == "iterator")
                     {
+                        _nodes.Add(new BlockNode("ForIter"));
+
                         _visitIterator((ASTNode)subNode);
-                        MergeBack(2);
+
+                        MergeBack();
                     }
                     else if (subNode.Name == "c_for")
                     {

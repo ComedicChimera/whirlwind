@@ -160,8 +160,8 @@ namespace Whirlwind.Semantic.Visitor
                                 case "LIST_TYPE":
                                     collectionType = "list";
                                     break;
-                                case "MAP_TYPE":
-                                    collectionType = "map";
+                                case "DICT_TYPE":
+                                    collectionType = "dict";
                                     break;
                             }
                         }
@@ -194,14 +194,16 @@ namespace Whirlwind.Semantic.Visitor
                             return new ArrayType(subTypes[0], size);
                         case "list":
                             return new ListType(subTypes[0]);
-                        case "map":
+                        case "dict":
                             if (!Hashable(subTypes[0]))
                             {
-                                throw new SemanticException("Unable to create map with an unhashable type", subNode.Position);
+                                throw new SemanticException("Unable to create dictionary with an unhashable type", subNode.Position);
                             }
-                            return new MapType(subTypes[0], subTypes[1]);
+                            return new DictType(subTypes[0], subTypes[1]);
                     }
                 }
+                else if (subNode.Name == "tuple_type")
+                    return new TupleType(_generateTypeList((ASTNode)((ASTNode)subNode).Content[1]));
                 // assume function type
                 else
                 {

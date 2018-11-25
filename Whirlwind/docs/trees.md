@@ -57,17 +57,18 @@ A multi-value structure or some form of operation.
 | ---- | ---------- | ------- |
 | Array | *Array Elements* | An array |
 | List | *List Elements* | A list |
-| Map | *Map Pairs* | An array of key value pairs |
-| MapPair | Key, Value | A single key value pair |
+| Dictionary | *KV Pairs* | An array of key value pairs |
+| KVPair | Key, Value | A single key value pair |
 | Tuple | *Tuple Elements* | A tuple |
 | Closure | *Parameters*, Function Body | A closure object |
 | TypeCast | Value | A type cast - return type is desired type | 
 | HeapAlloc | Size | Allocate a set amount of memory on the heap |
 | HeapAllocType | Type | Allocate enough memory to store a given type |
 | Await | Async Function | Set a function to run on the current thread |
-| MapComprehension | Root, Iterator, Expression, \[Filter\] | Perform a map comprehension |
-| Comprehension | Root, Iterator, Expression, \[Filter\] | Perform a comprehension |
-| Iterator | *Identifiers* | Create an iterator over the some list |
+| DictComprehension | Iterator, Expression, Expression, \[Filter\] | Perform a map comprehension |
+| Comprehension | Iterator, Expression, \[Filter\] | Perform a comprehension |
+| Filter | expr | A filter component for a comprehension |
+| Iterator | Root, *Identifiers* | Create an iterator over the some iterable |
 | CreateTemplate | Template | Converts a template to a value, return type is template type |
 | GetMember | Root, Identifier | Gets a member of a struct, object or other type |
 | InitList | *Initializers* | Create an instance from an initializer list |
@@ -134,7 +135,6 @@ ExprNodes made specifically for use in certain block statements (`if`, `else`, e
 | Name | Parameters | Purpose |
 | ---- | ---------- | ------- |
 | CForExpr | \[IterVarDecl\] \[CForCondition\] \[CForUpdateExpr \| CForUpdateAssignment \] | Contains the contents of the C-style for loop |
-| IterVarDecl | Identifier, Expr | The iterator variable declared in a C-style for loop |
 | CForCondition | Expr | The end condition of a C-style for loop |
 | CForUpdateExpr | Expr | The expression to be called each cycle of a C-style for loop |
 | CForUpdateAssignment | Assignment | The assignment statement to evaluated after each cycle of a C-Style for loop |
@@ -196,7 +196,7 @@ Represents a single Whirlwind block statement or declaration.
 | Case | *Expr* | A case block of a select statement |
 | Default | `none` | The default block of a select statement |
 | ForInfinite | `none` | An infinite loop |
-| ForIter | Expr, Iterator | A foreach / for-iterator loop |
+| ForIter | Iterator | A foreach / for-iterator loop |
 | ForCondition | Expr | A conditional for loop (while loop) |
 | CFor | CForExpr | A C-style for loop |
 | Except | *Handle* | A block that contains a series of handles |

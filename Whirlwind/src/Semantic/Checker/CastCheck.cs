@@ -42,9 +42,9 @@ namespace Whirlwind.Semantic.Checker
                     else if (desired.Classify() == TypeClassifier.POINTER)
                         return TypeCast((start as IIterable).GetIterator(), ((PointerType)desired).Type);
                     break;
-                case TypeClassifier.MAP:
-                    if (desired.Classify() == TypeClassifier.MAP)
-                        return TypeCast(((MapType)start).KeyType, ((MapType)desired).KeyType) && TypeCast(((MapType)start).ValueType, ((MapType)desired).ValueType);
+                case TypeClassifier.DICT:
+                    if (desired.Classify() == TypeClassifier.DICT)
+                        return TypeCast(((DictType)start).KeyType, ((DictType)desired).KeyType) && TypeCast(((DictType)start).ValueType, ((DictType)desired).ValueType);
                     break;
                 case TypeClassifier.POINTER:
                     if (desired.Classify() == TypeClassifier.POINTER)

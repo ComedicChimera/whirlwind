@@ -37,7 +37,7 @@ namespace Whirlwind.Semantic.Checker
                 case "/":
                 case "~/":
                 case "%":
-                case "^":
+                case "~^":
                     {
                         if (Numeric(operandType))
                         {

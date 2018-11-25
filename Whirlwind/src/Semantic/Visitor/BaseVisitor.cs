@@ -84,11 +84,11 @@ namespace Whirlwind.Semantic.Visitor
                         if (list.Item2 > 0)
                             PushForward(list.Item2);
                         break;
-                    case "map":
-                        var map = _visitMap((ASTNode)node.Content[0]);
-                        _nodes.Add(new ExprNode("Map", new MapType(map.Item1, map.Item2)));
+                    case "dict":
+                        var dict = _visitDict((ASTNode)node.Content[0]);
+                        _nodes.Add(new ExprNode("Dictionary", new DictType(dict.Item1, dict.Item2)));
                         // will default to array if value is too small, so check not needed
-                        PushForward(map.Item3);
+                        PushForward(dict.Item3);
                         break;
                     case "closure":
                         _visitClosure((ASTNode)node.Content[0]);
@@ -124,7 +124,7 @@ namespace Whirlwind.Semantic.Visitor
             return new Tuple<IDataType, int>(elementType, size);
         }
 
-        private Tuple<IDataType, IDataType, int> _visitMap(ASTNode node)
+        private Tuple<IDataType, IDataType, int> _visitDict(ASTNode node)
         {
             IDataType keyType = new SimpleType(), valueType = new SimpleType();
             bool isKey = true;
@@ -149,7 +149,7 @@ namespace Whirlwind.Semantic.Visitor
                     {
                         _coerceSet(ref valueType, element.Position);
                         // map pairs hold the key type
-                        _nodes.Add(new ExprNode("MapPair", keyType));
+                        _nodes.Add(new ExprNode("KVPair", keyType));
                         // add 2 expr nodes to map pair
                         PushForward(2);
                     }
@@ -244,16 +244,19 @@ namespace Whirlwind.Semantic.Visitor
             {
                 switch (item.Name)
                 {
-                    case "TOKEN":
-                        if (((TokenNode)item).Tok.Type == "ASYNC")
-                            async = true;
-                        break;
                     case "args_decl_list":
                         args = _generateArgsDecl((ASTNode)item);
                         break;
-                    case "func_body":
-                        _nodes.Add(new BlockNode("FunctionBody"));
+                    case "closure_body":
+                        _nodes.Add(new BlockNode("ClosureBody"));
+
+                        _table.AddScope();
+                        _table.DescendScope();
+
+                        _declareArgs(args);
                         rtType = _visitFuncBody((ASTNode)item);
+
+                        _table.AscendScope();
                         break;
                 }
             }

@@ -1,7 +1,14 @@
-﻿include { Println } from stdio;
+﻿func items(@d: dict[int, str]) list[(int, str)] => for(k: d[k] | k <- d);
 
-func test();
 
 func main() {
-	$y = &vol 1;
+	$d: dict[int, str];
+
+	for(k * 2 | k <- d where k % 2 == 0);
+
+	for (k, v <- items(d)) {
+		k ~^ v;
+	}
+
+	|a: int, b: int| => a + b;
 }

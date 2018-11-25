@@ -98,10 +98,7 @@ default: 'DEFAULT' ':' main ;
 
 // for loop
 for_loop: 'FOR' [for_body] block ;
-for_body: '(' (c_for | expr) ')'
-| expr iterator '=>'
-;
-
+for_body: '(' (c_for | iterator | expr) ')' ;
 c_for: ['IDENTIFIER' '=' expr] ';' [expr] ';' [expr | assignment] ;
 
 // except block
@@ -204,7 +201,7 @@ shift_op: '>' '>' | '<' '<';
 // arithmetic
 arithmetic: term (('+' | '-') term)* ;
 term: factor (('*' | '/' | '%' | '~/') factor)* ;
-factor: unary_atom ('^' unary_atom)*;
+factor: unary_atom ('~^' unary_atom)*;
 
 // unary operators
 unary_atom: ('&' ['VOL'] | '-' | '~' | '++' | '--' | '*'+) atom
@@ -235,7 +232,7 @@ named_arg: 'IDENTIFIER' initializer ;
 init_list: 'IDENTIFIER' initializer (',' 'IDENTIFIER' initializer)* ;
 
 // for comprehension
-comprehension: 'FOR' '(' expr iterator '=>' expr [':' expr] ['IF' expr] ')' ;
+comprehension: 'FOR' '(' expr [':' expr] '|' iterator ['WHERE' expr] ')' ;
 
 // allocate a type on the heap
 heap_alloc: 'NEW' '(' alloc_body ')' ;
@@ -254,7 +251,7 @@ base: 'INTEGER_LITERAL'
 | 'IDENTIFIER'
 | array
 | list
-| map
+| dict
 | tuple
 | closure
 | sub_expr
@@ -264,14 +261,15 @@ base: 'INTEGER_LITERAL'
 // collection types
 array: '{' expr ( ',' expr )* '}' ;
 list: '[' expr ( ',' expr )* ']' ;
-map: '{' expr ':' expr (',' expr ':' expr)* '}' ;
+dict: '{' expr ':' expr (',' expr ':' expr)* '}' ;
 
 // tuple literal
 tuple: '(' expr (',' expr)+ ')' ;
 
-// both inline functions (closures)
-closure: 'FUNC' '(' args_decl_list ')' func_body
-| 'ASYNC' '(' args_decl_list ')' func_body
+// inline functions (closures)
+closure: '|' args_decl_list '|' closure_body ;
+closure_body: '=>' expr
+| '{' [main] '}'
 ;
 
 // sub expr declared so that it could be easier to parse
@@ -306,7 +304,7 @@ simple_types: 'BOOL_TYPE'
 
 collection_types: 'ARRAY_TYPE' '[' types ',' expr ']'
 | 'LIST_TYPE' '[' types ']'
-| 'MAP_TYPE' '[' types ',' types ']'
+| 'DICT_TYPE' '[' types ',' types ']'
 ;
 
 func_types: 'FUNC' '(' args_decl_list ')' '(' type_list ')'
@@ -320,12 +318,11 @@ tuple_type: '(' type_list ')' ;
 type_list: types (',' types)* ;
 
 args_decl_list: [ decl_arg (',' decl_arg)* [',' ending_arg] | ending_arg ] ;
-decl_arg: 'IDENTIFIER' (',' 'IDENTIFIER')* arg_ext [initializer] ;
-arg_ext: ':' ['@'] types ;
-ending_arg: '...' 'IDENTIFIER' [ arg_ext ] ;
+decl_arg: ['@'] 'IDENTIFIER' (',' 'IDENTIFIER')* extension [initializer] ;
+ending_arg: '...' 'IDENTIFIER' extension ;
 
 initializer: '=' expr ;
-iterator: '|' 'IDENTIFIER' (',' 'IDENTIFIER')* '|' ;
+iterator: 'IDENTIFIER' (',' 'IDENTIFIER')* '<-' expr ;
 template_spec: '<' type_list '>' ;
 
 // type extension
