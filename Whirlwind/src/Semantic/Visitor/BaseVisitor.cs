@@ -101,17 +101,6 @@ namespace Whirlwind.Semantic.Visitor
                     case "type_cast":
                         _visitTypeCast((ASTNode)node.Content[0]);
                         break;
-                    case "sizeof":
-                        var typeExpr = (ASTNode)((ASTNode)node.Content[0]).Content[2];
-                        _nodes.Add(new ExprNode("SizeOf", new SimpleType(SimpleType.DataType.INTEGER, true)));
-
-                        if (typeExpr.Name == "types")
-                            _nodes.Add(new ValueNode("DataType", _generateType(typeExpr)));
-                        else
-                            _visitExpr(typeExpr);
-
-                        MergeBack();
-                        break;
                     case "tuple":
                         _visitTuple((ASTNode)node.Content[0]);
                         break;

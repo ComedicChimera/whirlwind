@@ -18,13 +18,11 @@ namespace Whirlwind.Semantic
     {
         public readonly SymbolTable ExternalTable;
         public readonly string Name;
-        public bool Used;
 
-        public Package(SymbolTable eTable, string name, bool used = false)
+        public Package(SymbolTable eTable, string name)
         {
             ExternalTable = eTable;
             Name = name;
-            Used = used;
         }
 
         public bool Coerce(IDataType _) => false;

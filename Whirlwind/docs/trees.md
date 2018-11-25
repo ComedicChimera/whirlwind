@@ -62,7 +62,6 @@ A multi-value structure or some form of operation.
 | Tuple | *Tuple Elements* | A tuple |
 | Closure | *Parameters*, Function Body | A closure object |
 | TypeCast | Value | A type cast - return type is desired type | 
-| SizeOf | Value / Type | Size Of operator |
 | HeapAlloc | Size | Allocate a set amount of memory on the heap |
 | HeapAllocType | Type | Allocate enough memory to store a given type |
 | Await | Async Function | Set a function to run on the current thread |
@@ -73,8 +72,6 @@ A multi-value structure or some form of operation.
 | GetMember | Root, Identifier | Gets a member of a struct, object or other type |
 | InitList | *Initializers* | Create an instance from an initializer list |
 | Intializer | Identifier, expr | Initializer a given value in an initializer list |
-| FunctionAggregator | Root, AggrFn | Call an aggregator using a function |
-| OperatorAggregator | Root, Operator | Call an aggregator using an operator |
 | Call | Function, *Arguments* | Call a normal function with given arguments |
 | CallAsync | AsyncFunction, *Arguments* | Call an async function with the given arguments |
 | CallConstructor | obj, *Arguments* | Call an object constructor |
@@ -115,9 +112,6 @@ A multi-value structure or some form of operation.
 | Floordiv | *Values* | Perform a floor division operation |
 | InlineComparison | Comparison Expr, Option1, Option2 | Perform an inline comparison |
 | NullCoalesce | NullableExpr, DefaultExpr | Perform a null coalescion operation |
-| SelectExpr | *SelectCondition*+, Select Closer | Perform an inline select operation |
-| SelectCondition | Condition, Expr | Represents a single unit of a select expression |
-| SelectCloser | Expr | Represents the closing result of a select expression |
 
 ### Statement Components
 
@@ -205,8 +199,6 @@ Represents a single Whirlwind block statement or declaration.
 | ForIter | Expr, Iterator | A foreach / for-iterator loop |
 | ForCondition | Expr | A conditional for loop (while loop) |
 | CFor | CForExpr | A C-style for loop |
-| Repeat | Count | A do-repeat loop |
-| DoFor | Condition | A do-for loop |
 | Except | *Handle* | A block that contains a series of handles |
 | Handle | Expression, Identifier | A single handle expression |
 | FromStmt | Expr, Identifier, [FromExcept] | A from borrow statement |

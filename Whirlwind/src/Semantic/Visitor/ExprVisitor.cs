@@ -17,8 +17,6 @@ namespace Whirlwind.Semantic.Visitor
             {
                 if (subNode.Name == "or")
                     _visitLogical((ASTNode)subNode);
-                else if (subNode.Name == "select_expr")
-                    _visitSelectExpr((ASTNode)subNode);
                 else if (subNode.Name == "expr_extension")
                 {
                     string op = "";
@@ -56,62 +54,6 @@ namespace Whirlwind.Semantic.Visitor
                     }
                 }
             }
-        }
-
-        private void _visitSelectExpr(ASTNode node)
-        {
-            var typeList = new List<Tuple<IDataType, TextPosition>>();
-
-            foreach (var item in node.Content)
-            {
-                if (item.Name == "select_condition")
-                {
-                    var selectCondition = (ASTNode)item;
-
-                    // select_condition -> ? > expr < : expr ;
-                    _visitExpr((ASTNode)selectCondition.Content[1]);
-
-                    if (!(_nodes.Last().Type.Classify() == TypeClassifier.SIMPLE && ((SimpleType)_nodes.Last().Type).Type == SimpleType.DataType.BOOL))
-                        throw new SemanticException("Select condition must be a boolean value", selectCondition.Content[1].Position);
-
-                    // select_condition -> ? expr : > expr < ;
-                    _visitExpr((ASTNode)selectCondition.Content[3]);
-
-                    typeList.Add(new Tuple<IDataType, TextPosition>(_nodes.Last().Type, selectCondition.Content[3].Position));
-
-                    _nodes.Add(new ExprNode("SelectCondition", _nodes.Last().Type));
-                    PushForward(2);
-                }
-                else if (item.Name == "select_closer")
-                {
-                    // select_condition -> : > expr < ;
-                    _visitExpr((ASTNode)((ASTNode)item).Content[1]);
-
-                    _nodes.Add(new ExprNode("SelectCloser", _nodes.Last().Type));
-                    PushForward();
-
-                    typeList.Add(new Tuple<IDataType, TextPosition>(_nodes.Last().Type, ((ASTNode)item).Content[1].Position));
-                }
-            }
-
-            IDataType returnType = new SimpleType();
-
-            foreach (var item in typeList)
-            {
-                if (returnType.Classify() == TypeClassifier.SIMPLE && ((SimpleType)returnType).Type == SimpleType.DataType.VOID)
-                    returnType = item.Item1;
-
-                else if (!returnType.Coerce(item.Item1))
-                {
-                    if (item.Item1.Coerce(returnType))
-                        returnType = item.Item1;
-                    else
-                        throw new SemanticException("All conditions must return similar types", item.Item2);
-                }
-            }
-
-            _nodes.Add(new ExprNode("SelectExpr", returnType));
-            PushForward(typeList.Count);
         }
 
         private void _visitLogical(ASTNode node)

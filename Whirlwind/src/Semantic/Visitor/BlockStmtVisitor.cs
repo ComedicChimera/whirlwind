@@ -38,9 +38,6 @@ namespace Whirlwind.Semantic.Visitor
                             case "for_loop":
                                 _visitForLoop(blockStatement, context);
                                 break;
-                            case "do_loop":
-                                _visitDoLoop(blockStatement, context);
-                                break;
                             case "except_block":
                                 _visitExceptBlock(blockStatement, context);
                                 break;
@@ -315,46 +312,6 @@ namespace Whirlwind.Semantic.Visitor
                     _visitAssignment((ASTNode)item);
                     _nodes.Add(new ExprNode("CForUpdateAssignment", new SimpleType()));
                     PushForward();
-
-                    MergeBack();
-                }
-            }
-        }
-
-        private void _visitDoLoop(ASTNode blockStmt, StatementContext context)
-        {
-            context.BreakValid = true;
-            context.ContinueValid = true;
-
-            bool doForLoop = true;
-
-            foreach (var node in blockStmt.Content)
-            {
-                if (node.Name == "expr")
-                {
-                    _nodes.Add(new BlockNode("Repeat"));
-                    _visitExpr((ASTNode)node);
-
-                    if (!new SimpleType(SimpleType.DataType.INTEGER, true).Coerce(_nodes.Last().Type))
-                        throw new SemanticException("Count of do loop must be an unsigned integer", node.Position);
-
-                    MergeBack();
-
-                    doForLoop = false;
-                }
-                else if (node.Name == "Block")
-                {
-                    if (doForLoop)
-                        _nodes.Add(new BlockNode("DoFor"));
-
-                    _visitBlockNode((ASTNode)node, context);
-                }
-                else if (node.Name == "do_for")
-                {
-                    _visitExpr((ASTNode)((ASTNode)node).Content[2]);
-
-                    if (!new SimpleType(SimpleType.DataType.BOOL).Coerce(_nodes.Last().Type))
-                        throw new SemanticException("Condition do-for loop must be a boolean", ((ASTNode)node).Content[2].Position);
 
                     MergeBack();
                 }

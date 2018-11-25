@@ -243,58 +243,6 @@ namespace Whirlwind.Semantic.Visitor
                     case "(":
                         _visitFunctionCall(node, root);
                         break;
-                    case "|>":
-                        if (!Iterable(root.Type))
-                            throw new SemanticException("Aggregated type must be iterable", node.Content[0].Position);
-
-                        var iteratorType = _getIterableElementType(root.Type);
-
-                        if (node.Content[1].Name == "expr")
-                        {
-                            _visitExpr((ASTNode)node.Content[1]);
-
-                            if (_nodes.Last().Type.Classify() == TypeClassifier.FUNCTION)
-                            {
-                                bool check1 = !CheckParameters((FunctionType)_nodes.Last().Type, new List<ParameterValue>() {
-                                    new ParameterValue(iteratorType),
-                                    new ParameterValue(iteratorType)
-                                }).IsError;
-
-                                var aggrFnReturnType = ((FunctionType)_nodes.Last().Type).ReturnType;
-
-                                bool check2 = !CheckParameters((FunctionType)_nodes.Last().Type, new List<ParameterValue>() {
-                                    new ParameterValue(aggrFnReturnType),
-                                    new ParameterValue(iteratorType)
-                                }).IsError;
-
-                                if (check1 && check2)
-                                {
-                                    _nodes.Add(new ExprNode("FunctionAggregator", aggrFnReturnType));
-                                    PushForward(2);
-                                }
-                                else
-                                    throw new SemanticException("The given function is not valid as an aggregator for the given iterable", node.Content[1].Position);
-                            }
-                            else
-                                throw new SemanticException("Aggregator expression must be a function", node.Content[1].Position);
-                        }
-                        // add in operator aggregator
-                        else
-                        {
-                            string op = ((TokenNode)node.Content[2]).Tok.Type;
-
-                            IDataType rootType = iteratorType;
-                            // check first with default root type
-                            CheckOperand(ref rootType, iteratorType, op, node.Content[2].Position);
-                            // check with changed root type
-                            if (rootType != iteratorType)
-                                CheckOperand(ref rootType, iteratorType, op, node.Content[2].Position);
-
-                            _nodes.Add(new ValueNode("Operator", new SimpleType(), op));
-                            _nodes.Add(new ExprNode("OperatorAggregator", rootType));
-                            PushForward(2);
-                        }
-                        break;
                 }
             }
         }

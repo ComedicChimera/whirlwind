@@ -15,7 +15,7 @@ main: ( func_decl
 subscope: '{' main '}' ;
 
 // include statement
-include_stmt: ['USE'] 'INCLUDE' ( pkg_name ['STRING_LITERAL'] | include_set 'FROM' pkg_name ) ;
+include_stmt: 'INCLUDE' ( pkg_name ['STRING_LITERAL'] | include_set 'FROM' pkg_name ) ;
 pkg_name: [pkg_back_move] 'IDENTIFIER' ('.' 'IDENTIFIER' | pkg_back_move )* ;
 pkg_back_move: '.' '.' ;
 include_set: '{' 'IDENTIFIER' (',' 'IDENTIFIER')* '}' ;
@@ -82,7 +82,6 @@ variant: '<' type_list '>' ;
 block_stmt: if_stmt
 | select_stmt
 | for_loop
-| do_loop
 | except_block
 | from_block
 ;
@@ -105,10 +104,6 @@ for_body: '(' (c_for | expr) ')'
 ;
 
 c_for: ['IDENTIFIER' '=' expr] ';' [expr] ';' [expr | assignment] ;
-
-// do loop
-do_loop: 'DO' (block do_for | '(' expr ')' block ) ;
-do_for: 'FOR' '(' expr ')' ';' ;
 
 // except block
 except_block: 'EXCEPT' '(' handle_block+ ')' block ;
@@ -188,15 +183,10 @@ yield_stmt: 'YIELD' expr (',' expr)* ;
 
 
 // EXPRESSIONS - basic unit of statements 
-expr: or [expr_extension] | select_expr ;
+expr: or [expr_extension] ;
 expr_extension: '?' or ':' or
 | ('??' or)+
 ;
-
-// select expression
-select_expr: 'SELECT' '{' select_condition+ select_closer '}' ;
-select_condition: '?' expr '=>' expr ';' ;
-select_closer: ':' expr ';' ;
 
 // logical operators
 or: xor ('OR' xor)* ;
@@ -233,7 +223,6 @@ trailer: '[' (expr [slice] | slice) ']'
 | '(' args_list ')'
 | '{' init_list '}'
 | '.' 'IDENTIFIER'
-| '|>' aggr_expr '|'
 | '->' 'IDENTIFIER'
 | template_spec
 ;
@@ -245,16 +234,6 @@ arg: named_arg
 | expr ;
 named_arg: 'IDENTIFIER' initializer ;
 init_list: 'IDENTIFIER' initializer (',' 'IDENTIFIER' initializer)* ;
-
-// aggregator
-aggr_expr: expr
-| '...' aggr_op
-;
-aggr_op: '+' | '-' | '*' | '/' | '^' | '%' 
-| '&&' | '||' | '^^' 
-| '>>' | '<<' | '>>>'
-| comparison_op
-;
 
 // for comprehension
 comprehension: 'FOR' '(' expr iterator '=>' expr [':' expr] ['IF' expr] ')' ;
@@ -281,7 +260,6 @@ base: 'INTEGER_LITERAL'
 | closure
 | sub_expr
 | type_cast
-| sizeof
 ;
 
 // collection types
@@ -302,9 +280,6 @@ sub_expr: '(' expr ')' ;
 
 // casting syntax includes call
 type_cast: 'CAST' '<' types '>' '(' expr ')' ;
-
-// size of operator call
-sizeof: 'SIZEOF' '(' ( types | expr ) ')' ;
 
 
 // DATA TYPES - data type literals
