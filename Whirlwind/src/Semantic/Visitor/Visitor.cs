@@ -50,6 +50,13 @@ namespace Whirlwind.Semantic.Visitor
                         _visitVarDecl((ASTNode)node, new List<Modifier>());
                         break;
                     // add any logic surrounding includes and export declarations
+                    case "export_decl":
+                        break;
+                    case "include_stmt":
+                        break;
+                    // catches rogue tokens and things of the like
+                    default:
+                        continue;
                 }
 
                 MergeToBlock();
@@ -104,5 +111,10 @@ namespace Whirlwind.Semantic.Visitor
         }
 
         public ITypeNode Result() => _nodes.First();
+
+        public SymbolTable Table()
+        {
+            return new SymbolTable(_table.Filter(s => s.Modifiers.Contains(Modifier.EXPORTED)));
+        }
     }
 }

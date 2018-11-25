@@ -1,27 +1,26 @@
 ﻿using System;
-using System.IO;
+
+using Whirlwind.Inclusion;
 
 namespace Whirlwind
 {
     class Program
     {
-        // reconfigure to use command line args for the final build
+        public static Compiler compiler;
+
+        public static PackageManager packageManager;
+
+        // TODO - reconfigure to use command line args for the final build
+        // TODO - change directory to whirlpath environment variable
         static void Main(string[] args)
         {
             string fileName = Console.ReadLine();
-            string text;
-            try
-            {
-                text = File.ReadAllText(fileName);
-            } catch (FileNotFoundException)
-            {
-                Console.WriteLine($"Unable to open file at \'{fileName}\'.");
-                Console.ReadKey();
-                return;
-            }
 
-            Compiler compiler = new Compiler("config/tokens.json", "config/grammar.ebnf");
-            compiler.Build(text);
+            compiler = new Compiler("config/tokens.json", "config/grammar.ebnf");
+            packageManager = new PackageManager();
+
+            if (!packageManager.ImportRaw(fileName))
+                Console.WriteLine($"Unable to open file at \'{fileName}\'.");
 
             Console.ReadKey();
         }

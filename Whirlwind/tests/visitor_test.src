@@ -1,14 +1,26 @@
-﻿func fac(n: int) int {
-	if (n > 2)
-		return n * fac(n - 1);
+﻿@null = 0;
 
-	return n;
+struct Node {
+	val: int;
+	left, right: *Node;
 }
 
-func add(a: int, b: int) int => a + b;
+func insert(root: *Node, val: int) {
+	if (root == null)
+		root = new Node { val = val, left = null, right = null };
+
+	if (root->val > val)
+		insert(root->left, val);
+	else
+		insert(root->right, val);
+}
 
 func main() {
-	$sum = add(4, 5);
+	$arr = [2, 3, 0, 1, 5, 4, 7, 6, 8];
 
-	$n = fac(sum);
+	$root = new Node { val = arr[0], left = null, right = null };
+
+	for (i = 1; i < 9; i++) {
+		insert(&root, arr[i]);
+	}
 }
