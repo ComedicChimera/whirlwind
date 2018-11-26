@@ -1,16 +1,10 @@
-﻿include { Println, Scanln } from stdio;
+﻿struct P {
+	x, y: int;
+}
 
 func main() {
-	$base: str;
-	Scanln(&base);
+	$p = new P();
 
-	$pivot: str;
-	Scanln(&pivot);
+	p.x = 32;
 
-	$ndx = base.index(pivot);
-
-	if (ndx == -1) 
-		Println("No pivot found.");
-	else 
-		Println(base[ndx + pivot.len():] + base[:pivot]);
 }

@@ -43,7 +43,7 @@ namespace Whirlwind.Semantic.Visitor
                 }
             }
 
-            bool needsNew = new[] { "CallConstructor", "InitList", "HeapAllocType" }.Contains(_nodes.Last().Name);
+            bool needsNew = new[] { "CallConstructor", "InitList", "HeapAllocType", "InitStruct" }.Contains(_nodes.Last().Name);
 
             if (needsNew && !hasNew)
                 throw new SemanticException("Missing `new` keyword to properly create instance.", node.Position);
@@ -351,6 +351,18 @@ namespace Whirlwind.Semantic.Visitor
                 }
                 else
                     throw new SemanticException("Unable to infer type of template arguments", node.Position);
+            }
+            else if (root.Type.Classify() == TypeClassifier.STRUCT)
+            {
+                if (args.Count > 0)
+                    throw new SemanticException("Struct constructor cannot accept arguments", node.Position);
+
+                StructType initType = (StructType)root.Type;
+                initType.Instantiate();
+
+                _nodes.Add(new ExprNode("InitStruct", initType));
+
+                PushForward();
             }
             else
                 throw new SemanticException("Unable to call non-callable type", node.Content[0].Position);

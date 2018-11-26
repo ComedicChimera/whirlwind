@@ -130,7 +130,6 @@ stmt: ( local_variable_decl
 | break_stmt
 | delete_stmt
 | return_stmt
-| yield_stmt
 ) ';' 
 ;
 
@@ -175,7 +174,6 @@ break_stmt: 'BREAK' ;
 throw_stmt: 'THROW' expr ;
 delete_stmt: 'DELETE' 'IDENTIFIER' (',' 'IDENTIFIER')* ;
 return_stmt: 'RETURN' [expr (',' expr)*] ;
-yield_stmt: 'YIELD' expr (',' expr)* ;
 
 
 // EXPRESSIONS - basic unit of statements 

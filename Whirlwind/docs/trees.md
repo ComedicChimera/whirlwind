@@ -162,7 +162,6 @@ Represents a single Whirlwind statement.
 | ThrowObject | Object | Wrap an object in an exception and throw it | **BLOCK** |
 | Delete | *Identifiers* | Delete a set of symbols | **BLOCK** (**STATEMENT** in bytecode stage) |
 | Return | Value | Return a value from a function | **BLOCK** |
-| Yield | Value | Call a deferred return statement | **BLOCK** |
 | ExprStmt | Expr | Represents an expression being asserted to a statement | **STATEMENT** |
 | EnumConst | \[*EnumConstInitializer*\], *Identifiers* | Declare an enumerated set of constants | **BLOCK**|
 | EnumConstExpr | \[*EnumConstInitializer*\], *Identifiers* | Declare an enum const with a custom constexpr initializer | **BLOCK** |
