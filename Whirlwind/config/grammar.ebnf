@@ -223,10 +223,7 @@ trailer: '[' (expr [slice] | slice) ']'
 
 // trailer components
 slice: ':' [expr [':' expr] | ':' expr] ;
-args_list: [arg (',' arg)*] ;
-arg: named_arg
-| expr ;
-named_arg: 'IDENTIFIER' initializer ;
+args_list: [expr (',' expr)*] ;
 init_list: 'IDENTIFIER' initializer (',' 'IDENTIFIER' initializer)* ;
 
 // for comprehension
@@ -305,9 +302,7 @@ collection_types: 'ARRAY_TYPE' '[' types ',' expr ']'
 | 'DICT_TYPE' '[' types ',' types ']'
 ;
 
-func_types: 'FUNC' '(' args_decl_list ')' '(' type_list ')'
-| 'ASYNC' '(' args_decl_list ')' '(' type_list ')'
-;
+func_types: ('FUNC' | 'ASYNC') '(' type_list ')' '(' type_list ')' ;
 
 tuple_type: '(' type_list ')' ;
 

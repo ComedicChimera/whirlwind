@@ -25,7 +25,7 @@ namespace Whirlwind.Semantic.Checker
                             valid = true;
                         else if (rootType.Classify() == TypeClassifier.POINTER && new SimpleType(SimpleType.DataType.INTEGER).Coerce(operandType))
                             return;
-                        else if (HasOverload(rootType, "__add__", new List<ParameterValue>() { new ParameterValue(operandType) }, out IDataType returnType))
+                        else if (HasOverload(rootType, "__add__", new List<IDataType>() { operandType }, out IDataType returnType))
                         {
                             rootType = returnType;
                             return;
@@ -67,7 +67,7 @@ namespace Whirlwind.Semantic.Checker
                                 break;
                         }
 
-                        if (HasOverload(rootType, methodName, new List<ParameterValue>() { new ParameterValue(operandType) }, out IDataType returnType))
+                        if (HasOverload(rootType, methodName, new List<IDataType>() { operandType }, out IDataType returnType))
                         {
                             rootType = returnType;
                             return;
@@ -79,7 +79,7 @@ namespace Whirlwind.Semantic.Checker
                     {
                         if (rootType.Classify() == TypeClassifier.SIMPLE && new SimpleType(SimpleType.DataType.INTEGER).Coerce(operandType))
                             return;
-                        else if (HasOverload(rootType, op == ">>" ? "__lshift__" : "__rshift__", new List<ParameterValue>() { new ParameterValue(operandType) }, out IDataType returnType))
+                        else if (HasOverload(rootType, op == ">>" ? "__lshift__" : "__rshift__", new List<IDataType>() { operandType }, out IDataType returnType))
                         {
                             rootType = returnType;
                             return;
@@ -89,7 +89,7 @@ namespace Whirlwind.Semantic.Checker
                 case "==":
                 case "!=":
                     {
-                        if (HasOverload(rootType, op == "==" ? "__eq__" : "__neq__", new List<ParameterValue>() { new ParameterValue(operandType) }, out IDataType returnType))
+                        if (HasOverload(rootType, op == "==" ? "__eq__" : "__neq__", new List<IDataType>() { operandType }, out IDataType returnType))
                         {
                             rootType = returnType;
                             return;
@@ -127,7 +127,7 @@ namespace Whirlwind.Semantic.Checker
                                 break;
                         }
 
-                        if (HasOverload(rootType, methodName, new List<ParameterValue>() { new ParameterValue(operandType) }, out IDataType returnType))
+                        if (HasOverload(rootType, methodName, new List<IDataType>() { operandType }, out IDataType returnType))
                         {
                             rootType = returnType;
                             return;
@@ -145,7 +145,7 @@ namespace Whirlwind.Semantic.Checker
                             if (simpleRoot.Type == simpleOperand.Type && simpleRoot.Unsigned == simpleOperand.Unsigned)
                                 return;
                         }
-                        else if (HasOverload(rootType, $"__{op.ToLower()}__", new List<ParameterValue>() { new ParameterValue(operandType) }, out IDataType returnType))
+                        else if (HasOverload(rootType, $"__{op.ToLower()}__", new List<IDataType>() { operandType }, out IDataType returnType))
                         {
                             rootType = returnType;
                             return;

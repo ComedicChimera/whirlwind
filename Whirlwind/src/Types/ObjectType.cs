@@ -100,7 +100,7 @@ namespace Whirlwind.Types
             return false;
         }
 
-        public bool GetConstructor(List<ParameterValue> parameters, out FunctionType constructor)
+        public bool GetConstructor(List<IDataType> parameters, out FunctionType constructor)
         {
             var constructors = _constructors.Where(x => x.Item1.MatchParameters(parameters)).ToList();
             

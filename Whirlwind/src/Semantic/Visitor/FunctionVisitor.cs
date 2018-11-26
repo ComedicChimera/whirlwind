@@ -331,36 +331,17 @@ namespace Whirlwind.Semantic.Visitor
         }
 
         // generate a parameter list from a function call and generate the corresponding tree
-        private List<ParameterValue> _generateArgsList(ASTNode node)
+        private List<IDataType> _generateArgsList(ASTNode node)
         {
-            var argsList = new List<ParameterValue>();
+            var argsList = new List<IDataType>();
             foreach (var subNode in node.Content)
             {
-                if (subNode.Name == "arg")
+                if (subNode.Name == "expr")
                 {
-                    var arg = (ASTNode)subNode;
-
-                    if (arg.Content[0].Name == "expr")
-                    {
-                        _visitExpr((ASTNode)arg.Content[0]);
-                        argsList.Add(new ParameterValue(_nodes.Last().Type));
-                    }
-                    else
-                    {
-                        string name = ((TokenNode)arg.Content[0]).Tok.Value;
-                        _visitExpr((ASTNode)((ASTNode)arg.Content[1]).Content[1]);
-                        _nodes.Add(new ExprNode("NamedArgument", _nodes.Last().Type, new List<ITypeNode>() {
-                            new IdentifierNode(name, new SimpleType(), false)
-                        }));
-                        PushForward();
-
-                        argsList.Add(new ParameterValue(name, _nodes.Last().Type));
-                    }
+                    _visitExpr((ASTNode)subNode);
+                    argsList.Add(_nodes.Last().Type);
                 }
             }
-
-            if (argsList.Where(x => x.HasName).GroupBy(x => x.Name).Any(x => x.Count() > 1))
-                throw new SemanticException("Unable to initialize named argument with two different values", node.Position);
 
             return argsList;
         }

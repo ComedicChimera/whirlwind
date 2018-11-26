@@ -22,7 +22,7 @@ namespace Whirlwind.Semantic.Checker
             }
         }
 
-        public static ParameterCheckData CheckParameters(FunctionType fn, List<ParameterValue> values)
+        public static ParameterCheckData CheckParameters(FunctionType fn, List<IDataType> values)
         {
             var parameterDictionary = fn.Parameters.ToDictionary(x => x.Name);
 
@@ -32,21 +32,18 @@ namespace Whirlwind.Semantic.Checker
             position = 0;
             foreach (var param in values)
             {
-                var fnParameter = param.HasName ? parameterDictionary[param.Name] : fn.Parameters[position];
+                var fnParameter = fn.Parameters[position];
 
-                if (fnParameter.DataType.Coerce(param.DataType) && !setParameters[fnParameter.Name])
+                if (fnParameter.DataType.Coerce(param) && !setParameters[fnParameter.Name])
                 {
                     if (!fnParameter.Indefinite)
                     {
                         setParameters[fnParameter.Name] = true;
-                        if (!param.HasName)
-                            position++;
+                        position++;
                     }
                 }
                 else
-                    return new ParameterCheckData(setParameters[fnParameter.Name] 
-                        ? $"Multiple values specified for parameter `{fnParameter.Name}`" : $"Invalid type for parameter `{fnParameter.Name}`"
-                        , param.HasName ? fn.Parameters.IndexOf(parameterDictionary[fnParameter.Name]) : position);
+                    return new ParameterCheckData($"Invalid type for parameter `{fnParameter.Name}`", position);
             }
 
             foreach (var param in setParameters)

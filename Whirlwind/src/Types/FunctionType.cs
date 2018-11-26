@@ -45,29 +45,6 @@ namespace Whirlwind.Types
         }
     }
 
-    // incoming parameters
-    struct ParameterValue
-    {
-        public bool HasName;
-        public string Name;
-        public IDataType DataType;
-
-        public ParameterValue(IDataType dt)
-        {
-            HasName = false;
-            Name = "";
-            DataType = dt;
-        }
-
-        public ParameterValue(string name, IDataType dt)
-        {
-            HasName = true;
-            Name = name;
-            DataType = dt;
-
-        }
-    }
-
     class FunctionType : IDataType
     {
         public readonly IDataType ReturnType;
@@ -104,8 +81,7 @@ namespace Whirlwind.Types
             return false;
         }
 
-        // add parameter matching functionality
-        public bool MatchParameters(List<ParameterValue> incomingParameters)
+        public bool MatchParameters(List<IDataType> parameters)
         {
             return false;
         }

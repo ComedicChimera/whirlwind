@@ -86,7 +86,7 @@ namespace Whirlwind.Types
             return false;
         }
 
-        public bool Infer(List<ParameterValue> parameters, out List<IDataType> inferredTypes)
+        public bool Infer(List<IDataType> parameters, out List<IDataType> inferredTypes)
         {
             inferredTypes = new List<IDataType>();
             return false;

@@ -305,7 +305,7 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitFunctionCall(ASTNode node, ITypeNode root)
         {
-            var args = node.Content.Count == 2 ? new List<ParameterValue>() : _generateArgsList((ASTNode)node.Content[1]);
+            var args = node.Content.Count == 2 ? new List<IDataType>() : _generateArgsList((ASTNode)node.Content[1]);
 
             if (new[] { TypeClassifier.OBJECT, TypeClassifier.FUNCTION }.Contains(root.Type.Classify()))
             {
@@ -455,30 +455,32 @@ namespace Whirlwind.Semantic.Visitor
             }
             else if (rootType.Classify() == TypeClassifier.OBJECT_INSTANCE)
             {
-                var args = new List<ParameterValue>();
+                var args = new List<IDataType>();
 
                 switch (name)
                 {
                     case "Subscript":
                     case "SliceBegin":
-                        args.Add(new ParameterValue(types[0]));
+                        args.Add(types[0]);
                         break;
                     case "SliceEnd":
-                        args.Add(new ParameterValue("end", types[0]));
+                        args.AddRange(new List<IDataType>() { new SimpleType(SimpleType.DataType.INTEGER), types[0] });
                         break;
                     case "SliceEndStep":
-                        args.Add(new ParameterValue("end", types[0]));
-                        args.Add(new ParameterValue("step", types[1]));
+                        args.AddRange(new List<IDataType>() { new SimpleType(SimpleType.DataType.INTEGER), types[0], types[1] });
                         break;
                     case "SliceBeginStep":
-                        args.Add(new ParameterValue(types[0]));
-                        args.Add(new ParameterValue("step", types[1]));
+                        args.AddRange(new List<IDataType>() { types[0], new SimpleType(SimpleType.DataType.INTEGER), types[1] });
                         break;
                     case "SliceStep":
-                        args.Add(new ParameterValue("step", types[0]));
+                        args.AddRange(new List<IDataType>() {
+                            new SimpleType(SimpleType.DataType.INTEGER),
+                            new SimpleType(SimpleType.DataType.INTEGER),
+                            types[0]
+                        });
                         break;
                     case "Slice":
-                        args.AddRange(types.Select(x => new ParameterValue(x)));
+                        args.AddRange(types);
                         break;
                 }
 

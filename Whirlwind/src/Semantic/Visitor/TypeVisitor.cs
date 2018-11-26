@@ -209,8 +209,10 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     bool async = false;
 
-                    var args = new List<Parameter>();
-                    var returnTypes = new List<IDataType>();
+                    List<IDataType> args = new List<IDataType>(), 
+                        returnTypes = new List<IDataType>();
+
+                    bool collectingArgs = false;
 
                     foreach (var item in ((ASTNode)subNode).Content)
                     {
@@ -219,12 +221,14 @@ namespace Whirlwind.Semantic.Visitor
                             case "TOKEN":
                                 if (((TokenNode)item).Tok.Type == "ASYNC")
                                     async = true;
-                                break;
-                            case "args_decl_list":
-                                args = _generateArgsDecl((ASTNode)item);
+                                if (((TokenNode)item).Tok.Type == ")")
+                                    collectingArgs = true;
                                 break;
                             case "type_list":
-                                returnTypes = _generateTypeList((ASTNode)item);
+                                if (collectingArgs)
+                                    args = _generateTypeList((ASTNode)item);
+                                else
+                                    returnTypes = _generateTypeList((ASTNode)item);
                                 break;
                         }
                     }
@@ -244,7 +248,9 @@ namespace Whirlwind.Semantic.Visitor
                             break;
                     }
 
-                    return new FunctionType(args, returnType, async);
+                    int p = 0;
+                    return new FunctionType(args.Select(x => new Parameter("p" + (p++).ToString(), x, false, false)).ToList(), 
+                        returnType, async);
                 }
             }
 
