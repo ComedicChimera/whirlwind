@@ -325,22 +325,28 @@ namespace Whirlwind.Semantic.Visitor
             switch (op)
             {
                 case "++":
-                    if (Modifiable(_nodes.Last()) && (Numeric(rootType) || rootType.Classify() == TypeClassifier.POINTER))
+                    if (Numeric(rootType) || rootType.Classify() == TypeClassifier.POINTER)
                     {
+                        if (!Modifiable(_nodes.Last()))
+                            throw new SemanticException("Unable to mutate constant value", node.Content[postfix ? 1 : 0].Position);
+
                         treeName = (postfix ? "Postfix" : "Prefix") + "Increment";
                         dt = rootType;
                     }
                     else
-                        throw new SemanticException("Increment operator is not valid on non-numeric types", node.Content[postfix ? 2 : 0].Position);
+                        throw new SemanticException("Increment operator is not valid on non-numeric types", node.Content[postfix ? 1 : 0].Position);
                     break;
                 case "--":
-                    if (Modifiable(_nodes.Last()) && (Numeric(rootType) || rootType.Classify() == TypeClassifier.POINTER))
+                    if (Numeric(rootType) || rootType.Classify() == TypeClassifier.POINTER)
                     {
+                        if (!Modifiable(_nodes.Last()))
+                            throw new SemanticException("Unable to mutate constant value", node.Content[postfix ? 1 : 0].Position);
+
                         treeName = (postfix ? "Postfix" : "Prefix") + "Decrement";
                         dt = rootType;
                     }
                     else
-                        throw new SemanticException("Decrement operator is not valid on non-numeric types", node.Content[postfix ? 2 : 0].Position);
+                        throw new SemanticException("Decrement operator is not valid on non-numeric types", node.Content[postfix ? 1 : 0].Position);
                     break;
                 case "-":
                     treeName = "ChangeSign";

@@ -1,0 +1,16 @@
+﻿include { Println, Scanln } from stdio;
+
+func main() {
+	$base: str;
+	Scanln(&base);
+
+	$pivot: str;
+	Scanln(&pivot);
+
+	$ndx = base.index(pivot);
+
+	if (ndx == -1) 
+		Println("No pivot found.");
+	else 
+		Println(base[ndx + pivot.len():] + base[:pivot]);
+}

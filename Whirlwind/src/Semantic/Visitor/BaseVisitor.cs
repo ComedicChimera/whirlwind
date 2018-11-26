@@ -264,7 +264,7 @@ namespace Whirlwind.Semantic.Visitor
             var fType = new FunctionType(args, rtType, async); 
 
             _nodes.Add(new ExprNode("Closure", fType));
-            PushForward(2);
+            PushForward();
         }
 
         private void _visitTypeCast(ASTNode node)

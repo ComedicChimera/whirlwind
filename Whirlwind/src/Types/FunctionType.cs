@@ -39,7 +39,7 @@ namespace Whirlwind.Types
                 return false;
             if (!DataType.Coerce(other.DataType))
                 return false;
-            if (!Indefinite != other.Indefinite)
+            if (Indefinite != other.Indefinite)
                 return false;
             return true;
         }
