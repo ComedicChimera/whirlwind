@@ -8,6 +8,7 @@
  - add function decorators
 
 # THOUGHTS
+ - add positioning data to some or all of the action tree
 
 # FUTURE
  - add operator overloading in reduction stage
