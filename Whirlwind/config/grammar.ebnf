@@ -43,7 +43,7 @@ constructor_decl: 'CONSTRUCTOR' '(' args_decl_list ')' func_body ;
 
 // common object patterns
 partial: ':' 'IDENTIFIER' ; // partial extension
-modifiers: 'PRIVATE' | 'STATIC' | 'PROTECTED'; // variable and function modifiers
+modifiers: 'PRIV' | 'STATIC' | 'PROTECTED'; // variable and function modifiers
 
 
 // BLOCK DECLARATIONS

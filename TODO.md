@@ -1,12 +1,10 @@
 # TODO
  - add function references
- - change unsigned to uprefix (uint, ufloat, ulong, ect.)
  - add scope first top level symbol declaration
  - add null keyword
  - allow for recursive type definition
  - allow for object level method variance
  - add after clause (context manager, loops, except blocks)
- - change "private" to "priv"
  - add function decorators
  - remove partiality (and all associated constructs)
  - remove static function members and static type members
@@ -17,4 +15,4 @@
 
 # FUTURE
  - add operator overloading in reduction stage
- - add 3 analyzers (const, thread, and memory)
+ - add 4 analyzers (const, constexpr, thread, and memory) [Note: constexpr does in depth checking on all constant expressions]

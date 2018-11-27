@@ -1,10 +1,6 @@
-﻿struct P {
-	x, y: int;
-}
+﻿func main() {
+	$x: uint;
+	x = 5;
 
-func main() {
-	$p = new P();
-
-	p.x = 32;
-
+	x = -1;
 }

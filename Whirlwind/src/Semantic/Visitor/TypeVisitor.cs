@@ -97,17 +97,13 @@ namespace Whirlwind.Semantic.Visitor
 
         private IDataType _generateBaseType(ASTNode node)
         {
-            bool unsigned = false;
-
             foreach (var subNode in node.Content)
             {
-                // only one token node
-                if (subNode.Name == "TOKEN")
-                    unsigned = true;
-                else if (subNode.Name == "simple_types")
+                if (subNode.Name == "simple_types")
                 {
                     SimpleType.DataType dt;
-                    switch (((TokenNode)((ASTNode)subNode).Content[0]).Tok.Type)
+                    Token tok = ((TokenNode)((ASTNode)subNode).Content[0]).Tok;
+                    switch (tok.Type)
                     {
                         case "BOOL_TYPE":
                             dt = SimpleType.DataType.BOOL;
@@ -138,9 +134,8 @@ namespace Whirlwind.Semantic.Visitor
                             dt = SimpleType.DataType.VOID;
                             break;
                     }
-                    if (!Numeric(new SimpleType(dt)) && unsigned)
-                        throw new SemanticException("Invalid type for unsigned modifier", subNode.Position);
-                    return new SimpleType(dt, unsigned);
+
+                    return new SimpleType(dt, tok.Value.StartsWith("u"));
                 }
                 else if (subNode.Name == "collection_types")
                 {
