@@ -280,7 +280,7 @@ types: '*'* ( base_types
 )
 ;
 
-base_types: ['UNSIGNED'] simple_types
+base_types: simple_types
 | collection_types
 | func_types
 | tuple_type
