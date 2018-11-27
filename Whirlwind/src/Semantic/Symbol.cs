@@ -6,10 +6,7 @@ namespace Whirlwind.Semantic
     enum Modifier
     {
         PRIVATE,
-        PARTIAL,
         EXPORTED,
-        PROTECTED,
-        STATIC,
         CONSTANT,
         CONSTEXPR
     }

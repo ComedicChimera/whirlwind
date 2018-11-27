@@ -32,20 +32,8 @@ namespace Whirlwind.Semantic.Visitor
             // block bubbling statements
             switch (stmt.Name)
             {
-                case "local_variable_decl":
-                    {
-                        var modifiers = new List<Modifier>();
-
-                        foreach (var item in stmt.Content)
-                        {
-                            if (item.Name == "TOKEN")
-                            { 
-                                modifiers.Add(Modifier.STATIC);
-                            }
-                            else
-                                _visitVarDecl((ASTNode)item, modifiers);
-                        }
-                    }
+                case "variable_decl":
+                    _visitVarDecl(stmt, new List<Modifier>());
                     return;
                 case "enum_const":
                     _visitEnumConst(stmt);
