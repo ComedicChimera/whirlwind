@@ -25,5 +25,15 @@
         }
 
         public TypeClassifier Classify() => TypeClassifier.POINTER;
+
+        public bool Equals(IDataType other)
+        {
+            if (other.Classify() == TypeClassifier.POINTER)
+            {
+                return Type.Equals(((PointerType)other).Type) && Pointers == ((PointerType)other).Pointers;
+            }
+
+            return false;
+        }
     }
 }

@@ -41,8 +41,14 @@ namespace Whirlwind.Types
 
         public bool Coerce(IDataType other)
         {
-            return this == other;
+            if (other.Classify() == TypeClassifier.OBJECT_INSTANCE)
+                // name makes the distinction
+                return Name == ((ObjectInstance)other).Name;
+
+            return false;
         }
+
+        public bool Equals(IDataType other) => Coerce(other);
     }
 
     class ObjectType : IDataType
@@ -125,9 +131,8 @@ namespace Whirlwind.Types
 
         public TypeClassifier Classify() => TypeClassifier.OBJECT_INSTANCE;
 
-        public bool Coerce(IDataType dt)
-        {
-            return false;
-        }
+        public bool Coerce(IDataType dt) => false;
+
+        public bool Equals(IDataType dt) => false;
     }
 }

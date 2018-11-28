@@ -119,5 +119,7 @@ namespace Whirlwind.Types
         public bool Coerce(IDataType other) => false;
 
         public TypeClassifier Classify() => TypeClassifier.TEMPLATE;
+
+        public bool Equals(IDataType other) => false;
     }
 }

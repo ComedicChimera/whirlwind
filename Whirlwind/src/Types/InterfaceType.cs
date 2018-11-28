@@ -44,7 +44,7 @@ namespace Whirlwind.Types
             {
                 symbol = _functions.Where(x => x.Name == fnName).ToArray()[0];
                 return true;
-            }      
+            }
 
             symbol = null;
             return false;
@@ -53,7 +53,7 @@ namespace Whirlwind.Types
         public bool MatchObject(ObjectType obj)
         {
             var objInstance = obj.GetInstance();
-            foreach(Symbol fn in _functions)
+            foreach (Symbol fn in _functions)
             {
                 if (objInstance.GetProperty(fn.Name, out Symbol match))
                 {
@@ -76,7 +76,7 @@ namespace Whirlwind.Types
                 {
                     return true;
                 }
-                foreach(Symbol function in _functions)
+                foreach (Symbol function in _functions)
                 {
                     if (((ObjectInstance)other).GetProperty(function.Name, out Symbol matchedFunction))
                     {
@@ -91,5 +91,27 @@ namespace Whirlwind.Types
 
         public void Initialize() =>
             initialized = true;
+
+        public bool Equals(IDataType other)
+        {
+            if (other.Classify() == TypeClassifier.INTERFACE || other.Classify() == TypeClassifier.INTERFACE_INSTANCE)
+            {
+                InterfaceType it = (InterfaceType)other;
+
+                if (initialized != it.initialized)
+                    return false;
+
+                if (_functions.Count == it._functions.Count)
+                {
+                    for (int i = 0; i < _functions.Count; i++)
+                    {
+                        if (_functions[i].Name != it._functions[i].Name || !_functions[i].Equals(it._functions[i]))
+                            return false;
+                    }
+                }
+            }
+
+            return false;
+        }
     }
 }

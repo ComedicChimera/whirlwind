@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
+
 using Whirlwind.Semantic;
 
 namespace Whirlwind.Types
@@ -41,6 +43,16 @@ namespace Whirlwind.Types
                 return false;
             return true;
         }
+
+        public bool Equals(Parameter other)
+        {
+            // default values not compared for exact equality (for practicality's sake)
+            return Name == other.Name &&
+                DataType.Equals(other.DataType) &&
+                Optional == other.Optional &&
+                Indefinite == other.Indefinite &&
+                Constant == other.Constant;
+        }
     }
 
     class FunctionType : IDataType
@@ -81,6 +93,19 @@ namespace Whirlwind.Types
 
         public bool MatchParameters(List<IDataType> parameters)
         {
+            return false;
+        }
+
+        public bool Equals(IDataType other)
+        {
+            if (other.Classify() == TypeClassifier.FUNCTION)
+            {
+                FunctionType otherFn = (FunctionType)other;
+
+                return Async == otherFn.Async && ReturnType.Equals(otherFn.ReturnType) && 
+                    Parameters.Count == otherFn.Parameters.Count && Enumerable.Range(0, Parameters.Count).All(i => Parameters[i].Equals(otherFn.Parameters[i]));
+            }
+
             return false;
         }
     }

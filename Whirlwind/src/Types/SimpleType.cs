@@ -66,5 +66,15 @@ namespace Whirlwind.Types
             }
             return false; 
         }
+
+        public bool Equals(IDataType other)
+        {
+            if (other.Classify() == TypeClassifier.SIMPLE)
+            {
+                return Type.Equals(((SimpleType)other).Type) && Unsigned == ((SimpleType)other).Unsigned;
+            }
+
+            return false;
+        }
     }
 }

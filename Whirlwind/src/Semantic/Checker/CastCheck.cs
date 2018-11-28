@@ -37,7 +37,9 @@ namespace Whirlwind.Semantic.Checker
                     break;
                 case TypeClassifier.ARRAY:
                 case TypeClassifier.LIST:
-                    if (new[] { TypeClassifier.ARRAY, TypeClassifier.LIST }.Contains(desired.Classify()))
+                    if (start.Classify() == TypeClassifier.ARRAY && desired.Classify() == TypeClassifier.POINTER)
+                        return ((ArrayType)start).ElementType.Equals(((PointerType)desired).Type);
+                    else if (new[] { TypeClassifier.ARRAY, TypeClassifier.LIST }.Contains(desired.Classify()))
                         return TypeCast((start as IIterable).GetIterator(), (desired as IIterable).GetIterator());
                     else if (desired.Classify() == TypeClassifier.POINTER)
                         return TypeCast((start as IIterable).GetIterator(), ((PointerType)desired).Type);
@@ -54,6 +56,8 @@ namespace Whirlwind.Semantic.Checker
                     }
                     else if (desired.Classify() == TypeClassifier.SIMPLE)
                         return ((SimpleType)desired).Type == SimpleType.DataType.INTEGER && ((SimpleType)desired).Unsigned;
+                    else if (desired.Classify() == TypeClassifier.ARRAY)
+                        return ((ArrayType)desired).ElementType.Equals(((PointerType)start).Type);
                     break;
                 case TypeClassifier.FUNCTION:
                     if (desired.Classify() == TypeClassifier.FUNCTION)

@@ -6,6 +6,13 @@
         bool Coerce(IDataType other);
         // get a given data type classifier as a string
         TypeClassifier Classify();
+        // check two data types for perfect equality (rarely used)
+        bool Equals(IDataType other);
+    }
+
+    class DataType
+    {
+        private DataType() { }
     }
 
     enum TypeClassifier

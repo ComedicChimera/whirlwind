@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Whirlwind.Types
+﻿namespace Whirlwind.Types
 {
     interface IIterable
     {
@@ -30,6 +28,16 @@ namespace Whirlwind.Types
         }
 
         public IDataType GetIterator() => ElementType;
+
+        public bool Equals(IDataType other)
+        {
+            if (other.Classify() == TypeClassifier.ARRAY)
+            {
+                return Size == ((ArrayType)other).Size && ElementType.Equals(((ArrayType)other).ElementType);
+            }
+
+            return false;
+        }
     }
 
     class ListType : IDataType, IIterable
@@ -57,6 +65,16 @@ namespace Whirlwind.Types
         }
 
         public IDataType GetIterator() => ElementType;
+
+        public bool Equals(IDataType other)
+        {
+            if (other.Classify() == TypeClassifier.LIST)
+            {
+                return ElementType.Equals(((ListType)other).ElementType);
+            }
+
+            return false;
+        }
     }
 
     class DictType : IDataType, IIterable
@@ -81,5 +99,15 @@ namespace Whirlwind.Types
         }
 
         public IDataType GetIterator() => KeyType;
+
+        public bool Equals(IDataType other)
+        {
+            if (other.Classify() == TypeClassifier.DICT)
+            {
+                return KeyType.Equals(((DictType)other).KeyType) && ValueType.Equals(((DictType)other).ValueType);
+            }
+
+            return false;
+        }
     }
 }

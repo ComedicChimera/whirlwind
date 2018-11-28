@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace Whirlwind.Types
 {
@@ -15,12 +16,16 @@ namespace Whirlwind.Types
 
         public bool Coerce(IDataType other)
         {
-            if (other.Classify() == Classify())
+            if (other.Classify() == TypeClassifier.TUPLE)
             {
-                if (((TupleType)other).Types == Types)
-                    return true;
+                TupleType tt = (TupleType)other;
+
+                if (Types.Count == tt.Types.Count)
+                    return Enumerable.Range(0, Types.Count).All(i => Types[i].Equals(tt.Types[i]));
             }
             return false;
         }
+
+        public bool Equals(IDataType other) => Coerce(other);
     }
 }

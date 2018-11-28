@@ -27,6 +27,14 @@ namespace Whirlwind.Semantic
 
         public bool Coerce(IDataType _) => false;
         public TypeClassifier Classify() => TypeClassifier.PACKAGE;
+
+        public bool Equals(IDataType other)
+        {
+            if (other.Classify() == TypeClassifier.PACKAGE)
+                return Name == ((Package)other).Name;
+
+            return false;
+        }
     }
 
     class Symbol
