@@ -9,7 +9,7 @@ namespace Whirlwind.Semantic.Checker
 {
     partial class Checker
     {
-        // takes in rootType by reference so it can handle overloads
+        // takes in rootType by reference so it can handle overloads / type mutations
         public static void CheckOperand(ref IDataType rootType, IDataType operandType, string op, TextPosition position)
         {
             bool valid = false;
@@ -142,8 +142,10 @@ namespace Whirlwind.Semantic.Checker
                         {
                             SimpleType simpleRoot = (SimpleType)rootType, simpleOperand = (SimpleType)operandType;
 
-                            if (simpleRoot.Type == simpleOperand.Type && simpleRoot.Unsigned == simpleOperand.Unsigned)
+                            if (simpleRoot.Type == SimpleType.DataType.BOOL && simpleOperand.Type == SimpleType.DataType.BOOL)
                                 return;
+
+                            valid = true;
                         }
                         else if (HasOverload(rootType, $"__{op.ToLower()}__", new List<IDataType>() { operandType }, out IDataType returnType))
                         {

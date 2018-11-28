@@ -23,8 +23,8 @@ include_set: '{' 'IDENTIFIER' (',' 'IDENTIFIER')* '}' ;
 
 // OBJECTS AND OBJECT COMPONENTS
 // object declaration
-obj_decl: 'TYPE' ['PARTIAL'] 'IDENTIFIER' partial* '{' obj_main+ '}' ;
-obj_main: modifiers* ( variable_decl ';' 
+obj_decl: 'TYPE' 'IDENTIFIER' [impl] '{' obj_main+ '}' ;
+obj_main: ['PRIV' ( variable_decl ';' 
 | enum_const ';'
 | method_decl
 | method_template
@@ -41,9 +41,8 @@ method_template: 'TEMPLATE' '<' template (',' template)* '>' method_decl ;
 // constructor declaration
 constructor_decl: 'CONSTRUCTOR' '(' args_decl_list ')' func_body ;
 
-// common object patterns
-partial: ':' 'IDENTIFIER' ; // partial extension
-modifiers: 'PRIV' | 'STATIC' | 'PROTECTED'; // variable and function modifiers
+// implementation clause
+impl: ':' 'IDENTIFIER' (',' 'IDENTIFIER')* ;
 
 
 // BLOCK DECLARATIONS
@@ -121,7 +120,7 @@ export_decl: 'EXPORT' ( block_decl
 
 // STATEMENTS
 // broken up for logical reasons - takes advantage of multiple solution parsing
-stmt: ( local_variable_decl
+stmt: ( variable_decl
 | enum_const
 | assignment
 | expr
@@ -132,9 +131,6 @@ stmt: ( local_variable_decl
 | return_stmt
 ) ';' 
 ;
-
-// local variable declaration
-local_variable_decl: ['STATIC'] variable_decl;
 
 // variable declaration
 variable_decl: ('$' | '@') var extension variable_initializer  ;
