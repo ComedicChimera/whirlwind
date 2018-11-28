@@ -61,7 +61,7 @@ namespace Whirlwind.Semantic.Visitor
             _nodes.Add(new BlockNode("Struct"));
             TokenNode name = (TokenNode)node.Content[1];
 
-            var structType = new StructType(name.Tok.Value);
+            var structType = new StructType(name.Tok.Value, false);
            
             foreach (var subNode in ((ASTNode)node.Content[3]).Content)
             {

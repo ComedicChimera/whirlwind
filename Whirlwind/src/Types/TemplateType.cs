@@ -16,6 +16,8 @@ namespace Whirlwind.Types
 
         public bool Coerce(IDataType other) => false;
         public TypeClassifier Classify() => TypeClassifier.TEMPLATE_PLACEHOLDER;
+
+        public bool Equals(IDataType other) => false;
     }
 
     // function returns data type of evaluated body and tests it
@@ -32,8 +34,9 @@ namespace Whirlwind.Types
         }
 
         public bool Coerce(IDataType other) => false;
-
         public TypeClassifier Classify() => TypeClassifier.TEMPLATE_ALIAS;
+
+        public bool Equals(IDataType other) => false;
     }
 
     // represents the full template object (entire template method, obj, ect.

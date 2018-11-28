@@ -105,36 +105,6 @@ namespace Whirlwind.Semantic.Checker
                         return ((StructType)start).Members == ((StructType)desired).Members;
                     }
                     break;
-                case TypeClassifier.OBJECT_INSTANCE:
-                    if (desired.Classify() == TypeClassifier.OBJECT)
-                    {
-                        ObjectInstance startInstance = (ObjectInstance)start,
-                            desiredInstance = ((ObjectType)desired).GetInstance();
-
-                        if (desiredInstance.Inherits == startInstance.Inherits)
-                        {
-                            if (startInstance.ListProperties() != desiredInstance.ListProperties())
-                                return false;
-
-                            using (var e1 = startInstance.ListProperties().GetEnumerator())
-                            using (var e2 = desiredInstance.ListProperties().GetEnumerator())
-                            {
-                                while (e1.MoveNext() && e2.MoveNext())
-                                {
-                                    if (startInstance.GetProperty(e2.Current, out Symbol symbol))
-                                    {
-                                        desiredInstance.GetProperty(e2.Current, out Symbol checkSymbol);
-
-                                        if (checkSymbol != symbol)
-                                            return false;
-                                    }
-                                    else return false;
-                                }
-                            }
-                        }
-
-                    }
-                    break;
                 case TypeClassifier.INTERFACE_INSTANCE:
                     if (desired.Classify() == TypeClassifier.OBJECT)
                     {
@@ -155,6 +125,7 @@ namespace Whirlwind.Semantic.Checker
                 if (startTuple.Types.Count == desiredTuple.Types.Count)
                     return Enumerable.Range(0, startTuple.Types.Count).All(i => TypeCast(startTuple.Types[i], desiredTuple.Types[i]));
             }
+
             return false;
         }
     }

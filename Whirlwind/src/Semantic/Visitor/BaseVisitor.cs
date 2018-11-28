@@ -62,7 +62,7 @@ namespace Whirlwind.Semantic.Visitor
                             return;
                         }
                         {
-                            throw new SemanticException("Use of `this` outside of property", node.Content[0].Position);
+                            throw new SemanticException("Use of `this` outside of object", node.Content[0].Position);
                         }
                 }
 

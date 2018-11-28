@@ -10,7 +10,7 @@ namespace Whirlwind.Semantic.Checker
         {
             if (type.Classify() == TypeClassifier.OBJECT_INSTANCE)
             {
-                if (((ObjectInstance)type).GetProperty(methodName, out Symbol method))
+                if (((ObjectType)type).GetMember(methodName, out Symbol method))
                 {
                     if (method.DataType.Classify() == TypeClassifier.FUNCTION)
                     {
@@ -33,7 +33,7 @@ namespace Whirlwind.Semantic.Checker
         {
             if (type.Classify() == TypeClassifier.OBJECT_INSTANCE)
             {
-                if (((ObjectInstance)type).GetProperty(methodName, out Symbol method))
+                if (((ObjectType)type).GetMember(methodName, out Symbol method))
                 {
                     if (method.DataType.Classify() == TypeClassifier.FUNCTION)
                     {

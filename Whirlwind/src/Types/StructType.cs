@@ -9,11 +9,18 @@ namespace Whirlwind.Types
         public readonly string Name;
         public readonly Dictionary<string, IDataType> Members;
 
-        public StructType(string name)
+        public StructType(string name, bool instance)
         {
-            _instance = false;
             Name = name;
             Members = new Dictionary<string, IDataType>();
+            _instance = instance;
+        }
+
+        private StructType(string name, Dictionary<string, IDataType> members)
+        {
+            Name = name;
+            Members = members;
+            _instance = true;
         }
 
         public bool AddMember(string name, IDataType dt)
@@ -24,9 +31,9 @@ namespace Whirlwind.Types
             return true;
         }
 
-        public void Instantiate()
+        public StructType GetInstance()
         {
-            _instance = true;
+            return new StructType(Name, Members);
         }
 
         public bool Coerce(IDataType other) {

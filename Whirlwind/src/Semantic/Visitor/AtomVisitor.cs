@@ -62,7 +62,7 @@ namespace Whirlwind.Semantic.Visitor
             if (_nodes.Last().Name == "CallAsync" && hasAwait)
             {
                 // should never fail on future type
-                if (((ObjectInstance)_nodes.Last().Type).GetProperty("result", out Symbol resultFn))
+                if (((ObjectType)_nodes.Last().Type).GetMember("result", out Symbol resultFn))
                 {
                     var rtType = ((FunctionType)resultFn.DataType).ReturnType;
                     _nodes.Add(new ExprNode("Await", rtType));
@@ -228,7 +228,7 @@ namespace Whirlwind.Semantic.Visitor
                             for (int i = 1; i < initCount + 1; i++)
                             {
                                 var item = (ExprNode)_nodes[_nodes.Count - i];
-                                if (objInstance.GetProperty(((ValueNode)item.Nodes[0]).Value, out Symbol sym))
+                                if (objInstance.GetMember(((ValueNode)item.Nodes[0]).Value, out Symbol sym))
                                 {
                                     if (!sym.DataType.Coerce(item.Type))
                                         throw new SemanticException($"Unable to initializer property {sym.Name} with the given type", positions[i - 1]);
@@ -256,8 +256,7 @@ namespace Whirlwind.Semantic.Visitor
                                 if (!members[name].Coerce(item.Nodes[1].Type))
                                     throw new SemanticException($"Unable to initialize member {name} with the given type", positions[i - 1]);
                             }
-                            ((StructType)root.Type).Instantiate();
-                            _nodes.Add(new ExprNode("InitList", root.Type));
+                            _nodes.Add(new ExprNode("InitList", ((StructType)root.Type).GetInstance()));
                             // add in root
                             PushForward(initCount + 1);
                             break;
@@ -276,12 +275,8 @@ namespace Whirlwind.Semantic.Visitor
             switch (type.Classify())
             {
                 case TypeClassifier.OBJECT_INSTANCE:
-                    if (!((ObjectInstance)type).GetProperty(name, out symbol))
-                        throw new SemanticException($"obj instance has no property '{name}'", idPos);
-                    break;
-                case TypeClassifier.OBJECT:
                     if (!((ObjectType)type).GetMember(name, out symbol))
-                        throw new SemanticException($"obj has no static member '{name}'", idPos);
+                        throw new SemanticException($"obj instance has no property '{name}'", idPos);
                     break;
                 case TypeClassifier.STRUCT_INSTANCE:
                     if (((StructType)type).Members.ContainsKey(name))
@@ -357,10 +352,7 @@ namespace Whirlwind.Semantic.Visitor
                 if (args.Count > 0)
                     throw new SemanticException("Struct constructor cannot accept arguments", node.Position);
 
-                StructType initType = (StructType)root.Type;
-                initType.Instantiate();
-
-                _nodes.Add(new ExprNode("InitStruct", initType));
+                _nodes.Add(new ExprNode("InitStruct", ((StructType)root.Type).GetInstance()));
 
                 PushForward();
             }

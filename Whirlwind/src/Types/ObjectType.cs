@@ -7,73 +7,42 @@ using System.Collections.Generic;
 // add partials and interfaces
 namespace Whirlwind.Types
 {
-    class ObjectInstance : IDataType
-    {
-        private readonly Dictionary<string, Symbol> _instance;
-
-        public readonly string Name;
-        public readonly List<IDataType> Inherits;
-
-        public ObjectInstance(string name, SymbolTable table, List<IDataType> inherits, bool internalInstance)
-        {
-            Name = name;
-            if (internalInstance)
-                _instance = table.Filter(x => !x.Modifiers.Contains(Modifier.STATIC));
-            else
-                _instance = table.Filter(x => !x.Modifiers.Contains(Modifier.STATIC) && !x.Modifiers.Any(y => new[] { Modifier.PRIVATE, Modifier.PROTECTED }.Contains(y)));
-            Inherits = inherits;
-        }
-
-        public bool GetProperty(string name, out Symbol symbol)
-        {
-            if (_instance.ContainsKey(name))
-            {
-                symbol = _instance[name];
-                return true;
-            }
-            symbol = null;
-            return false;
-        }
-
-        public List<string> ListProperties() => _instance.Keys.ToList();
-
-        public TypeClassifier Classify() => TypeClassifier.OBJECT_INSTANCE;
-
-        public bool Coerce(IDataType other)
-        {
-            if (other.Classify() == TypeClassifier.OBJECT_INSTANCE)
-                // name makes the distinction
-                return Name == ((ObjectInstance)other).Name;
-
-            return false;
-        }
-
-        public bool Equals(IDataType other) => Coerce(other);
-    }
-
     class ObjectType : IDataType
     {
-        private readonly SymbolTable _table;
-        private readonly List<Tuple<FunctionType, ExprNode>> _constructors;
+        private readonly Dictionary<string, Symbol> _members;
+        private readonly List<Tuple<FunctionType, BlockNode>> _constructors;
 
         public readonly string Name;
         public readonly List<IDataType> Inherits;
-        public bool Partial;
 
-        public ObjectType(string name, bool partial)
+        private bool _instance = false, _internal = false;
+
+        public ObjectType(string name, bool instance, bool internalInstance)
         {
             Name = name;
-            _table = new SymbolTable();
-            _constructors = new List<Tuple<FunctionType, ExprNode>>();
+            _members = new Dictionary<string, Symbol>();
+            _constructors = new List<Tuple<FunctionType, BlockNode>>();
             Inherits = new List<IDataType>();
-            Partial = partial;
+            _instance = instance;
+            _internal = internalInstance;
         }
 
-        public bool AddConstructor(FunctionType ft, ExprNode body)
+        // constructors not copied since they are only needed in the root type
+        private ObjectType(string name, Dictionary<string, Symbol> members, List<IDataType> inherits, bool internalInstance)
+        {
+            Name = name;
+            _members = members;
+            _constructors = new List<Tuple<FunctionType, BlockNode>>();
+            Inherits = inherits;
+            _instance = true;
+            _internal = internalInstance;
+        }
+
+        public bool AddConstructor(FunctionType ft, BlockNode body)
         {
             if (_constructors.Where(x => x.Item1.Coerce(ft)).Count() != 0)
                 return false;
-            _constructors.Add(new Tuple<FunctionType, ExprNode>(ft, body));
+            _constructors.Add(new Tuple<FunctionType, BlockNode>(ft, body));
             return true;
         }
 
@@ -89,19 +58,28 @@ namespace Whirlwind.Types
 
         public bool AddMember(Symbol member)
         {
-            return _table.AddSymbol(member);
+            if (!_members.ContainsKey(member.Name))
+            {
+                _members.Add(member.Name, member);
+                return true;
+            }
+
+            return false;
         }
 
         public bool GetMember(string name, out Symbol member)
         {
-            if (_table.Lookup(name, out Symbol foundSymbol))
+            if (_members.ContainsKey(name))
             {
-                if (!foundSymbol.Modifiers.Contains(Modifier.PRIVATE) && foundSymbol.Modifiers.Contains(Modifier.STATIC))
+                Symbol foundSymbol = _members[name];
+
+                if (_internal || !foundSymbol.Modifiers.Contains(Modifier.PRIVATE))
                 {
                     member = foundSymbol;
                     return true;
                 }
             }
+
             member = null;
             return false;
         }
@@ -119,20 +97,28 @@ namespace Whirlwind.Types
             return false;
         }
 
-        public ObjectInstance GetInstance()
+        public ObjectType GetInstance()
         {
-            return new ObjectInstance(Name, _table, Inherits, false);
+            return new ObjectType(Name, _members, Inherits, false);
         }
 
-        public ObjectInstance GetInternalInstance()
+        public ObjectType GetInternalInstance()
         {
-            return new ObjectInstance(Name, _table, Inherits, true);
+            return new ObjectType(Name, _members, Inherits, true);
         }
 
-        public TypeClassifier Classify() => TypeClassifier.OBJECT_INSTANCE;
+        public TypeClassifier Classify() => _instance ? TypeClassifier.OBJECT_INSTANCE : TypeClassifier.OBJECT;
 
-        public bool Coerce(IDataType dt) => false;
+        public bool Coerce(IDataType dt)
+        {
+            if (_instance)
+            {
+                return dt.Classify() == TypeClassifier.OBJECT_INSTANCE && Name == ((ObjectType)dt).Name;
+            }
 
-        public bool Equals(IDataType dt) => false;
+            return false;
+        }
+
+        public bool Equals(IDataType dt) => Coerce(dt);
     }
 }

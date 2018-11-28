@@ -55,7 +55,7 @@ namespace Whirlwind.Types
             var objInstance = obj.GetInstance();
             foreach (Symbol fn in _functions)
             {
-                if (objInstance.GetProperty(fn.Name, out Symbol match))
+                if (objInstance.GetMember(fn.Name, out Symbol match))
                 {
                     if (!fn.DataType.Coerce(match.DataType))
                         return false;
@@ -72,13 +72,13 @@ namespace Whirlwind.Types
         {
             if (other.Classify() == TypeClassifier.OBJECT_INSTANCE)
             {
-                if (((ObjectInstance)other).Inherits.Contains(this))
+                if (((ObjectType)other).Inherits.Contains(this))
                 {
                     return true;
                 }
                 foreach (Symbol function in _functions)
                 {
-                    if (((ObjectInstance)other).GetProperty(function.Name, out Symbol matchedFunction))
+                    if (((ObjectType)other).GetMember(function.Name, out Symbol matchedFunction))
                     {
                         if (!function.DataType.Coerce(matchedFunction.DataType)) return false;
                     }

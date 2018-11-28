@@ -55,10 +55,7 @@ namespace Whirlwind.Semantic.Visitor
                                         dt = ((ObjectType)symbol.DataType).GetInstance();
                                         break;
                                     case TypeClassifier.STRUCT:
-                                        var structType = ((StructType)symbol.DataType);
-                                        structType.Instantiate();
-
-                                        dt = structType;
+                                        dt = ((StructType)symbol.DataType).GetInstance();
                                         break;
                                     // interface
                                     default:

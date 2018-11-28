@@ -6,23 +6,23 @@ namespace Whirlwind.Types
     {
         public static StructType Element(IDataType dt)
         {
-            var elementStruct = new StructType("Element");
+            var elementStruct = new StructType("Element", false);
             elementStruct.AddMember("next", new SimpleType(SimpleType.DataType.BOOL));
             elementStruct.AddMember("val", dt);
 
             return elementStruct;
         }
 
-        public static ObjectInstance Future(IDataType dt)
+        public static ObjectType Future(IDataType dt)
         {
             // add body to future type
-            return new ObjectInstance("Future", new Semantic.SymbolTable(), new List<IDataType>(), false);
+            return new ObjectType("Future", true, false);
         }
 
-        public static ObjectInstance BaseException()
+        public static ObjectType BaseException()
         {
             // add body
-            return new ObjectInstance("Exception", new Semantic.SymbolTable(), new List<IDataType>(), false);
+            return new ObjectType("Exception", true, false);
         }
     }
 }
