@@ -39,8 +39,22 @@ namespace Whirlwind.Types
         public bool Coerce(IDataType other) {
             if (other.Classify() == TypeClassifier.STRUCT_INSTANCE)
             {
-                // names and instance are the only necessary distinguishing factor
-                return Name == ((StructType)other).Name && _instance;
+                StructType st = (StructType)other;
+
+                if (Name == st.Name && _instance && Members.Count == st.Members.Count)
+                {
+                    using (var e1 = Members.GetEnumerator())
+                    using (var e2 = st.Members.GetEnumerator())
+                    {
+                        while (e1.MoveNext() && e2.MoveNext())
+                        {
+                            if (!e1.Current.Equals(e2.Current))
+                                return false;
+                        }
+                    }
+
+                    return true;
+                }
             }
             return false;
         }

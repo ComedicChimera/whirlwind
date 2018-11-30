@@ -111,9 +111,28 @@ namespace Whirlwind.Types
 
         public bool Coerce(IDataType dt)
         {
-            if (_instance)
+            if (_instance && dt.Classify() == TypeClassifier.OBJECT_INSTANCE)
             {
-                return dt.Classify() == TypeClassifier.OBJECT_INSTANCE && Name == ((ObjectType)dt).Name;
+                ObjectType ot = (ObjectType)dt;
+
+                if (ot.Name != Name)
+                    return false;
+                else if (ot.Inherits.Count != Inherits.Count || ot._members.Count != _members.Count)
+                    return false;
+                else if (!Enumerable.Range(0, Inherits.Count).All(i => Inherits[i].Coerce(ot.Inherits[i])))
+                    return false;
+
+                using (var e1 = _members.GetEnumerator())
+                using (var e2 = ot._members.GetEnumerator())
+                {
+                    while (e1.MoveNext() && e2.MoveNext())
+                    {
+                        if (!e1.Current.Equals(e2.Current))
+                            return false;
+                    }
+                }
+
+                return true;
             }
 
             return false;
