@@ -1,6 +1,17 @@
-﻿func main() {
-	$x: uint;
-	x = 5;
+﻿func decor(fn: func(int)(int)) func(int)(int)
+{
+	func wrapper(x: int) int {
+		yield fn(x);
+	}
 
-	x = -1;
+	return wrapper;
+}
+
+#[decor]
+func by2(x: int) int {
+	return x * 5;
+}
+
+func main() {
+	@v = by2(3);
 }

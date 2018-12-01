@@ -382,9 +382,9 @@ namespace Whirlwind.Semantic.Visitor
                 case "&VOL":
                 case "&":
                     if (new[] {
-                        TypeClassifier.STRUCT, TypeClassifier.INTERFACE, TypeClassifier.OBJECT, TypeClassifier.TEMPLATE, TypeClassifier.FUNCTION
+                        TypeClassifier.STRUCT, TypeClassifier.INTERFACE, TypeClassifier.OBJECT, TypeClassifier.TEMPLATE,
                     }.Contains(rootType.Classify()))
-                        throw new SemanticException("The given object is not reference able", node.Content[0].Position);
+                        throw new SemanticException("The given object is not able to referenced", node.Content[0].Position);
                     treeName = op == "&" ? "Reference" : "VolatileReference";
                     if (rootType.Classify() == TypeClassifier.POINTER)
                     {

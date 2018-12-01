@@ -183,7 +183,7 @@ Represents a single Whirlwind block statement or declaration.
 | Nodes | List\<ITypeNode\> | The nodes that make the defining factors of the block |
 | Block | List\<ITypeNode\> | All of the sub-nodes contained within each items block |
 
-### Block Values
+### Block Values (Block Statements)
 
 | Name | Parameters | Purpose |
 | ---- | ---------- | ------- |
@@ -203,3 +203,14 @@ Represents a single Whirlwind block statement or declaration.
 | FromStmt | Expr, Identifier, [FromExcept] | A from borrow statement |
 | FromExcept | `none` | A fail case for a from borrow statement |
 | FromBlock | VarDecl | A context manager |
+
+### Block Values (Block Declarations)
+
+All block declaration containing identifiers are using the identifier to represent their signature.
+
+| Name | Parameters | Purpose |
+| ---- | ---------- | ------- |
+| Function | Identifier | A function declaration |
+| Struct | Identifier | A struct declaration |
+| Interface | Identifier | An interface declaration |
+| Decorator | *Expr* | A function declared with one or more decorators |

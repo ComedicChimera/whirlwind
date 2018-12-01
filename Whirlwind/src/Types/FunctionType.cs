@@ -2,6 +2,7 @@
 using System.Linq;
 
 using Whirlwind.Semantic;
+using static Whirlwind.Semantic.Checker.Checker;
 
 namespace Whirlwind.Types
 {
@@ -93,7 +94,9 @@ namespace Whirlwind.Types
 
         public bool MatchParameters(List<IDataType> parameters)
         {
-            return false;
+            var data = CheckParameters(this, parameters);
+
+            return !data.IsError;
         }
 
         public bool Equals(IDataType other)

@@ -24,7 +24,7 @@ include_set: '{' 'IDENTIFIER' (',' 'IDENTIFIER')* '}' ;
 // OBJECTS AND OBJECT COMPONENTS
 // object declaration
 obj_decl: 'TYPE' 'IDENTIFIER' [impl] '{' obj_main+ '}' ;
-obj_main: ['PRIV' ( variable_decl ';' 
+obj_main: ['PRIV'] ( variable_decl ';' 
 | enum_const ';'
 | method_decl
 | method_template
@@ -52,6 +52,7 @@ block_decl: func_decl
 | struct_decl
 | template_decl
 | variant_decl
+| decor_decl
 ;
 
 // function declaration
@@ -74,6 +75,10 @@ template: 'IDENTIFIER' [':' type_list] ;
 variant_decl: 'VARIANT' ( variant | variant_list ) 'IDENTIFIER' func_body ;
 variant_list: '(' variant (',' variant)+ ')' ;
 variant: '<' type_list '>' ;
+
+// decorator declaration
+decor_decl: decor func_decl ;
+decor: '#' '[' expr (',' expr)* ']' ;
 
 
 // BLOCK STATEMENTS (control flow, context managers and except blocks)
@@ -129,6 +134,7 @@ stmt: ( variable_decl
 | break_stmt
 | delete_stmt
 | return_stmt
+| yield_stmt
 ) ';' 
 ;
 
@@ -170,6 +176,7 @@ break_stmt: 'BREAK' ;
 throw_stmt: 'THROW' expr ;
 delete_stmt: 'DELETE' 'IDENTIFIER' (',' 'IDENTIFIER')* ;
 return_stmt: 'RETURN' [expr (',' expr)*] ;
+yield_stmt: 'YIELD' expr (',' expr)* ;
 
 
 // EXPRESSIONS - basic unit of statements 

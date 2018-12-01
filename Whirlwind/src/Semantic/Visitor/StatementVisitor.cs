@@ -84,6 +84,12 @@ namespace Whirlwind.Semantic.Visitor
                         else
                             throw new SemanticException("Invalid context for a return statement", stmt.Position);
                         break;
+                    case "yield_stmt":
+                        if (context.Function)
+                            _visitReturn(stmt, "Yield");
+                        else
+                            throw new SemanticException("Invalid context for a yield statement", stmt.Position);
+                        break;
                     case "delete_stmt":
                         var identifierList = new List<ITypeNode>();
 
