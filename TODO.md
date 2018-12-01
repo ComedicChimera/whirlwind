@@ -16,5 +16,6 @@
 - add in some support for monadic / dynamic types (Option, Never, ...); value based types (possibly extension of enum)
 
 # FUTURE
- - add operator overloading in reduction stage
- - add 4 analyzers (const, constexpr, thread, and memory) [Note: constexpr does in depth checking on all constant expressions]
+
+- add operator overloading in reduction stage
+- add 4 analyzers (const, constexpr, thread, and memory) [Note: constexpr does in depth checking on all constant expressions]
