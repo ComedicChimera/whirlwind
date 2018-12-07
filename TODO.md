@@ -4,7 +4,6 @@
 - add null keyword
 - allow for recursive type definition
 - allow for object level method variance
-- add after clause (context manager, loops, except blocks)
 - add visiting for types, templates, and variants
 - add agents (agent syntax, agent event model)
 - replace enum const with pure enum
