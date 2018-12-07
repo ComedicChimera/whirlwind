@@ -15,6 +15,7 @@
 - add in the `auto` keyword for explicit inferred data type (in certain situations)
 - add in some support for monadic / dynamic types (Option, Never, ...); value based types (possibly extension of enum)
 - add partial function syntax `|fn 3>` or `|fn2 $, 5>`
+- add inline case block
 
 # FUTURE
 
