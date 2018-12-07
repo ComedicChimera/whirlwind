@@ -101,16 +101,16 @@ case: 'CASE' expr (',' expr)* ':' main ;
 default: 'DEFAULT' ':' main ;
 
 // for loop
-for_loop: 'FOR' [for_body] block ;
+for_loop: 'FOR' [for_body] block [after_clause] ;
 for_body: '(' (c_for | iterator | expr) ')' ;
 c_for: ['IDENTIFIER' '=' expr] ';' [expr] ';' [expr | assignment] ;
 
 // except block
-except_block: 'EXCEPT' '(' handle_block+ ')' block ;
+except_block: 'EXCEPT' '(' handle_block+ ')' block [after_clause] ;
 handle_block: expr ':' '(' ['IDENTIFIER'] ')' '=>' block ;
 
 // from block
-from_block: 'FROM' ( from_stmt ( from_except_clause | ';' ) | from_body [from_except_clause] ) ;
+from_block: 'FROM' ( from_stmt ( from_except_clause | ';' ) | from_body [from_except_clause] [after_clause] ) ;
 from_stmt: 'IDENTIFIER' ('.' 'IDENTIFIER')* '->' 'IDENTIFIER' ;
 from_body: '(' variable_decl ')' block ;
 from_except_clause: 'EXCEPT' block ;
@@ -121,6 +121,9 @@ export_decl: 'EXPORT' ( block_decl
 | variable_decl ';'
 | enum_const ';'
 );
+
+// after clause
+after_clause: 'AFTER' block ;
 
 
 // STATEMENTS

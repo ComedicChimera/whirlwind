@@ -183,6 +183,8 @@ namespace Whirlwind.Semantic.Visitor
                 _nodes.Add(new BlockNode("ForInfinite"));
 
                 _visitBlockNode((ASTNode)node.Content[1], context);
+
+                return;
             }
             else
             {
@@ -225,7 +227,13 @@ namespace Whirlwind.Semantic.Visitor
                     }
                 }
 
-                _visitBlockNode((ASTNode)node.Content.Last(), context);
+                if (node.Content.Last().Name == "after_clause")
+                {
+                    _visitBlockNode((ASTNode)node.Content[node.Content.Count - 2], context);
+                    _visitAfterClause((ASTNode)node.Content.Last(), context);
+                }
+                else
+                    _visitBlockNode((ASTNode)node.Content.Last(), context);
             }
         }
 
@@ -350,6 +358,8 @@ namespace Whirlwind.Semantic.Visitor
                 }
                 else if (item.Name == "block")
                     _visitBlockNode((ASTNode)item, context);
+                else if (item.Name == "after_clause")
+                    _visitAfterClause((ASTNode)item, context);
             }
         }
 
@@ -377,7 +387,7 @@ namespace Whirlwind.Semantic.Visitor
                                     {
                                         if (!_table.AddSymbol(new Symbol(tok.Value, dt)))
                                             throw new SemanticException($"Unable to borrow under the name {tok.Value} because a " +
-                                                "variable by that name has already been declared", 
+                                                "variable by that name has already been declared",
                                                 elem.Position);
 
                                         _nodes.Add(new IdentifierNode(tok.Value, dt, false));
@@ -444,8 +454,20 @@ namespace Whirlwind.Semantic.Visitor
 
                         MergeBack();
                         break;
+                    case "after_clause":
+                        _visitAfterClause((ASTNode)item, context);
+                        break;
                 }
             }
+        }
+
+        private void _visitAfterClause(ASTNode afterBlock, StatementContext context)
+        {
+            _nodes.Add(new BlockNode("After"));
+
+            _visitBlockNode((ASTNode)afterBlock.Content[1], context);
+
+            MergeBack();
         }
 
         private void _visitBlockNode(ASTNode block, StatementContext context)
