@@ -104,6 +104,9 @@ namespace Whirlwind.Semantic.Visitor
                     case "tuple":
                         _visitTuple((ASTNode)node.Content[0]);
                         break;
+                    case "partial_func":
+                        _visitPartialFunc((ASTNode)node.Content[0]);
+                        break;
                 }
             }
         }
@@ -303,6 +306,53 @@ namespace Whirlwind.Semantic.Visitor
 
             _nodes.Add(new ExprNode("Tuple", new TupleType(types)));
             PushForward(count);
+        }
+
+        private void _visitPartialFunc(ASTNode node)
+        {
+            FunctionType fnType;
+
+            _visitExpr((ASTNode)node.Content[1]);
+
+            if (_nodes.Last().Type.Classify() != TypeClassifier.FUNCTION)
+                throw new SemanticException("Unable to create partial function from non-function", node.Content[1].Position);
+
+            fnType = (FunctionType)_nodes.Last();
+
+            List<int> removedArgs = new List<int>();
+            foreach (var item in node.Content.Select((x, i) => new { Value = x, Index = i }))
+            {
+                ASTNode expr = (ASTNode)((ASTNode)item.Value).Content[0];
+
+                if (item.Value.Name == "partial_arg" && expr.Name == "expr")
+                {
+                    int ndx = fnType.Parameters.Count <= item.Index && fnType.Parameters.Last().Indefinite ? fnType.Parameters.Count - 1 : item.Index;
+
+                    if (ndx >= fnType.Parameters.Count)
+                        throw new SemanticException("Unable to fill in non-existent argument.", item.Value.Position);
+
+                    _visitExpr(expr);
+
+                    if (!fnType.Parameters[ndx].DataType.Coerce(_nodes.Last().Type))
+                        throw new SemanticException("Invalid value for the given argument", item.Value.Position);
+
+                    // create the partial arguments
+                    _nodes.Add(new ExprNode($"PartialArg{ndx}", _nodes.Last().Type));
+                    PushForward();
+
+                    removedArgs.Add(ndx);
+                }
+            }
+
+            foreach (var item in removedArgs.Select((x, i) => new { Value = x, Index = i }))
+            {
+                fnType.Parameters.RemoveAt(item.Value - item.Index);
+            }            
+
+            _nodes.Add(new ExprNode("PartialFunction", fnType));
+
+            // push forward root and args
+            PushForward(removedArgs.Count + 1);
         }
     }
 }

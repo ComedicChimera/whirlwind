@@ -161,6 +161,19 @@ namespace Whirlwind.Semantic.Visitor
                 else
                     throw new SemanticException("Unable to apply template specifier to non-template type", node.Position);
             }
+            else if (node.Content[0].Name == "static_get")
+            {
+                Symbol symbol = _getStaticMember(_nodes.Last().Type, 
+                    ((TokenNode)((ASTNode)node.Content[0]).Content[1]).Tok.Value, 
+                    ((ASTNode)node.Content[0]).Content[0].Position,
+                     ((ASTNode)node.Content[0]).Content[1].Position
+                     );
+
+                _nodes.Add(new IdentifierNode(symbol.Name, symbol.DataType, true));
+                _nodes.Add(new ExprNode("StaticGet", symbol.DataType));
+
+                PushForward(2);
+            }
             // all other first elements are tokens
             else
             {
@@ -276,23 +289,42 @@ namespace Whirlwind.Semantic.Visitor
             {
                 case TypeClassifier.OBJECT_INSTANCE:
                     if (!((ObjectType)type).GetMember(name, out symbol))
-                        throw new SemanticException($"obj instance has no property '{name}'", idPos);
+                        throw new SemanticException($"obj instance has no property `{name}`", idPos);
                     break;
                 case TypeClassifier.STRUCT_INSTANCE:
                     if (((StructType)type).Members.ContainsKey(name))
                         return new Symbol(name, ((StructType)type).Members[name]);
                     else
-                        throw new SemanticException($"Struct has no member '{name}'", idPos);
+                        throw new SemanticException($"Struct has no member `{name}`", idPos);
                 case TypeClassifier.INTERFACE_INSTANCE:
                     if (!((InterfaceType)type).GetFunction(name, out symbol))
-                        throw new SemanticException($"Interface has no function '{name}'", idPos);
-                    break;
-                case TypeClassifier.PACKAGE:
-                    if (!((Package)type).ExternalTable.Lookup(name, out symbol))
-                        throw new SemanticException($"Package has no member '{name}'", idPos);
+                        throw new SemanticException($"Interface has no function `{name}`", idPos);
                     break;
                 default:
-                    throw new SemanticException("The '.' operator is not valid on the given type", opPos);
+                    throw new SemanticException("The `.` operator is not valid on the given type", opPos);
+            }
+
+            return symbol;
+        }
+
+        private Symbol _getStaticMember(IDataType type, string name, TextPosition opPos, TextPosition idPos)
+        {
+            Symbol symbol;
+
+            switch (type.Classify())
+            {
+                case TypeClassifier.PACKAGE:
+                    if (!((Package)type).ExternalTable.Lookup(name, out symbol))
+                        throw new SemanticException($"Package has no member `{name}`", idPos);
+                    break;
+                case TypeClassifier.ENUM:
+                    if (((EnumType)type).HasMember(name))
+                        symbol = new Symbol(name, new EnumMember(name, (EnumType)type));
+                    else
+                        throw new SemanticException($"Enum has no value `{name}`", idPos);
+                    break;
+                default:
+                    throw new SemanticException("The `::` operato is not valid on the given type", opPos);
             }
 
             return symbol;
