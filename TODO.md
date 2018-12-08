@@ -18,3 +18,10 @@
 
 - add operator overloading in reduction stage
 - add 4 analyzers (const, constexpr, thread, and memory) [Note: constexpr does in depth checking on all constant expressions]
+
+# TESTING
+
+- partial functions
+- after clause (all 3 cases)
+- enums
+- static get
