@@ -25,3 +25,6 @@
 - after clause (all 3 cases)
 - enums
 - static get
+- decorators
+- yield statement
+- function references
