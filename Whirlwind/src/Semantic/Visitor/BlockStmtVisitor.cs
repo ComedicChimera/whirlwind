@@ -1,8 +1,6 @@
 ﻿using Whirlwind.Parser;
 using Whirlwind.Types;
 
-using static Whirlwind.Semantic.Checker.Checker;
-
 using System.Linq;
 using System.Collections.Generic;
 

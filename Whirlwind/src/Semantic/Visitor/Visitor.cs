@@ -43,9 +43,6 @@ namespace Whirlwind.Semantic.Visitor
                     case "block_decl":
                         _visitBlockDecl((ASTNode)node);
                         break;
-                    case "enum_const":
-                        _visitEnumConst((ASTNode)node);
-                        break;
                     case "variable_decl":
                         _visitVarDecl((ASTNode)node, new List<Modifier>());
                         break;

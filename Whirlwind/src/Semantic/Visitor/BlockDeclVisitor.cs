@@ -28,6 +28,9 @@ namespace Whirlwind.Semantic.Visitor
                 case "decor_decl":
                     _visitDecorator(root);
                     break;
+                case "enum_decl":
+                    _visitEnum(root);
+                    break;
             }
         }
 
@@ -134,6 +137,29 @@ namespace Whirlwind.Semantic.Visitor
             }
 
             PushToBlock();
+        }
+
+        private void _visitEnum(ASTNode node)
+        {
+            var values = ((ASTNode)node.Content[3]).Content.Select(x => ((TokenNode)x).Tok.Value).ToList();
+
+            if (!values.GroupBy(x => x).All(x => x.Count() > 1))
+                throw new SemanticException("Enum cannot contain duplicate values", ((ASTNode)node.Content[3]).Content
+                    .GroupBy(x => x.Name)
+                    .Where(x => x.Count() > 1)
+                    .First().First()
+                    .Position
+                    );
+
+            _nodes.Add(new BlockNode("Enum"));
+
+            string name = ((TokenNode)node.Content[1]).Tok.Value;
+            EnumType et = new EnumType(name, values);
+
+            _nodes.Add(new IdentifierNode(name, et, true));
+
+            if (!_table.AddSymbol(new Symbol(name, et, new List<Modifier>() { Modifier.CONSTANT })))
+                throw new SemanticException($"Unable to redeclare symbol by name `{name}`", node.Content[1].Position);
         }
     }
 }

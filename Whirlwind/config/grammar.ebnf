@@ -1,6 +1,5 @@
 ﻿// WHIRLWIND STANDARD GRAMMAR
 whirlwind: ( variable_decl ';'
-| enum_const ';'
 | block_decl
 | include_stmt ';'
 | export_decl
@@ -25,18 +24,14 @@ include_set: '{' 'IDENTIFIER' (',' 'IDENTIFIER')* '}' ;
 // object declaration
 obj_decl: 'TYPE' 'IDENTIFIER' [impl] '{' obj_main+ '}' ;
 obj_main: ['PRIV'] ( variable_decl ';' 
-| enum_const ';'
-| method_decl
+| func_decl
 | method_template
 | variant_decl
 | constructor_decl
 ) ;
 
-// method declaration
-method_decl: ('FUNC' | 'ASYNC') ['PARTIAL'] 'IDENTIFIER' '(' args_decl_list ')' [ types ] partial* (func_body | ';') ;
-
 // method template
-method_template: 'TEMPLATE' '<' template (',' template)* '>' method_decl ;
+method_template: 'TEMPLATE' '<' template (',' template)* '>' func_decl ;
 
 // constructor declaration
 constructor_decl: 'CONSTRUCTOR' '(' args_decl_list ')' func_body ;
@@ -80,6 +75,10 @@ variant: '<' type_list '>' ;
 decor_decl: decor func_decl ;
 decor: '#' '[' expr (',' expr)* ']' ;
 
+// pure enum declaration
+enum_decl: 'ENUM' 'IDENTIFIER' '{' enum_main '}' ;
+enum_main: 'IDENTIFIER'+ ;
+
 
 // BLOCK STATEMENTS (control flow, context managers and except blocks)
 block_stmt: if_stmt
@@ -119,7 +118,6 @@ from_except_clause: 'EXCEPT' block ;
 export_decl: 'EXPORT' ( block_decl
 | include_stmt ';'
 | variable_decl ';'
-| enum_const ';'
 );
 
 // after clause
@@ -129,7 +127,6 @@ after_clause: 'AFTER' block ;
 // STATEMENTS
 // broken up for logical reasons - takes advantage of multiple solution parsing
 stmt: ( variable_decl
-| enum_const
 | assignment
 | expr
 | throw_stmt 
@@ -150,10 +147,6 @@ var: '(' 'IDENTIFIER' extension variable_initializer (',' 'IDENTIFIER' extension
 variable_initializer: [ '=' expr
 | ':=' expr
 ] ;
-
-// enumerated constant
-enum_const: '@' '{' first_const 'IDENTIFIER'+ '}' ;
-first_const: 'IDENTIFIER' variable_initializer ;
 
 // variable assignment
 assignment: assign_var (',' assign_var)* assign_op expr (',' expr)* ;
@@ -186,7 +179,7 @@ yield_stmt: 'YIELD' expr (',' expr)* ;
 expr: or [expr_extension] ;
 expr_extension: '?' or ':' or
 | ('??' or)+
-;
+; 
 
 // logical operators
 or: xor ('OR' xor)* ;
@@ -225,12 +218,15 @@ trailer: '[' (expr [slice] | slice) ']'
 | '.' 'IDENTIFIER'
 | '->' 'IDENTIFIER'
 | template_spec
+| static_get
 ;
 
 // trailer components
 slice: ':' [expr [':' expr] | ':' expr] ;
 args_list: [expr (',' expr)*] ;
 init_list: 'IDENTIFIER' initializer (',' 'IDENTIFIER' initializer)* ;
+static_get: get_op 'IDENTIFIER' ;
+get_op: ':' ':' ;
 
 // for comprehension
 comprehension: 'FOR' '(' expr [':' expr] '|' iterator ['WHERE' expr] ')' ;
@@ -257,6 +253,7 @@ base: 'INTEGER_LITERAL'
 | closure
 | sub_expr
 | type_cast
+| partial_func
 ;
 
 // collection types
@@ -278,6 +275,12 @@ sub_expr: '(' expr ')' ;
 
 // casting syntax includes call
 type_cast: 'CAST' '<' types '>' '(' expr ')' ;
+
+// convert function to partial function
+partial_func: '|' expr partial_arg (',' partial_arg)* ')' ;
+partial_arg: '$'
+| expr
+;
 
 
 // DATA TYPES - data type literals

@@ -33,6 +33,8 @@
         TEMPLATE,
         TEMPLATE_ALIAS,
         TEMPLATE_PLACEHOLDER,
-        PACKAGE
+        PACKAGE,
+        ENUM,
+        ENUM_MEMBER
     }
 }
