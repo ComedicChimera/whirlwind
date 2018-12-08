@@ -6,7 +6,6 @@
 - allow for object level method variance
 - add visiting for types, templates, and variants
 - add agents (agent syntax, agent event model)
-- remove structs
 
 # THOUGHTS
 
