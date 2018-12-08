@@ -7,6 +7,7 @@
 - add visiting for types, templates, and variants
 - add agents (agent syntax, agent event model)
 - improve function data type signature to include optional and indefinite arguments
+- remove global variables and from borrow syntax
 
 # THOUGHTS
 
