@@ -7,13 +7,13 @@
 - add visiting for types, templates, and variants
 - add agents (agent syntax, agent event model)
 - improve function data type signature to include optional and indefinite arguments
-- remove global variables and from borrow syntax
 
 # THOUGHTS
 
 - add positioning data to some or all of the action tree
 - add in the `auto` keyword for explicit inferred data type (in certain situations)
 - add inline case block
+- remove global variables and from borrow syntax
 
 # FUTURE
 
