@@ -3,45 +3,18 @@ using System.Linq;
 
 namespace Whirlwind.Types
 {
-    class EnumMember : IDataType
-    {
-        public readonly string Name;
-        public readonly EnumType Parent;
-
-        public EnumMember(EnumType parent)
-        {
-            Name = "";
-            Parent = parent;
-        }
-
-        public EnumMember(string name, EnumType parent)
-        {
-            Name = name;
-            Parent = parent;
-        }
-
-        public bool Equals(IDataType other)
-        {
-            if (other.Classify() == TypeClassifier.ENUM_MEMBER)
-                return (Name == "" || Name == ((EnumMember)other).Name) && Parent.Equals(((EnumMember)other).Parent);
-
-            return false;
-        }
-
-        public bool Coerce(IDataType other) => Equals(other);
-
-        public TypeClassifier Classify() => TypeClassifier.ENUM_MEMBER;
-    }
-
     class EnumType : IDataType
     {
         public readonly string Name;
-        private readonly List<string> _values;
 
-        public EnumType(string name, List<string> values)
+        private readonly List<string> _values;
+        private readonly bool _instance;
+
+        public EnumType(string name, List<string> values, bool instance = false)
         {
             Name = name;
             _values = values;
+            _instance = instance;
         }
 
         public bool Equals(IDataType other)
@@ -62,9 +35,11 @@ namespace Whirlwind.Types
             return _values.Contains(name);
         }
 
+        public EnumType GetInstance() => new EnumType(Name, _values, _instance);
+
         public bool Coerce(IDataType other) => Equals(other);
 
-        public TypeClassifier Classify() => TypeClassifier.ENUM;
+        public TypeClassifier Classify() => _instance ? TypeClassifier.ENUM_MEMBER : TypeClassifier.ENUM;
 
     }
 }

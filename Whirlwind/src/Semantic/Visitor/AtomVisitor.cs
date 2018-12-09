@@ -319,7 +319,7 @@ namespace Whirlwind.Semantic.Visitor
                     break;
                 case TypeClassifier.ENUM:
                     if (((EnumType)type).HasMember(name))
-                        symbol = new Symbol(name, new EnumMember(name, (EnumType)type));
+                        symbol = new Symbol(name, ((EnumType)type).GetInstance());
                     else
                         throw new SemanticException($"Enum has no value `{name}`", idPos);
                     break;

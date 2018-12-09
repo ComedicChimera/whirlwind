@@ -58,7 +58,7 @@ namespace Whirlwind.Semantic.Visitor
                                         dt = ((StructType)symbol.DataType).GetInstance();
                                         break;
                                     case TypeClassifier.ENUM:
-                                        dt = new EnumMember((EnumType)symbol.DataType);
+                                        dt = ((EnumType)symbol.DataType).GetInstance();
                                         break;
                                     // interface
                                     default:
