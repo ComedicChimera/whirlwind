@@ -23,7 +23,17 @@ namespace Whirlwind.Types
             Optional = false;
             Indefinite = indefinite;
             Constant = constant;
-            DefaultValue = new ValueNode("", DataType);
+            DefaultValue = new ValueNode("", dt);
+        }
+
+        public Parameter(string name, IDataType dt, bool optional)
+        {
+            Name = name;
+            DataType = dt;
+            Optional = optional;
+            Indefinite = false;
+            Constant = false;
+            DefaultValue = new ValueNode("", dt);
         }
 
         public Parameter(string name, IDataType dt, bool indefinite, bool constant, ITypeNode defaultVal)
@@ -40,7 +50,7 @@ namespace Whirlwind.Types
         {
             if (!DataType.Coerce(other.DataType))
                 return false;
-            if (Indefinite != other.Indefinite)
+            if (Indefinite != other.Indefinite || Optional && !other.Optional)
                 return false;
             return true;
         }

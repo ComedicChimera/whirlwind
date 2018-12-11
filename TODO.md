@@ -6,7 +6,6 @@
 - allow for object level method variance
 - add visiting for types, templates, and variants
 - add agents (agent syntax, agent event model)
-- improve function data type signature to include optional and indefinite arguments
 
 # THOUGHTS
 
@@ -14,6 +13,7 @@
 - add in the `auto` keyword for explicit inferred data type (in certain situations)
 - add inline case block
 - remove global variables and from borrow syntax
+- rethink the concurrency model to more fluid and intelligent
 
 # FUTURE
 
@@ -29,3 +29,4 @@
 - decorators
 - yield statement
 - function references
+- new function syntax

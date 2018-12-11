@@ -204,10 +204,8 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     bool async = false;
 
-                    List<IDataType> args = new List<IDataType>(), 
-                        returnTypes = new List<IDataType>();
-
-                    bool collectingArgs = false;
+                    List<IDataType> returnTypes = new List<IDataType>();
+                    List<Parameter> args = new List<Parameter>();
 
                     foreach (var item in ((ASTNode)subNode).Content)
                     {
@@ -216,14 +214,30 @@ namespace Whirlwind.Semantic.Visitor
                             case "TOKEN":
                                 if (((TokenNode)item).Tok.Type == "ASYNC")
                                     async = true;
-                                if (((TokenNode)item).Tok.Type == ")")
-                                    collectingArgs = true;
+                                break;
+                            case "func_arg_types":
+                                foreach (var elem in ((ASTNode)item).Content)
+                                {
+                                    if (elem.Name == "func_arg_type")
+                                    {
+                                        ASTNode arg = (ASTNode)elem;
+
+                                        args.Add(new Parameter("Arg" + args.Count.ToString(), 
+                                            _generateType((ASTNode)arg.Content[0]), 
+                                            arg.Content.Count == 2
+                                            ));
+                                    }
+                                    else if (elem.Name == "func_arg_indef")
+                                    {
+                                        ASTNode arg = (ASTNode)elem;
+                                        IDataType dt = arg.Content.Count == 2 ? _generateType((ASTNode)arg.Content[1]) : new SimpleType();
+
+                                        args.Add(new Parameter("Arg" + args.Count.ToString(), dt, true, false));
+                                    }
+                                }
                                 break;
                             case "type_list":
-                                if (collectingArgs)
-                                    args = _generateTypeList((ASTNode)item);
-                                else
-                                    returnTypes = _generateTypeList((ASTNode)item);
+                                returnTypes = _generateTypeList((ASTNode)item);
                                 break;
                         }
                     }
@@ -243,9 +257,7 @@ namespace Whirlwind.Semantic.Visitor
                             break;
                     }
 
-                    int p = 0;
-                    return new FunctionType(args.Select(x => new Parameter("p" + (p++).ToString(), x, false, false)).ToList(), 
-                        returnType, async);
+                    return new FunctionType(args, returnType, async);
                 }
             }
 
