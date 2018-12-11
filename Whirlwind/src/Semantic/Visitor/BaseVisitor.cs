@@ -317,11 +317,14 @@ namespace Whirlwind.Semantic.Visitor
             if (_nodes.Last().Type.Classify() != TypeClassifier.FUNCTION)
                 throw new SemanticException("Unable to create partial function from non-function", node.Content[1].Position);
 
-            fnType = (FunctionType)_nodes.Last();
+            fnType = (FunctionType)_nodes.Last().Type;
 
             List<int> removedArgs = new List<int>();
-            foreach (var item in node.Content.Select((x, i) => new { Value = x, Index = i }))
+            foreach (var item in node.Content.Select((x, i) => new { Value = x, Index = i - 1 }))
             {
+                if (item.Value.Name == "TOKEN")
+                    continue;
+
                 ASTNode expr = (ASTNode)((ASTNode)item.Value).Content[0];
 
                 if (item.Value.Name == "partial_arg" && expr.Name == "expr")
@@ -329,7 +332,7 @@ namespace Whirlwind.Semantic.Visitor
                     int ndx = fnType.Parameters.Count <= item.Index && fnType.Parameters.Last().Indefinite ? fnType.Parameters.Count - 1 : item.Index;
 
                     if (ndx >= fnType.Parameters.Count)
-                        throw new SemanticException("Unable to fill in non-existent argument.", item.Value.Position);
+                        throw new SemanticException("Unable to fill in non-existent argument", item.Value.Position);
 
                     _visitExpr(expr);
 

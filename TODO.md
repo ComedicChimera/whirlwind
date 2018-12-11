@@ -22,7 +22,6 @@
 
 # TESTING
 
-- partial functions
 - after clause (all 3 cases)
 - enums
 - static get

@@ -1,19 +1,8 @@
-﻿func items(@d: dict[int, str]) list[(int, str)] => for(k: d[k] | k <- d);
-
-func apply(fn: func(x: int)(int), val: int) => fn(val);
+﻿func add(a: int, b: int) int 
+	=> a + b;
 
 func main() {
-	$d: dict[int, str];
+	$f = |add 1);
 
-	for(k * 2 | k <- d where k % 2 == 0);
-
-	$string: str;
-
-	for (k, v <- items(d)) {
-		$var = apply(|x: int| => x * 2, k);
-
-		string += v + cast<char>(var);
-	}
-
-	d[5] = string;
+	f(2);
 }
