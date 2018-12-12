@@ -215,7 +215,7 @@ namespace Whirlwind.Semantic.Visitor
                         if (((ExprNode)_nodes.Last()).Nodes.Count > 0)
                         {
                             _nodes.Add(new BlockNode("CFor"));
-                            MergeBack();
+                            PushForward();
                         }
                         else
                         {

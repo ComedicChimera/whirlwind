@@ -19,7 +19,7 @@ namespace Whirlwind.Types
 
         public bool Equals(IDataType other)
         {
-            if (other.Classify() == TypeClassifier.ENUM)
+            if (other.Classify() == Classify())
             {
                 EnumType eo = (EnumType)other;
 
@@ -35,7 +35,7 @@ namespace Whirlwind.Types
             return _values.Contains(name);
         }
 
-        public EnumType GetInstance() => new EnumType(Name, _values, _instance);
+        public EnumType GetInstance() => new EnumType(Name, _values, true);
 
         public bool Coerce(IDataType other) => Equals(other);
 

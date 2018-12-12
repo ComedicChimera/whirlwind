@@ -344,11 +344,11 @@ namespace Whirlwind.Semantic.Visitor
 
                     if (paramData.IsError)
                         throw new SemanticException(paramData.ErrorMessage, paramData.ParameterPosition == -1 ? node.Position : 
-                            ((ASTNode)node.Content[1]).Content.Where(x => x.Name == "arg").ToArray()[paramData.ParameterPosition].Position
+                            ((ASTNode)node.Content[1]).Content.Where(x => x.Name == "expr").ToArray()[paramData.ParameterPosition].Position
                         );
                 }
                 else if (!isFunction && !((ObjectType)root.Type).GetConstructor(args, out FunctionType constructor))
-                    throw new SemanticException($"obj '{((ObjectType)root.Type).Name}' has no constructor the accepts the given parameters", node.Position);
+                    throw new SemanticException($"Typeclass `{((ObjectType)root.Type).Name}` has no constructor the accepts the given parameters", node.Position);
 
                 IDataType returnType = isFunction ? ((FunctionType)root.Type).ReturnType : ((ObjectType)root.Type).GetInstance();
 

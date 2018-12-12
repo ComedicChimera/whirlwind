@@ -143,7 +143,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             var values = ((ASTNode)node.Content[3]).Content.Select(x => ((TokenNode)x).Tok.Value).ToList();
 
-            if (!values.GroupBy(x => x).All(x => x.Count() > 1))
+            if (values.GroupBy(x => x).All(x => x.Count() > 1))
                 throw new SemanticException("Enum cannot contain duplicate values", ((ASTNode)node.Content[3]).Content
                     .GroupBy(x => x.Name)
                     .Where(x => x.Count() > 1)
@@ -157,6 +157,7 @@ namespace Whirlwind.Semantic.Visitor
             EnumType et = new EnumType(name, values);
 
             _nodes.Add(new IdentifierNode(name, et, true));
+            MergeBack();
 
             if (!_table.AddSymbol(new Symbol(name, et, new List<Modifier>() { Modifier.CONSTANT })))
                 throw new SemanticException($"Unable to redeclare symbol by name `{name}`", node.Content[1].Position);

@@ -1,8 +1,14 @@
-﻿func add(a: int, b: int) int 
-	=> a + b;
+﻿enum Color {
+	RED
+	GREEN
+	BLUE
+	YELLOW
+}
+
+func Println(color: Color) {
+	
+}
 
 func main() {
-	$f = |add 1);
-
-	f(2);
+	Println(Color::RED);
 }

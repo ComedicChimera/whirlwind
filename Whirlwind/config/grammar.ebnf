@@ -48,6 +48,7 @@ block_decl: func_decl
 | template_decl
 | variant_decl
 | decor_decl
+| enum_decl
 ;
 
 // function declaration

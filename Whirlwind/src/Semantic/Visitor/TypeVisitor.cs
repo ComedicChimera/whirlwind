@@ -46,8 +46,9 @@ namespace Whirlwind.Semantic.Visitor
                                 {
                                     dt = ((TemplateAlias)symbol.DataType).ReplacementType;
                                 }
-                                if (!new[] { TypeClassifier.OBJECT, TypeClassifier.STRUCT, TypeClassifier.INTERFACE }.Contains(symbol.DataType.Classify()))
-                                    throw new SemanticException("Identifier data type must be a obj or an interface", tokenNode.Position);
+                                if (!new[] { TypeClassifier.OBJECT, TypeClassifier.STRUCT, TypeClassifier.INTERFACE, TypeClassifier.ENUM }
+                                .Contains(symbol.DataType.Classify()))
+                                    throw new SemanticException("Identifier data type must be a struct, type class, enum, or interface", tokenNode.Position);
                                 
                                 switch (symbol.DataType.Classify())
                                 {
