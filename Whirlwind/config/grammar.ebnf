@@ -1,5 +1,5 @@
 ﻿// WHIRLWIND STANDARD GRAMMAR
-whirlwind: ( variable_decl ';'
+whirlwind: ( global_const ';'
 | block_decl
 | include_stmt ';'
 | export_decl
@@ -18,6 +18,9 @@ include_stmt: 'INCLUDE' ( pkg_name ['STRING_LITERAL'] | include_set 'FROM' pkg_n
 pkg_name: [pkg_back_move] 'IDENTIFIER' ('.' 'IDENTIFIER' | pkg_back_move )* ;
 pkg_back_move: '.' '.' ;
 include_set: '{' 'IDENTIFIER' (',' 'IDENTIFIER')* '}' ;
+
+// global constant - parsed by same logic as variables
+global_const: '@' var extension variable_initializer ;
 
 
 // OBJECTS AND OBJECT COMPONENTS

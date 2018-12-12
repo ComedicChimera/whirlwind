@@ -12,7 +12,7 @@
 - add positioning data to some or all of the action tree
 - add in the `auto` keyword for explicit inferred data type (in certain situations)
 - add inline case block
-- remove global variables and from borrow syntax, add in global constants (goes with concurrency model)
+- remove from borrow syntax
 - rethink the concurrency model to more fluid and intelligent (possibly implement atoms instead of lazy borrowing)
 
 # FUTURE
