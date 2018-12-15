@@ -250,6 +250,7 @@ base: 'INTEGER_LITERAL'
 | 'BINARY_LITERAL'
 | 'THIS'
 | 'IDENTIFIER'
+| 'NULL'
 | array
 | list
 | dict

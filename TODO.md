@@ -1,11 +1,11 @@
 # TODO
 
 - add scope first top level symbol declaration
-- add null keyword
 - allow for recursive type definition
 - allow for object level method variance
 - add visiting for types, templates, and variants
 - add agents (agent syntax, agent event model)
+- allow for decorators to mutate function signatures
 
 # THOUGHTS
 

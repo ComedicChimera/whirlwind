@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace Whirlwind.Types
 {
-    class EnumType : IDataType
+    class EnumType : DataType, IDataType
     {
         public readonly string Name;
 
@@ -37,7 +37,7 @@ namespace Whirlwind.Types
 
         public EnumType GetInstance() => new EnumType(Name, _values, true);
 
-        public bool Coerce(IDataType other) => Equals(other);
+        protected sealed override bool _coerce(IDataType other) => Equals(other);
 
         public TypeClassifier Classify() => _instance ? TypeClassifier.ENUM_MEMBER : TypeClassifier.ENUM;
 

@@ -66,7 +66,7 @@ namespace Whirlwind.Types
         }
     }
 
-    class FunctionType : IDataType
+    class FunctionType : DataType, IDataType
     {
         public readonly IDataType ReturnType;
         public readonly List<Parameter> Parameters;
@@ -81,7 +81,7 @@ namespace Whirlwind.Types
 
         public TypeClassifier Classify() => TypeClassifier.FUNCTION;
 
-        public bool Coerce(IDataType other)
+        protected sealed override bool _coerce(IDataType other)
         {
             if (other.Classify() == TypeClassifier.FUNCTION)
             {

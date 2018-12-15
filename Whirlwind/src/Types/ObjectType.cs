@@ -7,7 +7,7 @@ using System.Collections.Generic;
 // add partials and interfaces
 namespace Whirlwind.Types
 {
-    class ObjectType : IDataType
+    class ObjectType : DataType, IDataType
     {
         private readonly Dictionary<string, Symbol> _members;
         private readonly List<Tuple<FunctionType, BlockNode>> _constructors;
@@ -109,7 +109,7 @@ namespace Whirlwind.Types
 
         public TypeClassifier Classify() => _instance ? TypeClassifier.OBJECT_INSTANCE : TypeClassifier.OBJECT;
 
-        public bool Coerce(IDataType dt)
+        protected sealed override bool _coerce(IDataType dt)
         {
             if (_instance && dt.Classify() == TypeClassifier.OBJECT_INSTANCE)
             {

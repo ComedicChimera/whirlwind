@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace Whirlwind.Types
 {
-    class TupleType : IDataType
+    class TupleType : DataType, IDataType
     {
         public readonly List<IDataType> Types;
 
@@ -14,7 +14,7 @@ namespace Whirlwind.Types
 
         public TypeClassifier Classify() => TypeClassifier.TUPLE;
 
-        public bool Coerce(IDataType other)
+        protected sealed override bool _coerce(IDataType other)
         {
             if (other.Classify() == TypeClassifier.TUPLE)
             {

@@ -1,6 +1,6 @@
 ﻿namespace Whirlwind.Types
 {
-    class PointerType : IDataType
+    class PointerType : DataType, IDataType
     {
         public readonly IDataType Type;
         public int Pointers;
@@ -11,7 +11,7 @@
             Pointers = pointers;
         }
 
-        public bool Coerce(IDataType other)
+        protected sealed override bool _coerce(IDataType other)
         {
             if (other == this)
                 return true;

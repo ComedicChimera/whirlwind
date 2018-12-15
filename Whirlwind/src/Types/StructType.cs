@@ -2,7 +2,7 @@
 
 namespace Whirlwind.Types
 {
-    class StructType : IDataType
+    class StructType : DataType, IDataType
     {
         private bool _instance;
 
@@ -36,7 +36,8 @@ namespace Whirlwind.Types
             return new StructType(Name, Members);
         }
 
-        public bool Coerce(IDataType other) {
+        protected sealed override bool _coerce(IDataType other)
+        {
             if (other.Classify() == TypeClassifier.STRUCT_INSTANCE)
             {
                 StructType st = (StructType)other;

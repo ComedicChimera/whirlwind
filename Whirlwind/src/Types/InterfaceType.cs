@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace Whirlwind.Types
 {
-    class InterfaceType : IDataType
+    class InterfaceType : DataType, IDataType
     {
         private readonly List<Symbol> _functions;
         private readonly List<ASTNode> _bodies;
@@ -68,7 +68,7 @@ namespace Whirlwind.Types
 
         public TypeClassifier Classify() => initialized ? TypeClassifier.INTERFACE_INSTANCE : TypeClassifier.INTERFACE;
 
-        public bool Coerce(IDataType other)
+        protected sealed override bool _coerce(IDataType other)
         {
             if (other.Classify() == TypeClassifier.OBJECT_INSTANCE)
             {

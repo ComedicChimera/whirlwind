@@ -2,7 +2,7 @@
 
 namespace Whirlwind.Types
 {
-    class SimpleType : IDataType
+    class SimpleType : DataType, IDataType
     {
         public enum DataType
         {
@@ -34,7 +34,7 @@ namespace Whirlwind.Types
 
         public TypeClassifier Classify() => TypeClassifier.SIMPLE;
 
-        public bool Coerce(IDataType other)
+        protected sealed override bool _coerce(IDataType other)
         {
             // null can coerce to anything
             if (Type == DataType.VOID)

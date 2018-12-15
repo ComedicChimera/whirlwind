@@ -64,6 +64,9 @@ namespace Whirlwind.Semantic.Visitor
                         {
                             throw new SemanticException("Use of `this` outside of object", node.Content[0].Position);
                         }
+                    case "NULL":
+                        _nodes.Add(new ValueNode("Null", new NullType()));
+                        return;
                 }
 
                 _nodes.Add(new ValueNode("Literal", new SimpleType(dt, unsigned), ((TokenNode)node.Content[0]).Tok.Value));

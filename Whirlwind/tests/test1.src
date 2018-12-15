@@ -1,14 +1,11 @@
-﻿enum Color {
-	RED
-	GREEN
-	BLUE
-	YELLOW
-}
-
-func Println(color: Color) {
-	
+﻿func add(a, b: int) int {
+	return a + b;
 }
 
 func main() {
-	Println(Color::RED);
+	$a = 2;
+
+	add(a, null);
+
+	$y: (char, str) = null;
 }

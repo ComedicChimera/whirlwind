@@ -12,7 +12,24 @@
 
     class DataType
     {
-        private DataType() { }
+        public bool Coerce(IDataType other)
+        {
+            if (other.Classify() == TypeClassifier.NULL)
+                return true;
+
+            return _coerce(other);
+        }
+
+        protected virtual bool _coerce(IDataType other) => false;
+    }
+
+    class NullType : IDataType
+    {
+        public bool Coerce(IDataType other) => true;
+
+        public TypeClassifier Classify() => TypeClassifier.NULL;
+
+        public bool Equals(IDataType other) => false;
     }
 
     enum TypeClassifier
@@ -35,6 +52,7 @@
         TEMPLATE_PLACEHOLDER,
         PACKAGE,
         ENUM,
-        ENUM_MEMBER
+        ENUM_MEMBER,
+        NULL
     }
 }

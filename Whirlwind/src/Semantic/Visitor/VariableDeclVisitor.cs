@@ -132,7 +132,7 @@ namespace Whirlwind.Semantic.Visitor
                         _nodes.Add(new ExprNode(constexpr ? "ConstExprInitializer" : "Initializer", _nodes.Last().Type));
                         PushForward();
 
-                        if (!hasType)
+                        if (!hasType && !isVoid(_nodes.Last().Type))
                         {
                             mainType = _nodes.Last().Type;
                             hasType = true;
@@ -145,7 +145,8 @@ namespace Whirlwind.Semantic.Visitor
                 }
             }
 
-            bool isVoid(IDataType dt) => dt.Classify() == TypeClassifier.SIMPLE && ((SimpleType)dt).Type == SimpleType.DataType.VOID;
+            bool isVoid(IDataType dt) => dt.Classify() == TypeClassifier.NULL 
+                || dt.Classify() == TypeClassifier.SIMPLE && ((SimpleType)dt).Type == SimpleType.DataType.VOID;
 
             if (hasType && hasInitializer && mainType.Classify() == TypeClassifier.TUPLE && variables.Keys.Count > 1)
             {
@@ -178,7 +179,7 @@ namespace Whirlwind.Semantic.Visitor
             }
             else
             {
-                for (int i = 0; i <variables.Count; i++)
+                for (int i = 0; i < variables.Count; i++)
                 {
                     var key = variables.Keys.ToList()[i];
                     if (isVoid(variables[key].Type))
