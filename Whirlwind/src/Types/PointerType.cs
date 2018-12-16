@@ -13,7 +13,7 @@
 
         protected sealed override bool _coerce(IDataType other)
         {
-            if (other == this)
+            if (Equals(other))
                 return true;
             else if (other.Classify() == TypeClassifier.POINTER)
             {

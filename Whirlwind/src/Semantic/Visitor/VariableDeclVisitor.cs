@@ -134,7 +134,7 @@ namespace Whirlwind.Semantic.Visitor
                         _nodes.Add(new ExprNode(constexpr ? "ConstExprInitializer" : "Initializer", _nodes.Last().Type));
                         PushForward();
 
-                        if (!hasType && !isVoid(_nodes.Last().Type))
+                        if (!hasType && !isVoidOrNull(_nodes.Last().Type))
                         {
                             mainType = _nodes.Last().Type;
                             hasType = true;
@@ -147,7 +147,7 @@ namespace Whirlwind.Semantic.Visitor
                 }
             }
 
-            bool isVoid(IDataType dt) => dt.Classify() == TypeClassifier.NULL 
+            bool isVoidOrNull(IDataType dt) => dt.Classify() == TypeClassifier.NULL 
                 || dt.Classify() == TypeClassifier.SIMPLE && ((SimpleType)dt).Type == SimpleType.DataType.VOID;
 
             if (hasType && hasInitializer && mainType.Classify() == TypeClassifier.TUPLE && variables.Keys.Count > 1)
@@ -167,7 +167,7 @@ namespace Whirlwind.Semantic.Visitor
 
                         if (initializers.ContainsKey(id))
                             throw new SemanticException("Unable to perform tuple based initialization on pre initialized values", variables[id].Position);
-                        else if (isVoid(variables.Values.ElementAt(i).Type))
+                        else if (isVoidOrNull(variables.Values.ElementAt(i).Type))
                             variables[id] = new Variable(dt, variables[id].Position);
                         else if (!variables[id].Type.Coerce(dt))
                             throw new SemanticException("Tuple types and variable types must match", variables[id].Position);
@@ -184,7 +184,7 @@ namespace Whirlwind.Semantic.Visitor
                 for (int i = 0; i < variables.Count; i++)
                 {
                     var key = variables.Keys.ToList()[i];
-                    if (isVoid(variables[key].Type))
+                    if (isVoidOrNull(variables[key].Type))
                     {
                         if (hasType)
                             variables[key] = new Variable(mainType, variables[key].Position);

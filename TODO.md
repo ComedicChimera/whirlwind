@@ -21,7 +21,3 @@
 
 - after clause (except clause)
 - static get
-- decorators
-- yield statement
-- function references
-- new function syntax

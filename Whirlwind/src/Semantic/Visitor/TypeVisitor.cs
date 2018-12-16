@@ -90,7 +90,7 @@ namespace Whirlwind.Semantic.Visitor
             {
                 dt = new PointerType(dt, pointers);
             }
-            else if (dt.Classify() == TypeClassifier.SIMPLE && ((SimpleType)dt).Type == SimpleType.DataType.VOID)
+            else if (_isVoid(dt))
                 throw new SemanticException("Incomplete type", node.Position);
 
             return dt;

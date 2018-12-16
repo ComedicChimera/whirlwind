@@ -128,6 +128,10 @@ namespace Whirlwind.Semantic.Visitor
 
                         if (decorType.MatchParameters(new List<IDataType>() { fnType }))
                         {
+                            // check for void decorators
+                            if (_isVoid(decorType.ReturnType))
+                                throw new SemanticException("A decorator must return a value", item.Position);
+
                             // allows decorator to override function return type ;)
                             if (!fnType.Coerce(decorType.ReturnType))
                             {

@@ -151,7 +151,7 @@ variable_initializer: [ '=' expr
 
 // variable assignment
 assignment: assign_var (',' assign_var)* assign_op expr (',' expr)* ;
-assign_var: ( 'IDENTIFIER' | 'THIS' ) trailer* ;
+assign_var: '*'* ( 'IDENTIFIER' | 'THIS' ) trailer* ;
 
 assign_op: [ '+'
 | '-'
@@ -313,8 +313,8 @@ collection_types: 'ARRAY_TYPE' '[' types ',' expr ']'
 | 'DICT_TYPE' '[' types ',' types ']'
 ;
 
-func_types: ('FUNC' | 'ASYNC') '(' [ func_arg_types ] ')' '(' type_list ')' ;
-func_arg_types: func_arg_type (',' func_arg_type)* [func_arg_indef] ;
+func_types: ('FUNC' | 'ASYNC') '(' func_arg_types ')' '(' [ type_list ] ')' ;
+func_arg_types: [ func_arg_type (',' func_arg_type)* ] [func_arg_indef] ;
 func_arg_type: types ['~'] ;
 func_arg_indef: '...' [types] ;
 

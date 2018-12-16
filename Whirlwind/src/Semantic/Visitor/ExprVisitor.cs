@@ -388,8 +388,8 @@ namespace Whirlwind.Semantic.Visitor
                     treeName = op == "&" ? "Reference" : "VolatileReference";
                     if (rootType.Classify() == TypeClassifier.POINTER)
                     {
-                        ((PointerType)rootType).Pointers++;
-                        dt = rootType;
+                        var pType = (PointerType)rootType;
+                        dt = new PointerType(pType.Type, pType.Pointers + 1);
                     }
                     else
                         dt = new PointerType(rootType, 1);             
@@ -405,7 +405,7 @@ namespace Whirlwind.Semantic.Visitor
                         treeName = "Dereference";
                         dt = op.Length == pointerCount ? ((PointerType)rootType).Type : new PointerType(((PointerType)rootType).Type, pointerCount - op.Length);
 
-                        if (dt.Classify() == TypeClassifier.POINTER && ((SimpleType)dt).Type == SimpleType.DataType.VOID)
+                        if (_isVoid(dt))
                             throw new SemanticException("Unable to dereference a void pointer", node.Content[node.Content.Count - 1].Position);
                     }
                     else

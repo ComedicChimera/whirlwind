@@ -270,6 +270,8 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitAssignVar(ASTNode assignVar)
         {
+            int derefCount = 0;
+
             foreach (var node in assignVar.Content)
             {
                 if (node.Name == "TOKEN")
@@ -290,6 +292,8 @@ namespace Whirlwind.Semantic.Visitor
                         else
                             throw new SemanticException($"Undefined Identifier: `{token.Value}`", node.Position);
                     }
+                    else if (token.Type == "*")
+                        derefCount++;
                     // this
                     else
                     {
@@ -307,6 +311,30 @@ namespace Whirlwind.Semantic.Visitor
 
             if (!Modifiable(_nodes.Last()))
                 throw new SemanticException("Unable to assign to immutable value", assignVar.Position);
+
+            if (derefCount > 0)
+            {
+                if (_nodes.Last().Type.Classify() == TypeClassifier.POINTER)
+                {
+                    PointerType pType = (PointerType)_nodes.Last().Type;
+
+                    if (pType.Pointers < derefCount)
+                        throw new SemanticException("Unable to dereference non-pointer", assignVar.Position);
+                    else if (pType.Pointers == derefCount)
+                    {
+                        if (_isVoid(pType.Type))
+                            throw new SemanticException("Unable to dereference void pointer", assignVar.Position);
+
+                        _nodes.Add(new ExprNode("Dereference", pType.Type));
+                    }
+                    else
+                        _nodes.Add(new ExprNode("Dereference", new PointerType(pType.Type, pType.Pointers - derefCount)));
+
+                    PushForward();
+                }
+                else
+                    throw new SemanticException("Unable to dereference non-pointer", assignVar.Position);
+            }
         }
     }
 }

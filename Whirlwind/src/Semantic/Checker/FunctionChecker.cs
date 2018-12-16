@@ -32,6 +32,9 @@ namespace Whirlwind.Semantic.Checker
             position = 0;
             foreach (var param in values)
             {
+                if (position >= fn.Parameters.Count)
+                    return new ParameterCheckData("Too many parameters for the given function", -1);
+
                 var fnParameter = fn.Parameters[position];
 
                 if (fnParameter.DataType.Coerce(param) && !setParameters[fnParameter.Name])

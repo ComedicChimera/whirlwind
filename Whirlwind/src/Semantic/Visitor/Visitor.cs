@@ -1,4 +1,5 @@
 ﻿using Whirlwind.Parser;
+using Whirlwind.Types;
 
 using System;
 using System.Collections.Generic;
@@ -105,6 +106,11 @@ namespace Whirlwind.Semantic.Visitor
             _nodes.RemoveAt(_nodes.Count - 1);
 
             ((BlockNode)_nodes.Last()).Block.Add(child);
+        }
+
+        private bool _isVoid(IDataType type)
+        {
+            return type.Classify() == TypeClassifier.SIMPLE && ((SimpleType)type).Type == SimpleType.DataType.VOID;
         }
 
         public ITypeNode Result() => _nodes.First();

@@ -15,7 +15,9 @@ namespace Whirlwind.Semantic.Visitor
             string name = "";
             var arguments = new List<Parameter>();
             IDataType dataType = new SimpleType();
-            var namePosition = new TextPosition();
+
+            TextPosition namePosition = new TextPosition(),
+                rtPosition = new TextPosition();
 
             foreach (var item in function.Content)
             {
@@ -48,6 +50,7 @@ namespace Whirlwind.Semantic.Visitor
                         break;
                     case "types":
                         dataType = _generateType((ASTNode)item);
+                        rtPosition = item.Position;
                         break;
                     case "func_body":
                         {
@@ -57,7 +60,9 @@ namespace Whirlwind.Semantic.Visitor
                             _table.DescendScope();
 
                             _declareArgs(arguments);
-                            _visitFuncBody((ASTNode)item);
+
+                            if (!dataType.Coerce(_visitFuncBody((ASTNode)item)))
+                                throw new SemanticException("Return type of signature does not match return type of body", rtPosition);
 
                             _table.AscendScope();
                         }
@@ -91,7 +96,7 @@ namespace Whirlwind.Semantic.Visitor
             {
                 if (arg.Indefinite)
                 {
-                    if (arg.DataType.Classify() == TypeClassifier.SIMPLE && ((SimpleType)arg.DataType).Type == SimpleType.DataType.VOID)
+                    if (_isVoid(arg.DataType))
                     {
                         // add va_args param
                     }
@@ -184,7 +189,9 @@ namespace Whirlwind.Semantic.Visitor
 
                         IDataType dt = typeList.Count == 1 ? typeList[0] : new TupleType(typeList);
 
-                        if (!rtType.Coerce(dt))
+                        if (!returnsValue)
+                            rtType = dt;
+                        else if (!rtType.Coerce(dt))
                         {
                             if (dt.Coerce(rtType))
                                 rtType = dt;
@@ -211,7 +218,10 @@ namespace Whirlwind.Semantic.Visitor
                     var blockReturn = _extractReturnType((BlockNode)node, positions, ref pos);
                     savedPos = (pos - savedPos) > 0 ? (pos - 1) : pos;
 
-                    if (blockReturn.Item2.Classify() == TypeClassifier.SIMPLE && ((SimpleType)blockReturn.Item2).Type == SimpleType.DataType.VOID)
+                    if (!blockReturn.Item1)
+                        throw new SemanticException("Inconsistent return type", positions[savedPos]);
+
+                    if (_isVoid(blockReturn.Item2))
                     {
                         if (returnsValue && setReturn)
                             throw new SemanticException("Inconsistent return type", positions[savedPos]);
@@ -262,7 +272,7 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     bool optional = false, 
                         constant = false,
-                        setParamType = false;
+                        hasExtension = false;
                     var identifiers = new List<string>();
                     IDataType paramType = new SimpleType();
 
@@ -278,19 +288,23 @@ namespace Whirlwind.Semantic.Visitor
                                 break;
                             case "extension":
                                 paramType = _generateType((ASTNode)((ASTNode)argPart).Content[1]);
-                                setParamType = true;
+                                hasExtension = true;
                                 break;
                             case "initializer":
                                 _visitExpr((ASTNode)((ASTNode)argPart).Content[1]);
+
+                                if (!hasExtension)
+                                    paramType = _nodes.Last().Type;
+
                                 optional = true;
                                 break;
                         }
                     }
 
-                    if (!optional && !setParamType)
+                    if (!optional && !hasExtension)
                         throw new SemanticException("Unable to create argument with no type", subNode.Position);
 
-                    if (setParamType && optional && !paramType.Coerce(_nodes.Last().Type))
+                    if (hasExtension && optional && !paramType.Coerce(_nodes.Last().Type))
                         throw new SemanticException("Initializer type incompatable with type extension", subNode.Position);
 
                     if (optional)

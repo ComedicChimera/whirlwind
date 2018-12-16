@@ -169,6 +169,14 @@ namespace Whirlwind.Semantic.Visitor
         private void _coerceSet(ref IDataType baseType, TextPosition pos)
         {
             IDataType newType = _nodes.Last().Type;
+
+            if (_isVoid(baseType))
+            {
+                baseType = newType;
+                return;
+            }
+                
+
             if (!baseType.Coerce(newType))
             {
                 if (newType.Coerce(baseType))
@@ -176,9 +184,6 @@ namespace Whirlwind.Semantic.Visitor
                 else
                     throw new SemanticException("All values in a collection must be the same type", pos);
             }
-
-            if (baseType.Classify() == TypeClassifier.SIMPLE && ((SimpleType)baseType).Type == SimpleType.DataType.VOID)
-                baseType = newType;
         }
 
         private void _visitByteLiteral(Token token)

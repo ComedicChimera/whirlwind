@@ -48,7 +48,7 @@ namespace Whirlwind.Types
 
         public bool Compare(Parameter other)
         {
-            if (!DataType.Coerce(other.DataType))
+            if (!DataType.Equals(other.DataType))
                 return false;
             if (Indefinite != other.Indefinite || Optional && !other.Optional)
                 return false;
