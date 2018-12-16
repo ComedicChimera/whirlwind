@@ -1,5 +1,5 @@
 ﻿// WHIRLWIND STANDARD GRAMMAR
-whirlwind: ( global_const ';'
+whirlwind: ( variable_decl ';'
 | block_decl
 | include_stmt ';'
 | export_decl
@@ -18,9 +18,6 @@ include_stmt: 'INCLUDE' ( pkg_name ['STRING_LITERAL'] | include_set 'FROM' pkg_n
 pkg_name: [pkg_back_move] 'IDENTIFIER' ('.' 'IDENTIFIER' | pkg_back_move )* ;
 pkg_back_move: '.' '.' ;
 include_set: '{' 'IDENTIFIER' (',' 'IDENTIFIER')* '}' ;
-
-// global constant - parsed by same logic as variables
-global_const: '@' var extension variable_initializer ;
 
 
 // OBJECTS AND OBJECT COMPONENTS
@@ -143,7 +140,7 @@ stmt: ( variable_decl
 ;
 
 // variable declaration
-variable_decl: ('$' | '@') var extension variable_initializer  ;
+variable_decl: ['VOL'] ('$' | '@') var extension variable_initializer  ;
 var: '(' 'IDENTIFIER' extension variable_initializer (',' 'IDENTIFIER' extension variable_initializer)* ')'
 | 'IDENTIFIER'
 ;
@@ -321,7 +318,8 @@ func_arg_types: func_arg_type (',' func_arg_type)* [func_arg_indef] ;
 func_arg_type: types ['~'] ;
 func_arg_indef: '...' [types] ;
 
-tuple_type: '(' type_list ')' ;
+tuple_type: '(' tuple_type_list ')' ;
+tuple_type_list: types (',' types)+ ;
 
 
 // COMMON CONSTRUCTIONS - common structures used repeatedly in grammar

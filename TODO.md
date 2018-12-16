@@ -5,15 +5,12 @@
 - allow for object level method variance
 - add visiting for types, templates, and variants
 - add agents (agent syntax, agent event model)
-- allow for decorators to mutate function signatures
 
 # THOUGHTS
 
 - add positioning data to some or all of the action tree
 - add in the `auto` keyword for explicit inferred data type (in certain situations)
 - add inline case block
-- remove from borrow syntax
-- rethink the concurrency model to more fluid and intelligent (possibly implement atoms instead of lazy borrowing)
 
 # FUTURE
 

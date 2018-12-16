@@ -10,7 +10,8 @@ namespace Whirlwind.Semantic
         PRIVATE,
         EXPORTED,
         CONSTANT,
-        CONSTEXPR
+        CONSTEXPR,
+        VOLATILE
     }
 
     class Package : IDataType

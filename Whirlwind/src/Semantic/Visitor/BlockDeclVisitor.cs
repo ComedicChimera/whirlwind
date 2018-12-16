@@ -126,8 +126,18 @@ namespace Whirlwind.Semantic.Visitor
                     {
                         FunctionType decorType = (FunctionType)_nodes.Last().Type;
 
-                        if (decorType.MatchParameters(new List<IDataType>() { fnType }) && fnType.Coerce(decorType.ReturnType))
+                        if (decorType.MatchParameters(new List<IDataType>() { fnType }))
+                        {
+                            // allows decorator to override function return type ;)
+                            if (!fnType.Coerce(decorType.ReturnType))
+                            {
+                                _table.Lookup(((TokenNode)((ASTNode)node.Content[1]).Content[1]).Tok.Value, out Symbol sym);
+
+                                _table.ReplaceSymbol(sym.Name, new Symbol(sym.Name, decorType.ReturnType, sym.Modifiers));
+                            }
+
                             MergeBack();
+                        }
                         else
                             throw new SemanticException("This decorator is not valid for the given function", item.Position);
                     }

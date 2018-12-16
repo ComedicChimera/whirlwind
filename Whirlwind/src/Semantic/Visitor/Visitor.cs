@@ -43,7 +43,7 @@ namespace Whirlwind.Semantic.Visitor
                     case "block_decl":
                         _visitBlockDecl((ASTNode)node);
                         break;
-                    case "global_const":
+                    case "variable_decl":
                         _visitVarDecl((ASTNode)node, new List<Modifier>());
                         break;
                     // add any logic surrounding includes and export declarations
