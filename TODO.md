@@ -5,6 +5,7 @@
 - allow for object level method variance
 - add visiting for types, templates, and variants
 - add agents (agent syntax, agent event model)
+- add references types (ref keyword, one way coercion, casting logic, ect.)
 
 # THOUGHTS
 
