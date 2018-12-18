@@ -10,7 +10,7 @@ namespace Whirlwind.Types
     class ObjectType : DataType, IDataType
     {
         private readonly Dictionary<string, Symbol> _members;
-        private readonly List<Tuple<FunctionType, BlockNode>> _constructors;
+        private readonly List<Tuple<FunctionType, bool>> _constructors;
 
         public readonly string Name;
         public readonly List<IDataType> Inherits;
@@ -21,7 +21,7 @@ namespace Whirlwind.Types
         {
             Name = name;
             _members = new Dictionary<string, Symbol>();
-            _constructors = new List<Tuple<FunctionType, BlockNode>>();
+            _constructors = new List<Tuple<FunctionType, bool>>();
             Inherits = new List<IDataType>();
             _instance = instance;
             _internal = internalInstance;
@@ -32,21 +32,22 @@ namespace Whirlwind.Types
         {
             Name = name;
             _members = members;
-            _constructors = new List<Tuple<FunctionType, BlockNode>>();
+            _constructors = new List<Tuple<FunctionType, bool>>();
             Inherits = inherits;
             _instance = true;
             _internal = internalInstance;
         }
 
-        public bool AddConstructor(FunctionType ft, BlockNode body)
+        public bool AddConstructor(FunctionType ft, bool priv)
         {
             if (_constructors.Where(x => x.Item1.Coerce(ft)).Count() != 0)
                 return false;
-            _constructors.Add(new Tuple<FunctionType, BlockNode>(ft, body));
+
+            _constructors.Add(new Tuple<FunctionType, bool>(ft, priv));
             return true;
         }
 
-        public bool AddInherits(IDataType dt)
+        public bool AddInherit(IDataType dt)
         {
             if (Inherits.Contains(dt))
             {
@@ -86,7 +87,7 @@ namespace Whirlwind.Types
 
         public bool GetConstructor(List<IDataType> parameters, out FunctionType constructor)
         {
-            var constructors = _constructors.Where(x => x.Item1.MatchParameters(parameters)).ToList();
+            var constructors = _constructors.Where(x => x.Item1.MatchParameters(parameters) && (!x.Item2 || _internal)).ToList();
             
             if (constructors.Count() == 1)
             {

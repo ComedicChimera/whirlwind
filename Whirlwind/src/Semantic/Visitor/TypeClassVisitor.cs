@@ -43,7 +43,13 @@ namespace Whirlwind.Semantic.Visitor
                         case "func_decl":
                             _visitFunction(decl, modifiers);
                             break;
-                        // visit constructors, variants and method templates
+                        case "constructor":
+                            FunctionType ft = _visitConstructor(decl, modifiers);
+
+                            if (!objType.AddConstructor(ft, modifiers.Count > 0))
+                                throw new SemanticException("Unable to distinguish between constructor signatures", decl.Content[2].Position);
+                            break;
+                        // visit variants and method templates
                     }
 
                     var symbols = _table.GetScope();
@@ -52,6 +58,34 @@ namespace Whirlwind.Semantic.Visitor
                         objType.AddMember(sym);
                 }
             }
+
+            for (int i = 0; i < interfaces.Count; i++)
+            {
+                var inter = interfaces[i];
+
+                if (inter.MatchObject(objType))
+                    objType.AddInherit(inter);
+                else
+                    throw new SemanticException("This type class does not implement all of its interfaces", ((ASTNode)node.Content[2]).Content[i * 2 + 1].Position);
+            }
+
+            _nodes.Add(new IdentifierNode(name, objType, true));
+            MergeBack();
+
+            if (!_table.AddSymbol(new Symbol(name, objType, new List<Modifier>() { Modifier.CONSTANT })))
+                throw new SemanticException($"Unable to redeclare symbol {name}", node.Content[1].Position);
+
+            _nodes.Add(new ExprNode("Implements", new SimpleType()));
+
+            for (int i = 0; i < interfaces.Count; i++)
+            {
+                var inter = interfaces[i];
+
+                _nodes.Add(new IdentifierNode(((TokenNode)((ASTNode)node.Content[2]).Content[i * 2 + 1]).Tok.Value, inter, true));
+                MergeBack();
+            }
+
+            MergeBack();
         }
 
         private void _visitImplClause(ASTNode node, ref List<InterfaceType> interfaces)
@@ -79,6 +113,36 @@ namespace Whirlwind.Semantic.Visitor
                         throw new SemanticException($"Undefined Symbol: `{token.Value}`", elem.Position);
                 }
             }
+        }
+
+        private FunctionType _visitConstructor(ASTNode decl, List<Modifier> modifiers)
+        {
+            List<Parameter> args = new List<Parameter>();
+
+            foreach (var item in decl.Content)
+            {
+                if (item.Name == "args_decl_list")
+                {
+                    args = _generateArgsDecl((ASTNode)item);
+
+                    _nodes.Add(new BlockNode("Constructor"));
+                }
+                    
+                else if (item.Name == "func_body")
+                {
+                    if (!_isVoid(_visitFuncBody((ASTNode)item)))
+                        throw new SemanticException("Constructor cannot return a value", decl.Content[0].Position);
+                }
+            }
+
+            FunctionType ft = new FunctionType(args, new SimpleType(), false);
+
+            _nodes.Add(new ValueNode("ConstructorSignature", ft));
+            MergeBack();
+
+            MergeToBlock();
+
+            return ft;
         }
     }
 }
