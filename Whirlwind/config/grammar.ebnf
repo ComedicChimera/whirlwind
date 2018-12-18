@@ -202,7 +202,7 @@ term: factor (('*' | '/' | '%' | '~/') factor)* ;
 factor: unary_atom ('~^' unary_atom)*;
 
 // unary operators
-unary_atom: ('&' ['VOL'] | '-' | '~' | '++' | '--' | '*'+) atom
+unary_atom: ('REF' | '&' ['VOL'] | '-' | '~' | '++' | '--' | '*'+) atom
 | atom ['++' | '--']
 ;
 
@@ -286,7 +286,7 @@ partial_arg: '$'
 
 
 // DATA TYPES - data type literals
-types: '*'* ( base_types
+types: ['REF'] '*'* ( base_types
 | 'IDENTIFIER' [template_spec]
 )
 ;

@@ -31,13 +31,25 @@ namespace Whirlwind.Semantic.Visitor
                     if (((ASTNode)item).Content.Count > 1)
                         modifiers.Add(Modifier.PRIVATE);
 
+                    _table.AddScope();
+                    _table.DescendScope();
+
                     // handle moving symbols from scope to type class
                     switch (decl.Name)
                     {
                         case "variable_decl":
                             _visitVarDecl(decl, modifiers);
                             break;
+                        case "func_decl":
+                            _visitFunction(decl, modifiers);
+                            break;
+                        // visit constructors, variants and method templates
                     }
+
+                    var symbols = _table.GetScope();
+
+                    foreach (var sym in symbols)
+                        objType.AddMember(sym);
                 }
             }
         }

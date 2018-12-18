@@ -385,7 +385,7 @@ namespace Whirlwind.Semantic.Visitor
                         TypeClassifier.STRUCT, TypeClassifier.INTERFACE, TypeClassifier.OBJECT, TypeClassifier.TEMPLATE,
                     }.Contains(rootType.Classify()))
                         throw new SemanticException("The given object is not able to referenced", node.Content[0].Position);
-                    treeName = op == "&" ? "Reference" : "VolatileReference";
+                    treeName = op == "&" ? "Indirect" : "VolatileIndirect";
                     if (rootType.Classify() == TypeClassifier.POINTER)
                     {
                         var pType = (PointerType)rootType;
@@ -393,6 +393,13 @@ namespace Whirlwind.Semantic.Visitor
                     }
                     else
                         dt = new PointerType(rootType, 1);             
+                    break;
+                case "REF":
+                    if (rootType.Classify() == TypeClassifier.REFERENCE)
+                        throw new SemanticException("Unable to create a double reference", node.Content[0].Position);
+
+                    treeName = "Reference";
+                    dt = new ReferenceType(rootType);
                     break;
                 // dereference
                 default:

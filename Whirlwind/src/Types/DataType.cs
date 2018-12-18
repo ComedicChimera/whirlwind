@@ -17,6 +17,9 @@
             if (other.Classify() == TypeClassifier.NULL)
                 return true;
 
+            if (other.Classify() == TypeClassifier.REFERENCE)
+                return Coerce(((ReferenceType)other).DataType);
+
             return _coerce(other);
         }
 
@@ -53,6 +56,7 @@
         PACKAGE,
         ENUM,
         ENUM_MEMBER,
-        NULL
+        NULL,
+        REFERENCE
     }
 }

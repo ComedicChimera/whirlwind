@@ -142,5 +142,15 @@ namespace Whirlwind.Semantic
             else
                 _table.ReplaceSymbol(name, newSymbol, _scopePath);
         }
+
+        public List<Symbol> GetScope()
+        {
+            Scope scope = _table;
+
+            foreach (int p in _scopePath)
+                scope = scope.SubScopes[p];
+
+            return scope.Symbols.Values.ToList();
+        }
     }
 }

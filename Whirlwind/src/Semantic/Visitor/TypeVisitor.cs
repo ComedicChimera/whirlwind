@@ -27,6 +27,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             IDataType dt = new SimpleType();
             int pointers = 0;
+            bool reference = false;
 
             foreach (var subNode in node.Content)
             {
@@ -38,6 +39,9 @@ namespace Whirlwind.Semantic.Visitor
                     {
                         case "*":
                             pointers++;
+                            break;
+                        case "REF":
+                            reference = true;
                             break;
                         case "IDENTIFIER":
                             if (_table.Lookup(tokenNode.Tok.Value, out Symbol symbol))
@@ -92,6 +96,9 @@ namespace Whirlwind.Semantic.Visitor
             }
             else if (_isVoid(dt))
                 throw new SemanticException("Incomplete type", node.Position);
+
+            if (reference)
+                dt = new ReferenceType(dt);
 
             return dt;
         }
