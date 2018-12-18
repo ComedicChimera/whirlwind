@@ -9,7 +9,7 @@ namespace Whirlwind.Semantic.Visitor
 {
     partial class Visitor
     {
-        private void _visitFunction(ASTNode function)
+        private void _visitFunction(ASTNode function, List<Modifier> modifiers)
         {
             bool isAsync = false;
             string name = "";
@@ -38,7 +38,7 @@ namespace Whirlwind.Semantic.Visitor
                                     break;
                                 case ";":
                                     {
-                                        _createFunction(arguments, dataType, name, namePosition, isAsync);
+                                        _createFunction(arguments, dataType, name, namePosition, isAsync, modifiers);
                                         // try to complete body
                                     }
                                     break;
@@ -54,7 +54,7 @@ namespace Whirlwind.Semantic.Visitor
                         break;
                     case "func_body":
                         {
-                            _createFunction(arguments, dataType, name, namePosition, isAsync);
+                            _createFunction(arguments, dataType, name, namePosition, isAsync, modifiers);
 
                             _table.AddScope();
                             _table.DescendScope();
@@ -72,7 +72,7 @@ namespace Whirlwind.Semantic.Visitor
         }
 
         private void _createFunction(
-            List<Parameter> parameters, IDataType dataType, string name, TextPosition namePosition, bool isAsync
+            List<Parameter> parameters, IDataType dataType, string name, TextPosition namePosition, bool isAsync, List<Modifier> modifiers
             )
         {
             _nodes.Add(new BlockNode(isAsync ? "AsyncFunction" : "Function"));
@@ -83,9 +83,9 @@ namespace Whirlwind.Semantic.Visitor
 
             MergeBack();
 
-            if (!_table.AddSymbol(new Symbol(name, fnType, 
-                _exported ? new List<Modifier>() { Modifier.EXPORTED, Modifier.CONSTANT }
-                : new List<Modifier>() { Modifier.CONSTANT })))
+            modifiers.Add(Modifier.CONSTANT);
+
+            if (!_table.AddSymbol(new Symbol(name, fnType, modifiers)))
                 throw new SemanticException($"Unable to redeclare symbol by name {name}", namePosition);
         }
 

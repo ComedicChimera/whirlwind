@@ -52,7 +52,7 @@ namespace Whirlwind.Semantic.Visitor
                             return;
                         }
                         {
-                            throw new SemanticException($"Undefined Identifier: `{((TokenNode)node.Content[0]).Tok.Value}`", node.Position);
+                            throw new SemanticException($"Undefined Symbol: `{((TokenNode)node.Content[0]).Tok.Value}`", node.Position);
                         }
 
                     case "THIS":

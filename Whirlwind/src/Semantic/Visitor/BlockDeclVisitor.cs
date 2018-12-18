@@ -8,42 +8,47 @@ namespace Whirlwind.Semantic.Visitor
 {
     partial class Visitor
     {
-        private bool _exported = false;
-
-        private void _visitBlockDecl(ASTNode node)
+        private void _visitBlockDecl(ASTNode node, List<Modifier> modifiers)
         {
             ASTNode root = (ASTNode)node.Content[0];
 
             switch (root.Name)
             {
                 case "func_decl":
-                    _visitFunction(root);
+                    _visitFunction(root, modifiers);
                     break;
                 case "interface_decl":
-                    _visitInterface(root);
+                    _visitInterface(root, modifiers);
                     break;
                 case "struct_decl":
-                    _visitStruct(root);
+                    _visitStruct(root, modifiers);
                     break;
                 case "decor_decl":
-                    _visitDecorator(root);
+                    _visitDecorator(root, modifiers);
                     break;
                 case "enum_decl":
-                    _visitEnum(root);
+                    _visitEnum(root, modifiers);
                     break;
             }
         }
 
-        private void _visitInterface(ASTNode node)
+        private void _visitInterface(ASTNode node, List<Modifier> modifiers)
         {
             _nodes.Add(new BlockNode("Interface"));
             TokenNode name = (TokenNode)node.Content[1];
+
+            // make constant
+            modifiers.Add(Modifier.CONSTANT);
+
+            // declare symbol subscope
+            _table.AddScope();
+            _table.DescendScope();
 
             var interfaceType = new InterfaceType();
 
             foreach (var func in ((ASTNode)node.Content[3]).Content)
             {
-                _visitFunction((ASTNode)func);
+                _visitFunction((ASTNode)func, new List<Modifier>() { Modifier.CONSTANT });
                 var fnNode = (IdentifierNode)((BlockNode)_nodes.Last()).Nodes[0];
 
                 // add function to interface block
@@ -64,14 +69,19 @@ namespace Whirlwind.Semantic.Visitor
             _nodes.Add(new IdentifierNode(name.Tok.Value, interfaceType, true));
             MergeBack();
 
-            if (!_table.AddSymbol(new Symbol(name.Tok.Value, interfaceType)))
+            _table.AscendScope();
+
+            if (!_table.AddSymbol(new Symbol(name.Tok.Value, interfaceType, modifiers)))
                 throw new SemanticException($"Unable to redeclare symbol by name `{name.Tok.Value}`", name.Position);
         }
 
-        private void _visitStruct(ASTNode node)
+        private void _visitStruct(ASTNode node, List<Modifier> modifiers)
         {
             _nodes.Add(new BlockNode("Struct"));
             TokenNode name = (TokenNode)node.Content[1];
+
+            // make constant
+            modifiers.Add(Modifier.CONSTANT);
 
             var structType = new StructType(name.Tok.Value, false);
            
@@ -102,15 +112,13 @@ namespace Whirlwind.Semantic.Visitor
             _nodes.Add(new IdentifierNode(name.Tok.Value, structType, true));
             MergeBack();
 
-            if (!_table.AddSymbol(new Symbol(name.Tok.Value, structType, 
-                _exported ? new List<Modifier>() { Modifier.EXPORTED, Modifier.CONSTANT } 
-                : new List<Modifier>() { Modifier.CONSTANT })))
+            if (!_table.AddSymbol(new Symbol(name.Tok.Value, structType, modifiers)))
                 throw new SemanticException($"Unable to redeclare symbol by name `{name.Tok.Value}`", name.Position);
         }
 
-        private void _visitDecorator(ASTNode node)
+        private void _visitDecorator(ASTNode node, List<Modifier> modifiers)
         {
-            _visitFunction((ASTNode)node.Content[1]);
+            _visitFunction((ASTNode)node.Content[1], modifiers);
 
             FunctionType fnType = (FunctionType)((TreeNode)_nodes.Last()).Nodes[0].Type;
 
@@ -153,7 +161,7 @@ namespace Whirlwind.Semantic.Visitor
             PushToBlock();
         }
 
-        private void _visitEnum(ASTNode node)
+        private void _visitEnum(ASTNode node, List<Modifier> modifiers)
         {
             var values = ((ASTNode)node.Content[3]).Content.Select(x => ((TokenNode)x).Tok.Value).ToList();
 
@@ -173,7 +181,10 @@ namespace Whirlwind.Semantic.Visitor
             _nodes.Add(new IdentifierNode(name, et, true));
             MergeBack();
 
-            if (!_table.AddSymbol(new Symbol(name, et, new List<Modifier>() { Modifier.CONSTANT })))
+            // make constant
+            modifiers.Add(Modifier.CONSTANT);
+
+            if (!_table.AddSymbol(new Symbol(name, et, modifiers)))
                 throw new SemanticException($"Unable to redeclare symbol by name `{name}`", node.Content[1].Position);
         }
     }

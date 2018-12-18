@@ -48,7 +48,7 @@ namespace Whirlwind.Semantic.Visitor
 
                         break;
                     case "func_decl":
-                        _visitFunction(stmt);
+                        _visitFunction(stmt, new List<Modifier>());
                         break;
                     case "subscope":
                         _nodes.Add(new BlockNode("Subscope"));

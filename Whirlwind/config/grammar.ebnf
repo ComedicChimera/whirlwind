@@ -20,10 +20,10 @@ pkg_back_move: '.' '.' ;
 include_set: '{' 'IDENTIFIER' (',' 'IDENTIFIER')* '}' ;
 
 
-// OBJECTS AND OBJECT COMPONENTS
-// object declaration
-obj_decl: 'TYPE' 'IDENTIFIER' [impl] '{' obj_main+ '}' ;
-obj_main: ['PRIV'] ( variable_decl ';' 
+// TYPE CLASSES
+// type class declaration
+type_class_decl: 'TYPE' 'IDENTIFIER' [impl] '{' type_class_main+ '}' ;
+type_class_main: ['PRIV'] ( variable_decl ';' 
 | func_decl
 | method_template
 | variant_decl
@@ -43,7 +43,7 @@ impl: ':' 'IDENTIFIER' (',' 'IDENTIFIER')* ;
 // BLOCK DECLARATIONS
 block_decl: func_decl
 | interface_decl
-| obj_decl
+| type_class_decl
 | struct_decl
 | template_decl
 | variant_decl

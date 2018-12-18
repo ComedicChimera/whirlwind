@@ -42,14 +42,28 @@ namespace Whirlwind.Semantic.Visitor
                 switch (node.Name)
                 {
                     case "block_decl":
-                        _visitBlockDecl((ASTNode)node);
+                        _visitBlockDecl((ASTNode)node, new List<Modifier>());
                         break;
                     case "variable_decl":
                         _visitVarDecl((ASTNode)node, new List<Modifier>());
                         break;
-                    // add any logic surrounding includes and export declarations
                     case "export_decl":
+                        ASTNode decl = (ASTNode)((ASTNode)node).Content[1];
+
+                        switch (decl.Name)
+                        {
+                            case "block_decl":
+                                _visitBlockDecl(decl, new List<Modifier>() { Modifier.EXPORTED });
+                                break;
+                            case "variable_decl":
+                                _visitVarDecl(decl, new List<Modifier>() { Modifier.EXPORTED });
+                                break;
+                            case "include_stmt":
+                                // add include logic
+                                break;
+                        }
                         break;
+                    // add any logic surrounding inclusion
                     case "include_stmt":
                         break;
                     // catches rogue tokens and things of the like
