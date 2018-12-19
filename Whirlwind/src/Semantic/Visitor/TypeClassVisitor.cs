@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 
 using Whirlwind.Parser;
@@ -33,6 +32,8 @@ namespace Whirlwind.Semantic.Visitor
 
                     _table.AddScope();
                     _table.DescendScope();
+
+                    // figure out a way of getting the this pointer to derived functions
 
                     // handle moving symbols from scope to type class
                     switch (decl.Name)

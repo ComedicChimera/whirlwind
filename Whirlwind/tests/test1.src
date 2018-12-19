@@ -1,9 +1,9 @@
-﻿func test(fn: func(...)()) {
+﻿type Cyka {
+	$(x, y): int;
 
-}
-
-func obj(...x) {
-
+	constructor(x, y: int) {
+		this.x, this.y = x, y;
+	}
 }
 
 func main() {
