@@ -107,6 +107,25 @@ namespace Whirlwind.Semantic
             Array.Resize(ref _scopePath, _scopePath.Length - 1);
         }
 
+        public bool GotoScope(uint position)
+        {
+            Scope currentScope = _table;
+            foreach (int pos in _scopePath)
+            {
+                currentScope = currentScope.SubScopes[pos];
+            }
+
+            if (position < currentScope.SubScopes.Count)
+            {
+                Array.Resize(ref _scopePath, _scopePath.Length + 1);
+                _scopePath[_scopePath.Length - 1] = checked((int)position);
+
+                return true;
+            }
+
+            return false;
+        }
+
         public bool Lookup(string name, out Symbol symbol)
         {
             var visibleScopes = new List<Scope>() { _table };

@@ -1,7 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System;
 
 using Whirlwind.Types;
+using Whirlwind.Parser;
 
 namespace Whirlwind.Semantic
 {
@@ -158,5 +160,26 @@ namespace Whirlwind.Semantic
             return $"{Name}:[{string.Join(", ", Nodes.Select(x => x.ToString()))}] " +
                 $"{{\n\t{string.Join(", ", Block.Select(x => x.ToString()))}\n}}";
         }
-    } 
+    }
+
+    class IncompleteNode : ITypeNode
+    {
+        public readonly ASTNode AST;
+
+        public IncompleteNode(ASTNode ast)
+        {
+            AST = ast;
+        }
+
+        public string Name
+        {
+            get { return "INCOMPLETE"; }
+        }
+
+        public IDataType Type
+        {
+            get { return new SimpleType(); }
+            set { throw new NotImplementedException(); }
+        }
+    }
 }

@@ -9,6 +9,8 @@ namespace Whirlwind.Semantic.Visitor
 {
     partial class Visitor
     {
+        TextPosition _dominantPosition;
+
         private void _visitFunction(ASTNode function, List<Modifier> modifiers)
         {
             bool isAsync = false;
@@ -56,15 +58,8 @@ namespace Whirlwind.Semantic.Visitor
                         {
                             _createFunction(arguments, dataType, name, namePosition, isAsync, modifiers);
 
-                            _table.AddScope();
-                            _table.DescendScope();
-
-                            _declareArgs(arguments);
-
-                            if (!dataType.Coerce(_visitFuncBody((ASTNode)item)))
-                                throw new SemanticException("Return type of signature does not match return type of body", rtPosition);
-
-                            _table.AscendScope();
+                            _nodes.Add(new IncompleteNode((ASTNode)item));
+                            MergeToBlock();
                         }
                         break;
                 }
@@ -87,6 +82,19 @@ namespace Whirlwind.Semantic.Visitor
 
             if (!_table.AddSymbol(new Symbol(name, fnType, modifiers)))
                 throw new SemanticException($"Unable to redeclare symbol by name {name}", namePosition);
+        }
+
+        private void _visitFunctionBody(ASTNode body, FunctionType type)
+        {
+            _table.AddScope();
+            _table.DescendScope();
+
+            _declareArgs(type.Parameters);
+
+            if (!type.ReturnType.Coerce(_visitFuncBody(body)))
+                throw new SemanticException("Return type of signature does not match return type of body", _dominantPosition);
+
+            _table.AscendScope();
         }
 
         private void _declareArgs(List<Parameter> args)
@@ -194,7 +202,11 @@ namespace Whirlwind.Semantic.Visitor
                         else if (!rtType.Coerce(dt))
                         {
                             if (dt.Coerce(rtType))
+                            {
                                 rtType = dt;
+
+                                _dominantPosition = positions[pos];
+                            }
                             else
                                 throw new SemanticException("Inconsistent return types", positions[pos]);
                         }

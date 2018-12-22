@@ -73,6 +73,64 @@ namespace Whirlwind.Semantic.Visitor
 
                 MergeToBlock();
             }
+
+            _completeTree();
+        }
+
+        private void _completeTree()
+        {
+            var block = ((BlockNode)_nodes[0]).Block;
+
+            uint scopePos = 0;
+            for (int i = 0; i < block.Count; i++)
+            {
+                var item = block[i];
+
+                switch (item.Name)
+                {
+                    case "Function":
+                    case "AsyncFunction":
+                        {
+                            BlockNode fn = (BlockNode)item;
+
+                            if (fn.Block.Count == 1)
+                            {
+                                _nodes.Add(fn);
+
+                                _visitFunctionBody(((IncompleteNode)fn.Block[0]).AST, (FunctionType)fn.Nodes[0].Type);
+                                fn.Block.RemoveAt(0);
+
+                                ((BlockNode)_nodes[0]).Block[i] = _nodes.Last();
+                                _nodes.RemoveAt(1);
+                            }
+                        }
+                        break;
+                    case "Decorator":
+                        {
+                            BlockNode fn = (BlockNode)((BlockNode)item).Block[0];
+
+                            if (fn.Block.Count == 1)
+                            {
+                                _nodes.Add(fn);
+
+                                _visitFunctionBody(((IncompleteNode)fn.Block[0]).AST, (FunctionType)fn.Nodes[0].Type);
+                                fn.Block.RemoveAt(0);
+
+                                ((BlockNode)((BlockNode)_nodes[0]).Block[i]).Block[0] = _nodes.Last();
+                                _nodes.RemoveAt(1);
+                            }
+                        }
+                        break;
+                    case "TypeClass":
+                        scopePos++;
+                        break;
+                    case "Interface":
+                        scopePos++;
+                        break;
+                    default:
+                        continue;
+                }
+            }
         }
 
         private void MergeBack(int depth = 1)
