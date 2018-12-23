@@ -34,7 +34,7 @@ namespace Whirlwind.Semantic.Visitor
                 switch (item.Name)
                 {
                     case "TOKEN":
-                        if (((TokenNode)item).Tok.Type == "@")
+                        if (((TokenNode)item).Tok.Type == "CONST")
                             constant = true;
                         else if (((TokenNode)item).Tok.Type == "VOL")
                             modifiers.Add(Modifier.VOLATILE);
@@ -50,58 +50,69 @@ namespace Whirlwind.Semantic.Visitor
                             {
                                 string currentIdentifier = "";
 
-                                foreach (var elem in variableBlock.Content)
+                                foreach (var varId in variableBlock.Content)
                                 {
-                                    switch (elem.Name)
+                                    if (varId.Name == "var_id")
                                     {
-                                        case "TOKEN":
-                                            if (((TokenNode)elem).Tok.Type == "IDENTIFIER")
+                                        foreach (var elem in ((ASTNode)varId).Content)
+                                        {
+                                            switch (elem.Name)
                                             {
-                                                currentIdentifier = ((TokenNode)elem).Tok.Value;
-
-                                                variables[currentIdentifier] = new Variable(new SimpleType(), elem.Position);
-                                            }
-                                            break;
-                                        case "extension":
-                                            IDataType dt = _generateType((ASTNode)((ASTNode)elem).Content[1]);
-                                            variables[currentIdentifier] = new Variable(dt, variables[currentIdentifier].Position);
-                                            break;
-                                        case "variable_initializer":
-                                            {
-                                                _visitExpr((ASTNode)((ASTNode)elem).Content[1]);
-
-                                                if (((TokenNode)((ASTNode)elem).Content[0]).Tok.Type == ":=")
-                                                {
-                                                    if (!Constexpr.Evaluator.TryEval(_nodes.Last()))
-                                                        throw new SemanticException("Non constexpr value with constexpr initializer.", item.Position);
-                                                    else
+                                                case "TOKEN":
+                                                    if (new[] { "IDENTIFIER", "_" }.Contains(((TokenNode)elem).Tok.Type))
                                                     {
-                                                        ITypeNode node = _nodes.Last();
+                                                        currentIdentifier = ((TokenNode)elem).Tok.Value;
+
+                                                        variables[currentIdentifier] = new Variable(new SimpleType(), elem.Position);
+                                                    }
+                                                    break;
+                                                case "extension":
+                                                    IDataType dt = _generateType((ASTNode)((ASTNode)elem).Content[1]);
+                                                    variables[currentIdentifier] = new Variable(dt, variables[currentIdentifier].Position);
+                                                    break;
+                                                case "variable_initializer":
+                                                    {
+                                                        _visitExpr((ASTNode)((ASTNode)elem).Content[1]);
+
+                                                        if (((TokenNode)((ASTNode)elem).Content[0]).Tok.Type == ":=")
+                                                        {
+                                                            if (!Constexpr.Evaluator.TryEval(_nodes.Last()))
+                                                                throw new SemanticException("Non constexpr value with constexpr initializer.", 
+                                                                    item.Position);
+                                                            else
+                                                            {
+                                                                ITypeNode node = _nodes.Last();
+                                                                _nodes.RemoveAt(_nodes.Count - 1);
+
+                                                                ValueNode valNode = Constexpr.Evaluator.Evaluate(node);
+
+                                                                _nodes.Add(valNode);
+                                                            }
+
+                                                            constexpr = true;
+                                                        }
+
+                                                        _nodes.Add(new ExprNode(constexpr ? "ConstExprInitializer" : "Initializer", 
+                                                            _nodes.Last().Type));
+                                                        PushForward();
+
+                                                        var initializer = _nodes.Last();
                                                         _nodes.RemoveAt(_nodes.Count - 1);
 
-                                                        ValueNode valNode = Constexpr.Evaluator.Evaluate(node);
+                                                        if (!variables[currentIdentifier].Type.Coerce(initializer.Type))
+                                                            throw new SemanticException("Initializer type doesn't match type extension", 
+                                                                variables[currentIdentifier].Position);
 
-                                                        _nodes.Add(valNode);
+                                                        variables[currentIdentifier] = new Variable(initializer.Type, 
+                                                            variables[currentIdentifier].Position);
+
+                                                        initializers[currentIdentifier]
+                                                            = new Tuple<bool, ITypeNode>(((TokenNode)((ASTNode)item).Content[1]).Tok.Type == ":=", 
+                                                            initializer);
                                                     }
-
-                                                    constexpr = true;
-                                                }
-
-                                                _nodes.Add(new ExprNode(constexpr ? "ConstExprInitializer" : "Initializer", _nodes.Last().Type));
-                                                PushForward();
-
-                                                var initializer = _nodes.Last();
-                                                _nodes.RemoveAt(_nodes.Count - 1);
-
-                                                if (!variables[currentIdentifier].Type.Coerce(initializer.Type))
-                                                    throw new SemanticException("Initializer type doesn't match type extension", variables[currentIdentifier].Position);
-
-                                                variables[currentIdentifier] = new Variable(initializer.Type, variables[currentIdentifier].Position);
-
-                                                initializers[currentIdentifier]
-                                                    = new Tuple<bool, ITypeNode>(((TokenNode)((ASTNode)item).Content[1]).Tok.Type == ":=", initializer);
+                                                    break;
                                             }
-                                            break;
+                                        }
                                     }
                                 }
                             }

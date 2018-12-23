@@ -18,8 +18,7 @@ namespace Whirlwind.Semantic.Visitor
             var arguments = new List<Parameter>();
             IDataType dataType = new SimpleType();
 
-            TextPosition namePosition = new TextPosition(),
-                rtPosition = new TextPosition();
+            TextPosition namePosition = new TextPosition();
 
             foreach (var item in function.Content)
             {
@@ -52,7 +51,6 @@ namespace Whirlwind.Semantic.Visitor
                         break;
                     case "types":
                         dataType = _generateType((ASTNode)item);
-                        rtPosition = item.Position;
                         break;
                     case "func_body":
                         {
@@ -297,7 +295,7 @@ namespace Whirlwind.Semantic.Visitor
                             case "TOKEN":
                                 if (((TokenNode)argPart).Tok.Type == "IDENTIFIER")
                                     identifiers.Add(((TokenNode)argPart).Tok.Value);
-                                else if (((TokenNode)argPart).Tok.Type == "@")
+                                else if (((TokenNode)argPart).Tok.Type == "CONST")
                                     constant = true;
                                 break;
                             case "extension":

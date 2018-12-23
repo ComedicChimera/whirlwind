@@ -280,9 +280,7 @@ namespace Whirlwind.Semantic.Visitor
 
                     if (token.Type == "IDENTIFIER")
                     {
-                        if (token.Value == "_")
-                            _nodes.Add(new IdentifierNode("_", new SimpleType(), false));
-                        else if (_table.Lookup(token.Value, out Symbol symbol))
+                        if (_table.Lookup(token.Value, out Symbol symbol))
                         {
                             if (symbol.Modifiers.Contains(Modifier.CONSTEXPR) || symbol.Modifiers.Contains(Modifier.CONSTANT))
                                 throw new SemanticException("Unable to assign to immutable value", node.Position);
@@ -292,6 +290,8 @@ namespace Whirlwind.Semantic.Visitor
                         else
                             throw new SemanticException($"Undefined Identifier: `{token.Value}`", node.Position);
                     }
+                    else if (token.Type == "_")
+                        _nodes.Add(new IdentifierNode("_", new SimpleType(), false));
                     else if (token.Type == "*")
                         derefCount++;
                     // this

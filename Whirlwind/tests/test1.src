@@ -1,14 +1,13 @@
-﻿func decor(fn: func(int)(int)) func()(int) {
-	func wrapper() int {
-		return fn(1);
-	}
+﻿func main() {
+	let x = 2;
 
-	return wrapper;
+	let tuple = (4, 5.5);
+
+	const (_, d) = tuple;
+
+	const fn = |add x, _);
+
+	let r = fn(3 + 3);
 }
 
-func main() {
-	num();
-}
-
-#[decor]
-func num(x: int) int => x;
+func add(a, b: int) int => a + b;

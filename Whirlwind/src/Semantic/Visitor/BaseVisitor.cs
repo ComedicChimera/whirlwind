@@ -41,8 +41,6 @@ namespace Whirlwind.Semantic.Visitor
                         _visitByteLiteral(((TokenNode)node.Content[0]).Tok);
                         return;
                     case "IDENTIFIER":
-                        if (((TokenNode)node.Content[0]).Tok.Value == "_")
-                            throw new SemanticException("Unable to reference the `_` variable in an expression context", node.Content[0].Position);
                         if (_table.Lookup(((TokenNode)node.Content[0]).Tok.Value, out Symbol sym))
                         {
                             if (sym.Modifiers.Contains(Modifier.CONSTEXPR))
@@ -318,19 +316,17 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitPartialFunc(ASTNode node)
         {
-            FunctionType fnType;
-
             _visitExpr((ASTNode)node.Content[1]);
 
             if (_nodes.Last().Type.Classify() != TypeClassifier.FUNCTION)
                 throw new SemanticException("Unable to create partial function from non-function", node.Content[1].Position);
 
-            fnType = (FunctionType)_nodes.Last().Type;
+            FunctionType fnType = (FunctionType)_nodes.Last().Type;
 
             List<int> removedArgs = new List<int>();
-            foreach (var item in node.Content.Select((x, i) => new { Value = x, Index = i - 1 }))
+            foreach (var item in node.Content.Where(x => x.Name != "TOKEN").Select((x, i) => new { Value = x, Index = i - 1 }))
             {
-                if (item.Value.Name == "TOKEN")
+                if (((ASTNode)item.Value).Content[0].Name == "TOKEN")
                     continue;
 
                 ASTNode expr = (ASTNode)((ASTNode)item.Value).Content[0];
@@ -355,12 +351,14 @@ namespace Whirlwind.Semantic.Visitor
                 }
             }
 
+            var newParameters = new List<Parameter>(fnType.Parameters);
+
             foreach (var item in removedArgs.Select((x, i) => new { Value = x, Index = i }))
             {
-                fnType.Parameters.RemoveAt(item.Value - item.Index);
+                newParameters.RemoveAt(item.Value - item.Index);
             }            
 
-            _nodes.Add(new ExprNode("PartialFunction", fnType));
+            _nodes.Add(new ExprNode("PartialFunction", new FunctionType(newParameters, fnType.ReturnType, fnType.Async)));
 
             // push forward root and args
             PushForward(removedArgs.Count + 1);

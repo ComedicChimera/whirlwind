@@ -140,9 +140,12 @@ stmt: ( variable_decl
 ;
 
 // variable declaration
-variable_decl: ['VOL'] ('$' | '@') var extension variable_initializer  ;
-var: '(' 'IDENTIFIER' extension variable_initializer (',' 'IDENTIFIER' extension variable_initializer)* ')'
+variable_decl: ['VOL'] ('LET' | 'CONST') var extension variable_initializer  ;
+var: '(' var_id (',' var_id)* ')'
 | 'IDENTIFIER'
+;
+var_id: 'IDENTIFIER' extension variable_initializer
+| '_'
 ;
 
 variable_initializer: [ '=' expr
@@ -151,7 +154,7 @@ variable_initializer: [ '=' expr
 
 // variable assignment
 assignment: assign_var (',' assign_var)* assign_op expr (',' expr)* ;
-assign_var: '*'* ( 'IDENTIFIER' | 'THIS' ) trailer* ;
+assign_var: '*'* ( 'IDENTIFIER' | 'THIS' | '_' ) trailer* ;
 
 assign_op: [ '+'
 | '-'
@@ -280,7 +283,7 @@ type_cast: 'CAST' '<' types '>' '(' expr ')' ;
 
 // convert function to partial function
 partial_func: '|' expr partial_arg (',' partial_arg)* ')' ;
-partial_arg: '$'
+partial_arg: '_'
 | expr
 ;
 
@@ -326,7 +329,7 @@ tuple_type_list: types (',' types)+ ;
 type_list: types (',' types)* ;
 
 args_decl_list: [ decl_arg (',' decl_arg)* [',' ending_arg] | ending_arg ] ;
-decl_arg: ['@'] 'IDENTIFIER' (',' 'IDENTIFIER')* extension [initializer] ;
+decl_arg: ['CONST'] 'IDENTIFIER' (',' 'IDENTIFIER')* extension [initializer] ;
 ending_arg: '...' 'IDENTIFIER' extension ;
 
 initializer: '=' expr ;
