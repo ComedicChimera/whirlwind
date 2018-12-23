@@ -49,6 +49,16 @@ namespace Whirlwind.Semantic.Visitor
                         break;
                     case "func_decl":
                         _visitFunction(stmt, new List<Modifier>());
+
+                        if (((BlockNode)_nodes.Last()).Block.Count == 1)
+                        {
+                            _visitFunctionBody(
+                                ((IncompleteNode)((BlockNode)_nodes.Last()).Block[0]).AST, 
+                                (FunctionType)((BlockNode)_nodes.Last()).Nodes[0].Type
+                            );
+
+                            ((BlockNode)_nodes.Last()).Block.RemoveAt(0);
+                        }
                         break;
                     case "subscope":
                         _nodes.Add(new BlockNode("Subscope"));

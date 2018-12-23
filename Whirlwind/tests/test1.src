@@ -1,1 +1,14 @@
-﻿
+﻿func decor(fn: func(int)(int)) func()(int) {
+	func wrapper() int {
+		return fn(1);
+	}
+
+	return wrapper;
+}
+
+func main() {
+	num();
+}
+
+#[decor]
+func num(x: int) int => x;

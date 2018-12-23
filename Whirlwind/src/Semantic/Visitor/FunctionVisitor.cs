@@ -165,6 +165,8 @@ namespace Whirlwind.Semantic.Visitor
             var positions = new List<TextPosition>();
             _getReturnPositions(ast, ref positions);
 
+            _dominantPosition = positions.Count > 0 ? positions[0] : ((ASTNode)ast.Content[0]).Content.Last().Position;
+
             int pos = 0;
             var returnData = _extractReturnType((BlockNode)_nodes.Last(), positions, ref pos);
 
@@ -224,7 +226,7 @@ namespace Whirlwind.Semantic.Visitor
 
                     pos++;
                 }
-                else if (node is BlockNode)
+                else if (node is BlockNode && !node.Name.EndsWith("Function"))
                 {
                     int savedPos = pos;
                     var blockReturn = _extractReturnType((BlockNode)node, positions, ref pos);
@@ -270,7 +272,7 @@ namespace Whirlwind.Semantic.Visitor
             {
                 if (item.Name == "return_stmt" || item.Name == "yield_stmt")
                     positions.Add(item.Position);
-                else if (item.Name != "TOKEN")
+                else if (item.Name != "TOKEN" && item.Name != "main")
                     _getReturnPositions((ASTNode)item, ref positions);
             }
         }
