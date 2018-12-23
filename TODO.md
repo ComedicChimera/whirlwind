@@ -14,6 +14,7 @@
 # THOUGHTS
 
 - add positioning data to some or all of the action tree
+- remove pointers
 
 # FUTURE
 
