@@ -9,6 +9,7 @@
 - remove @ operator in favor of const keyword
 - add in the `auto` keyword for explicit inferred data type (in certain situations)
 - add inline case block
+- remove from borrow syntax (and explicit borrowing completely)
 
 # THOUGHTS
 
