@@ -110,8 +110,7 @@ except_block: 'EXCEPT' '(' handle_block+ ')' block [after_clause] ;
 handle_block: expr ':' '(' ['IDENTIFIER'] ')' '=>' block ;
 
 // from block
-from_block: 'FROM' ( from_stmt ( from_except_clause | ';' ) | from_body [from_except_clause] [after_clause] ) ;
-from_stmt: 'IDENTIFIER' ('.' 'IDENTIFIER')* '->' 'IDENTIFIER' ;
+from_block: 'FROM' from_body [from_except_clause] [after_clause] ;
 from_body: '(' variable_decl ')' block ;
 from_except_clause: 'EXCEPT' block ;
 

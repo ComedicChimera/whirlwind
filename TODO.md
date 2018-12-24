@@ -5,13 +5,10 @@
 - allow for object level method variance
 - add visiting for types, templates, and variants
 - add agents (agent syntax, agent event model)
-- remove from borrow syntax (and explicit borrowing completely)
 
 # THOUGHTS
 
 - add positioning data to some or all of the action tree
-- remove pointers
-- remove context managers
 
 # FUTURE
 
