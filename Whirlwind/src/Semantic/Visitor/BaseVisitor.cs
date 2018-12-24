@@ -174,7 +174,6 @@ namespace Whirlwind.Semantic.Visitor
                 return;
             }
                 
-
             if (!baseType.Coerce(newType))
             {
                 if (newType.Coerce(baseType))

@@ -5,7 +5,6 @@
 - allow for object level method variance
 - add visiting for types, templates, and variants
 - add agents (agent syntax, agent event model)
-- add inline case block
 - remove from borrow syntax (and explicit borrowing completely)
 
 # THOUGHTS

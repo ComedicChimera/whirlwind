@@ -25,6 +25,8 @@ namespace Whirlwind.Semantic.Visitor
                             op = ((TokenNode)item).Tok.Type;
                         else if (item.Name == "or")
                             _visitLogical((ASTNode)item);
+                        else if (item.Name == "case_extension")
+                            _visitInlineCase((ASTNode)item);
                     }
 
                     if (op == "?")
@@ -40,7 +42,7 @@ namespace Whirlwind.Semantic.Visitor
                         if (!content[1].Type.Coerce(content[2].Type) || !content[2].Type.Coerce(content[1].Type))
                             throw new SemanticException("Possible results of inline comparison must be the same type", ((ASTNode)subNode).Content.Last().Position);
                     }
-                    else
+                    else if (op == "??")
                     {
                         _nodes.Add(new ExprNode("NullCoalesce", _nodes.Last().Type));
                         PushForward(2);
@@ -52,6 +54,76 @@ namespace Whirlwind.Semantic.Visitor
                     }
                 }
             }
+        }
+
+        private void _visitInlineCase(ASTNode node)
+        {
+            IDataType dt = new SimpleType();
+            IDataType rootType = _nodes.Last().Type;
+
+            int caseCount = 2;
+            foreach (var item in node.Content)
+            {
+                if (item.Name == "inline_case")
+                {
+                    int exprs = 0;
+                    bool checkedExpr = true;
+
+                    foreach (var elem in ((ASTNode)item).Content)
+                    {
+                        if (elem.Name == "expr")
+                        {
+                            _visitExpr((ASTNode)elem);
+
+                            if (checkedExpr && !rootType.Coerce(_nodes.Last().Type))
+                                throw new SemanticException("All conditions of case expression must be similar to the root type", 
+                                    elem.Position);
+
+                            exprs++;
+                        }
+                        else if (elem.Name == "TOKEN" && ((TokenNode)elem).Tok.Value == "=>")
+                            checkedExpr = false;
+                    }
+
+                    if (_isVoid(dt))
+                        dt = _nodes.Last().Type;
+                    else if (!dt.Coerce(_nodes.Last().Type))
+                    {
+                        if (_nodes.Last().Type.Coerce(dt))
+                            dt = _nodes.Last().Type;
+                        else
+                            throw new SemanticException("All case types must match", 
+                                ((ASTNode)item).Content[((ASTNode)item).Content.Count - 2].Position);
+                    }
+
+                    _nodes.Add(new ExprNode("Case", dt));
+                    PushForward(exprs);
+
+                    caseCount++;
+                }
+                else if (item.Name == "default_case")
+                {
+                    _visitExpr((ASTNode)((ASTNode)item).Content[2]);
+
+                    if (_isVoid(dt))
+                        dt = _nodes.Last().Type;
+                    else if (!dt.Coerce(_nodes.Last().Type))
+                    {
+                        if (_nodes.Last().Type.Coerce(dt))
+                            dt = _nodes.Last().Type;
+                        else
+                            throw new SemanticException("All case types must match", ((ASTNode)item).Content.Last().Position);
+                    }
+
+                    _nodes.Add(new ExprNode("Default", dt));
+                    PushForward();
+                }
+                else
+                    continue;
+            }
+
+            _nodes.Add(new ExprNode("InlineCaseExpr", dt));
+            PushForward(caseCount);
         }
 
         private void _visitLogical(ASTNode node)

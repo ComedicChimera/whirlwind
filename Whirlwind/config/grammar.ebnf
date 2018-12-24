@@ -183,7 +183,13 @@ yield_stmt: 'YIELD' expr (',' expr)* ;
 expr: or [expr_extension] ;
 expr_extension: '?' or ':' or
 | ('??' or)+
+| case_extension+
 ; 
+
+// case extension
+case_extension: 'CASE' '{' inline_case+ default_case '}' ;
+inline_case: expr (',' expr)* '=>' expr ',' ;
+default_case: '_' '=>' expr ;
 
 // logical operators
 or: xor ('OR' xor)* ;

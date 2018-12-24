@@ -1,13 +1,14 @@
 ﻿func main() {
-	let x = 2;
+	let x = 32;
 
-	let tuple = (4, 5.5);
-
-	const (_, d) = tuple;
-
-	const fn = |add x, _);
-
-	let r = fn(3 + 3);
+	const y = x case {
+		32 => 5,
+		5, 3 => 4,
+		_ => 3
+	} case {
+		4 => 2,
+		_ => 0
+	};
 }
 
 func add(a, b: int) int => a + b;
