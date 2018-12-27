@@ -1,14 +1,19 @@
-﻿func main() {
-	let x = 32;
+﻿type A {
+	let y: int;
 
-	const y = x case {
-		32 => 5,
-		5, 3 => 4,
-		_ => 3
-	} case {
-		4 => 2,
-		_ => 0
-	};
+	constructor(x: int) {
+		this.y = x;
+	}
+
+	func doThing() int
+		=> lol(this.y);
 }
 
-func add(a, b: int) int => a + b;
+func main() {
+	let a = new A(2);
+
+	a.doThing();
+}
+
+func lol(n: int) int 
+	=> n % 2 * 4;

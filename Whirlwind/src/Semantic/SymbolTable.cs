@@ -107,7 +107,7 @@ namespace Whirlwind.Semantic
             Array.Resize(ref _scopePath, _scopePath.Length - 1);
         }
 
-        public bool GotoScope(uint position)
+        public bool MoveScope(int startPos, int endPos)
         {
             Scope currentScope = _table;
             foreach (int pos in _scopePath)
@@ -115,15 +115,15 @@ namespace Whirlwind.Semantic
                 currentScope = currentScope.SubScopes[pos];
             }
 
-            if (position < currentScope.SubScopes.Count)
-            {
-                Array.Resize(ref _scopePath, _scopePath.Length + 1);
-                _scopePath[_scopePath.Length - 1] = checked((int)position);
+            if (startPos >= currentScope.SubScopes.Count || endPos >= currentScope.SubScopes.Count)
+                return false;
 
-                return true;
-            }
+            currentScope.SubScopes[endPos].Symbols.Concat(currentScope.SubScopes[startPos].Symbols);
+            currentScope.SubScopes[endPos].SubScopes.AddRange(currentScope.SubScopes[startPos].SubScopes);
 
-            return false;
+            currentScope.SubScopes.RemoveAt(startPos);
+
+            return true;
         }
 
         public bool Lookup(string name, out Symbol symbol)
@@ -170,6 +170,16 @@ namespace Whirlwind.Semantic
                 scope = scope.SubScopes[p];
 
             return scope.Symbols.Values.ToList();
+        }
+
+        public int GetScopeCount()
+        {
+            Scope scope = _table;
+
+            foreach (int p in _scopePath)
+                scope = scope.SubScopes[p];
+
+            return scope.SubScopes.Count;
         }
     }
 }

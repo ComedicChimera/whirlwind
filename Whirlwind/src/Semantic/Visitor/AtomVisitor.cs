@@ -132,7 +132,7 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     if (((TokenNode)item).Tok.Type == ":")
                         isKeyPair = true;
-                    else if (((TokenNode)item).Tok.Type == "WHERE")
+                    else if (((TokenNode)item).Tok.Type == "WHEN")
                         isCondition = true;
                 }
             }
@@ -247,7 +247,7 @@ namespace Whirlwind.Semantic.Visitor
                                         throw new SemanticException($"Unable to initializer property {sym.Name} with the given type", positions[i - 1]);
                                 }
                                 else
-                                    throw new SemanticException($"obj has no public property {((ValueNode)item.Nodes[0]).Value}", positions[i - 1]);
+                                    throw new SemanticException($"Object has no public member {((ValueNode)item.Nodes[0]).Value}", positions[i - 1]);
                             }
                             _nodes.Add(new ExprNode("InitList", objInstance));
                             // add in root
@@ -289,7 +289,7 @@ namespace Whirlwind.Semantic.Visitor
             {
                 case TypeClassifier.OBJECT_INSTANCE:
                     if (!((ObjectType)type).GetMember(name, out symbol))
-                        throw new SemanticException($"obj instance has no property `{name}`", idPos);
+                        throw new SemanticException($"Object has no member `{name}`", idPos);
                     break;
                 case TypeClassifier.STRUCT_INSTANCE:
                     if (((StructType)type).Members.ContainsKey(name))

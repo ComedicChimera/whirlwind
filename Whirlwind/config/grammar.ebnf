@@ -55,7 +55,7 @@ block_decl: func_decl
 func_decl: ('FUNC' | 'ASYNC') 'IDENTIFIER' '(' args_decl_list ')' [ types ] (func_body | ';') ;
 
 // interface declaration
-interface_decl: 'INTERFACE' 'IDENTIFIER' '{' interface_main '}' ;
+interface_decl: 'INTERF' 'IDENTIFIER' '{' interface_main '}' ;
 interface_main: func_decl+ ;
 
 // struct declaration
@@ -238,7 +238,7 @@ static_get: get_op 'IDENTIFIER' ;
 get_op: ':' ':' ;
 
 // for comprehension
-comprehension: 'FOR' '(' expr [':' expr] '|' iterator ['WHERE' expr] ')' ;
+comprehension: 'FOR' '(' expr [':' expr] '|' iterator ['WHEN' expr] ')' ;
 
 // allocate a type on the heap
 heap_alloc: 'NEW' '(' alloc_body ')' ;
@@ -351,7 +351,7 @@ func_body: [func_guard] ('{' [main] '}'
 ;
 
 // function guard
-func_guard: 'WHERE' '(' expr ')' ;
+func_guard: 'WHEN' '(' expr ')' ;
 
 // standard block
 block: '{' [main] '}'

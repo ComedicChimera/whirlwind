@@ -14,6 +14,9 @@ namespace Whirlwind.Semantic.Visitor
 
             switch (root.Name)
             {
+                case "type_class_decl":
+                    _visitTypeClass(root, modifiers);
+                    break;
                 case "func_decl":
                     _visitFunction(root, modifiers);
                     break;
@@ -37,9 +40,6 @@ namespace Whirlwind.Semantic.Visitor
             _nodes.Add(new BlockNode("Interface"));
             TokenNode name = (TokenNode)node.Content[1];
 
-            // make constant
-            modifiers.Add(Modifier.CONSTANT);
-
             // declare symbol subscope
             _table.AddScope();
             _table.DescendScope();
@@ -48,7 +48,7 @@ namespace Whirlwind.Semantic.Visitor
 
             foreach (var func in ((ASTNode)node.Content[3]).Content)
             {
-                _visitFunction((ASTNode)func, new List<Modifier>() { Modifier.CONSTANT });
+                _visitFunction((ASTNode)func, new List<Modifier>());
                 var fnNode = (IdentifierNode)((BlockNode)_nodes.Last()).Nodes[0];
 
                 // add function to interface block
@@ -79,9 +79,6 @@ namespace Whirlwind.Semantic.Visitor
         {
             _nodes.Add(new BlockNode("Struct"));
             TokenNode name = (TokenNode)node.Content[1];
-
-            // make constant
-            modifiers.Add(Modifier.CONSTANT);
 
             var structType = new StructType(name.Tok.Value, false);
            
@@ -180,9 +177,6 @@ namespace Whirlwind.Semantic.Visitor
 
             _nodes.Add(new IdentifierNode(name, et, true));
             MergeBack();
-
-            // make constant
-            modifiers.Add(Modifier.CONSTANT);
 
             if (!_table.AddSymbol(new Symbol(name, et, modifiers)))
                 throw new SemanticException($"Unable to redeclare symbol by name `{name}`", node.Content[1].Position);

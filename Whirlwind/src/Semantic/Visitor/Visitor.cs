@@ -42,7 +42,7 @@ namespace Whirlwind.Semantic.Visitor
                 switch (node.Name)
                 {
                     case "block_decl":
-                        _visitBlockDecl((ASTNode)node, new List<Modifier>());
+                        _visitBlockDecl((ASTNode)node, new List<Modifier>() { Modifier.CONSTANT });
                         break;
                     case "variable_decl":
                         _visitVarDecl((ASTNode)node, new List<Modifier>());
@@ -53,7 +53,7 @@ namespace Whirlwind.Semantic.Visitor
                         switch (decl.Name)
                         {
                             case "block_decl":
-                                _visitBlockDecl(decl, new List<Modifier>() { Modifier.EXPORTED });
+                                _visitBlockDecl(decl, new List<Modifier>() { Modifier.EXPORTED, Modifier.CONSTANT });
                                 break;
                             case "variable_decl":
                                 _visitVarDecl(decl, new List<Modifier>() { Modifier.EXPORTED });
@@ -77,70 +77,14 @@ namespace Whirlwind.Semantic.Visitor
             _completeTree();
         }
 
-        private void _completeTree()
-        {
-            var block = ((BlockNode)_nodes[0]).Block;
-
-            uint scopePos = 0;
-            for (int i = 0; i < block.Count; i++)
-            {
-                var item = block[i];
-
-                switch (item.Name)
-                {
-                    case "Function":
-                    case "AsyncFunction":
-                        {
-                            BlockNode fn = (BlockNode)item;
-
-                            if (fn.Block.Count == 1)
-                            {
-                                _nodes.Add(fn);
-
-                                _visitFunctionBody(((IncompleteNode)fn.Block[0]).AST, (FunctionType)fn.Nodes[0].Type);
-                                fn.Block.RemoveAt(0);
-
-                                ((BlockNode)_nodes[0]).Block[i] = _nodes.Last();
-                                _nodes.RemoveAt(1);
-                            }
-                        }
-                        break;
-                    case "Decorator":
-                        {
-                            BlockNode fn = (BlockNode)((BlockNode)item).Block[0];
-
-                            if (fn.Block.Count == 1)
-                            {
-                                _nodes.Add(fn);
-
-                                _visitFunctionBody(((IncompleteNode)fn.Block[0]).AST, (FunctionType)fn.Nodes[0].Type);
-                                fn.Block.RemoveAt(0);
-
-                                ((BlockNode)((BlockNode)_nodes[0]).Block[i]).Block[0] = _nodes.Last();
-                                _nodes.RemoveAt(1);
-                            }
-                        }
-                        break;
-                    case "TypeClass":
-                        scopePos++;
-                        break;
-                    case "Interface":
-                        scopePos++;
-                        break;
-                    default:
-                        continue;
-                }
-            }
-        }
-
         private void MergeBack(int depth = 1)
         {
             if (_nodes.Count <= depth)
                 return;
             for (int i = 0; i < depth; i++)
             {
-                ((TreeNode)_nodes[_nodes.Count - (depth + 1)]).Nodes.Add(_nodes[_nodes.Count - 1]);
-                _nodes.RemoveAt(_nodes.Count - 1);
+                ((TreeNode)_nodes[_nodes.Count - (depth - i + 1)]).Nodes.Add(_nodes[_nodes.Count - (depth - i)]);
+                _nodes.RemoveAt(_nodes.Count - (depth - i));
             }
         }
 

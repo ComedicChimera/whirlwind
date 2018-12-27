@@ -76,8 +76,6 @@ namespace Whirlwind.Semantic.Visitor
 
             MergeBack();
 
-            modifiers.Add(Modifier.CONSTANT);
-
             if (!_table.AddSymbol(new Symbol(name, fnType, modifiers)))
                 throw new SemanticException($"Unable to redeclare symbol by name {name}", namePosition);
         }

@@ -8,7 +8,7 @@ namespace Whirlwind.Semantic.Visitor
 {
     partial class Visitor
     {
-        private void _visitTypeClass(ASTNode node)
+        private void _visitTypeClass(ASTNode node, List<Modifier> typeModifiers)
         {
             _nodes.Add(new BlockNode("TypeClass"));
 
@@ -17,21 +17,21 @@ namespace Whirlwind.Semantic.Visitor
 
             var interfaces = new List<InterfaceType>();
 
+            _table.AddScope();
+            _table.DescendScope();
+
             foreach (var item in node.Content)
             {
                 if (item.Name == "impl")
                     _visitImplClause((ASTNode)item, ref interfaces);
                 else if (item.Name == "type_class_main")
                 {
-                    ASTNode decl = (ASTNode)((ASTNode)item).Content.Last();
+                    ASTNode decl = (ASTNode)((ASTNode)item).Content.Where(x => x.Name != "TOKEN").Last();
 
                     List<Modifier> modifiers = new List<Modifier>();
 
                     if (((ASTNode)item).Content.Count > 1)
                         modifiers.Add(Modifier.PRIVATE);
-
-                    _table.AddScope();
-                    _table.DescendScope();
 
                     // figure out a way of getting the this pointer to derived functions
 
@@ -44,21 +44,23 @@ namespace Whirlwind.Semantic.Visitor
                         case "func_decl":
                             _visitFunction(decl, modifiers);
                             break;
-                        case "constructor":
+                        case "constructor_decl":
                             FunctionType ft = _visitConstructor(decl, modifiers);
 
                             if (!objType.AddConstructor(ft, modifiers.Count > 0))
                                 throw new SemanticException("Unable to distinguish between constructor signatures", decl.Content[2].Position);
                             break;
-                        // visit variants and method templates
+                            // visit variants and method templates
                     }
 
-                    var symbols = _table.GetScope();
-
-                    foreach (var sym in symbols)
-                        objType.AddMember(sym);
+                    MergeToBlock();
                 }
             }
+
+            var symbols = _table.GetScope();
+
+            foreach (var sym in symbols)
+                objType.AddMember(sym);
 
             for (int i = 0; i < interfaces.Count; i++)
             {
@@ -71,9 +73,10 @@ namespace Whirlwind.Semantic.Visitor
             }
 
             _nodes.Add(new IdentifierNode(name, objType, true));
-            MergeBack();
 
-            if (!_table.AddSymbol(new Symbol(name, objType, new List<Modifier>() { Modifier.CONSTANT })))
+            _table.AscendScope();
+
+            if (!_table.AddSymbol(new Symbol(name, objType, typeModifiers)))
                 throw new SemanticException($"Unable to redeclare symbol {name}", node.Content[1].Position);
 
             _nodes.Add(new ExprNode("Implements", new SimpleType()));
@@ -86,7 +89,7 @@ namespace Whirlwind.Semantic.Visitor
                 MergeBack();
             }
 
-            MergeBack();
+            MergeBack(2);
         }
 
         private void _visitImplClause(ASTNode node, ref List<InterfaceType> interfaces)
@@ -128,11 +131,10 @@ namespace Whirlwind.Semantic.Visitor
 
                     _nodes.Add(new BlockNode("Constructor"));
                 }
-                    
                 else if (item.Name == "func_body")
                 {
-                    if (!_isVoid(_visitFuncBody((ASTNode)item)))
-                        throw new SemanticException("Constructor cannot return a value", decl.Content[0].Position);
+                    _nodes.Add(new IncompleteNode((ASTNode)item));
+                    MergeToBlock();
                 }
             }
 
@@ -140,8 +142,6 @@ namespace Whirlwind.Semantic.Visitor
 
             _nodes.Add(new ValueNode("ConstructorSignature", ft));
             MergeBack();
-
-            MergeToBlock();
 
             return ft;
         }

@@ -49,8 +49,6 @@ namespace Whirlwind.Semantic.Checker
         /* Check if a given node is modifiable
          * not a direct inferface mirror and really more predicated on checking constants
          * but it somewhat fits with the rest of these
-         * 
-         * Checks if a given tree is modifiable
          */
         public static bool Modifiable(ITypeNode node)
         {
@@ -62,7 +60,13 @@ namespace Whirlwind.Semantic.Checker
                 if (node.Name == "GetMember" && ((IdentifierNode)((ExprNode)node).Nodes[1]).Constant)
                     return false;
 
-                return Modifiable(((ExprNode)node).Nodes[0]);
+                var rootNode = ((ExprNode)node).Nodes[0];
+
+                // this pointer is immutable, but its members might not be, so we don't bubble this pointer constancy
+                if (rootNode.Name == "Identifier" && ((IdentifierNode)rootNode).IdName == "$THIS")
+                    return true;
+
+                return Modifiable(rootNode);
             }
                 
 
