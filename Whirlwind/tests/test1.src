@@ -1,19 +1,27 @@
-﻿type A {
-	let y: int;
+﻿interf AI {
+	func fn1() int;
 
-	constructor(x: int) {
-		this.y = x;
+	func fn2(x: str) str => x + '!';
+
+	priv func fn3() {
+		this.fn1();
 	}
 
-	func doThing() int
-		=> lol(this.y);
+	priv func fn4() double;
+}
+
+type AT : AI {
+	func fn1() int => 3;
+
+	priv func fn4() double => 3.14;
 }
 
 func main() {
-	let a = new A(2);
+	let a = new AT();
 
-	a.doThing();
+	const b = a.fn1();
+
+	a.fn2("Hello");
+
+	a.fn3(); // should fail
 }
-
-func lol(n: int) int 
-	=> n % 2 * 4;

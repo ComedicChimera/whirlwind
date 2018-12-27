@@ -29,6 +29,9 @@ namespace Whirlwind.Semantic.Visitor
                         scopePos++;
                         break;
                     case "Interface":
+                        _completeInterface((BlockNode)item);
+                        _table.MoveScope(_table.GetScopeCount(), scopePos);
+
                         scopePos++;
                         break;
                     default:
@@ -46,6 +49,8 @@ namespace Whirlwind.Semantic.Visitor
                 _visitFunctionBody(((IncompleteNode)fn.Block[0]).AST, (FunctionType)fn.Nodes[0].Type);
 
                 fn.Block = ((BlockNode)_nodes.Last()).Block;
+                fn.Block.RemoveAt(0); // remove incomplete node lol
+
                 _nodes.RemoveAt(1);
             }
         }
@@ -79,7 +84,18 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _completeInterface(BlockNode interf)
         {
+            _table.AddScope();
+            _table.DescendScope();
 
+            _table.AddSymbol(new Symbol("$THIS", ((InterfaceType)interf.Nodes[0].Type).GetInstance()));
+
+            foreach (var item in interf.Block)
+            {
+                if (item.Name.EndsWith("Function"))
+                    _completeFunction((BlockNode)item);
+            }
+
+            _table.AscendScope();
         }
     }
 }

@@ -16,10 +16,10 @@ namespace Whirlwind.Types
             _instance = instance;
         }
 
-        private StructType(string name, Dictionary<string, IDataType> members)
+        private StructType(StructType str)
         {
-            Name = name;
-            Members = members;
+            Name = str.Name;
+            Members = str.Members;
             _instance = true;
         }
 
@@ -32,9 +32,7 @@ namespace Whirlwind.Types
         }
 
         public StructType GetInstance()
-        {
-            return new StructType(Name, Members);
-        }
+            => new StructType(this);
 
         protected sealed override bool _coerce(IDataType other)
         {

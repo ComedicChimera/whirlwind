@@ -56,7 +56,7 @@ func_decl: ('FUNC' | 'ASYNC') 'IDENTIFIER' '(' args_decl_list ')' [ types ] (fun
 
 // interface declaration
 interface_decl: 'INTERF' 'IDENTIFIER' '{' interface_main '}' ;
-interface_main: func_decl+ ;
+interface_main: ( ['PRIV'] func_decl )+ ;
 
 // struct declaration
 struct_decl: 'STRUCT' 'IDENTIFIER' '{' struct_main '}' ;

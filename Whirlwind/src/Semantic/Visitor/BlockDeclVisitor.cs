@@ -46,24 +46,32 @@ namespace Whirlwind.Semantic.Visitor
 
             var interfaceType = new InterfaceType();
 
+            // flag setting next element to be private
+            bool priv = false;
             foreach (var func in ((ASTNode)node.Content[3]).Content)
             {
-                _visitFunction((ASTNode)func, new List<Modifier>());
+                if (func.Name == "TOKEN")
+                {
+                    priv = true;
+                    continue;
+                }
+
+                var memberModifiers = new List<Modifier>() { Modifier.CONSTANT };
+
+                if (priv)
+                {
+                    memberModifiers.Add(Modifier.PRIVATE);
+                    priv = false;
+                }
+
+                _visitFunction((ASTNode)func, memberModifiers);
                 var fnNode = (IdentifierNode)((BlockNode)_nodes.Last()).Nodes[0];
 
                 // add function to interface block
                 MergeToBlock();
 
-                if (((ASTNode)func).Content.Last().Name == "func_body")
-                {
-                    if (!interfaceType.AddFunction(new Symbol(fnNode.IdName, fnNode.Type), (ASTNode)((ASTNode)func).Content.Last()))
-                        throw new SemanticException("Interface cannot contain duplicate members", ((ASTNode)func).Content[1].Position);
-                }
-                else
-                {
-                    if (!interfaceType.AddFunction(new Symbol(fnNode.IdName, fnNode.Type)))
-                        throw new SemanticException("Interface cannot contain duplicate members", ((ASTNode)func).Content[1].Position);
-                }
+                if (!interfaceType.AddFunction(new Symbol(fnNode.IdName, fnNode.Type, memberModifiers), ((ASTNode)func).Content.Last().Name == "func_body"))
+                    throw new SemanticException("Interface cannot contain duplicate members", ((ASTNode)func).Content[1].Position);
             }
 
             _nodes.Add(new IdentifierNode(name.Tok.Value, interfaceType, true));

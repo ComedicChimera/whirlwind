@@ -289,7 +289,7 @@ namespace Whirlwind.Semantic.Visitor
             {
                 case TypeClassifier.OBJECT_INSTANCE:
                     if (!((ObjectType)type).GetMember(name, out symbol))
-                        throw new SemanticException($"Object has no member `{name}`", idPos);
+                        throw new SemanticException($"Object has no {(((ObjectType)type).Internal ? "" : "public ")}member `{name}`", idPos);
                     break;
                 case TypeClassifier.STRUCT_INSTANCE:
                     if (((StructType)type).Members.ContainsKey(name))

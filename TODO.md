@@ -1,16 +1,16 @@
 # TODO
 
-- add scope first top level symbol declaration
 - allow for recursive type definition
 - allow for object level method variance
 - add visiting for types, templates, and variants
 - add agents (agent syntax, agent event model)
+- add function overloading
+- add function body completion (if necessary)
 
 # THOUGHTS
 
 - add positioning data to some or all of the action tree
 - remove constexpr
-- add function overloading
 
 # FUTURE
 

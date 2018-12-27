@@ -15,7 +15,9 @@ namespace Whirlwind.Types
         public readonly string Name;
         public readonly List<IDataType> Inherits;
 
-        private bool _instance = false, _internal = false;
+        private bool _instance = false;
+
+        public bool Internal { get; private set; }
 
         public ObjectType(string name, bool instance, bool internalInstance)
         {
@@ -24,18 +26,18 @@ namespace Whirlwind.Types
             _constructors = new List<Tuple<FunctionType, bool>>();
             Inherits = new List<IDataType>();
             _instance = instance;
-            _internal = internalInstance;
+            Internal = internalInstance;
         }
 
-        // constructors not copied since they are only needed in the root type
-        private ObjectType(string name, Dictionary<string, Symbol> members, List<IDataType> inherits, bool internalInstance)
+        // constructors not copied since they are only used in the static type
+        private ObjectType(ObjectType obj, bool internalInstance)
         {
-            Name = name;
-            _members = members;
+            Name = obj.Name;
+            _members = obj._members;
             _constructors = new List<Tuple<FunctionType, bool>>();
-            Inherits = inherits;
+            Inherits = obj.Inherits;
             _instance = true;
-            _internal = internalInstance;
+            Internal = internalInstance;
         }
 
         public bool AddConstructor(FunctionType ft, bool priv)
@@ -74,7 +76,7 @@ namespace Whirlwind.Types
             {
                 Symbol foundSymbol = _members[name];
 
-                if (_internal || !foundSymbol.Modifiers.Contains(Modifier.PRIVATE))
+                if (Internal || !foundSymbol.Modifiers.Contains(Modifier.PRIVATE))
                 {
                     member = foundSymbol;
                     return true;
@@ -87,7 +89,7 @@ namespace Whirlwind.Types
 
         public bool GetConstructor(List<IDataType> parameters, out FunctionType constructor)
         {
-            var constructors = _constructors.Where(x => x.Item1.MatchParameters(parameters) && (!x.Item2 || _internal)).ToList();
+            var constructors = _constructors.Where(x => x.Item1.MatchParameters(parameters) && (!x.Item2 || Internal)).ToList();
             
             if (constructors.Count() == 1)
             {
@@ -99,14 +101,10 @@ namespace Whirlwind.Types
         }
 
         public ObjectType GetInstance()
-        {
-            return new ObjectType(Name, _members, Inherits, false);
-        }
+            => new ObjectType(this, false);
 
         public ObjectType GetInternalInstance()
-        {
-            return new ObjectType(Name, _members, Inherits, true);
-        }
+            => new ObjectType(this, true);
 
         public TypeClassifier Classify() => _instance ? TypeClassifier.OBJECT_INSTANCE : TypeClassifier.OBJECT;
 

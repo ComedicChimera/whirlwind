@@ -46,7 +46,7 @@ namespace Whirlwind
                 }
                 return;
             }
-            Console.WriteLine(ast.ToString() + "\n");
+            // Console.WriteLine(ast.ToString() + "\n");
 
             var visitor = new Visitor();
 

@@ -20,6 +20,8 @@ namespace Whirlwind.Semantic.Visitor
             _table.AddScope();
             _table.DescendScope();
 
+            bool needsDefaultConstr = true;
+
             foreach (var item in node.Content)
             {
                 if (item.Name == "impl")
@@ -28,7 +30,7 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     ASTNode decl = (ASTNode)((ASTNode)item).Content.Where(x => x.Name != "TOKEN").Last();
 
-                    List<Modifier> modifiers = new List<Modifier>();
+                    List<Modifier> modifiers = new List<Modifier>() { Modifier.CONSTANT };
 
                     if (((ASTNode)item).Content.Count > 1)
                         modifiers.Add(Modifier.PRIVATE);
@@ -49,6 +51,8 @@ namespace Whirlwind.Semantic.Visitor
 
                             if (!objType.AddConstructor(ft, modifiers.Count > 0))
                                 throw new SemanticException("Unable to distinguish between constructor signatures", decl.Content[2].Position);
+
+                            needsDefaultConstr = false;
                             break;
                             // visit variants and method templates
                     }
@@ -66,11 +70,15 @@ namespace Whirlwind.Semantic.Visitor
             {
                 var inter = interfaces[i];
 
-                if (inter.MatchObject(objType))
+                if (inter.Derive(objType))
                     objType.AddInherit(inter);
                 else
                     throw new SemanticException("This type class does not implement all of its interfaces", ((ASTNode)node.Content[2]).Content[i * 2 + 1].Position);
             }
+
+            // give objects a default constructor (if necessary)
+            if (needsDefaultConstr)
+                objType.AddConstructor(new FunctionType(new List<Parameter>(), new SimpleType(), false), false);
 
             _nodes.Add(new IdentifierNode(name, objType, true));
 

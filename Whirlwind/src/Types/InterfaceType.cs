@@ -8,42 +8,38 @@ namespace Whirlwind.Types
 {
     class InterfaceType : DataType, IDataType
     {
-        private readonly List<Symbol> _functions;
-        private readonly List<ASTNode> _bodies;
+        private readonly Dictionary<Symbol, bool> _methods;
 
         bool initialized = false;
 
         public InterfaceType()
         {
-            _functions = new List<Symbol>();
-            _bodies = new List<ASTNode>();
+            _methods = new Dictionary<Symbol, bool>();
         }
 
-        public bool AddFunction(Symbol fn)
+        private InterfaceType(InterfaceType interf)
         {
-            if (!_functions.Contains(fn))
+            _methods = interf._methods;
+            initialized = true;
+        }
+
+        public bool AddFunction(Symbol fn, bool hasBody)
+        {
+            if (!_methods.ContainsKey(fn))
             {
-                _functions.Add(fn);
+                _methods.Add(fn, hasBody);
+
                 return true;
             }
             return false;
         }
 
-        public bool AddFunction(Symbol fn, ASTNode body)
-        {
-            if (!AddFunction(fn))
-                return false;
-
-            _bodies.Add(body);
-            return true;
-        }
-
         public bool GetFunction(string fnName, out Symbol symbol)
         {
-            if (_functions.Select(x => x.Name).Contains(fnName))
+            if (_methods.Select(x => x.Key.Name).Contains(fnName))
             {
-                symbol = _functions.Where(x => x.Name == fnName).ToArray()[0];
-                return true;
+                symbol = _methods.Keys.Where(x => x.Name == fnName).ToArray()[0];
+                return !symbol.Modifiers.Contains(Modifier.PRIVATE);
             }
 
             symbol = null;
@@ -52,12 +48,15 @@ namespace Whirlwind.Types
 
         public bool MatchObject(ObjectType obj)
         {
-            var objInstance = obj.GetInstance();
-            foreach (Symbol fn in _functions)
+            var objInstance = obj.GetInternalInstance();
+            foreach (var fn in _methods)
             {
-                if (objInstance.GetMember(fn.Name, out Symbol match))
+                if (fn.Value)
+                    continue;
+
+                if (objInstance.GetMember(fn.Key.Name, out Symbol match))
                 {
-                    if (!fn.DataType.Coerce(match.DataType))
+                    if (!fn.Key.DataType.Coerce(match.DataType) || _wrongModifiers(fn.Key.Modifiers, match.Modifiers))
                         return false;
                 }
                 else return false;
@@ -66,6 +65,9 @@ namespace Whirlwind.Types
             return true;
         }
 
+        private bool _wrongModifiers(List<Modifier> interfMod, List<Modifier> objMod)
+            => objMod.Contains(Modifier.PRIVATE) && !interfMod.Contains(Modifier.PRIVATE);
+
         public TypeClassifier Classify() => initialized ? TypeClassifier.INTERFACE_INSTANCE : TypeClassifier.INTERFACE;
 
         protected sealed override bool _coerce(IDataType other)
@@ -73,24 +75,14 @@ namespace Whirlwind.Types
             if (other.Classify() == TypeClassifier.OBJECT_INSTANCE)
             {
                 if (((ObjectType)other).Inherits.Contains(this))
-                {
                     return true;
-                }
-                foreach (Symbol function in _functions)
-                {
-                    if (((ObjectType)other).GetMember(function.Name, out Symbol matchedFunction))
-                    {
-                        if (!function.DataType.Coerce(matchedFunction.DataType)) return false;
-                    }
-                    else return false;
-                }
-                return true;
+
+                return MatchObject((ObjectType)other);
             }
             return false;
         }
 
-        public void Initialize() =>
-            initialized = true;
+        public InterfaceType GetInstance() => new InterfaceType(this);
 
         public bool Equals(IDataType other)
         {
@@ -101,14 +93,37 @@ namespace Whirlwind.Types
                 if (initialized != it.initialized)
                     return false;
 
-                if (_functions.Count == it._functions.Count)
+                if (_methods.Count == it._methods.Count)
                 {
-                    for (int i = 0; i < _functions.Count; i++)
+                    using (var e1 = _methods.GetEnumerator())
+                    using (var e2 = it._methods.GetEnumerator())
                     {
-                        if (_functions[i].Name != it._functions[i].Name || !_functions[i].Equals(it._functions[i]))
-                            return false;
+                        while (e1.MoveNext() && e2.MoveNext())
+                        {
+                            if (!e1.Current.Key.Equals(e2.Current.Key) || e1.Current.Value != e2.Current.Value)
+                                return false;
+                        }
                     }
                 }
+            }
+
+            return false;
+        }
+
+        // tests if it is possible for the child to be a derivation of the parent interface
+        // and gives any methods to the child that are implemented within the interface
+        public bool Derive(ObjectType child)
+        {
+            if (MatchObject(child))
+            {
+                foreach (var method in _methods)
+                {
+                    if (method.Value)
+                        // fails silently if it was unable to add member (allows for overriding)
+                        child.AddMember(method.Key);
+                }
+
+                return true;
             }
 
             return false;
