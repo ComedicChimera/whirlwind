@@ -20,9 +20,6 @@ namespace Whirlwind.Types
         public bool Equals(IDataType other) => false;
     }
 
-    // function returns data type of evaluated body and tests it
-    delegate IDataType TemplateEvaluator(Dictionary<string, TemplateAlias> aliases, ASTNode body);
-
     // represents the various aliases of the templates (ie. the T in template<T>)
     class TemplateAlias : IDataType
     {
@@ -39,22 +36,19 @@ namespace Whirlwind.Types
         public bool Equals(IDataType other) => false;
     }
 
-    // represents the full template object (entire template method, obj, ect.
+    // represents the full template object (entire template method, obj, ect.)
     class TemplateType : IDataType
     {
         private readonly Dictionary<string, List<IDataType>> _templates;
-        private readonly IDataType _templateType;
-        private readonly TemplateEvaluator _evaluator;
-        private readonly ASTNode _body;
+        private readonly IDataType _dataType;
         private readonly Dictionary<List<IDataType>, ASTNode> _variants;
+        private readonly List<IDataType> _generates;
 
-        public TemplateType(Dictionary<string, List<IDataType>> templates, IDataType templateType, ASTNode body, TemplateEvaluator evaluator)
+        public TemplateType(Dictionary<string, List<IDataType>> templates, IDataType type)
         {
             _templates = templates;
-            _templateType = templateType;
-            _evaluator = evaluator;
-            _body = body;
             _variants = new Dictionary<List<IDataType>, ASTNode>();
+            _dataType = type;
         }
 
         public bool CreateTemplate(List<IDataType> dataTypes, out IDataType templateType)
@@ -80,7 +74,7 @@ namespace Whirlwind.Types
                     }
                 }
 
-                templateType = _evaluator(aliases, _body);
+                templateType = _evaluate(aliases);
                 return true;
             }
             
@@ -91,6 +85,17 @@ namespace Whirlwind.Types
 
         public bool Infer(List<IDataType> parameters, out List<IDataType> inferredTypes)
         {
+            // add template inference
+
+            var filledTypes = new Dictionary<string, IDataType>();
+
+            if (_dataType.Classify() == TypeClassifier.FUNCTION)
+            {
+                var fnType = (FunctionType)_dataType;
+
+
+            }
+
             inferredTypes = new List<IDataType>();
             return false;
         }
@@ -117,6 +122,13 @@ namespace Whirlwind.Types
 
             _variants[dataTypes] = variant_body;
             return true;
+        }
+
+        private IDataType _evaluate(Dictionary<string, TemplateAlias> aliases)
+        {
+            // add template signature evaluation
+
+            return new SimpleType();
         }
 
         public bool Coerce(IDataType other) => false;

@@ -64,8 +64,14 @@ struct_main: (struct_var ';')+ ;
 struct_var: 'IDENTIFIER' (',' 'IDENTIFIER')* ':' types ;
 
 // template declaration
-template_decl: 'TEMPLATE' '<' template (',' template)* '>' block_decl ;
+template_decl: 'TEMPLATE' '<' template (',' template)* '>' template_block_decl ;
 template: 'IDENTIFIER' [':' type_list] ;
+template_block_decl: func_decl
+| type_class_decl
+| struct_decl
+| interface_decl
+| decor_decl
+;
 
 // variant declaration
 variant_decl: 'VARIANT' ( variant | variant_list ) 'IDENTIFIER' func_body ;
