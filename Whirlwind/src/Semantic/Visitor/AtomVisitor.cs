@@ -388,6 +388,21 @@ namespace Whirlwind.Semantic.Visitor
 
                 PushForward();
             }
+            else if (root.Type.Classify() == TypeClassifier.FUNCTION_GROUP)
+            {
+                FunctionGroup fg = (FunctionGroup)root.Type;
+
+                if (fg.GetFunction(args, out FunctionType fn))
+                {
+                    _nodes.Add(new ExprNode("GetOverload", fn));
+                    PushForward(args.Count + 1);
+
+                    _nodes.Add(new ExprNode(fn.Async ? "CallAsync" : "Call", fn.ReturnType));
+                    PushForward();
+                }
+                else
+                    throw new SemanticException("No overload of the given function accepts these arguments", node.Position);
+            }
             else
                 throw new SemanticException("Unable to call non-callable type", node.Content[0].Position);
         }
@@ -536,6 +551,15 @@ namespace Whirlwind.Semantic.Visitor
                     case TypeClassifier.LIST:
                         elementType = ((ListType)rootType).ElementType;
                         break;
+                    case TypeClassifier.SIMPLE:
+                        if (((SimpleType)rootType).Type == SimpleType.DataType.STRING)
+                        {
+                            elementType = new SimpleType(SimpleType.DataType.CHAR);
+                            break;
+                        }
+
+                        // yeah, yeah, i know
+                        goto default;
                     default:
                         throw new SemanticException($"Unable to perform  {(expressionCount == 1 && hasStartingExpr ? "subscript" : "slice")} on the given type", 
                             node.Position);

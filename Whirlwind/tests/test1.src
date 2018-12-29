@@ -1,27 +1,11 @@
-﻿interf AI {
-	func fn1() int;
-
-	func fn2(x: str) str => x + '!';
-
-	priv func fn3() {
-		this.fn1();
-	}
-
-	priv func fn4() double;
+﻿func do(x, y: int) {
+	// something lol
 }
 
-type AT : AI {
-	func fn1() int => 3;
-
-	priv func fn4() double => 3.14;
-}
+func do (a: str) int 
+	=> cast<int>(a[0]);
 
 func main() {
-	let a = new AT();
-
-	const b = a.fn1();
-
-	a.fn2("Hello");
-
-	a.fn3(); // should fail
+	do("Hello!");
+	do(2, 3);
 }

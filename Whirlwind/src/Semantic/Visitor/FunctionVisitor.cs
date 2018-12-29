@@ -77,7 +77,30 @@ namespace Whirlwind.Semantic.Visitor
             MergeBack();
 
             if (!_table.AddSymbol(new Symbol(name, fnType, modifiers)))
-                throw new SemanticException($"Unable to redeclare symbol by name {name}", namePosition);
+            {
+                _table.Lookup(name, out Symbol symbol);
+
+                if (symbol.DataType.Classify() == TypeClassifier.FUNCTION)
+                {
+                    FunctionType ft = (FunctionType)symbol.DataType;
+
+                    if (ft.MatchParameters(parameters.Select(x => x.DataType).ToList()))
+                        throw new SemanticException("Unable to distinguish between function overload signatures", namePosition);
+                    else
+                        _table.ReplaceSymbol(name, new Symbol(name, new FunctionGroup(ft, fnType), symbol.Modifiers));
+                }
+                else if (symbol.DataType.Classify() == TypeClassifier.FUNCTION_GROUP)
+                {
+                    FunctionGroup fg = (FunctionGroup)symbol.DataType;
+
+                    // fg is a reference and it can be indirectly modified
+                    if (!fg.AddFunction(fnType))
+                        throw new SemanticException("Unable to distinguish between function overload signatures", namePosition);
+                }
+                else
+                    throw new SemanticException($"Unable to redeclare symbol by name {name}", namePosition);
+            }
+                
         }
 
         private void _visitFunctionBody(ASTNode body, FunctionType type)

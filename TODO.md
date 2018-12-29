@@ -4,7 +4,6 @@
 - allow for object level method variance
 - add visiting for types, templates, and variants
 - add agents (agent syntax, agent event model)
-- add function overloading
 - add function body completion (if necessary)
 
 # THOUGHTS

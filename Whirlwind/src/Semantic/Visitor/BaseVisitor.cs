@@ -287,7 +287,7 @@ namespace Whirlwind.Semantic.Visitor
                     _visitExpr((ASTNode)item);
             }
 
-            if (!TypeCast(dt, _nodes.Last().Type))
+            if (!TypeCast(_nodes.Last().Type, dt))
                 throw new SemanticException("Invalid type cast", node.Position);
 
             _nodes.Add(new ExprNode("TypeCast", dt));
