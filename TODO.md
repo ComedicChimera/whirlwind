@@ -2,7 +2,7 @@
 
 - allow for recursive type definition
 - allow for object level method variance
-- add visiting for types, templates, and variants
+- add visiting for templates and variants
 - add agents (agent syntax, agent event model)
 - add function body completion (if necessary)
 
