@@ -1,5 +1,4 @@
 ﻿using Whirlwind.Semantic;
-using Whirlwind.Parser;
 
 using System.Collections.Generic;
 using System.Linq;
