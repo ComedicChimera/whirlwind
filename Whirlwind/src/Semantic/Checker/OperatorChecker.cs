@@ -169,16 +169,17 @@ namespace Whirlwind.Semantic.Checker
                         throw new SemanticException($"All operands of the '{op}' operator must be of similar types", position);
                 }
 
+                // all roots that reach this point are simple
                 if (op == "/")
-                    // all roots that reach this point are simple
                     rootType = new SimpleType(_large((SimpleType)rootType) ? SimpleType.DataType.DOUBLE : SimpleType.DataType.FLOAT);
                 else if (op == "~/")
-                    // all roots that reach this point are simple
                     rootType = new SimpleType(_large((SimpleType)rootType) ? SimpleType.DataType.LONG : SimpleType.DataType.INTEGER);
-
                 else if (op == "==" || op == "!=")
                     rootType = new SimpleType(SimpleType.DataType.BOOL);
-            }
+                else if (op == "-")
+                    // convert all operands in a subtraction operation to signed
+                    rootType = new SimpleType(((SimpleType)rootType).Type);
+            }       
             else
                 throw new SemanticException($"Invalid operands for '{op}' operator", position);
         }
