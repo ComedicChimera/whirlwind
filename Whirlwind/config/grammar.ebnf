@@ -337,14 +337,22 @@ tuple_type_list: types (',' types)+ ;
 
 
 // COMMON CONSTRUCTIONS - common structures used repeatedly in grammar
+// a series of types delimited by commas
 type_list: types (',' types)* ;
 
+// argument declaration syntax
 args_decl_list: [ decl_arg (',' decl_arg)* [',' ending_arg] | ending_arg ] ;
 decl_arg: ['CONST'] 'IDENTIFIER' (',' 'IDENTIFIER')* extension [initializer] ;
 ending_arg: '...' 'IDENTIFIER' extension ;
 
+// general purpose initializer
 initializer: '=' expr ;
-iterator: 'IDENTIFIER' (',' 'IDENTIFIER')* '<-' expr ;
+
+// iterator syntax
+iterator: iter_var (',' iter_var)* '<-' expr ;
+iter_var: 'IDENTIFIER' | '_' ;
+
+// template specifier
 template_spec: '<' type_list '>' ;
 
 // type extension

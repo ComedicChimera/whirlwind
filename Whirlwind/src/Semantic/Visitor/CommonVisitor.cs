@@ -25,10 +25,9 @@ namespace Whirlwind.Semantic.Visitor
                 throw new SemanticException("Unable to create iterator over non-iterable value", node.Position);
 
             string[] identifiers = node.Content
-                .Where(x => x.Name == "TOKEN")
-                .Select(x => ((TokenNode)x).Tok)
-                .Where(x => x.Type == "IDENTIFIER")
-                .Select(x => x.Value)
+                .Where(x => x.Name == "iter_var")
+                .Select(x => ((ASTNode)x).Content[0])
+                .Select(x => ((TokenNode)x).Tok.Value)
                 .ToArray();
 
             var iteratorTypes = iteratorType.Classify() == TypeClassifier.TUPLE ? ((TupleType)iteratorType).Types : new List<IDataType>() { iteratorType };
@@ -42,7 +41,14 @@ namespace Whirlwind.Semantic.Visitor
 
             for (int i = 0; i < identifiers.Length; i++)
             {
-                _table.AddSymbol(new Symbol(identifiers[i], iteratorTypes[i], new List<Modifier>() { Modifier.CONSTANT }));
+                if (identifiers[i] != "_")
+                {
+                    if (!_table.AddSymbol(new Symbol(identifiers[i], iteratorTypes[i], new List<Modifier>() { Modifier.CONSTANT })))
+                        throw new SemanticException("Iterator cannot contain duplicate aliases",
+                            node.Content.Where(x => x.Name == "iter_var").Select(x => ((ASTNode)x).Content[0].Position).ElementAt(i)
+                        );
+                }
+                    
 
                 _nodes.Add(new IdentifierNode(identifiers[i], iteratorTypes[i], true));
             }

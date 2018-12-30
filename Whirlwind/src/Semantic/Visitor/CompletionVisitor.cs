@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using System.Collections.Generic;
 
 using Whirlwind.Types;
 
@@ -46,11 +47,20 @@ namespace Whirlwind.Semantic.Visitor
             {
                 _nodes.Add(fn);
 
-                _visitFunctionBody(((IncompleteNode)fn.Block[0]).AST, (FunctionType)fn.Nodes[0].Type);
+                try
+                {
+                    _visitFunctionBody(((IncompleteNode)fn.Block[0]).AST, (FunctionType)fn.Nodes[0].Type);
 
-                fn.Block = ((BlockNode)_nodes.Last()).Block;
-                fn.Block.RemoveAt(0); // remove incomplete node lol
+                    fn.Block = ((BlockNode)_nodes.Last()).Block;
+                    fn.Block.RemoveAt(0); // remove incomplete node lol
+                }
+                catch (SemanticException se)
+                {
+                    ErrorQueue.Add(se);
 
+                    fn.Block = new List<ITypeNode>();
+                }
+                
                 _nodes.RemoveAt(1);
             }
         }

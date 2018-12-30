@@ -1,11 +1,11 @@
-﻿func do(x, y: int) {
-	// something lol
+﻿func main() {
+	let lst = [(1, 2, "a")];
+
+	for (a, b, b <- lst) {
+		fn(b);
+	}
 }
 
-func do (a: str) int 
-	=> cast<int>(a[0]);
-
-func main() {
-	do("Hello!");
-	do(2, 3);
+func fn(s: str) {
+	s++;
 }
