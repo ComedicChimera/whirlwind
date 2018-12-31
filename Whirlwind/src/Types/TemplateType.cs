@@ -107,22 +107,60 @@ namespace Whirlwind.Types
 
         public bool Infer(List<IDataType> parameters, out List<IDataType> inferredTypes)
         {
-            // add template inference
-
-            var filledTypes = new Dictionary<string, IDataType>();
-
-            if (_dataType.Classify() == TypeClassifier.FUNCTION)
+            switch (_dataType.Classify())
             {
-                var fnType = (FunctionType)_dataType;
-
-                
+                case TypeClassifier.FUNCTION:
+                    return _inferFromFunction((FunctionType)_dataType, parameters, out inferredTypes);
             }
 
             inferredTypes = new List<IDataType>();
             return false;
         }
 
-        private List<string> _getAliasesCompleted(IDataType dt)
+        private bool _inferFromFunction(FunctionType fnType, List<IDataType> parameters, out List<IDataType> inferredTypes)
+        {
+            var completedAliases = new Dictionary<string, IDataType>();
+
+            using (var e1 = fnType.Parameters.GetEnumerator())
+            using (var e2 = parameters.GetEnumerator())
+            {
+                while (e1.MoveNext() && e2.MoveNext())
+                {
+                    var aliases = _getCompletedAliases(e1.Current.DataType);
+
+                    foreach (var alias in aliases)
+                    {
+                        if (completedAliases.ContainsKey(alias))
+                        {
+                            if (!completedAliases[alias].Coerce(e2.Current))
+                            {
+                                if (e2.Current.Coerce(completedAliases[alias]))
+                                    completedAliases[alias] = e2.Current;
+                                else
+                                {
+                                    inferredTypes = new List<IDataType>();
+                                    return false;
+                                }
+
+                            }
+                        }
+                        else
+                            completedAliases[alias] = e2.Current;
+                    }
+                }
+            }
+
+            if (completedAliases.Count == _templates.Count)
+            {
+                inferredTypes = _templates.Select(x => completedAliases[x.Name]).ToList();
+                return true;
+            }
+
+            inferredTypes = new List<IDataType>();
+            return false;
+        }
+
+        private List<string> _getCompletedAliases(IDataType dt)
         {
             var aliasesCompleted = new List<string>();
 
@@ -133,43 +171,44 @@ namespace Whirlwind.Types
                     break;
                 case TypeClassifier.TUPLE:
                     aliasesCompleted.AddRange(
-                        ((TupleType)dt).Types.Select(x => _getAliasesCompleted(x)).SelectMany(x => x).Distinct()
+                        ((TupleType)dt).Types.SelectMany(x => _getCompletedAliases(x)).Distinct()
                         );
                     break;
                 case TypeClassifier.ARRAY:
                 case TypeClassifier.LIST:
-                    aliasesCompleted.AddRange(_getAliasesCompleted(((IIterable)dt).GetIterator()));
+                    aliasesCompleted.AddRange(_getCompletedAliases(((IIterable)dt).GetIterator()));
                     break;
                 case TypeClassifier.DICT:
                     {
                         DictType dictType = (DictType)dt;
 
-                        aliasesCompleted.AddRange(_getAliasesCompleted(dictType.KeyType));
-                        aliasesCompleted.AddRange(_getAliasesCompleted(dictType.ValueType));
+                        aliasesCompleted.AddRange(_getCompletedAliases(dictType.KeyType));
+                        aliasesCompleted.AddRange(_getCompletedAliases(dictType.ValueType));
                     }
                     break;
                 case TypeClassifier.FUNCTION:
                     {
                         FunctionType ft = (FunctionType)dt;
 
-                        aliasesCompleted.AddRange(_getAliasesCompleted(ft.ReturnType));
+                        aliasesCompleted.AddRange(_getCompletedAliases(ft.ReturnType));
 
-                        aliasesCompleted.AddRange(ft.Parameters.Select(x => _getAliasesCompleted(x.DataType))
-                            .SelectMany(x => x).Distinct().ToList());
+                        aliasesCompleted.AddRange(ft.Parameters.SelectMany(x => _getCompletedAliases(x.DataType)).Distinct().ToList());
                     }
                     break;
                 case TypeClassifier.POINTER:
-                    aliasesCompleted.AddRange(_getAliasesCompleted(((PointerType)dt).Type));
+                    aliasesCompleted.AddRange(_getCompletedAliases(((PointerType)dt).Type));
                     break;
                 case TypeClassifier.REFERENCE:
-                    aliasesCompleted.AddRange(_getAliasesCompleted(((ReferenceType)dt).DataType));
+                    aliasesCompleted.AddRange(_getCompletedAliases(((ReferenceType)dt).DataType));
                     break;
                 case TypeClassifier.OBJECT:
-                    
+                    // void privacy to get to internal members
                     break;
                 case TypeClassifier.STRUCT:
+                    aliasesCompleted.AddRange(((StructType)dt).Members.SelectMany(x => _getCompletedAliases(x.Value)));
                     break;
                 case TypeClassifier.INTERFACE:
+                    // void privacy to get to internal members
                     break;
             }
 
