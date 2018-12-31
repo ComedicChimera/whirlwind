@@ -126,6 +126,18 @@ namespace Whirlwind.Semantic
             return true;
         }
 
+        // remove the last scope in the table (used internally during template evaluation)
+        public void RemoveScope()
+        {
+            Scope currentScope = _table;
+            foreach (int pos in _scopePath)
+            {
+                currentScope = currentScope.SubScopes[pos];
+            }
+
+            currentScope.SubScopes.RemoveAt(currentScope.SubScopes.Count - 1);
+        }
+
         public bool Lookup(string name, out Symbol symbol)
         {
             var visibleScopes = new List<Scope>() { _table };

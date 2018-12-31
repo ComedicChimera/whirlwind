@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System;
 
 using Whirlwind.Parser;
 using Whirlwind.Types;
@@ -38,7 +39,7 @@ namespace Whirlwind.Semantic.Visitor
                 else if (item.Name == "template_block_decl")
                 {
                     foreach (var templateVar in templateVars)
-                        _table.AddSymbol(new Symbol(templateVar.Key, new TemplatePlaceholder(templateVar.Key), 
+                        _table.AddSymbol(new Symbol(templateVar.Key, new TemplatePlaceholder(templateVar.Key),
                             new List<Modifier>() { Modifier.CONSTANT }));
 
                     _visitBlockDecl((ASTNode)item, modifiers);
@@ -51,7 +52,26 @@ namespace Whirlwind.Semantic.Visitor
 
             _table.AscendScope();
 
-            var tt = new TemplateType(templateVars, sym.DataType);
+            Action<ASTNode, List<Modifier>> vfn;
+
+            switch (sym.DataType.Classify())
+            {
+                case TypeClassifier.FUNCTION:
+                    vfn = _visitFunction;
+                    break;
+                case TypeClassifier.OBJECT:
+                    vfn = _visitTypeClass;
+                    break;
+                case TypeClassifier.INTERFACE:
+                    vfn = _visitInterface;
+                    break;
+                default:
+                    vfn = _visitStruct;
+                    break;
+            }
+
+            var tt = new TemplateType(templateVars.Select(x => new TemplateVariable(x.Key, x.Value)).ToList(), sym.DataType, 
+                _decorateEval((ASTNode)((ASTNode)node.Content.Last()).Content[0], vfn));
 
             _nodes.Add(new IdentifierNode(sym.Name, tt, true));
             MergeBack();
@@ -59,6 +79,28 @@ namespace Whirlwind.Semantic.Visitor
             if (!_table.AddSymbol(new Symbol(sym.Name, tt, modifiers)))
                 // pretty much all sub symbols have the same name position
                 throw new SemanticException($"Unable to redeclare symbol by name `{sym.Name}`", ((ASTNode)node.Content.Last()).Content[1].Position);
+        }
+
+        private TemplateEvaluator _decorateEval(ASTNode node, Action<ASTNode, List<Modifier>> vfn)
+        {
+            return delegate (Dictionary<string, IDataType> aliases)
+            {
+                _table.AddScope();
+                _table.DescendScope();
+
+                foreach (var alias in aliases)
+                    _table.AddSymbol(new Symbol(alias.Key, new TemplateAlias(alias.Value)));
+
+                vfn(node, new List<Modifier>() { Modifier.CONSTANT });
+
+                _table.AscendScope();
+
+                IDataType dt = _table.GetScope().Last().DataType;
+
+                _table.RemoveScope();
+
+                return dt;
+            };
         }
     }
 }

@@ -158,6 +158,19 @@ namespace Whirlwind.Types
                             .SelectMany(x => x).Distinct().ToList());
                     }
                     break;
+                case TypeClassifier.POINTER:
+                    aliasesCompleted.AddRange(_getAliasesCompleted(((PointerType)dt).Type));
+                    break;
+                case TypeClassifier.REFERENCE:
+                    aliasesCompleted.AddRange(_getAliasesCompleted(((ReferenceType)dt).DataType));
+                    break;
+                case TypeClassifier.OBJECT:
+                    
+                    break;
+                case TypeClassifier.STRUCT:
+                    break;
+                case TypeClassifier.INTERFACE:
+                    break;
             }
 
             return aliasesCompleted;

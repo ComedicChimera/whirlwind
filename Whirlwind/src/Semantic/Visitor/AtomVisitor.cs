@@ -235,6 +235,7 @@ namespace Whirlwind.Semantic.Visitor
                                 initCount++;
                             }
                         }
+
                         if (root.Type.Classify() == TypeClassifier.OBJECT)
                         {
                             var objInstance = ((ObjectType)root.Type).GetInstance();
