@@ -153,7 +153,7 @@ namespace Whirlwind.Semantic.Visitor
             {
                 if (_nodes.Last().Type.Classify() == TypeClassifier.TEMPLATE)
                 {
-                    var templateType = _generateTemplate((TemplateType)_nodes.Last(), (ASTNode)node.Content[0]);
+                    var templateType = _generateTemplate((TemplateType)_nodes.Last().Type, (ASTNode)node.Content[0]);
 
                     _nodes.Add(new ExprNode("CreateTemplate", templateType));
                     PushForward();
@@ -375,7 +375,7 @@ namespace Whirlwind.Semantic.Visitor
                     _nodes.Add(new ExprNode("CreateTemplate", templateType));
                     PushForward();
 
-                    _visitFunctionCall(node, root);
+                    _visitFunctionCall(node, _nodes.Last());
                 }
                 else
                     throw new SemanticException("Unable to infer type of template arguments", node.Position);

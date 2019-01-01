@@ -41,9 +41,21 @@ namespace Whirlwind.Types
             return false;
         }
 
-        // these should never be called (it is impossible to create function group "data type")
-        public bool Coerce(IDataType other) => false;
-        public bool Equals(IDataType other) => false;
+        public bool Coerce(IDataType other) => Equals(other);
+
+        public bool Equals(IDataType other)
+        {
+            if (other.Classify() == TypeClassifier.FUNCTION_GROUP)
+            {
+                FunctionGroup og = (FunctionGroup)other;
+
+                if (_functions.Count == og._functions.Count)
+                    return Enumerable.Range(0, _functions.Count).All(i => _functions[i].Equals(og._functions[i]));
+            }
+
+            // regular functions don't count since function groups are only ever composed of 2 or more functions
+            return false;
+        }
 
         public TypeClassifier Classify() => TypeClassifier.FUNCTION_GROUP;
     }

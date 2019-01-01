@@ -35,6 +35,9 @@ namespace Whirlwind.Semantic.Visitor
 
                         scopePos++;
                         break;
+                    case "Template":
+                        // add case for template
+                        break;
                     default:
                         continue;
                 }

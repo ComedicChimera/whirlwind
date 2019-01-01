@@ -5,6 +5,7 @@
 - add visiting for templates and variants
 - add agents (agent syntax, agent event model)
 - add function body completion (if necessary)
+- add interface method overloading
 
 # THOUGHTS
 

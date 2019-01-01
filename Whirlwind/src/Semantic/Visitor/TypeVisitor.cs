@@ -47,12 +47,14 @@ namespace Whirlwind.Semantic.Visitor
                             if (_table.Lookup(tokenNode.Tok.Value, out Symbol symbol))
                             {
                                 if (symbol.DataType.Classify() == TypeClassifier.TEMPLATE_ALIAS)
-                                {
                                     dt = ((TemplateAlias)symbol.DataType).ReplacementType;
+                                else if (!new[] { TypeClassifier.TEMPLATE_PLACEHOLDER, TypeClassifier.OBJECT, TypeClassifier.STRUCT,
+                                    TypeClassifier.INTERFACE, TypeClassifier.ENUM }.Contains(symbol.DataType.Classify()))
+                                {
+                                    throw new SemanticException("Identifier data type must be a struct, type class, enum, or interface", 
+                                        tokenNode.Position);
                                 }
-                                if (!new[] { TypeClassifier.OBJECT, TypeClassifier.STRUCT, TypeClassifier.INTERFACE, TypeClassifier.ENUM }
-                                .Contains(symbol.DataType.Classify()))
-                                    throw new SemanticException("Identifier data type must be a struct, type class, enum, or interface", tokenNode.Position);
+                                    
                                 
                                 switch (symbol.DataType.Classify())
                                 {
@@ -65,8 +67,10 @@ namespace Whirlwind.Semantic.Visitor
                                     case TypeClassifier.ENUM:
                                         dt = ((EnumType)symbol.DataType).GetInstance();
                                         break;
-                                    // interface
-                                    default:
+                                    case TypeClassifier.INTERFACE:
+                                        dt = ((InterfaceType)symbol.DataType).GetInstance();
+                                        break;
+                                    case TypeClassifier.TEMPLATE_PLACEHOLDER:
                                         dt = symbol.DataType;
                                         break;
                                 }

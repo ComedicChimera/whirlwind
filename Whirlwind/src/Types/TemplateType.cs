@@ -1,5 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+
+using Whirlwind.Semantic;
 
 namespace Whirlwind.Types
 {
@@ -111,6 +114,10 @@ namespace Whirlwind.Types
             {
                 case TypeClassifier.FUNCTION:
                     return _inferFromFunction((FunctionType)_dataType, parameters, out inferredTypes);
+                case TypeClassifier.OBJECT:
+                    if (((ObjectType)_dataType).GetConstructor(parameters, out FunctionType constructor))
+                        return _inferFromFunction(constructor, parameters, out inferredTypes);
+                    break;
             }
 
             inferredTypes = new List<IDataType>();
@@ -202,13 +209,21 @@ namespace Whirlwind.Types
                     aliasesCompleted.AddRange(_getCompletedAliases(((ReferenceType)dt).DataType));
                     break;
                 case TypeClassifier.OBJECT:
-                    // void privacy to get to internal members
+                    {
+                        var members = (Dictionary<string, Symbol>)typeof(ObjectType).GetField("_members").GetValue(dt);
+
+                        aliasesCompleted.AddRange(members.SelectMany(x => _getCompletedAliases(x.Value.DataType)));
+                    }
                     break;
                 case TypeClassifier.STRUCT:
                     aliasesCompleted.AddRange(((StructType)dt).Members.SelectMany(x => _getCompletedAliases(x.Value)));
                     break;
                 case TypeClassifier.INTERFACE:
-                    // void privacy to get to internal members
+                    {
+                        var methods = (Dictionary<Symbol, bool>)typeof(InterfaceType).GetField("_methods").GetValue(dt);
+
+                        aliasesCompleted.AddRange(methods.SelectMany(x => _getCompletedAliases(x.Key.DataType)));
+                    }
                     break;
             }
 

@@ -36,19 +36,23 @@ namespace Whirlwind.Semantic.Visitor
 
                     templateVars.Add(varName, restrictors);
                 }
-                else if (item.Name == "template_block_decl")
+                else if (item.Name == "template_block_decl" || item.Name == "func_decl")
                 {
                     foreach (var templateVar in templateVars)
                         _table.AddSymbol(new Symbol(templateVar.Key, new TemplatePlaceholder(templateVar.Key),
                             new List<Modifier>() { Modifier.CONSTANT }));
 
-                    _visitBlockDecl((ASTNode)item, modifiers);
+                    // for method templates
+                    if (item.Name == "func_decl")
+                        _visitFunction((ASTNode)item, modifiers);
+                    else
+                        _visitBlockDecl((ASTNode)item, modifiers);
 
                     MergeToBlock();
                 }
             }
 
-            Symbol sym = _table.GetScope()[0];
+            Symbol sym = _table.GetScope().Last();
 
             _table.AscendScope();
 
@@ -93,10 +97,9 @@ namespace Whirlwind.Semantic.Visitor
 
                 vfn(node, new List<Modifier>() { Modifier.CONSTANT });
 
-                _table.AscendScope();
-
                 IDataType dt = _table.GetScope().Last().DataType;
 
+                _table.AscendScope();
                 _table.RemoveScope();
 
                 return dt;

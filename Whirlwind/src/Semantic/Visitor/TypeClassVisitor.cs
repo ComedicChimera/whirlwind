@@ -54,7 +54,9 @@ namespace Whirlwind.Semantic.Visitor
 
                             needsDefaultConstr = false;
                             break;
-                            // visit variants and method templates
+                        case "method_template":
+                            _visitTemplate(decl, modifiers);
+                            break;
                     }
 
                     MergeToBlock();

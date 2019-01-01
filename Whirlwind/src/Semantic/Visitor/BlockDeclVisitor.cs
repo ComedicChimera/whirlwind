@@ -32,6 +32,9 @@ namespace Whirlwind.Semantic.Visitor
                 case "enum_decl":
                     _visitEnum(root, modifiers);
                     break;
+                case "template_decl":
+                    _visitTemplate(root, modifiers);
+                    break;
             }
         }
 
@@ -70,6 +73,7 @@ namespace Whirlwind.Semantic.Visitor
                 // add function to interface block
                 MergeToBlock();
 
+                // consider adding overloads to interfaces
                 if (!interfaceType.AddFunction(new Symbol(fnNode.IdName, fnNode.Type, memberModifiers), ((ASTNode)func).Content.Last().Name == "func_body"))
                     throw new SemanticException("Interface cannot contain duplicate members", ((ASTNode)func).Content[1].Position);
             }

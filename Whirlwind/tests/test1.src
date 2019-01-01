@@ -1,3 +1,8 @@
-﻿func main() {
+﻿template<T>
+func test(x: T) T => x;
 
+func main() {
+	test<float>(6.0);
+
+	test(1);
 }
