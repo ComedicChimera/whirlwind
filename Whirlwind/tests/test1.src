@@ -1,4 +1,4 @@
-﻿template<T>
+﻿template<T: int, float>
 func test(x: T) T => x;
 
 func main() {

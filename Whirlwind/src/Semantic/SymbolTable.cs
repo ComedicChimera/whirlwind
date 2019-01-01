@@ -138,6 +138,13 @@ namespace Whirlwind.Semantic
             currentScope.SubScopes.RemoveAt(currentScope.SubScopes.Count - 1);
         }
 
+        // add the given scope to scope path (used only internally so no checking done)
+        public void GotoScope(int pos)
+        {
+            Array.Resize(ref _scopePath, _scopePath.Length + 1);
+            _scopePath[_scopePath.Length - 1] = pos;
+        }
+
         public bool Lookup(string name, out Symbol symbol)
         {
             var visibleScopes = new List<Scope>() { _table };

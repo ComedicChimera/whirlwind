@@ -12,35 +12,45 @@ namespace Whirlwind.Semantic.Visitor
             var block = ((BlockNode)_nodes[0]).Block;
 
             int scopePos = 0;
-            foreach (var item in block)
+            foreach (var node in block)
+                _completeBlock(node, ref scopePos);
+        }
+
+        private void _completeBlock(ITypeNode node, ref int scopePos)
+        {
+            switch (node.Name)
             {
-                switch (item.Name)
-                {
-                    case "Function":
-                    case "AsyncFunction":
-                        _completeFunction((BlockNode)item);
-                        break;
-                    case "Decorator":
-                        _completeFunction((BlockNode)((BlockNode)item).Block[0]);
-                        break;
-                    case "TypeClass":
-                        _completeTypeClass((BlockNode)item);
-                        _table.MoveScope(_table.GetScopeCount(), scopePos);
+                case "Function":
+                case "AsyncFunction":
+                    _completeFunction((BlockNode)node);
+                    break;
+                case "Decorator":
+                    _completeFunction((BlockNode)((BlockNode)node).Block[0]);
+                    break;
+                case "TypeClass":
+                    _completeTypeClass((BlockNode)node);
+                    _table.MoveScope(_table.GetScopeCount() - 1, scopePos);
 
-                        scopePos++;
-                        break;
-                    case "Interface":
-                        _completeInterface((BlockNode)item);
-                        _table.MoveScope(_table.GetScopeCount(), scopePos);
+                    scopePos++;
+                    break;
+                case "Interface":
+                    _completeInterface((BlockNode)node);
+                    _table.MoveScope(_table.GetScopeCount() - 1, scopePos);
 
-                        scopePos++;
-                        break;
-                    case "Template":
-                        // add case for template
-                        break;
-                    default:
-                        continue;
-                }
+                    scopePos++;
+                    break;
+                case "Template":
+                    {
+                        _table.GotoScope(scopePos);
+
+                        int tPos = 0;
+                        _completeBlock(((BlockNode)node).Block[0], ref tPos);
+
+                        _table.AscendScope();
+                    }
+
+                    scopePos++;
+                    break;
             }
         }
 

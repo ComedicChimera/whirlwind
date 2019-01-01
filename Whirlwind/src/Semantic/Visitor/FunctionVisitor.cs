@@ -168,6 +168,8 @@ namespace Whirlwind.Semantic.Visitor
                         _nodes.Add(new StatementNode("ExpressionReturn"));
                         _visitExpr((ASTNode)item);
 
+                        _dominantPosition = item.Position;
+
                         rtType = _nodes.Last().Type;
                         MergeBack();
 

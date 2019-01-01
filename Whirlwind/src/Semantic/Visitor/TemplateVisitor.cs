@@ -96,6 +96,7 @@ namespace Whirlwind.Semantic.Visitor
                     _table.AddSymbol(new Symbol(alias.Key, new TemplateAlias(alias.Value)));
 
                 vfn(node, new List<Modifier>() { Modifier.CONSTANT });
+                _nodes.RemoveAt(_nodes.Count - 1);
 
                 IDataType dt = _table.GetScope().Last().DataType;
 

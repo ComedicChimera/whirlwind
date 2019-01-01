@@ -325,7 +325,7 @@ namespace Whirlwind.Semantic.Visitor
                         throw new SemanticException($"Enum has no value `{name}`", idPos);
                     break;
                 default:
-                    throw new SemanticException("The `::` operato is not valid on the given type", opPos);
+                    throw new SemanticException("The `::` operator is not valid on the given type", opPos);
             }
 
             return symbol;
@@ -373,7 +373,7 @@ namespace Whirlwind.Semantic.Visitor
                     ((TemplateType)root.Type).CreateTemplate(inferredTypes, out IDataType templateType);
 
                     _nodes.Add(new ExprNode("CreateTemplate", templateType));
-                    PushForward();
+                    PushForward(args.Count + 1);
 
                     _visitFunctionCall(node, _nodes.Last());
                 }

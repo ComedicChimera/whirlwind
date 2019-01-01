@@ -16,10 +16,16 @@ namespace Whirlwind.Types
             Name = name;
         }
 
-        public bool Coerce(IDataType other) => false;
+        public bool Coerce(IDataType other) => Equals(other);
         public TypeClassifier Classify() => TypeClassifier.TEMPLATE_PLACEHOLDER;
 
-        public bool Equals(IDataType other) => false;
+        public bool Equals(IDataType other)
+        {
+            if (other.Classify() == TypeClassifier.TEMPLATE_PLACEHOLDER)
+                return Name == ((TemplatePlaceholder)other).Name;
+
+            return false;
+        }
     }
 
     // represents the various aliases of the templates (ie. the T in template<T>)
@@ -87,7 +93,8 @@ namespace Whirlwind.Types
                 {
                     while (e1.MoveNext() && e2.MoveNext())
                     {
-                        if (!e1.Current.Restrictors.Contains(e2.Current) && e1.Current.Restrictors.Count > 0 /* check for empty restrictors */)
+                        if (e1.Current.Restrictors.Count > 0 /* check for empty restrictors */ 
+                            && !e1.Current.Restrictors.Any(y => y.Coerce(e2.Current)))
                         {
                             templateType = null;
                             return false;
@@ -159,8 +166,11 @@ namespace Whirlwind.Types
 
             if (completedAliases.Count == _templates.Count)
             {
-                inferredTypes = _templates.Select(x => completedAliases[x.Name]).ToList();
-                return true;
+                if (completedAliases.All(x => _templates.Where(y => y.Name == x.Key).First().Restrictors.Any(y => y.Coerce(x.Value))))
+                {
+                    inferredTypes = _templates.Select(x => completedAliases[x.Name]).ToList();
+                    return true;
+                }
             }
 
             inferredTypes = new List<IDataType>();
