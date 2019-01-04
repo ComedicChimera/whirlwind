@@ -1,8 +1,15 @@
-﻿template<T: int, float>
-func test(x: T) T => x;
+﻿func add(a, b: int) int => a + b;
+
+struct Point {
+	x, y: int;
+}
 
 func main() {
-	test<float>(6.0);
+	let p = (1, "a", 4);
 
-	test(1);
+	add(p.0, p.2);
+
+	let point = new Point{ x=2, y=4 };
+
+	point.x = 2;
 }

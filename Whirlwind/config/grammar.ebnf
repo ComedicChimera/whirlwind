@@ -230,7 +230,7 @@ atom: [ 'NEW' ] [ 'AWAIT' ] base trailer*
 trailer: '[' (expr [slice] | slice) ']'
 | '(' args_list ')'
 | '{' init_list '}'
-| '.' 'IDENTIFIER'
+| '.' ( 'IDENTIFIER' | 'INTEGER_LITERAL' )
 | '->' 'IDENTIFIER'
 | template_spec
 | static_get

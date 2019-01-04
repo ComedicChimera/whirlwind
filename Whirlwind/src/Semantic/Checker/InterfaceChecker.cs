@@ -18,7 +18,8 @@ namespace Whirlwind.Semantic.Checker
                 "SlicePureStep",
                 "SliceBeginStep",
                 "SliceEndStep",
-                "GetMember"
+                "GetMember",
+                "StaticGet"
         };
 
         public static bool Hashable(IDataType dt)
@@ -70,7 +71,7 @@ namespace Whirlwind.Semantic.Checker
             }
                 
 
-            return true;
+            return false;
         }
 
         // also not technically an interface, but it exhibits similar behavior

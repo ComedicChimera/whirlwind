@@ -96,6 +96,8 @@ namespace Whirlwind.Semantic.Visitor
                     _table.AddSymbol(new Symbol(alias.Key, new TemplateAlias(alias.Value)));
 
                 vfn(node, new List<Modifier>() { Modifier.CONSTANT });
+                BlockNode generateNode = (BlockNode)_nodes.Last();
+
                 _nodes.RemoveAt(_nodes.Count - 1);
 
                 IDataType dt = _table.GetScope().Last().DataType;
@@ -103,7 +105,7 @@ namespace Whirlwind.Semantic.Visitor
                 _table.AscendScope();
                 _table.RemoveScope();
 
-                return dt;
+                return new TemplateGenerate(dt, generateNode);
             };
         }
     }

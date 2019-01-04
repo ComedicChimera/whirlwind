@@ -3,6 +3,7 @@ using Whirlwind.Types;
 
 using static Whirlwind.Semantic.Checker.Checker;
 
+using System;
 using System.Linq;
 using System.Collections.Generic;
 
@@ -184,14 +185,39 @@ namespace Whirlwind.Semantic.Visitor
                     // make get member const correct
                     case ".":
                         {
-                            string identifier = ((TokenNode)node.Content[1]).Tok.Value;
+                            var token = ((TokenNode)node.Content[1]).Tok;
 
-                            var symbol = _getMember(root.Type, identifier, node.Content[0].Position, node.Content[1].Position);
-                            _nodes.Add(new ExprNode("GetMember", symbol.DataType));
+                            if (token.Type == "IDENTIFIER")
+                            {
+                                string identifier = ((TokenNode)node.Content[1]).Tok.Value;
 
-                            PushForward();
-                            _nodes.Add(new IdentifierNode(identifier, new SimpleType(), symbol.Modifiers.Contains(Modifier.CONSTANT)));
-                            MergeBack();
+                                var symbol = _getMember(root.Type, identifier, node.Content[0].Position, node.Content[1].Position);
+                                _nodes.Add(new ExprNode("GetMember", symbol.DataType));
+
+                                PushForward();
+                                _nodes.Add(new IdentifierNode(identifier, new SimpleType(), symbol.Modifiers.Contains(Modifier.CONSTANT)));
+                                MergeBack();
+                            }
+                            else
+                            {
+                                if (root.Type.Classify() == TypeClassifier.TUPLE)
+                                {
+                                    int tupleNdx = Int32.Parse(token.Value);
+                                    var dataTypes = ((TupleType)root.Type).Types;
+
+                                    if (tupleNdx < dataTypes.Count)
+                                    {
+                                        _nodes.Add(new ValueNode("IntegerMember", new SimpleType(SimpleType.DataType.INTEGER), token.Value));
+                                        _nodes.Add(new ExprNode("GetTupleMember", dataTypes[tupleNdx]));
+
+                                        PushForward(2);
+                                    }
+                                    else
+                                        throw new SemanticException(tupleNdx + " is not a member of the given tuple", node.Content[1].Position);
+                                }
+                                else
+                                    throw new SemanticException("Unable to use get integer member from non-tuple", node.Content[1].Position);
+                            }
                         }
                         
                         break;

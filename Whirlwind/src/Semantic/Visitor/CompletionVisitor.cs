@@ -26,6 +26,8 @@ namespace Whirlwind.Semantic.Visitor
                     break;
                 case "Decorator":
                     _completeFunction((BlockNode)((BlockNode)node).Block[0]);
+
+                    scopePos++;
                     break;
                 case "TypeClass":
                     _completeTypeClass((BlockNode)node);
@@ -41,12 +43,38 @@ namespace Whirlwind.Semantic.Visitor
                     break;
                 case "Template":
                     {
+                        // visit normal template body and generate necessary code
                         _table.GotoScope(scopePos);
 
+                        var template = ((BlockNode)node);
+
                         int tPos = 0;
-                        _completeBlock(((BlockNode)node).Block[0], ref tPos);
+                        _completeBlock(template.Block[0], ref tPos);
 
                         _table.AscendScope();
+
+                        // perform generate checking (clean up scope and nodes after done)
+                        // create working scope for clean template generate checking
+                        _table.AddScope();
+                        _table.DescendScope();
+
+                        tPos = 0;
+
+                        foreach (var generate in ((TemplateType)template.Nodes[0].Type).Generates)
+                        {
+                            // create artificial scope for all who need it
+                            if (new[] { "TypeClass", "Interface", "Decorator" }.Contains(generate.Block.Name))
+                                _table.AddScope();
+
+                            int refTemp = tPos;
+                            _completeBlock(generate.Block, ref refTemp);
+
+                            tPos++;
+                        }
+
+                        // clean up scope
+                        _table.AscendScope();
+                        _table.RemoveScope();
                     }
 
                     scopePos++;

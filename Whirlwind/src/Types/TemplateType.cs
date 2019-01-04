@@ -16,7 +16,8 @@ namespace Whirlwind.Types
             Name = name;
         }
 
-        public bool Coerce(IDataType other) => Equals(other);
+        // the actual type of placeholder is irrelevant
+        public bool Coerce(IDataType other) => true;
         public TypeClassifier Classify() => TypeClassifier.TEMPLATE_PLACEHOLDER;
 
         public bool Equals(IDataType other)
@@ -45,7 +46,7 @@ namespace Whirlwind.Types
     }
 
     // function used to evaluate template body
-    delegate IDataType TemplateEvaluator(Dictionary<string, IDataType> aliases);
+    delegate TemplateGenerate TemplateEvaluator(Dictionary<string, IDataType> aliases);
 
     // a struct containing the template name and its restrictors
     struct TemplateVariable
@@ -60,6 +61,19 @@ namespace Whirlwind.Types
         }
     }
 
+    // represents a single template generate instance
+    struct TemplateGenerate
+    {
+        public IDataType DataType;
+        public BlockNode Block;
+
+        public TemplateGenerate(IDataType dt, BlockNode block)
+        {
+            DataType = dt;
+            Block = block;
+        }
+    }
+
     // represents the full template object (entire template method, obj, ect.)
     class TemplateType : IDataType
     {
@@ -68,8 +82,9 @@ namespace Whirlwind.Types
 
         private readonly TemplateEvaluator _evaluator;
 
-        private readonly List<Dictionary<string, IDataType>> _generates;
         private readonly List<List<IDataType>> _variants;
+
+        public List<TemplateGenerate> Generates { get; private set; }
 
         public TemplateType(List<TemplateVariable> templates, IDataType type, TemplateEvaluator evaluator)
         {
@@ -78,8 +93,9 @@ namespace Whirlwind.Types
 
             _evaluator = evaluator;
 
-            _generates = new List<Dictionary<string, IDataType>>();
             _variants = new List<List<IDataType>>();
+
+            Generates = new List<TemplateGenerate>();
         }
 
         public bool CreateTemplate(List<IDataType> dataTypes, out IDataType templateType)
@@ -106,7 +122,10 @@ namespace Whirlwind.Types
                     }
                 }
 
-                templateType = _evaluator(aliases);
+                var generate = _evaluator(aliases);
+
+                Generates.Add(generate);
+                templateType = generate.DataType;
                 return true;
             }
             
