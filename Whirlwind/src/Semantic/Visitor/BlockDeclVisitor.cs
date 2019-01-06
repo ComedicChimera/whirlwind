@@ -35,6 +35,9 @@ namespace Whirlwind.Semantic.Visitor
                 case "template_decl":
                     _visitTemplate(root, modifiers);
                     break;
+                case "variant_decl":
+                    _visitVariant(root);
+                    break;
             }
         }
 

@@ -1,15 +1,4 @@
-﻿func add(a, b: int) int => a + b;
+﻿template<T>
+func test(x: T) T => x;
 
-struct Point {
-	x, y: int;
-}
-
-func main() {
-	let p = (1, "a", 4);
-
-	add(p.0, p.2);
-
-	let point = new Point{ x=2, y=4 };
-
-	point.x = 2;
-}
+variant<int> test => x * 2;

@@ -4,11 +4,10 @@
 - allow for object level method variance
 - add visiting for templates and variants
 - add agents (agent syntax, agent event model)
-- add function body completion (if necessary)
 - add interface method overloading
-- add template generate body checking
-- add pattern matching where relevant
 - fix overloading to have various levels of access (ie. only one overload public)
+- add pattern matching where relevant
+- remove interfaces and add type class inheritance
 
 # THOUGHTS
 

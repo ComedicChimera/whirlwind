@@ -108,5 +108,51 @@ namespace Whirlwind.Semantic.Visitor
                 return new TemplateGenerate(dt, generateNode);
             };
         }
+
+        private void _visitVariant(ASTNode node)
+        {
+            TokenNode id = (TokenNode)node.Content[2];
+
+            if (_table.Lookup(id.Tok.Value, out Symbol symbol))
+            {
+                if (symbol.DataType.Classify() == TypeClassifier.TEMPLATE)
+                {
+                    if (node.Content[1].Name == "variant")
+                    {
+                        var types = _generateTypeList((ASTNode)((ASTNode)node.Content[1]).Content[1]);
+                        var tt = (TemplateType)symbol.DataType;
+
+                        if (!tt.AddVariant(types))
+                            throw new SemanticException("The variant type list is not valid for the base template", node.Content[1].Position);
+
+                        _nodes.Add(new BlockNode("Variant"));
+                        // won't fail because add variant succeeded
+                        tt.CreateTemplate(types, out IDataType dt);
+                        // remove the last generate added because its body is not accurate to the variant
+                        tt.Generates.RemoveAt(tt.Generates.Count - 1);
+
+                        _nodes.Add(new ValueNode("VariantGenerate", dt));
+                        _nodes.Add(new IdentifierNode(id.Tok.Value, tt, true)); // identifier after so visit function works ;)
+                        MergeBack(2);
+
+                        _nodes.Add(new IncompleteNode((ASTNode)node.Content.Last()));
+                        MergeToBlock();
+                        
+                    }
+                    else
+                        throw new SemanticException("Unable to implement multilevel variance with a variant depth of one", node.Content[1].Position);
+                }
+                else
+                    throw new SemanticException("Unable to add variant to non-template", id.Position);
+            }
+            else
+                throw new SemanticException($"Undefined symbol `{id.Tok.Value}`", id.Position);
+        }
+
+        // object level method variance
+        private void _visitVariant(ASTNode node, TemplateType parent)
+        {
+
+        }
     }
 }

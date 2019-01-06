@@ -126,7 +126,7 @@ namespace Whirlwind.Types
                 {
                     while (e1.MoveNext() && e2.MoveNext())
                     {
-                        if (!e1.Current.Equals(e2.Current))
+                        if (!e1.Current.Value.Equals(e2.Current.Value))
                             return false;
                     }
                 }

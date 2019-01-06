@@ -14,6 +14,8 @@ namespace Whirlwind.Semantic.Visitor
             int scopePos = 0;
             foreach (var node in block)
                 _completeBlock(node, ref scopePos);
+
+            _evaluateGenerates(block);
         }
 
         private void _completeBlock(ITypeNode node, ref int scopePos)
@@ -52,33 +54,69 @@ namespace Whirlwind.Semantic.Visitor
                         _completeBlock(template.Block[0], ref tPos);
 
                         _table.AscendScope();
-
-                        // perform generate checking (clean up scope and nodes after done)
-                        // create working scope for clean template generate checking
-                        _table.AddScope();
-                        _table.DescendScope();
-
-                        tPos = 0;
-
-                        foreach (var generate in ((TemplateType)template.Nodes[0].Type).Generates)
-                        {
-                            // create artificial scope for all who need it
-                            if (new[] { "TypeClass", "Interface", "Decorator" }.Contains(generate.Block.Name))
-                                _table.AddScope();
-
-                            int refTemp = tPos;
-                            _completeBlock(generate.Block, ref refTemp);
-
-                            tPos++;
-                        }
-
-                        // clean up scope
-                        _table.AscendScope();
-                        _table.RemoveScope();
                     }
 
                     scopePos++;
                     break;
+                case "Variant":
+                    // variants are basically functions for this stage of compilation
+                    _completeFunction((BlockNode)node);
+                    break;
+            }
+        }
+
+        private void _evaluateGenerates(List<ITypeNode> block)
+        {
+            int scopePos = 0;
+
+            foreach (var node in block)
+            {
+                switch (node.Name)
+                {
+                    case "Decorator":
+                    case "Function":
+                    case "AsyncFunction":
+                        scopePos++;
+                        break;
+                    case "Template":
+                        {
+                            // perform generate checking (clean up scope and nodes after done)
+                            // create working scope for clean template generate checking
+                            _table.AddScope();
+                            _table.DescendScope();
+
+                            int tPos = 0;
+
+                            foreach (var generate in ((TemplateType)((BlockNode)node).Nodes[0].Type).Generates)
+                            {
+                                // create artificial scope for all who need it
+                                if (new[] { "TypeClass", "Interface", "Decorator" }.Contains(generate.Block.Name))
+                                    _table.AddScope();
+
+                                int refTemp = tPos;
+                                _completeBlock(generate.Block, ref refTemp);
+
+                                tPos++;
+                            }
+
+                            // clean up scope
+                            _table.AscendScope();
+                            _table.RemoveScope();
+                        }
+
+                        scopePos++;
+                        break;
+                    case "TypeClass":
+                    case "Interface":
+                        _table.GotoScope(scopePos);
+
+                        _evaluateGenerates(((BlockNode)node).Block);
+
+                        _table.AscendScope();
+
+                        scopePos++;
+                        break;
+                }
             }
         }
 

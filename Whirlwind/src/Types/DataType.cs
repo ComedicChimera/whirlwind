@@ -14,7 +14,7 @@
     {
         public bool Coerce(IDataType other)
         {
-            if (other.Classify() == TypeClassifier.NULL)
+            if (other.Classify() == TypeClassifier.NULL || other.Classify() == TypeClassifier.TEMPLATE_PLACEHOLDER)
                 return true;
 
             if (other.Classify() == TypeClassifier.REFERENCE)

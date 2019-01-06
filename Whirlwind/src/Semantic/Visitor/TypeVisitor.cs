@@ -49,31 +49,13 @@ namespace Whirlwind.Semantic.Visitor
                                 if (symbol.DataType.Classify() == TypeClassifier.TEMPLATE_ALIAS)
                                     dt = ((TemplateAlias)symbol.DataType).ReplacementType;
                                 else if (!new[] { TypeClassifier.TEMPLATE_PLACEHOLDER, TypeClassifier.OBJECT, TypeClassifier.STRUCT,
-                                    TypeClassifier.INTERFACE, TypeClassifier.ENUM }.Contains(symbol.DataType.Classify()))
+                                    TypeClassifier.INTERFACE, TypeClassifier.ENUM, TypeClassifier.TEMPLATE }.Contains(symbol.DataType.Classify()))
                                 {
-                                    throw new SemanticException("Identifier data type must be a struct, type class, enum, or interface", 
+                                    throw new SemanticException("Identifier data type must be a struct, type class, enum, or interface",
                                         tokenNode.Position);
                                 }
-                                    
-                                
-                                switch (symbol.DataType.Classify())
-                                {
-                                    case TypeClassifier.OBJECT:
-                                        dt = ((ObjectType)symbol.DataType).GetInstance();
-                                        break;
-                                    case TypeClassifier.STRUCT:
-                                        dt = ((StructType)symbol.DataType).GetInstance();
-                                        break;
-                                    case TypeClassifier.ENUM:
-                                        dt = ((EnumType)symbol.DataType).GetInstance();
-                                        break;
-                                    case TypeClassifier.INTERFACE:
-                                        dt = ((InterfaceType)symbol.DataType).GetInstance();
-                                        break;
-                                    case TypeClassifier.TEMPLATE_PLACEHOLDER:
-                                        dt = symbol.DataType;
-                                        break;
-                                }
+                                else
+                                    dt = symbol.DataType;
                             }
                             else
                             {
@@ -92,6 +74,22 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     dt = _generateBaseType((ASTNode)subNode);
                 }
+            }
+
+            switch (dt.Classify())
+            {
+                case TypeClassifier.OBJECT:
+                    dt = ((ObjectType)dt).GetInstance();
+                    break;
+                case TypeClassifier.STRUCT:
+                    dt = ((StructType)dt).GetInstance();
+                    break;
+                case TypeClassifier.ENUM:
+                    dt = ((EnumType)dt).GetInstance();
+                    break;
+                case TypeClassifier.INTERFACE:
+                    dt = ((InterfaceType)dt).GetInstance();
+                    break;
             }
 
             if (pointers != 0)
