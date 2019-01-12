@@ -6,8 +6,7 @@
 - add agents (agent syntax, agent event model)
 - add interface method overloading
 - fix overloading to have various levels of access (ie. only one overload public)
-- add pattern matching where relevant
-- remove interfaces and add type class inheritance
+- add template interface members
 
 # THOUGHTS
 
