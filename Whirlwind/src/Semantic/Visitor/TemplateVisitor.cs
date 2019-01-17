@@ -74,8 +74,11 @@ namespace Whirlwind.Semantic.Visitor
                     break;
             }
 
+            ASTNode funcNode = node.Name == "template_decl" ? (ASTNode)((ASTNode)node.Content.Last()).Content[0]
+                : (ASTNode)node.Content.Last();
+
             var tt = new TemplateType(templateVars.Select(x => new TemplateVariable(x.Key, x.Value)).ToList(), sym.DataType, 
-                _decorateEval((ASTNode)((ASTNode)node.Content.Last()).Content[0], vfn));
+                _decorateEval(funcNode, vfn));
 
             _nodes.Add(new IdentifierNode(sym.Name, tt, true));
             MergeBack();

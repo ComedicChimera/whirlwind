@@ -70,16 +70,29 @@ namespace Whirlwind.Semantic.Visitor
                     priv = false;
                 }
 
-                _visitFunction((ASTNode)func, memberModifiers);
-                var fnNode = (IdentifierNode)((BlockNode)_nodes.Last()).Nodes[0];
+                if (func.Name == "method_template")
+                {
+                    _visitTemplate((ASTNode)func, memberModifiers);
+                    var fnNode = (IdentifierNode)((BlockNode)_nodes.Last()).Nodes[0];
+
+                    if (!interfaceType.AddTemplate(new Symbol(fnNode.IdName, fnNode.Type, memberModifiers), 
+                        ((ASTNode)((ASTNode)func).Content.Last()).Content.Last().Name == "func_body"))
+                        throw new SemanticException("Interface cannot contain duplicate members", ((ASTNode)func).Content[1].Position);
+                }
+                else
+                {
+                    _visitFunction((ASTNode)func, memberModifiers);
+                    var fnNode = (IdentifierNode)((BlockNode)_nodes.Last()).Nodes[0];
+
+                    if (!interfaceType.AddMethod(new Symbol(fnNode.IdName, fnNode.Type, memberModifiers), 
+                        ((ASTNode)func).Content.Last().Name == "func_body"))
+                        throw new SemanticException("Interface cannot contain duplicate members", ((ASTNode)func).Content[1].Position);
+                }
 
                 // add function to interface block
-                MergeToBlock();
-
-                // consider adding overloads to interfaces
-                if (!interfaceType.AddFunction(new Symbol(fnNode.IdName, fnNode.Type, memberModifiers), ((ASTNode)func).Content.Last().Name == "func_body"))
-                    throw new SemanticException("Interface cannot contain duplicate members", ((ASTNode)func).Content[1].Position);
+                MergeToBlock();                
             }
+
 
             _nodes.Add(new IdentifierNode(name.Tok.Value, interfaceType, true));
             MergeBack();

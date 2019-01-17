@@ -57,7 +57,6 @@
         ENUM,
         ENUM_MEMBER,
         NULL,
-        REFERENCE,
-        FUNCTION_GROUP
+        REFERENCE
     }
 }

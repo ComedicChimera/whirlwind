@@ -415,21 +415,6 @@ namespace Whirlwind.Semantic.Visitor
 
                 PushForward();
             }
-            else if (root.Type.Classify() == TypeClassifier.FUNCTION_GROUP)
-            {
-                FunctionGroup fg = (FunctionGroup)root.Type;
-
-                if (fg.GetFunction(args, out FunctionType fn))
-                {
-                    _nodes.Add(new ExprNode("GetOverload", fn));
-                    PushForward(args.Count + 1);
-
-                    _nodes.Add(new ExprNode(fn.Async ? "CallAsync" : "Call", fn.ReturnType));
-                    PushForward();
-                }
-                else
-                    throw new SemanticException("No overload of the given function accepts these arguments", node.Position);
-            }
             else
                 throw new SemanticException("Unable to call non-callable type", node.Content[0].Position);
         }

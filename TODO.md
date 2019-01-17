@@ -4,14 +4,12 @@
 - allow for object level method variance
 - add visiting for templates and variants
 - add agents (agent syntax, agent event model)
-- add interface method overloading
-- fix overloading to have various levels of access (ie. only one overload public)
-- add template interface members
 
 # THOUGHTS
 
 - add positioning data to some or all of the action tree
 - remove constexpr
+- allow interfaces to have variance
 
 # FUTURE
 

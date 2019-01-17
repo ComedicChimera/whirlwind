@@ -1,4 +1,12 @@
 ﻿template<T>
-func test(x: T) T => x;
+func test(a: T) T => a;
 
-variant<int> test => x * 2;
+interf A {
+	template<T>
+	func endMe(x: T) int;
+}
+
+type Test : A {
+	template<T>
+	func endMe(x: T) int => 2;
+}

@@ -283,10 +283,42 @@ namespace Whirlwind.Types
             return true;
         }
 
-        public bool Coerce(IDataType other) => false;
+        public bool Coerce(IDataType other) => Equals(other);
 
         public TypeClassifier Classify() => TypeClassifier.TEMPLATE;
 
-        public bool Equals(IDataType other) => false;
+        public bool Equals(IDataType other)
+        {
+            if (other.Classify() == TypeClassifier.TEMPLATE)
+            {
+                var tt = (TemplateType)other;
+
+                if (!_dataType.Equals(tt._dataType))
+                    return false;
+
+                if (_templates.Count == tt._templates.Count)
+                {
+                    using (var e1 = _templates.GetEnumerator())
+                    using (var e2 = tt._templates.GetEnumerator())
+                    {
+                        while (e1.MoveNext() && e2.MoveNext())
+                        {
+                            if (e1.Current.Name != e2.Current.Name || 
+                                e1.Current.Restrictors.Count != e2.Current.Restrictors.Count ||
+                                !Enumerable.Range(0, e1.Current.Restrictors.Count)
+                                .All(i => e1.Current.Restrictors[i].Equals(e2.Current.Restrictors[i]))
+                            )
+                            {
+                                return false;
+                            }
+                        }
+                    }
+                }
+
+                return true;
+            }
+
+            return false;
+        }
     }
 }

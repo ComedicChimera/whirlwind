@@ -8,21 +8,24 @@ namespace Whirlwind.Types
     class InterfaceType : DataType, IDataType
     {
         private readonly Dictionary<Symbol, bool> _methods;
+        private readonly Dictionary<Symbol, bool> _methodTemplates;
 
         bool initialized = false;
 
         public InterfaceType()
         {
             _methods = new Dictionary<Symbol, bool>();
+            _methodTemplates = new Dictionary<Symbol, bool>();
         }
 
         private InterfaceType(InterfaceType interf)
         {
             _methods = interf._methods;
+            _methodTemplates = interf._methodTemplates;
             initialized = true;
         }
 
-        public bool AddFunction(Symbol fn, bool hasBody)
+        public bool AddMethod(Symbol fn, bool hasBody)
         {
             if (!_methods.ContainsKey(fn))
             {
@@ -33,11 +36,27 @@ namespace Whirlwind.Types
             return false;
         }
 
+        public bool AddTemplate(Symbol fn, bool hasBody)
+        {
+            if (!_methodTemplates.ContainsKey(fn))
+            {
+                _methodTemplates.Add(fn, hasBody);
+                return true;
+            }
+
+            return false;
+        }
+
         public bool GetFunction(string fnName, out Symbol symbol)
         {
             if (_methods.Select(x => x.Key.Name).Contains(fnName))
             {
                 symbol = _methods.Keys.Where(x => x.Name == fnName).ToArray()[0];
+                return !symbol.Modifiers.Contains(Modifier.PRIVATE);
+            }
+            else if (_methodTemplates.Select(x => x.Key.Name).Contains(fnName))
+            {
+                symbol = _methodTemplates.Keys.Where(x => x.Name == fnName).ToArray()[0];
                 return !symbol.Modifiers.Contains(Modifier.PRIVATE);
             }
 
@@ -48,7 +67,7 @@ namespace Whirlwind.Types
         public bool MatchObject(ObjectType obj)
         {
             var objInstance = obj.GetInternalInstance();
-            foreach (var fn in _methods)
+            foreach (var fn in _methods.Concat(_methodTemplates))
             {
                 if (fn.Value)
                     continue;
@@ -92,7 +111,7 @@ namespace Whirlwind.Types
                 if (initialized != it.initialized)
                     return false;
 
-                if (_methods.Count == it._methods.Count)
+                if (_methods.Count == it._methods.Count && _methodTemplates.Count == it._methodTemplates.Count)
                 {
                     using (var e1 = _methods.GetEnumerator())
                     using (var e2 = it._methods.GetEnumerator())
@@ -103,6 +122,18 @@ namespace Whirlwind.Types
                                 return false;
                         }
                     }
+
+                    using (var e1 = _methodTemplates.GetEnumerator())
+                    using (var e2 = it._methodTemplates.GetEnumerator())
+                    {
+                        while (e1.MoveNext() && e2.MoveNext())
+                        {
+                            if (!e1.Current.Key.Equals(e2.Current.Key) || e1.Current.Value != e2.Current.Value)
+                                return false;
+                        }
+                    }
+
+                    return true;
                 }
             }
 
@@ -120,6 +151,13 @@ namespace Whirlwind.Types
                     if (method.Value)
                         // fails silently if it was unable to add member (allows for overriding)
                         child.AddMember(method.Key);
+                }
+
+                foreach (var methodTemplate in _methodTemplates)
+                {
+                    if (methodTemplate.Value)
+                        // read the previous comment
+                        child.AddMember(methodTemplate.Key);
                 }
 
                 return true;
