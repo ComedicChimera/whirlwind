@@ -3,6 +3,7 @@ whirlwind: ( variable_decl ';'
 | block_decl
 | include_stmt ';'
 | export_decl
+| agent_decl
 )+ ;
 
 main: ( func_decl
@@ -50,6 +51,14 @@ block_decl: func_decl
 | decor_decl
 | enum_decl
 ;
+
+// agent declaration
+agent_decl: 'AGENT' 'IDENTIFIER' '{' agent_main+ '}' ;
+agent_main: func_decl
+| variable_decl ';'
+| evh_decl
+;
+evh_decl: 'WHEN' '(' expr '=>' 'IDENTIFIER' ')' block ;
 
 // function declaration
 func_decl: ('FUNC' | 'ASYNC') 'IDENTIFIER' '(' args_decl_list ')' [ types ] (func_body | ';') ;

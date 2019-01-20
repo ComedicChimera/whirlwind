@@ -116,6 +116,15 @@ namespace Whirlwind.Semantic.Visitor
 
                         scopePos++;
                         break;
+                    case "Agent":
+                        _table.GotoScope(scopePos);
+
+                        _completeAgent((BlockNode)node);
+
+                        _table.AscendScope();
+
+                        scopePos++;
+                        break;
                 }
             }
         }
@@ -185,6 +194,34 @@ namespace Whirlwind.Semantic.Visitor
             }
 
             _table.AscendScope();
+        }
+
+        private void _completeAgent(BlockNode block)
+        {
+            foreach (var item in block.Block)
+            {
+                if (item.Name == "EventHandler")
+                {
+                    _table.AddScope();
+                    _table.DescendScope();
+
+                    BlockNode evNode = (BlockNode)item;
+
+                    // first symbol declared in scope => no check required
+                    _table.AddSymbol(new Symbol(((IdentifierNode)evNode.Nodes[1]).IdName, evNode.Nodes[0].Type, 
+                        new List<Modifier> { Modifier.CONSTANT }));
+
+                    _nodes.Add(new BlockNode("EventBlock"));
+                    _visitBlockNode(((IncompleteNode)evNode.Block[0]).AST, new StatementContext(true, false, false));
+
+                    evNode.Block = ((BlockNode)_nodes.Last()).Block;
+                    _nodes.RemoveAt(_nodes.Count - 1);
+
+                    _table.AscendScope();
+                }
+                else if (item.Name.EndsWith("Function"))
+                    _completeFunction((BlockNode)item);
+            }
         }
     }
 }

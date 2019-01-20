@@ -2,8 +2,6 @@
 
 - allow for recursive type definition
 - allow for object level method variance
-- add visiting for templates and variants
-- add agents (agent syntax, agent event model)
 
 # THOUGHTS
 
@@ -22,3 +20,8 @@
 - static get
 - reference types
 - new syntax
+- templates
+- variants
+- interfaces
+- types
+- agents

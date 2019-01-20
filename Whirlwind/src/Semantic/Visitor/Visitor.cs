@@ -66,6 +66,9 @@ namespace Whirlwind.Semantic.Visitor
                     // add any logic surrounding inclusion
                     case "include_stmt":
                         break;
+                    case "agent_decl":
+                        _visitAgent((ASTNode)node);
+                        break;
                     // catches rogue tokens and things of the like
                     default:
                         continue;

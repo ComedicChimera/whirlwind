@@ -1,17 +1,21 @@
-﻿func decor(fn: func(int)(int)) func(int)(int)
-{
-	func wrapper(x: int) int {
-		yield fn(x);
+﻿agent Test {
+	let f = 0;
+
+	when (2 => x) {
+		let z = x;
 	}
 
-	return wrapper;
-}
+	when ("as" => y) {
+		let z = y;
 
-#[decor]
-func by2(x: int) int {
-	return x * 5;
+		do();
+	}
+
+	func do() {
+	
+	}
 }
 
 func main() {
-	@v = by2(3);
+	
 }
