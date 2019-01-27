@@ -1,7 +1,6 @@
 # TODO
 
-- allow for recursive type definition
-- allow for object level method variance
+- add recursive type definition
 
 # THOUGHTS
 
@@ -25,3 +24,4 @@
 - interfaces
 - types
 - agents
+- object level method variance

@@ -46,7 +46,7 @@ namespace Whirlwind.Types
     }
 
     // function used to evaluate template body
-    delegate TemplateGenerate TemplateEvaluator(Dictionary<string, IDataType> aliases);
+    delegate TemplateGenerate TemplateEvaluator(Dictionary<string, IDataType> aliases, TemplateType parent);
 
     // a struct containing the template name and its restrictors
     struct TemplateVariable
@@ -86,6 +86,7 @@ namespace Whirlwind.Types
 
         public List<TemplateGenerate> Generates { get; private set; }
 
+
         public TemplateType(List<TemplateVariable> templates, IDataType type, TemplateEvaluator evaluator)
         {
             _templates = templates;
@@ -122,7 +123,7 @@ namespace Whirlwind.Types
                     }
                 }
 
-                var generate = _evaluator(aliases);
+                var generate = _evaluator(aliases, this);
 
                 Generates.Add(generate);
                 templateType = generate.DataType;
