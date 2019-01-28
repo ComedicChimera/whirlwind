@@ -17,7 +17,8 @@ connote any operation or computation.
 | ---- | ------- | ----- |
 | Literal | Represents a literal value | *Any Literal Value* |
 | This | Represents an pointer to any valid instance | *empty* |
-| Operator | Represents an operator value use aggregator | OpName |
+| Null | Represents a use of the null keyword | *empty* |
+| VariantGenerate | Represents the type generated for a specific variant instance | *empty* |
 
 ## Identifier Node
 
@@ -130,7 +131,7 @@ ExprNodes made specifically for use in a certain statements as structural compon
 
 ### Block Statement Components
 
-ExprNodes made specifically for use in certain block statements (`if`, `else`, ect.) as structural components.
+ExprNodes made specifically for use in certain block statements (`if`, `else`, etc.) as structural components.
 
 | Name | Parameters | Purpose |
 | ---- | ---------- | ------- |
@@ -214,3 +215,10 @@ All block declaration containing identifiers are using the identifier to represe
 | Struct | Identifier | A struct declaration |
 | Interface | Identifier | An interface declaration |
 | Decorator | *Expr* | A function declared with one or more decorators |
+| TypeClass | Identifier, *Implements* | A type class declaration |
+| Constructor | Identifier | A constructor within a type class |
+| Enum | Identifier | An enumerated type declaration |
+| Template | Identifier | A template declaration |
+| Variant | VariantGenerate, Identifier | A variant declaration |
+| Agent | Identifier | An agent declaration |
+| EventHandler | Expr, Identifier | An agent event handler declaration |
