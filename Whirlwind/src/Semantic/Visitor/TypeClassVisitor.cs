@@ -20,6 +20,10 @@ namespace Whirlwind.Semantic.Visitor
             _table.AddScope();
             _table.DescendScope();
 
+            // self referential pointer declaration (can accept raw obj type now, b/c obj type is reference)
+            _table.AddSymbol(new Symbol(name, new SelfType(objType), new List<Modifier> { Modifier.CONSTANT }));
+
+
             bool needsDefaultConstr = true;
 
             foreach (var item in node.Content)
@@ -35,13 +39,14 @@ namespace Whirlwind.Semantic.Visitor
                     if (((ASTNode)item).Content.Count > 1)
                         modifiers.Add(Modifier.PRIVATE);
 
-                    // figure out a way of getting the this pointer to derived functions
-
                     // handle moving symbols from scope to type class
                     switch (decl.Name)
                     {
                         case "variable_decl":
+                            // variables must have pointer as type if they are self referential
+                            _selfNeedsPointer = true;
                             _visitVarDecl(decl, modifiers);
+                            _selfNeedsPointer = false;
                             break;
                         case "func_decl":
                             _visitFunction(decl, modifiers);

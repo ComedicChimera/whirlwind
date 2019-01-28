@@ -52,6 +52,9 @@ namespace Whirlwind.Semantic.Visitor
 
             var interfaceType = new InterfaceType();
 
+            // declare self referential type (ok early b/c reference)
+            _table.AddSymbol(new Symbol(name.Tok.Value, new SelfType(interfaceType), new List<Modifier> { Modifier.CONSTANT }));
+
             // flag setting next element to be private
             bool priv = false;
             foreach (var func in ((ASTNode)node.Content[3]).Content)
@@ -109,6 +112,15 @@ namespace Whirlwind.Semantic.Visitor
             TokenNode name = (TokenNode)node.Content[1];
 
             var structType = new StructType(name.Tok.Value, false);
+
+            // descent for self referential >:(
+            _table.AddScope();
+            _table.DescendScope();
+
+            // declare self referential type (ok early, b/c reference)
+            _table.AddSymbol(new Symbol(name.Tok.Value, structType, new List<Modifier> { Modifier.CONSTANT }));
+            // since struct members are all variables
+            _selfNeedsPointer = true;
            
             foreach (var subNode in ((ASTNode)node.Content[3]).Content)
             {
@@ -137,8 +149,13 @@ namespace Whirlwind.Semantic.Visitor
             _nodes.Add(new IdentifierNode(name.Tok.Value, structType, true));
             MergeBack();
 
+            _table.AscendScope();
+
             if (!_table.AddSymbol(new Symbol(name.Tok.Value, structType, modifiers)))
                 throw new SemanticException($"Unable to redeclare symbol by name `{name.Tok.Value}`", name.Position);
+
+            // undo self needs pointer
+            _selfNeedsPointer = false;
         }
 
         private void _visitDecorator(ASTNode node, List<Modifier> modifiers)

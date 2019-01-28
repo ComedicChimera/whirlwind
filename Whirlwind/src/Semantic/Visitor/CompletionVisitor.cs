@@ -62,6 +62,10 @@ namespace Whirlwind.Semantic.Visitor
                     // variants are basically functions for this stage of compilation
                     _completeFunction((BlockNode)node);
                     break;
+                // increment scope pos on struct
+                case "Struct":
+                    scopePos++;
+                    break;
             }
         }
 

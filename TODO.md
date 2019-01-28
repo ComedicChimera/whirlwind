@@ -1,11 +1,8 @@
 # TODO
 
-- add recursive type definition
-
 # THOUGHTS
 
 - add positioning data to some or all of the action tree
-- remove constexpr
 - allow interfaces to have variance
 
 # FUTURE
@@ -25,3 +22,4 @@
 - types
 - agents
 - object level method variance
+- recursive type definition

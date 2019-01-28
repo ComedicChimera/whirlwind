@@ -12,6 +12,8 @@ namespace Whirlwind.Semantic.Visitor
 {
     partial class Visitor
     {
+        bool _selfNeedsPointer = false;
+
         public List<IDataType> _generateTypeList(ASTNode node)
         {
             var dataTypes = new List<IDataType>();
@@ -96,11 +98,13 @@ namespace Whirlwind.Semantic.Visitor
             {
                 dt = new PointerType(dt, pointers);
             }
-            else if (_isVoid(dt))
-                throw new SemanticException("Incomplete type", node.Position);
+            else if (_isVoid(dt) || dt.Classify() == TypeClassifier.SELF && _selfNeedsPointer)
+                throw new SemanticException("Unable to declare incomplete type", node.Position);
 
             if (reference)
                 dt = new ReferenceType(dt);
+
+            
 
             return dt;
         }

@@ -58,6 +58,7 @@
         ENUM_MEMBER,
         NULL,
         REFERENCE,
-        AGENT
+        AGENT,
+        SELF // self referential type
     }
 }
