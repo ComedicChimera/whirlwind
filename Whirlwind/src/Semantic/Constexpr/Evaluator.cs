@@ -11,8 +11,9 @@ namespace Whirlwind.Semantic.Constexpr
         {
             "Array",
             "Tuple",
-            "GetMember",
+            "StaticGet",
             "Subscript",
+            "TypeCast",
             "ChangeSign",
             "Increment",
             "Decrement",
@@ -42,7 +43,7 @@ namespace Whirlwind.Semantic.Constexpr
             "NullCoalesce"
         };
 
-        public static ValueNode Evaluate(ITypeNode node)
+        public static ITypeNode Evaluate(ITypeNode node)
         {
             if (node is ExprNode)
                 return _evaluateExpr(node);
@@ -54,15 +55,42 @@ namespace Whirlwind.Semantic.Constexpr
                 throw new ArgumentException("Unable to evaluate the given argument.");
         }
 
-        private static ValueNode _evaluateExpr(ITypeNode node)
+        private static ITypeNode _evaluateExpr(ITypeNode node)
         {
-            int ndx = Array.FindIndex(_validNodes, x => x == node.Name);
+            // check for slice
 
-            switch (ndx)
+            switch (node.Name)
             {
-                // evaluate remaining nodes
+                case "Array":
+                case "Tuple":
+                    // simplify sub nodes
+                    return node;
+                case "Subscript":
+                    if (node.Type.Classify() == TypeClassifier.ARRAY)
+                    {
+                        var expr = (ExprNode)node;
+
+                        var val = Evaluate(expr.Nodes[1]);
+
+                        if (val.Type is SimpleType && ((SimpleType)val.Type).Type == SimpleType.DataType.INTEGER)
+                        {
+                            int ndx = int.Parse(((ValueNode)val).Value);
+
+                            if (ndx < 0)
+                                ndx = ((ArrayType)expr.Nodes[0].Type).Size - ndx - 1;
+
+                            if (ndx < ((ArrayType)expr.Nodes[0].Type).Size)
+                            {
+                                return ((ExprNode)expr.Nodes[0]).Nodes[ndx];
+                            }
+                            else
+                                return new ValueNode("None", new SimpleType());
+                        }
+
+                    }
+
+                    goto default;
                 default:
-                    // check for slice
                     throw new ArgumentException("Unable to evaluate the given argument.");
             }                
         }
