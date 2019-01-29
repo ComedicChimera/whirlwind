@@ -46,7 +46,7 @@ namespace Whirlwind.Semantic.Constexpr
         public static ITypeNode Evaluate(ITypeNode node)
         {
             if (node is ExprNode)
-                return _evaluateExpr(node);
+                return _evaluateExpr((ExprNode)node);
             else if (node is ValueNode)
                 return (ValueNode)node;
             else if (node is ConstexprNode)
@@ -55,7 +55,7 @@ namespace Whirlwind.Semantic.Constexpr
                 throw new ArgumentException("Unable to evaluate the given argument.");
         }
 
-        private static ITypeNode _evaluateExpr(ITypeNode node)
+        private static ITypeNode _evaluateExpr(ExprNode node)
         {
             // check for slice
 
@@ -63,25 +63,24 @@ namespace Whirlwind.Semantic.Constexpr
             {
                 case "Array":
                 case "Tuple":
-                    // simplify sub nodes
-                    return node;
+                    return new ExprNode(node.Name, node.Type,
+                        ((ExprNode)node).Nodes.Select(x => Evaluate(x)).ToList()
+                    );
                 case "Subscript":
                     if (node.Type.Classify() == TypeClassifier.ARRAY)
                     {
-                        var expr = (ExprNode)node;
-
-                        var val = Evaluate(expr.Nodes[1]);
+                        var val = Evaluate(node.Nodes[1]);
 
                         if (val.Type is SimpleType && ((SimpleType)val.Type).Type == SimpleType.DataType.INTEGER)
                         {
                             int ndx = int.Parse(((ValueNode)val).Value);
 
                             if (ndx < 0)
-                                ndx = ((ArrayType)expr.Nodes[0].Type).Size - ndx - 1;
+                                ndx = ((ArrayType)node.Nodes[0].Type).Size - ndx - 1;
 
-                            if (ndx < ((ArrayType)expr.Nodes[0].Type).Size)
+                            if (ndx < ((ArrayType)node.Nodes[0].Type).Size)
                             {
-                                return ((ExprNode)expr.Nodes[0]).Nodes[ndx];
+                                return ((ExprNode)node.Nodes[0]).Nodes[ndx];
                             }
                             else
                                 return new ValueNode("None", new SimpleType());
@@ -90,9 +89,52 @@ namespace Whirlwind.Semantic.Constexpr
                     }
 
                     goto default;
+                case "TypeCast":
+                    {
+                        var rootNode = Evaluate(node.Nodes[0]);
+
+                        if (rootNode is ValueNode)
+                            return new ValueNode(rootNode.Name, node.Type, ((ValueNode)rootNode).Value);
+                        else
+                            return new ExprNode(rootNode.Name, node.Type, ((ExprNode)rootNode).Nodes);
+                    }
+                case "ChangeSign":
+                    {
+                        var val = _convertToCSharpType(node.Type, ((ValueNode)node.Nodes[0]).Value);
+
+                        // find some way of fixing this problem
+                    }
+                    break;
+                
                 default:
-                    throw new ArgumentException("Unable to evaluate the given argument.");
+                    throw new ArgumentException("Unable to evaluate the given argument");
             }                
+        }
+
+        private static object _convertToCSharpType(IDataType dt, string value)
+        {
+            if (dt is SimpleType)
+            {
+                var sdc = ((SimpleType)dt).Type;
+
+                switch (sdc)
+                {
+                    case SimpleType.DataType.INTEGER:
+                        return int.Parse(value);
+                    case SimpleType.DataType.FLOAT:
+                        return float.Parse(value);
+                    case SimpleType.DataType.DOUBLE:
+                        return double.Parse(value);
+                    case SimpleType.DataType.LONG:
+                        return long.Parse(value);
+                    case SimpleType.DataType.BOOL:
+                        return bool.Parse(value);
+                    case SimpleType.DataType.STRING:
+                        return value;
+                }
+            }
+
+            throw new ArgumentException("Unable to convert the given Whirlwind data type to C# data type");
         }
 
         public static bool TryEval(ITypeNode node)
