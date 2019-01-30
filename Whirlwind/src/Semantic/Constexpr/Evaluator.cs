@@ -102,9 +102,18 @@ namespace Whirlwind.Semantic.Constexpr
                     {
                         var val = _convertToCSharpType(node.Type, ((ValueNode)node.Nodes[0]).Value);
 
-                        // find some way of fixing this problem
+                        string newVal = "";
+                        if (val is int)
+                            newVal = (-(int)val).ToString();
+                        else if (val is long)
+                            newVal = (-(long)val).ToString();
+                        else if (val is float)
+                            newVal = (-(float)val).ToString();
+                        else if (val is double)
+                            newVal = (-(double)val).ToString();
+
+                        return new ValueNode(newVal, node.Type);
                     }
-                    break;
                 
                 default:
                     throw new ArgumentException("Unable to evaluate the given argument");
