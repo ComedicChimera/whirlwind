@@ -25,6 +25,7 @@ namespace Whirlwind.Semantic.Constexpr
             "Mul",
             "Div",
             "Mod",
+            "Floordiv",
             "LShift",
             "RShift",
             "Not",
@@ -102,25 +103,59 @@ namespace Whirlwind.Semantic.Constexpr
                     {
                         var val = _convertToCSharpType(node.Type, ((ValueNode)node.Nodes[0]).Value);
 
-                        string newVal = "";
-                        if (val is int)
-                            newVal = (-(int)val).ToString();
-                        else if (val is long)
-                            newVal = (-(long)val).ToString();
-                        else if (val is float)
-                            newVal = (-(float)val).ToString();
-                        else if (val is double)
-                            newVal = (-(double)val).ToString();
+                        string newVal = (-val).ToString();
 
                         return new ValueNode(newVal, node.Type);
                     }
+                case "Add":
+                case "Sub":
+                case "Mul":
+                case "Div":
+                case "Mod":
+                case "Floordiv":
+                case "Pow":
+                    {
+                        dynamic val1 = _convertToCSharpType(node.Type, ((ValueNode)node.Nodes[0]).Value),
+                            val2 = _convertToCSharpType(node.Type, ((ValueNode)node.Nodes[1]).Value);
+
+                        string newVal = "";
+
+                        switch (node.Name)
+                        {
+                            case "Add":
+                                newVal = (val1 + val2).ToString();
+                                break;
+                            case "Sub":
+                                newVal = (val1 - val2).ToString();
+                                break;
+                            case "Mul":
+                                newVal = (val1 * val2).ToString();
+                                break;
+                            case "Div":
+                                newVal = ((double)val1 / val2).ToString();
+                                break;
+                            case "Mod":
+                                newVal = (val1 % val2).ToString();
+                                break;
+                            case "Floordiv":
+                                newVal = Math.Floor(val1 / val2).ToString();
+                                break;
+                            case "Pow":
+                                newVal = Math.Pow(val1, val2).ToString();
+                                break;
+
+                        }
+
+                        return new ValueNode(newVal, node.Type);
+                    }
+
                 
                 default:
                     throw new ArgumentException("Unable to evaluate the given argument");
             }                
         }
 
-        private static object _convertToCSharpType(IDataType dt, string value)
+        private static dynamic _convertToCSharpType(IDataType dt, string value)
         {
             if (dt is SimpleType)
             {
