@@ -170,7 +170,10 @@ namespace Whirlwind.Semantic.Visitor
                      ((ASTNode)node.Content[0]).Content[1].Position
                      );
 
-                _nodes.Add(new IdentifierNode(symbol.Name, symbol.DataType, true));
+                if (symbol.Modifiers.Contains(Modifier.CONSTEXPR))
+                    _nodes.Add(new ConstexprNode(symbol.Name, symbol.DataType, symbol.Name));
+                else
+                    _nodes.Add(new IdentifierNode(symbol.Name, symbol.DataType, symbol.Modifiers.Contains(Modifier.CONSTANT)));
                 _nodes.Add(new ExprNode("StaticGet", symbol.DataType));
 
                 PushForward(2);
@@ -481,6 +484,10 @@ namespace Whirlwind.Semantic.Visitor
             {
                 switch (expressionCount)
                 {
+                    // empty slice (idk why you would do this, but it is technically possible)
+                    case 0:
+                        name = "SliceCopy";
+                        break;
                     // no modification, just step or end
                     case 1:
                         name = colonCount == 1 ? "SliceEnd" : "SlicePureStep";

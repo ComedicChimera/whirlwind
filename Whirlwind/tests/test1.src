@@ -1,12 +1,3 @@
-﻿template<T>
-func test(a: T) T => a;
-
-interf A {
-	template<T>
-	func endMe(x: T) int;
-}
-
-type Test : A {
-	template<T>
-	func endMe(x: T) int => 2;
+﻿func main() {
+	
 }

@@ -84,9 +84,7 @@ namespace Whirlwind.Semantic.Visitor
                                                                 ITypeNode node = _nodes.Last();
                                                                 _nodes.RemoveAt(_nodes.Count - 1);
 
-                                                                ValueNode valNode = Constexpr.Evaluator.Evaluate(node);
-
-                                                                _nodes.Add(valNode);
+                                                                _nodes.Add(Constexpr.Evaluator.Evaluate(node));
                                                             }
 
                                                             constexpr = true;
@@ -134,9 +132,7 @@ namespace Whirlwind.Semantic.Visitor
                                 ITypeNode node = _nodes.Last();
                                 _nodes.RemoveAt(_nodes.Count - 1);
 
-                                ValueNode valNode = Constexpr.Evaluator.Evaluate(node);
-
-                                _nodes.Add(valNode);
+                                _nodes.Add(Constexpr.Evaluator.Evaluate(node));
                             }
 
                             constexpr = true;

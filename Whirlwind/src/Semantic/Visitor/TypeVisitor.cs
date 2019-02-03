@@ -184,12 +184,13 @@ namespace Whirlwind.Semantic.Visitor
 
                             var val = Evaluator.Evaluate((ExprNode)_nodes.Last());
 
-                            if (val.Type != new SimpleType(SimpleType.DataType.INTEGER))
+                            if (!new SimpleType(SimpleType.DataType.INTEGER).Coerce(val.Type))
                             {
                                 throw new SemanticException("Invalid data type for array bound", component.Position);
                             }
 
-                            size = Int32.Parse(val.Value);
+                            size = Int32.Parse(((ValueNode)val).Value);
+                            _nodes.RemoveAt(_nodes.Count - 1);
                         }
                         else if (component.Name == "types")
                         {
