@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 namespace Whirlwind.Semantic.Constexpr
 {
-    class Evaluator
+    static class Evaluator
     {
         private static readonly string[] _validNodes =
         {

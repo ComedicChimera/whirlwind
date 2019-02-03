@@ -1,3 +1,46 @@
-﻿func main() {
-	
+﻿interf Test {
+	template<T>
+	func f(x: T) T => x;
+
+	func fmt(x: int) int => x ~^ 2;
 }
+
+enum Color {
+	GREEN
+	RED
+	BLUE
+	CYAN
+	MAGENTA
+	YELLOW
+	BLACK
+}
+
+struct HSL {
+	hue: int;
+	saturation: float;
+	lightness: float;
+}
+
+/*type A : Test {
+	let b: int;
+
+	constructor() {
+		b = this.f(4);
+	}
+
+	func lol() int 
+		=> fmt(2) * b;
+}*/
+
+func main() {
+	let myColor = Color::GREEN;
+
+	let myHSL = new HSL{hue = 10, saturation = 0.5, lightness = 0.87};
+
+	const a = new A();
+
+	let t: int = a.lol();
+
+
+}
+

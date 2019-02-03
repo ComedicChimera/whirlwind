@@ -1,5 +1,7 @@
 # TODO
 
+- add conditional event handlers for agents `when(x: type => condition)`
+
 # THOUGHTS
 
 - add positioning data to some or all of the action tree
@@ -23,3 +25,4 @@
 - agents
 - object level method variance
 - recursive type definition
+- EVERYTHING

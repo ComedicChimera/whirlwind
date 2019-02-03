@@ -304,9 +304,7 @@ namespace Whirlwind.Semantic.Visitor
                     }
                 }
                 else if (node.Name == "trailer")
-                {
                     _visitTrailer((ASTNode)node);
-                }
             }
 
             if (!Modifiable(_nodes.Last()))

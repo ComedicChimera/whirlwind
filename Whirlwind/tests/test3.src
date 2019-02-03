@@ -1,8 +1,13 @@
 ﻿agent Test {
 	let f = 0;
+	const L = 3.14159265;
 
 	when (2 => x) {
 		let z = x;
+
+		z += f;
+
+		let t = L + z * x;
 	}
 
 	when ("as" => y) {
@@ -12,7 +17,9 @@
 	}
 
 	func do() {
-	
+		let x = f * 4;
+
+		do();
 	}
 }
 
