@@ -1,11 +1,11 @@
 # TODO
 
-- add conditional event handlers for agents `when(x: type => condition)`
+- TESTING TIME
 
 # THOUGHTS
 
-- add positioning data to some or all of the action tree
-- allow interfaces to have variance
+- add positioning data to some or all of the action tree (maybe identifiers?)
+- allow interfaces and agents to have variance
 
 # FUTURE
 
