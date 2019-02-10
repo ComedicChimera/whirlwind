@@ -6,6 +6,8 @@
 
 - add positioning data to some or all of the action tree (maybe identifiers?)
 - allow interfaces and agents to have variance
+- change the package path operator from `.` to `::` (as in `stdio.fmt` would be `stdio::fmt`)
+- agent id methods
 
 # FUTURE
 
