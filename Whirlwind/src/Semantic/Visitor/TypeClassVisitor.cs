@@ -34,9 +34,9 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     ASTNode decl = (ASTNode)((ASTNode)item).Content.Where(x => x.Name != "TOKEN").Last();
 
-                    List<Modifier> modifiers = new List<Modifier>() { Modifier.CONSTANT };
+                    List<Modifier> modifiers = decl.Name == "variable_decl" ? new List<Modifier>() : new List<Modifier>() { Modifier.CONSTANT };
 
-                    if (((ASTNode)item).Content.Count > 1)
+                    if (((ASTNode)item).Content.First() is TokenNode)
                         modifiers.Add(Modifier.PRIVATE);
 
                     // handle moving symbols from scope to type class
@@ -54,7 +54,7 @@ namespace Whirlwind.Semantic.Visitor
                         case "constructor_decl":
                             FunctionType ft = _visitConstructor(decl, modifiers);
 
-                            if (!objType.AddConstructor(ft, modifiers.Count > 0))
+                            if (!objType.AddConstructor(ft, modifiers.Contains(Modifier.PRIVATE)))
                                 throw new SemanticException("Unable to distinguish between constructor signatures", decl.Content[2].Position);
 
                             needsDefaultConstr = false;
@@ -138,16 +138,16 @@ namespace Whirlwind.Semantic.Visitor
         {
             List<Parameter> args = new List<Parameter>();
 
+            _nodes.Add(new BlockNode("Constructor"));
+
             foreach (var item in decl.Content)
             {
                 if (item.Name == "args_decl_list")
-                {
                     args = _generateArgsDecl((ASTNode)item);
-
-                    _nodes.Add(new BlockNode("Constructor"));
-                }
                 else if (item.Name == "func_body")
                 {
+                    
+
                     _nodes.Add(new IncompleteNode((ASTNode)item));
                     MergeToBlock();
                 }

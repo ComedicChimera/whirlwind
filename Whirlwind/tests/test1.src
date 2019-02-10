@@ -21,16 +21,20 @@ struct HSL {
 	lightness: float;
 }
 
-/*type A : Test {
+type A : Test {
 	let b: int;
 
 	constructor() {
-		b = this.f(4);
+		this.b = 3;
+	}
+
+	constructor(b: int) {
+		this.b = this.f(b);
 	}
 
 	func lol() int 
-		=> fmt(2) * b;
-}*/
+		=> this.fmt(2) * this.b;
+}
 
 func main() {
 	let myColor = Color::GREEN;
@@ -40,7 +44,5 @@ func main() {
 	const a = new A();
 
 	let t: int = a.lol();
-
-
 }
 

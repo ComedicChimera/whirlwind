@@ -137,6 +137,17 @@ namespace Whirlwind.Semantic.Visitor
                     if (!tt.AddVariant(types))
                         throw new SemanticException("The variant type list is not valid for the base template", node.Content[1].Position);
 
+                    if (tt.DataType.Classify() == TypeClassifier.OBJECT)
+                    {
+                        if (!((ObjectType)tt.DataType).GetMember(id.Tok.Value, out Symbol _))
+                            throw new SemanticException("Unable to create sub variant of non-existent method", id.Position);
+                    }                        
+                    else if (tt.DataType.Classify() == TypeClassifier.INTERFACE)
+                    {
+                        if (!((InterfaceType)tt.DataType).GetFunction(id.Tok.Value, out Symbol _))
+                            throw new SemanticException("Unable to create sub variant of non-existent method", id.Position);
+                    }
+
                     _nodes.Add(new BlockNode("Variant"));
                     // won't fail because add variant succeeded
                     tt.CreateTemplate(types, out IDataType dt);

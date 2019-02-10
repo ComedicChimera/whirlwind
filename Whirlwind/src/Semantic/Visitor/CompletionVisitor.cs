@@ -35,23 +35,26 @@ namespace Whirlwind.Semantic.Visitor
                     _completeTypeClass((BlockNode)node);
                     _table.MoveScope(_table.GetScopeCount() - 1, scopePos);
 
+                    // complete all sub templates (avoid scope complications)
+                    _completeTemplates((BlockNode)node, scopePos);
+
                     scopePos++;
                     break;
                 case "Interface":
                     _completeInterface((BlockNode)node);
                     _table.MoveScope(_table.GetScopeCount() - 1, scopePos);
 
+                    // complete all sub templates (avoid scope complications)
+                    _completeTemplates((BlockNode)node, scopePos);
+
                     scopePos++;
                     break;
                 case "Template":
                     {
-                        // visit normal template body and generate necessary code
                         _table.GotoScope(scopePos);
 
-                        var template = ((BlockNode)node);
-
-                        int tPos = 0;
-                        _completeBlock(template.Block[0], ref tPos);
+                        int _ = 0;
+                        _completeBlock(((BlockNode)node).Block[0], ref _);
 
                         _table.AscendScope();
                     }
@@ -91,7 +94,7 @@ namespace Whirlwind.Semantic.Visitor
 
                             int tPos = 0;
 
-                            foreach (var generate in ((TemplateType)((BlockNode)node).Nodes[0].Type).Generates)
+                            foreach (var generate in ((TemplateType)(((BlockNode)node).Nodes[0].Type)).Generates)
                             {
                                 // create artificial scope for all who need it
                                 if (new[] { "TypeClass", "Interface", "Decorator" }.Contains(generate.Block.Name))
@@ -177,6 +180,8 @@ namespace Whirlwind.Semantic.Visitor
                     _visitFunctionBody(((IncompleteNode)c.Block[0]).AST, (FunctionType)c.Nodes[0].Type);
 
                     c.Block = ((BlockNode)_nodes.Last()).Block;
+                    c.Block.RemoveAt(0);
+
                     _nodes.RemoveAt(1);
                 }
             }
@@ -195,6 +200,33 @@ namespace Whirlwind.Semantic.Visitor
             {
                 if (item.Name.EndsWith("Function"))
                     _completeFunction((BlockNode)item);
+            }
+
+            _table.AscendScope();
+        }
+
+        // completes all sub templates (excluding generates) of a type class or interface
+        private void _completeTemplates(BlockNode block, int scopePos)
+        {
+            _table.GotoScope(scopePos);
+
+            int tPos = 0;
+            foreach (var item in block.Block)
+            {
+                if (item.Name == "Template")
+                {
+                    // visit normal template body and generate necessary code
+                    _table.GotoScope(tPos);
+
+                    int _ = 0;
+                    _completeBlock(((BlockNode)item).Block[0], ref _);
+
+                    _table.AscendScope();
+
+                    tPos++;
+                }
+                else if (item.Name.EndsWith("Function"))
+                    tPos++;
             }
 
             _table.AscendScope();

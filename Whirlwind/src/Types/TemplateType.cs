@@ -78,19 +78,16 @@ namespace Whirlwind.Types
     class TemplateType : IDataType
     {
         private readonly List<TemplateVariable> _templates;
-        private readonly IDataType _dataType;
-
         private readonly TemplateEvaluator _evaluator;
-
         private readonly List<List<IDataType>> _variants;
 
+        public IDataType DataType { get; private set; }
         public List<TemplateGenerate> Generates { get; private set; }
-
 
         public TemplateType(List<TemplateVariable> templates, IDataType type, TemplateEvaluator evaluator)
         {
             _templates = templates;
-            _dataType = type;
+            DataType = type;
 
             _evaluator = evaluator;
 
@@ -137,12 +134,12 @@ namespace Whirlwind.Types
 
         public bool Infer(List<IDataType> parameters, out List<IDataType> inferredTypes)
         {
-            switch (_dataType.Classify())
+            switch (DataType.Classify())
             {
                 case TypeClassifier.FUNCTION:
-                    return _inferFromFunction((FunctionType)_dataType, parameters, out inferredTypes);
+                    return _inferFromFunction((FunctionType)DataType, parameters, out inferredTypes);
                 case TypeClassifier.OBJECT:
-                    if (((ObjectType)_dataType).GetConstructor(parameters, out FunctionType constructor))
+                    if (((ObjectType)DataType).GetConstructor(parameters, out FunctionType constructor))
                         return _inferFromFunction(constructor, parameters, out inferredTypes);
                     break;
             }
@@ -186,7 +183,12 @@ namespace Whirlwind.Types
 
             if (completedAliases.Count == _templates.Count)
             {
-                if (completedAliases.All(x => _templates.Where(y => y.Name == x.Key).First().Restrictors.Any(y => y.Coerce(x.Value))))
+                _templates.Where(y => y.Name == "T").First().Restrictors.Any(y => y.Coerce(completedAliases["T"]));
+
+                if (completedAliases.All(x => {
+                    var res = _templates.Where(y => y.Name == x.Key).First().Restrictors;
+                    return res.Count == 0 || res.Any(y => y.Coerce(x.Value));
+                    }))
                 {
                     inferredTypes = _templates.Select(x => completedAliases[x.Name]).ToList();
                     return true;
@@ -294,7 +296,7 @@ namespace Whirlwind.Types
             {
                 var tt = (TemplateType)other;
 
-                if (!_dataType.Equals(tt._dataType))
+                if (!DataType.Equals(tt.DataType))
                     return false;
 
                 if (_templates.Count == tt._templates.Count)
