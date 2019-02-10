@@ -1,0 +1,12 @@
+﻿agent Test {
+	when (x: str => x[0] == 'a') {
+		let t = f(x);
+	}
+
+	template<T>
+	func f(s: T) T => s + "as";
+}
+
+func main() {
+
+}

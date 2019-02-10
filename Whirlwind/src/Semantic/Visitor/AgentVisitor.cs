@@ -38,6 +38,9 @@ namespace Whirlwind.Semantic.Visitor
                             _visitEventDecl(agentNode);
                             evhTypes.Add(((BlockNode)_nodes.Last()).Nodes[0].Type);
                             break;
+                        case "method_template":
+                            _visitTemplate(agentNode, new List<Modifier> { Modifier.CONSTANT });
+                            break;
                     }
 
                     MergeToBlock();
@@ -60,25 +63,59 @@ namespace Whirlwind.Semantic.Visitor
             _nodes.Add(new BlockNode("EventHandler"));
             IDataType exprType = new SimpleType();
 
+            _table.AddScope();
+            _table.DescendScope();
+
             foreach (var item in node.Content)
             {
                 switch (item.Name)
                 {
-                    case "TOKEN":
-                        if (((TokenNode)item).Tok.Type == "IDENTIFIER")
-                            _nodes.Add(new IdentifierNode(((TokenNode)item).Tok.Value, exprType, true));
+                    case "evh_val":
+                        {
+                            ASTNode evhVal = (ASTNode)item;
+
+                            string idName = ((TokenNode)evhVal.Content[2]).Tok.Value;
+                            _visitExpr((ASTNode)evhVal.Content[0]);
+
+                            _nodes.Add(new IdentifierNode(idName, _nodes.Last().Type, true));
+                            // since it is the first item in scope, no check necessary
+                            _table.AddSymbol(new Symbol(idName, _nodes.Last().Type, new List<Modifier> { Modifier.CONSTANT }));
+
+                            _nodes.Add(new ExprNode("ValueHandler", _nodes.Last().Type));
+                            PushForward(2);
+                        }
                         break;
-                    case "expr":
-                        _visitExpr((ASTNode)item);
+                    case "evh_cond":
+                        {
+                            ASTNode evhCond = (ASTNode)item;
+
+                            string idName = ((TokenNode)evhCond.Content[0]).Tok.Value;
+                            IDataType dt = _generateType((ASTNode)evhCond.Content[2]);
+
+                            _nodes.Add(new IdentifierNode(idName, dt, true));
+                            // since it is the first item in scope, no check necessary
+                            _table.AddSymbol(new Symbol(idName, dt, new List<Modifier> { Modifier.CONSTANT }));
+
+                            _visitExpr((ASTNode)evhCond.Content[4]);
+
+                            if (!new SimpleType(SimpleType.DataType.BOOL).Coerce(_nodes.Last().Type))
+                                throw new SemanticException("Condition must be evaluate to a boolean", evhCond.Content[4].Position);
+
+                            _nodes.Add(new ExprNode("ConditionHandler", dt));
+                            PushForward(2);
+                        }
                         break;
                     case "block":
-                        MergeBack(2);
+                        // merge the handler expr back
+                        MergeBack();
 
                         _nodes.Add(new IncompleteNode((ASTNode)item));
                         MergeToBlock();
                         break;
                 }
             }
+
+            _table.AscendScope();
         }
     }
 }

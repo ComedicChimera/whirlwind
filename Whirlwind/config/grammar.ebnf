@@ -57,8 +57,11 @@ agent_decl: 'AGENT' 'IDENTIFIER' '{' agent_main+ '}' ;
 agent_main: func_decl
 | variable_decl ';'
 | evh_decl
+| method_template
 ;
-evh_decl: 'WHEN' '(' expr '=>' 'IDENTIFIER' ')' block ;
+evh_decl: 'WHEN' '(' ( evh_val | evh_cond ) ')' block ;
+evh_val: expr '=>' 'IDENTIFIER' ;
+evh_cond: 'IDENTIFIER' ':' types '=>' expr ;
 
 // function declaration
 func_decl: ('FUNC' | 'ASYNC') 'IDENTIFIER' '(' args_decl_list ')' [ types ] (func_body | ';') ;

@@ -63,6 +63,11 @@ namespace Whirlwind.Semantic.Checker
 
                 var rootNode = ((ExprNode)node).Nodes[0];
 
+                // only subscriptable simple type is string
+                // check for string immutability
+                if ((node.Name == "Subscript" || node.Name.Contains("Slice")) && rootNode.Type.Classify() == TypeClassifier.SIMPLE)
+                    return false;
+
                 // this pointer is immutable, but its members might not be, so we don't bubble this pointer constancy
                 if (rootNode.Name == "Identifier" && ((IdentifierNode)rootNode).IdName == "$THIS")
                     return true;

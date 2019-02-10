@@ -69,6 +69,15 @@ namespace Whirlwind.Semantic.Visitor
                 case "Struct":
                     scopePos++;
                     break;
+                case "Agent":
+                    _table.GotoScope(scopePos);
+
+                    _completeAgent((BlockNode)node);
+
+                    _table.AscendScope();
+
+                    scopePos++;
+                    break;
             }
         }
 
@@ -115,18 +124,10 @@ namespace Whirlwind.Semantic.Visitor
                         break;
                     case "TypeClass":
                     case "Interface":
-                        _table.GotoScope(scopePos);
-
-                        _evaluateGenerates(((BlockNode)node).Block);
-
-                        _table.AscendScope();
-
-                        scopePos++;
-                        break;
                     case "Agent":
                         _table.GotoScope(scopePos);
 
-                        _completeAgent((BlockNode)node);
+                        _evaluateGenerates(((BlockNode)node).Block);
 
                         _table.AscendScope();
 
@@ -234,18 +235,15 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _completeAgent(BlockNode block)
         {
+            int sPos = 0;
+
             foreach (var item in block.Block)
             {
                 if (item.Name == "EventHandler")
                 {
-                    _table.AddScope();
-                    _table.DescendScope();
+                    _table.GotoScope(sPos);
 
                     BlockNode evNode = (BlockNode)item;
-
-                    // first symbol declared in scope => no check required
-                    _table.AddSymbol(new Symbol(((IdentifierNode)evNode.Nodes[1]).IdName, evNode.Nodes[0].Type, 
-                        new List<Modifier> { Modifier.CONSTANT }));
 
                     _nodes.Add(new BlockNode("EventBlock"));
                     _visitBlockNode(((IncompleteNode)evNode.Block[0]).AST, new StatementContext(true, false, false));
@@ -257,6 +255,19 @@ namespace Whirlwind.Semantic.Visitor
                 }
                 else if (item.Name.EndsWith("Function"))
                     _completeFunction((BlockNode)item);
+                else if (item.Name == "Template")
+                {
+                    _table.GotoScope(sPos);
+
+                    int _ = 0;
+                    _completeBlock(((BlockNode)item).Block[0], ref _);
+
+                    _table.AscendScope();
+                }
+                else
+                    continue;
+
+                sPos++;
             }
         }
     }

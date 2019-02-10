@@ -129,9 +129,9 @@ ExprNodes made specifically for use in a certain statements as structural compon
 | Var | Identifier, \[*Initializer*\] | A single variable in variable declaration unit |
 | Variables | *Vars* | A list of all the individual variables in a single variable declaration |
 
-### Block Statement Components
+### Block Components
 
-ExprNodes made specifically for use in certain block statements (`if`, `else`, etc.) as structural components.
+ExprNodes made specifically for use in certain block statements and/or declarations (`for`, `agent`, etc.) as structural components.
 
 | Name | Parameters | Purpose |
 | ---- | ---------- | ------- |
@@ -139,6 +139,8 @@ ExprNodes made specifically for use in certain block statements (`if`, `else`, e
 | CForCondition | Expr | The end condition of a C-style for loop |
 | CForUpdateExpr | Expr | The expression to be called each cycle of a C-style for loop |
 | CForUpdateAssignment | Assignment | The assignment statement to evaluated after each cycle of a C-Style for loop |
+| ValueHandler | Expr, Identifier | A value handler within an agent event handler declaration |
+| ConditionHandler | Identifier, Expr | A conditional handler within an agent event handler declaration |
 
 ## Statement Node
 
@@ -221,4 +223,4 @@ All block declaration containing identifiers are using the identifier to represe
 | Template | Identifier | A template declaration |
 | Variant | VariantGenerate, Identifier | A variant declaration |
 | Agent | Identifier | An agent declaration |
-| EventHandler | Expr, Identifier | An agent event handler declaration |
+| EventHandler | Handler | An agent event handler declaration (containing either a value or condition handler) |
