@@ -1,24 +1,11 @@
 ﻿using Whirlwind.Parser;
 using Whirlwind.Types;
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Whirlwind.Semantic.Visitor
 {
-    class SemanticException : Exception
-    {
-        public readonly TextPosition Position;
-        public readonly new string Message;
-
-        public SemanticException(string message, TextPosition pos)
-        {
-            Message = message;
-            Position = pos;
-        }
-    }
-
     partial class Visitor
     {
         private List<ITypeNode> _nodes;
