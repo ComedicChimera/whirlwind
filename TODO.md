@@ -1,6 +1,6 @@
 # TODO
 
-- TESTING TIME
+- add an is operator
 
 # THOUGHTS
 
