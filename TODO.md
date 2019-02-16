@@ -1,12 +1,15 @@
 # TODO
 
 - add an is operator
+- add exception ending to function path checker
+- add _ as value name for agent value handler (and possibly conditional handler as well)
+- change the package path operator from `.` to `::` (as in `stdio.fmt` would be `stdio::fmt`)
+- make sure interfaces properly coerce in branch evaluation (ie. type classes can set-coerce by interface)
 
 # THOUGHTS
 
 - add positioning data to some or all of the action tree (maybe identifiers?)
 - allow interfaces and agents to have variance
-- change the package path operator from `.` to `::` (as in `stdio.fmt` would be `stdio::fmt`)
 - agent id methods
 
 # FUTURE
