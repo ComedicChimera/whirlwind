@@ -60,7 +60,7 @@ agent_main: func_decl
 | method_template
 ;
 evh_decl: 'WHEN' '(' ( evh_val | evh_cond ) ')' block ;
-evh_val: expr '=>' 'IDENTIFIER' ;
+evh_val: expr '=>' ( 'IDENTIFIER' | '_' ) ;
 evh_cond: 'IDENTIFIER' ':' types '=>' expr ;
 
 // function declaration
@@ -201,6 +201,7 @@ expr: or [expr_extension] ;
 expr_extension: '?' or ':' or
 | ('??' or)+
 | case_extension+
+| 'IS' types 
 ; 
 
 // case extension

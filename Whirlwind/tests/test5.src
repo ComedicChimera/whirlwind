@@ -1,0 +1,23 @@
+﻿interf ITest {
+	func fmt() str;
+}
+
+type Test : ITest {
+	let s: str;
+
+	constructor(s: str) {
+		this.s = s;
+	}
+
+	func fmt() str => this.s;
+}
+
+func main() {
+	let t = new Test("meme");
+
+	let x = cast<ITest>(t);
+
+	if (x is Test) {
+	
+	}
+}

@@ -52,6 +52,14 @@ namespace Whirlwind.Semantic.Visitor
                         if (!content[0].Type.Coerce(content[1].Type) || !content[1].Type.Coerce(content[0].Type))
                             throw new SemanticException("Base value and coalesced value of null coalescion must be the same type", ((ASTNode)subNode).Content.Last().Position);
                     }
+                    else if (op == "IS")
+                    {
+                        _nodes.Add(new ValueNode("Type", _generateType((ASTNode)((ASTNode)subNode).Content[1])));
+
+                        _nodes.Add(new ExprNode("Is", new SimpleType(SimpleType.DataType.BOOL)));
+
+                        PushForward(2);
+                    }
                 }
             }
         }

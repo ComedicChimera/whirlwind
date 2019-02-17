@@ -19,6 +19,7 @@ connote any operation or computation.
 | This | Represents an pointer to any valid instance | *empty* |
 | Null | Represents a use of the null keyword | *empty* |
 | VariantGenerate | Represents the type generated for a specific variant instance | *empty* |
+| Type | Represents the data type used in is type testing | *empty* |
 
 ## Identifier Node
 
@@ -114,6 +115,7 @@ A multi-value structure or some form of operation.
 | Floordiv | *Values* | Perform a floor division operation |
 | InlineComparison | Comparison Expr, Option1, Option2 | Perform an inline comparison |
 | NullCoalesce | NullableExpr, DefaultExpr | Perform a null coalescion operation |
+| Is | Expr, Type | Tests if an object is a given data type |
 
 ### Statement Components
 

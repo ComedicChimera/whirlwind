@@ -78,8 +78,10 @@ namespace Whirlwind.Semantic.Visitor
                             _visitExpr((ASTNode)evhVal.Content[0]);
 
                             _nodes.Add(new IdentifierNode(idName, _nodes.Last().Type, true));
-                            // since it is the first item in scope, no check necessary
-                            _table.AddSymbol(new Symbol(idName, _nodes.Last().Type, new List<Modifier> { Modifier.CONSTANT }));
+
+                            if (idName != "_")
+                                // since it is the first item in scope, no check necessary
+                                _table.AddSymbol(new Symbol(idName, _nodes.Last().Type, new List<Modifier> { Modifier.CONSTANT }));
 
                             _nodes.Add(new ExprNode("ValueHandler", _nodes.Last().Type));
                             PushForward(2);
