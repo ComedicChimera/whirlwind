@@ -209,7 +209,20 @@ namespace Whirlwind.Semantic.Visitor
                                 _dominantPosition = positions[pos];
                             }
                             else
-                                throw new SemanticException("Inconsistent return types", positions[pos]);
+                            {
+                                if (rtType is ObjectType && dt is ObjectType)
+                                {
+                                    var commonInherits = ((ObjectType)rtType).Inherits.Where(x => ((ObjectType)dt).Inherits.Contains(x));
+
+                                    if (commonInherits.Count() > 0)
+                                        rtType = commonInherits.First();
+                                    else
+                                        throw new SemanticException("Inconsistent return types", positions[pos]);
+                                }
+                                else
+                                    throw new SemanticException("Inconsistent return types", positions[pos]);
+                            }
+                                
                         }
 
                         returnsValue = true;
@@ -225,6 +238,8 @@ namespace Whirlwind.Semantic.Visitor
 
                     pos++;
                 }
+                else if (node.Name == "Throw" || node.Name == "ThrowObject")
+                    terminatingReturn = true;
                 else if (node is BlockNode && !node.Name.EndsWith("Function"))
                 {
                     int savedPos = pos;
@@ -247,7 +262,21 @@ namespace Whirlwind.Semantic.Visitor
                         if (blockReturn.Item2.Coerce(rtType))
                             rtType = blockReturn.Item2;
                         else
-                            throw new SemanticException("Inconsistent return type", positions[savedPos]);
+                        {
+                            if (rtType is ObjectType && blockReturn.Item2 is ObjectType)
+                            {
+                                var commonInherits = ((ObjectType)rtType).Inherits.Where(
+                                    x => ((ObjectType)blockReturn.Item2).Inherits.Contains(x));
+
+                                if (commonInherits.Count() > 0)
+                                    rtType = commonInherits.First();
+                                else
+                                    throw new SemanticException("Inconsistent return type", positions[savedPos]);
+                            }
+                            else
+                                throw new SemanticException("Inconsistent return type", positions[savedPos]);
+                        }
+                            
                     }
 
                     if (!terminatingReturn && blockReturn.Item1)
@@ -258,7 +287,6 @@ namespace Whirlwind.Semantic.Visitor
 
                     if (!returnsValue)
                         returnsValue = true;
-                        
                 }
             }
 

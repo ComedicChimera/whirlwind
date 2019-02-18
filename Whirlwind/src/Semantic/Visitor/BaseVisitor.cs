@@ -179,7 +179,20 @@ namespace Whirlwind.Semantic.Visitor
                 if (newType.Coerce(baseType))
                     baseType = newType;
                 else
-                    throw new SemanticException("All values in a collection must be the same type", pos);
+                {
+                    if (baseType is ObjectType && newType is Object)
+                    {
+                        var commonInherits = ((ObjectType)baseType).Inherits.Where(x => ((ObjectType)newType).Inherits.Contains(x));
+
+                        if (commonInherits.Count() > 0)
+                            baseType = commonInherits.First();
+                        else
+                            throw new SemanticException("All values in a collection must be the same type", pos);
+                    }
+                    else
+                        throw new SemanticException("All values in a collection must be the same type", pos);
+                }
+                    
             }
         }
 

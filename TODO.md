@@ -1,6 +1,5 @@
 # TODO
 
-- add exception ending to function path checker
 - make sure interfaces properly coerce in branch evaluation (ie. type classes can set-coerce by interface)
 
 # THOUGHTS
@@ -28,4 +27,5 @@
 - object level method variance
 - recursive type definition
 - is operator
+- exception ending
 - EVERYTHING

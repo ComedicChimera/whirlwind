@@ -100,9 +100,26 @@ namespace Whirlwind.Semantic.Visitor
                         if (_nodes.Last().Type.Coerce(dt))
                             dt = _nodes.Last().Type;
                         else
-                            throw new SemanticException("All case types must match", 
-                                ((ASTNode)item).Content[((ASTNode)item).Content.Count - 2].Position);
+                        {
+                            if (dt is ObjectType && _nodes.Last().Type is ObjectType)
+                            {
+                                var commonInherits = ((ObjectType)dt).Inherits.Where(x => 
+                                    ((ObjectType)_nodes.Last().Type).Inherits.Contains(x));
+
+                                if (commonInherits.Count() > 0)
+                                    dt = commonInherits.First();
+                                else
+                                    throw new SemanticException("All case types must match",
+                                        ((ASTNode)item).Content[((ASTNode)item).Content.Count - 2].Position);
+                            }
+                            else
+                                throw new SemanticException("All case types must match",
+                                    ((ASTNode)item).Content[((ASTNode)item).Content.Count - 2].Position);
+                        }
+                            
                     }
+
+
 
                     _nodes.Add(new ExprNode("Case", dt));
                     PushForward(exprs);
