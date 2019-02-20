@@ -1,8 +1,5 @@
 # TODO
 
-- make sure interfaces properly coerce in branch evaluation (ie. type classes can set-coerce by interface)
-- default chars to unsigned and add signed prefix for chars
-
 # THOUGHTS
 
 - add positioning data to some or all of the action tree (maybe identifiers?)
