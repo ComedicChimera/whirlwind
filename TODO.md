@@ -1,5 +1,10 @@
 # TODO
 
+- add get struct (for default types)
+- add prelude (later)
+- add 3 sanitizers (const, constexpr, and memory) [Note: constexpr does in depth checking on all constant expressions]
+- add destinct get and set methods for subscripts and slices
+
 # THOUGHTS
 
 - add positioning data to some or all of the action tree (maybe identifiers?)
@@ -8,8 +13,7 @@
 
 # FUTURE
 
-- add operator overloading in reduction stage
-- add 4 analyzers (const, constexpr, thread, and memory) [Note: constexpr does in depth checking on all constant expressions]
+- add operator overloading during generation
 
 # TESTING
 
