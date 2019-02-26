@@ -1,0 +1,122 @@
+export template<T>
+interf Iterable {
+    priv func at(ndx: int) char;
+
+    func begin() uint;
+    func len() uint;
+}
+
+export interf Comparable {
+    func __eq__() bool;
+    func __neq__() bool;
+
+    func __lt__() bool;
+    func __lteq__() bool
+
+    func __gt__() bool;
+    func __gteq__() bool;
+}
+
+export interf Hashable {
+    func hash() uint;
+}
+
+export func range(a: int, b: int = 0, s: int = 1) list[int] {
+    let lst: list[int];
+
+    if (s > 0 && b < a || s < 0 && b > a)
+        a, b = b, a;
+
+    if (s > 0) {
+        for (n = a; n < b; n += s)
+            lst.push(n);
+    }
+    else {
+        for (n = a; n > b; n += s)
+            lst.push(n);
+    }
+
+    return lst;
+}
+
+export func round(n: double) int
+    => n % 1 > 0.5 ? floor(n) + 1 : floor(n);
+
+export func floor(n: double) int
+    => cast<int>(n - (n % 1));
+
+export func ciel(n: double) int
+    => floor(n) + 1;
+
+export template<T: int, double>
+func abs(n: T) T
+    => n > 0 ? n : -n;
+
+export template<K: Hashable, V>
+func zip(keys: list[K], values: list[V]) dict[K, V] {
+    let dct: dict[K, V];
+
+    if (keys.len() == values.len()) {
+        for (i = 0; i < keys.len(); i++)
+            dct[keys[i]] = values[i];
+    }
+    else
+        throw new ValueException("The number of keys must equal number of values");
+
+    return dct;
+}
+
+export func min(it: Iterable<Comparable>) Iterable<Comparable> {
+    let m = -Infinity;
+
+    for (i <- it) {
+        if (i < m)
+            m = i;
+    }
+
+    return m;
+}
+
+export func max(it: Iterable<Comparable>) Iterable<Comparable> {
+    let m = -Infinity;
+
+    for (i <- it) {
+        if (i > m)
+            m = i;
+    }
+
+    return m;
+}
+
+export template<T>
+func sum(it: Iterable<T>) T
+    => it.reduce(|a, b: T| => a + b);
+
+export func hex(hx: int) str {
+    let hexStr = "0x";
+
+    return hexStr;
+}
+
+export func oct(oc: int) str {
+    let octStr = "0o";
+
+    return octStr;
+}
+
+export func bin(b: int) str {
+    let binStr = "0b";
+
+    return binStr;
+}
+
+func baseConvert(n, base: int) str {
+    
+}
+
+export template<T>
+func sort(it: Iterable<T>) Iterable<T> {
+
+}
+
+

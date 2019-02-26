@@ -11,6 +11,8 @@ namespace Whirlwind.Semantic.Visitor
 {
     partial class Visitor
     {
+        bool _isGetMode = false;
+
         private void _visitAtom(ASTNode node)
         {
             bool hasAwait = false, hasNew = false;
@@ -331,10 +333,25 @@ namespace Whirlwind.Semantic.Visitor
                         throw new SemanticException($"Interface has no function `{name}`", idPos);
                     break;
                 default:
-                    throw new SemanticException("The `.` operator is not valid on the given type", opPos);
+                    if (_getStruct(type, out StructType strc))
+                    {
+                        if (strc.Members.ContainsKey("name"))
+                            return new Symbol(name, strc.Members[name]);
+                        else
+                            throw new SemanticException($"Type has no property `{name}`", idPos);
+                    }
+                    else
+                        throw new SemanticException("The `.` operator is not valid on the given type", opPos);
             }
 
             return symbol;
+        }
+
+        private bool _getStruct(IDataType type, out StructType strc)
+        {
+            strc = new StructType("", false);
+
+            return true;
         }
 
         private Symbol _getStaticMember(IDataType type, string name, TextPosition opPos, TextPosition idPos)
@@ -542,7 +559,7 @@ namespace Whirlwind.Semantic.Visitor
                         break;
                 }
 
-                string methodName = name == "Subscript" ? "__subscript__" : "__slice__";
+                string methodName = string.Format("__%s%s", _isGetMode ? "get" : "set", name == "Subscript" ? "item__" : "region__");
                 if (HasOverload(rootType, methodName, args, out IDataType returnType))
                 {
                     _nodes.Add(new ExprNode(name, returnType));

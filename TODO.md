@@ -3,7 +3,7 @@
 - add get struct (for default types)
 - add prelude (later)
 - add 3 sanitizers (const, constexpr, and memory) [Note: constexpr does in depth checking on all constant expressions]
-- add destinct get and set methods for subscripts and slices
+- allow primitives to implement interfaces (have duck typing)
 
 # THOUGHTS
 
