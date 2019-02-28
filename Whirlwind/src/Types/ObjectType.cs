@@ -87,9 +87,9 @@ namespace Whirlwind.Types
             return false;
         }
 
-        public bool GetConstructor(List<IDataType> parameters, out FunctionType constructor)
+        public bool GetConstructor(ArgumentList arguments, out FunctionType constructor)
         {
-            var constructors = _constructors.Where(x => x.Item1.MatchParameters(parameters) && (!x.Item2 || Internal)).ToList();
+            var constructors = _constructors.Where(x => x.Item1.MatchArguments(arguments) && (!x.Item2 || Internal)).ToList();
             
             if (constructors.Count() == 1)
             {

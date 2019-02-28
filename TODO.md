@@ -4,13 +4,13 @@
 - add prelude (later)
 - add 3 sanitizers (const, constexpr, and memory) [Note: constexpr does in depth checking on all constant expressions]
 - allow primitives to implement interfaces (have duck typing)
-- implement argument specification
 
 # THOUGHTS
 
 - add positioning data to some or all of the action tree (maybe identifiers?)
 - allow interfaces and agents to have variance
 - agent id methods
+- make sure to properly name arg and parameter videos
 
 # FUTURE
 

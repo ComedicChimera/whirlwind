@@ -31,6 +31,12 @@ namespace Whirlwind.Semantic
             NamedArguments = new Dictionary<string, IDataType>();
         }
 
+        public ArgumentList(List<IDataType> args)
+        {
+            UnnamedArguments = args;
+            NamedArguments = new Dictionary<string, IDataType>();
+        }
+
         public ArgumentList(List<IDataType> _uArgs, Dictionary<string, IDataType> _nArgs)
         {
             UnnamedArguments = _uArgs;

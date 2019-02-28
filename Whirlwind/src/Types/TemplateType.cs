@@ -132,15 +132,15 @@ namespace Whirlwind.Types
             return false;
         }
 
-        public bool Infer(List<IDataType> parameters, out List<IDataType> inferredTypes)
+        public bool Infer(ArgumentList arguments, out List<IDataType> inferredTypes)
         {
             switch (DataType.Classify())
             {
                 case TypeClassifier.FUNCTION:
-                    return _inferFromFunction((FunctionType)DataType, parameters, out inferredTypes);
+                    return _inferFromFunction((FunctionType)DataType, arguments, out inferredTypes);
                 case TypeClassifier.OBJECT:
-                    if (((ObjectType)DataType).GetConstructor(parameters, out FunctionType constructor))
-                        return _inferFromFunction(constructor, parameters, out inferredTypes);
+                    if (((ObjectType)DataType).GetConstructor(arguments, out FunctionType constructor))
+                        return _inferFromFunction(constructor, arguments, out inferredTypes);
                     break;
             }
 
@@ -148,35 +148,34 @@ namespace Whirlwind.Types
             return false;
         }
 
-        private bool _inferFromFunction(FunctionType fnType, List<IDataType> parameters, out List<IDataType> inferredTypes)
+        private bool _inferFromFunction(FunctionType fnType, ArgumentList arguments, out List<IDataType> inferredTypes)
         {
             var completedAliases = new Dictionary<string, IDataType>();
 
             using (var e1 = fnType.Parameters.GetEnumerator())
-            using (var e2 = parameters.GetEnumerator())
+            using (var e2 = arguments.UnnamedArguments.GetEnumerator())
             {
                 while (e1.MoveNext() && e2.MoveNext())
                 {
-                    var aliases = _getCompletedAliases(e1.Current.DataType);
-
-                    foreach (var alias in aliases)
+                    if (!_checkCompletedAliases(e1.Current.DataType, e2.Current, completedAliases))
                     {
-                        if (completedAliases.ContainsKey(alias))
-                        {
-                            if (!completedAliases[alias].Coerce(e2.Current))
-                            {
-                                if (e2.Current.Coerce(completedAliases[alias]))
-                                    completedAliases[alias] = e2.Current;
-                                else
-                                {
-                                    inferredTypes = new List<IDataType>();
-                                    return false;
-                                }
+                        inferredTypes = new List<IDataType>();
+                        return false;
+                    }
+                }
+            }
 
-                            }
-                        }
-                        else
-                            completedAliases[alias] = e2.Current;
+            foreach (var nArg in arguments.NamedArguments)
+            {
+                var matches = fnType.Parameters.Where(x => x.Name == nArg.Key);
+
+                // don't throw error, because invalid names will be caught later will be caught later
+                if (matches.Count() > 0)
+                {
+                    if (!_checkCompletedAliases(matches.First().DataType, nArg.Value, completedAliases))
+                    {
+                        inferredTypes = new List<IDataType>();
+                        return false;
                     }
                 }
             }
@@ -197,6 +196,29 @@ namespace Whirlwind.Types
 
             inferredTypes = new List<IDataType>();
             return false;
+        }
+
+        private bool _checkCompletedAliases(IDataType paramType, IDataType argType, Dictionary<string, IDataType> completedAliases)
+        {
+            var aliases = _getCompletedAliases(paramType);
+
+            foreach (var alias in aliases)
+            {
+                if (completedAliases.ContainsKey(alias))
+                {
+                    if (!completedAliases[alias].Coerce(argType))
+                    {
+                        if (argType.Coerce(completedAliases[alias]))
+                            completedAliases[alias] = argType;
+                        else
+                            return false;
+                    }
+                }
+                else
+                    completedAliases[alias] = argType;
+            }
+
+            return true;
         }
 
         private List<string> _getCompletedAliases(IDataType dt)

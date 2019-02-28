@@ -1,12 +1,34 @@
-﻿agent Test {
-	when (x: str => x[0] == 'a') {
-		let t = f(x);
-	}
+﻿func add(a, b: int) int
+	=> a + b;
 
-	template<T>
-	func f(s: T) T => s + "as";
+func indef(x: float, ... a: str) {
+
 }
 
 func main() {
+	add(2, 3);
 
+	add(2.0, 4); // fail
+
+	add(a=2, b=3);
+
+	add(a=3, c=2); // fail
+
+	add(2, b=4);
+
+	add(2, a=2); // fail
+
+	add(a=3.12, b=4); // fail
+
+	indef(2.718, "d");
+
+	indef(0.5, a="e"); // fail
+	
+	indef(x=0.4);
+
+	indef(0.12);
+
+	indef(x=5, 'a', "b"); // fail
+
+	indef(x=21.1, a="d", a="c"); // fail
 }

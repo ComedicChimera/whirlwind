@@ -102,9 +102,9 @@ namespace Whirlwind.Types
             return false;
         }
 
-        public bool MatchParameters(List<IDataType> parameters)
+        public bool MatchArguments(ArgumentList arguments)
         {
-            var data = CheckParameters(this, parameters);
+            var data = CheckArguments(this, arguments);
 
             return !data.IsError;
         }

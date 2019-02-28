@@ -399,10 +399,15 @@ namespace Whirlwind.Semantic.Visitor
 
                     if (argNode.Name == "expr")
                     {
+                        // named args, before all unnamed args
+                        if (nArgs.Count > 0)
+                            throw new SemanticException("Named arguments must be declared after unnamed arguments",
+                                subNode.Position);
+
                         _visitExpr(argNode);
                         uArgs.Add(_nodes.Last().Type);
                     }
-                    else if (argNode.Name == "opt_arg")
+                    else if (argNode.Name == "named_arg")
                     {
                         string name = ((TokenNode)argNode.Content[0]).Tok.Value;
 

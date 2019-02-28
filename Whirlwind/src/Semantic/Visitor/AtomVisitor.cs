@@ -387,11 +387,11 @@ namespace Whirlwind.Semantic.Visitor
 
                 if (isFunction)
                 {
-                    var paramData = CheckParameters((FunctionType)root.Type, args);
+                    var paramData = CheckArguments((FunctionType)root.Type, args);
 
                     if (paramData.IsError)
                         throw new SemanticException(paramData.ErrorMessage, paramData.ParameterPosition == -1 ? node.Position : 
-                            ((ASTNode)node.Content[1]).Content.Where(x => x.Name == "expr").ToArray()[paramData.ParameterPosition].Position
+                            ((ASTNode)node.Content[1]).Content.Where(x => x.Name == "arg").ToArray()[paramData.ParameterPosition].Position
                         );
                 }
                 else if (!isFunction && !((ObjectType)root.Type).GetConstructor(args, out FunctionType constructor))
@@ -560,7 +560,7 @@ namespace Whirlwind.Semantic.Visitor
                 }
 
                 string methodName = string.Format("__%s%s", _isGetMode ? "get" : "set", name == "Subscript" ? "item__" : "region__");
-                if (HasOverload(rootType, methodName, args, out IDataType returnType))
+                if (HasOverload(rootType, methodName, new ArgumentList(args), out IDataType returnType))
                 {
                     _nodes.Add(new ExprNode(name, returnType));
                     // capture root as well

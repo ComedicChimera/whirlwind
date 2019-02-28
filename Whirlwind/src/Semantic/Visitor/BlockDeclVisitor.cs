@@ -176,7 +176,7 @@ namespace Whirlwind.Semantic.Visitor
                     {
                         FunctionType decorType = (FunctionType)_nodes.Last().Type;
 
-                        if (decorType.MatchParameters(new List<IDataType>() { fnType }))
+                        if (decorType.MatchArguments(new ArgumentList(new List<IDataType>() { fnType })))
                         {
                             // check for void decorators
                             if (_isVoid(decorType.ReturnType))

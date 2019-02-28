@@ -253,8 +253,8 @@ trailer: '[' (expr [slice] | slice) ']'
 slice: ':' [expr [':' expr] | ':' expr] ;
 
 args_list: [arg (',' arg)*] ;
-arg: opt_arg | expr;
-opt_arg: 'IDENTIFIER' '=' expr
+arg: named_arg | expr ;
+named_arg: 'IDENTIFIER' '=' expr ;
 
 init_list: 'IDENTIFIER' initializer (',' 'IDENTIFIER' initializer)* ;
 static_get: get_op 'IDENTIFIER' ;

@@ -14,7 +14,7 @@ namespace Whirlwind.Semantic.Checker
                 {
                     if (method.DataType.Classify() == TypeClassifier.FUNCTION)
                     {
-                        if (CheckParameters((FunctionType)method.DataType, new List<IDataType>()).IsError)
+                        if (CheckArguments((FunctionType)method.DataType, new ArgumentList()).IsError)
                         {
                             returnType = new SimpleType();
                             return false;
@@ -29,7 +29,7 @@ namespace Whirlwind.Semantic.Checker
             return false;
         }
 
-        public static bool HasOverload(IDataType type, string methodName, List<IDataType> parameters, out IDataType returnType)
+        public static bool HasOverload(IDataType type, string methodName, ArgumentList arguments, out IDataType returnType)
         {
             if (type.Classify() == TypeClassifier.OBJECT_INSTANCE)
             {
@@ -37,7 +37,7 @@ namespace Whirlwind.Semantic.Checker
                 {
                     if (method.DataType.Classify() == TypeClassifier.FUNCTION)
                     {
-                        if (CheckParameters((FunctionType)method.DataType, parameters).IsError)
+                        if (CheckArguments((FunctionType)method.DataType, arguments).IsError)
                         {
                             returnType = new SimpleType();
                             return false;
