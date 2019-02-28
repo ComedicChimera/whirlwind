@@ -385,20 +385,39 @@ namespace Whirlwind.Semantic.Visitor
             return argsDeclList;
         }
 
-        // generate a parameter list from a function call and generate the corresponding tree
-        private List<IDataType> _generateArgsList(ASTNode node)
+        // generate a argument list from a function call and generate the corresponding tree
+        private ArgumentList _generateArgsList(ASTNode node)
         {
-            var argsList = new List<IDataType>();
+            var uArgs = new List<IDataType>();
+            var nArgs = new Dictionary<string, IDataType>();
+
             foreach (var subNode in node.Content)
             {
-                if (subNode.Name == "expr")
+                if (subNode.Name == "arg")
                 {
-                    _visitExpr((ASTNode)subNode);
-                    argsList.Add(_nodes.Last().Type);
+                    var argNode = (ASTNode)((ASTNode)subNode).Content.First();
+
+                    if (argNode.Name == "expr")
+                    {
+                        _visitExpr(argNode);
+                        uArgs.Add(_nodes.Last().Type);
+                    }
+                    else if (argNode.Name == "opt_arg")
+                    {
+                        string name = ((TokenNode)argNode.Content[0]).Tok.Value;
+
+                        _visitExpr((ASTNode)argNode.Content[2]);
+                        IDataType dt = _nodes.Last().Type;
+
+                        _nodes.Add(new ExprNode("NamedArgument", dt));
+                        PushForward();
+
+                        nArgs[name] = dt;
+                    }
                 }
             }
 
-            return argsList;
+            return new ArgumentList(uArgs, nArgs);
         }
     }
 }

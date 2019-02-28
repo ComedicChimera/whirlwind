@@ -21,8 +21,8 @@ namespace Whirlwind.Semantic.Checker
                 ParameterPosition = paramPos;
             }
         }
-
-        public static ParameterCheckData CheckParameters(FunctionType fn, List<IDataType> values)
+    
+        public static ParameterCheckData CheckParameters(FunctionType fn, ArgumentList args)
         {
             var parameterDictionary = fn.Parameters.ToDictionary(x => x.Name);
 
@@ -30,7 +30,7 @@ namespace Whirlwind.Semantic.Checker
             var setParameters = Enumerable.Repeat(false, fn.Parameters.Count).ToDictionary(x => fn.Parameters[position++].Name);
 
             position = 0;
-            foreach (var param in values)
+            foreach (var param in args.UnnamedArguments)
             {
                 if (position >= fn.Parameters.Count)
                     return new ParameterCheckData("Too many parameters for the given function", -1);
@@ -47,6 +47,20 @@ namespace Whirlwind.Semantic.Checker
                 }
                 else
                     return new ParameterCheckData($"Invalid type for parameter `{fnParameter.Name}`", position);
+            }
+
+            foreach (var namedParam in args.NamedArguments)
+            {
+                position++;
+
+                if (!fn.Parameters.Select(x => x.Name).Contains(namedParam.Key))
+                    return new ParameterCheckData($"Parameter `{namedParam.Key}` doesn't exist", position);
+                else if (setParameters[namedParam.Key])                    
+                    return new ParameterCheckData("Unable to set multiple values for one parameters", position);
+                else if (!fn.Parameters.Where(x => x.Name == namedParam.Key).First().DataType.Coerce(namedParam.Value))
+                    return new ParameterCheckData($"Invalid type for parameters `{namedParam.Key}", position);
+
+                setParameters[namedParam.Key] = true;
             }
 
             foreach (var param in setParameters)

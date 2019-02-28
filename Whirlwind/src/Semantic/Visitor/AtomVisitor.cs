@@ -379,7 +379,7 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitFunctionCall(ASTNode node, ITypeNode root)
         {
-            var args = node.Content.Count == 2 ? new List<IDataType>() : _generateArgsList((ASTNode)node.Content[1]);
+            var args = node.Content.Count == 2 ? new ArgumentList() : _generateArgsList((ASTNode)node.Content[1]);
 
             if (new[] { TypeClassifier.OBJECT, TypeClassifier.FUNCTION }.Contains(root.Type.Classify()))
             {
@@ -401,11 +401,11 @@ namespace Whirlwind.Semantic.Visitor
 
                 _nodes.Add(new ExprNode(isFunction ? (((FunctionType)root.Type).Async ? "CallAsync" : "Call") : "CallConstructor", returnType));
 
-                if (args.Count == 0)
+                if (args.Count() == 0)
                     PushForward();
                 else
                 {
-                    PushForward(args.Count);
+                    PushForward(args.Count());
                     // add function to beginning of call
                     ((ExprNode)_nodes[_nodes.Count - 1]).Nodes.Insert(0, _nodes[_nodes.Count - 2]);
                     _nodes.RemoveAt(_nodes.Count - 2);
@@ -419,7 +419,7 @@ namespace Whirlwind.Semantic.Visitor
                     ((TemplateType)root.Type).CreateTemplate(inferredTypes, out IDataType templateType);
 
                     _nodes.Add(new ExprNode("CreateTemplate", templateType));
-                    PushForward(args.Count + 1);
+                    PushForward(args.Count() + 1);
 
                     _visitFunctionCall(node, _nodes.Last());
                 }
@@ -428,7 +428,7 @@ namespace Whirlwind.Semantic.Visitor
             }
             else if (root.Type.Classify() == TypeClassifier.STRUCT)
             {
-                if (args.Count > 0)
+                if (args.Count() > 0)
                     throw new SemanticException("Struct constructor cannot accept arguments", node.Position);
 
                 _nodes.Add(new ExprNode("InitStruct", ((StructType)root.Type).GetInstance()));
