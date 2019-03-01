@@ -1,26 +1,85 @@
+// Iterable Interface
+// any value that iterated upon using a standard iterator
+// these values are usable in for loops, comprehensions, ect.
 export template<T>
 interf Iterable {
-    priv func at(ndx: int) char;
+    // the starting index, length, and all iterable indices must
+    // be unsigned
 
+    // returns the value of the iterable at any given index
+    priv func at(ndx: uint) T;
+
+    // returns the starting index for the iterable
+    // this value should be the lowest index in the iterable
+    // as iterators progress in order of lowest to highest
     func begin() uint;
+
+    // return the length of the iterable
+    // or equivalently how many moves a standard iterator can take
     func len() uint;
 }
 
+// Comparable Interface
+// any value that defines overloads for ALL primary
+// comparison operators (assumedly in a logical fashion)
 export interf Comparable {
-    func __eq__() bool;
-    func __neq__() bool;
+    template<T> 
+    func __eq__(other: T) bool;
 
-    func __lt__() bool;
-    func __lteq__() bool
+    template<T> 
+    func __neq__(other: T) bool;
 
-    func __gt__() bool;
-    func __gteq__() bool;
+    template<T> 
+    func __lt__(other: T) bool;
+
+    template<T> 
+    func __lteq__(other: T) bool
+
+    template<T> 
+    func __gt__(other: T) bool;
+
+    template<T> 
+    func __gteq__(other: T) bool;
 }
 
+// Hashable Interface
+// any value that defines a hash method returning
+// and unsigned integer designating its identity
 export interf Hashable {
     func hash() uint;
 }
 
+// MATHEMATICAL BUILTINS
+// rounds a double to the nearest integer
+export func round(n: double) int
+    => n % 1 > 0.5 ? floor(n) + 1 : floor(n);
+
+// maps a double to the nearest, lesser integer 
+export func floor(n: double) int
+    => cast<int>(n - (n % 1));
+
+// maps a double to the nearest, greater integer
+export func ciel(n: double) int
+    => floor(n) + 1;
+
+// calculates the absolute of any numeric value (excluding char)
+// type is assumed to be signed and returned signed
+export template<T: int, double, float, long>
+func abs(n: T) T
+    => n > 0 ? n : -n;
+
+
+// ITERABLE BUILTINS
+/*
+Creates a range of numbers from a inclusive to b exclusive
+in addition, a step (s) can be provided such that
+the range will generated moving in increments of n in either
+direction.
+
+If s < 0, then the range will be generated in reverse assuming
+a is the larger value.  However, the range will still begin
+at a and move until b.
+*/ 
 export func range(a: int, b: int = 0, s: int = 1) list[int] {
     let lst: list[int];
 
@@ -39,19 +98,12 @@ export func range(a: int, b: int = 0, s: int = 1) list[int] {
     return lst;
 }
 
-export func round(n: double) int
-    => n % 1 > 0.5 ? floor(n) + 1 : floor(n);
-
-export func floor(n: double) int
-    => cast<int>(n - (n % 1));
-
-export func ciel(n: double) int
-    => floor(n) + 1;
-
-export template<T: int, double>
-func abs(n: T) T
-    => n > 0 ? n : -n;
-
+/*
+Joins to lists to form a dictionary where
+each value is the first list is the key to
+the value at the same index in the second list
+in the resulting dictionary
+*/
 export template<K: Hashable, V>
 func zip(keys: list[K], values: list[V]) dict[K, V] {
     let dct: dict[K, V];
@@ -66,7 +118,10 @@ func zip(keys: list[K], values: list[V]) dict[K, V] {
     return dct;
 }
 
-export func min(it: Iterable<Comparable>) Iterable<Comparable> {
+// Finds the minimum value in any iterable of values which
+// are comparable to a numeric by using standard comparison methods
+export template<T: Comparable>
+func min(it: Iterable<T>) T {
     let m = -Infinity;
 
     for (i <- it) {
@@ -77,7 +132,10 @@ export func min(it: Iterable<Comparable>) Iterable<Comparable> {
     return m;
 }
 
-export func max(it: Iterable<Comparable>) Iterable<Comparable> {
+// Finds the maximum value in any iterable of values which
+// are comparable by using standard comparison methods
+export template<T: Comparable>
+func max(it: Iterable<T>) T {
     let m = -Infinity;
 
     for (i <- it) {
@@ -88,35 +146,110 @@ export func max(it: Iterable<Comparable>) Iterable<Comparable> {
     return m;
 }
 
+// Finds the sum of any iterable whose elements define an
+// addition operator. The sum is calculated left to right.
 export template<T>
 func sum(it: Iterable<T>) T
     => it.reduce(|a, b: T| => a + b);
 
-export func hex(hx: int) str {
-    let hexStr = "0x";
 
-    return hexStr;
+// UTILITY
+// Takes in two comparable values and determines the lesser of the two
+export template<T: Comparable>
+func lesser(a, b: T) T
+    => a > b ? b : a;
+
+// Takes in two comparable values and determines the greater of the two
+export template<T: Comparable>
+func greater(a, b: T) T
+    => a < b ? a : b;
+
+// Determines if a double is a whole number
+export func whole(n: double) bool
+    => n % 1 == 0;
+
+// Determines if a number is even
+export func even(n: int) bool
+    => n % 2 == 0;
+
+/*
+Restricts a numeric value to exist between two values
+
+- val is the inital value
+- s1 and e1 are the bounds for the initial value
+- s2 and e2 are the bounds for the final value
+
+the clamping formula is as follows:
+
+VL - S1
+------- * (E2 - S2) + S2
+E1 - S1
+*/ 
+export template<T, S>
+func clamp(val, s1, e1: T, s2, e2: S) double
+    => (val - s1) / (e1 - s1) * (e2 - s2) + s2;
+
+
+// SORTS
+// uses Tim Sort to sort based values based on a key function that returns an unsigned integer
+export template<T> 
+func sort(it: Iterable<T>, key=|x: T| => cast<Hashable>(x).hash()) Iterable<T> {
+    let sorted = it.map(|x: T| => (key(x), x)).collect();
+    let len = sorted.len();
+
+    for (r = 0; r < len; r += 32) {
+        for (i = r; i < (r + 32 > len ? len : 32); i++) {
+            let (temp = sorted[i], j = i - 1);
+
+            for (temp > sorted[j] && j >= 0) {
+                sorted[j + 1] = sorted[j];
+
+                j--;
+            }
+
+            sorted[j + 1] = temp;
+        }
+    }
+
+    let n = 32;
+    for (n < len) {
+        for (left = 0; left < len; left += 2 * n) {
+            mid = left + n - 1;
+
+            right = lesser(left + n * 2, len);
+
+            sorted[left:right] = merge(ref sorted, left, mid, right);
+        }
+
+        n *= 2;
+    }
+        
+
+    return sorted;
 }
 
-export func oct(oc: int) str {
-    let octStr = "0o";
+// merges two adjacent blocks of sorted items
+template<T>
+func merge(const arr: ref list[T], left, mid, right: int) list[T] {
+    let result: list[T];
+    let (i = left; j = mid);
 
-    return octStr;
+    for (i < mid && j < right) {
+        if (arr[i] <= arr[j]) {
+            result.push(arr[i]);
+            i++;
+        }
+        else {
+            result.push(arr[j]);
+            j++;
+        }
+    }
+
+    for (; i < mid; i++) 
+        result.push(arr[i]);
+
+    for (; j < right; j++)
+        result.push(arr[j]);
+
+    return result;
 }
-
-export func bin(b: int) str {
-    let binStr = "0b";
-
-    return binStr;
-}
-
-func baseConvert(n, base: int) str {
-    
-}
-
-export template<T>
-func sort(it: Iterable<T>) Iterable<T> {
-
-}
-
-

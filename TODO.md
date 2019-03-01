@@ -4,6 +4,8 @@
 - add prelude (later)
 - add 3 sanitizers (const, constexpr, and memory) [Note: constexpr does in depth checking on all constant expressions]
 - allow primitives to implement interfaces (have duck typing)
+- convert `this` to a pointer (for typing purposes, not for usage)
+- add template overloads
 
 # THOUGHTS
 
