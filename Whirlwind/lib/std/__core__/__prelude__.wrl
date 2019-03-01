@@ -214,9 +214,7 @@ func sort(it: Iterable<T>, key=|x: T| => cast<Hashable>(x).hash()) Iterable<T> {
     let n = 32;
     for (n < len) {
         for (left = 0; left < len; left += 2 * n) {
-            mid = left + n - 1;
-
-            right = lesser(left + n * 2, len);
+            let (mid = left + n - 1, right = lesser(left + n * 2, len));
 
             sorted[left:right] = merge(ref sorted, left, mid, right);
         }
