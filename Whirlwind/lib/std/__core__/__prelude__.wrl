@@ -223,7 +223,7 @@ func sort(it: Iterable<T>, key=|x: T| => cast<Hashable>(x).hash()) Iterable<T> {
     }
         
 
-    return sorted;
+    return sorted.map(|x: (uint, T)| => x.0);
 }
 
 // merges two adjacent blocks of sorted items
