@@ -194,7 +194,15 @@ func clamp(val, s1, e1: T, s2, e2: S) double
 // uses Tim Sort to sort based values based on a key function that returns an unsigned integer
 export template<T> 
 func sort(it: Iterable<T>, key=|x: T| => cast<Hashable>(x).hash()) Iterable<T> {
-    let sorted = it.map(|x: T| => (key(x), x)).collect();
+    let keyDct: dict[uint, list[T]];
+
+    for (n <- it) {
+        let k = key(n);
+
+        keyDct[k] = keyDct.get(k) + [n];
+    }
+
+    let sorted = keyDct.keys();
     let len = sorted.len();
 
     for (r = 0; r < len; r += 32) {
@@ -222,9 +230,10 @@ func sort(it: Iterable<T>, key=|x: T| => cast<Hashable>(x).hash()) Iterable<T> {
         n *= 2;
     }
         
-
-    return sorted.map(|x: (uint, T)| => x.0);
+    return sorted.map(|x: uint| => keyDct[x]).foldl(|a, b: list[T]| => a + b);
 }
+
+// add numeric only sort
 
 // merges two adjacent blocks of sorted items
 template<T>
