@@ -1,0 +1,51 @@
+// Iterable Interface
+// an iterable is any value that can generate an iterator
+export template<T>
+interf Iterable {
+    // returns an iterator
+    func iter() Iterator<T>;
+}
+
+// Iterator
+// an iterator is anything that can be used to iterate
+// upon an iterator
+export template<T>
+interf Iterator {
+    // get the item at the current position in the iterator
+    func get() T;
+
+    // returns the next item in the iterator
+    // and moves it forward one step
+    func next() (T, bool);
+
+    // moves the iterator to a specific position
+    // and returns the value there (null if none exists)
+    func move(ndx: int) T;
+
+    // convert the iterator back into an iterable
+    // and collect all completed values
+    func unwind() Iterable<T>;
+}
+
+// Map Iterator
+// an iterator that applies a function to each item
+// returned by the lower iterator
+template<T, R>
+type MapIterator : Iterator<R> {
+    let (it: Iterator<T>, fn: func(T)(R));
+
+    constructor(it: Iterator<T>, fn: func(T)(R)) {
+        this.it, this.fn = it, fn;
+    }
+
+    func get() R
+        => this.fn(this.it.get());
+
+    func next() (R, bool) 
+        => this.fn(this.it.next());
+
+    func move(ndx: int) R
+        => this.fn(this.it.move(ndx));
+
+    // figure out what to do with unwind
+}

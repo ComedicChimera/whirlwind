@@ -1,24 +1,19 @@
-// Iterable Interface
-// any value that iterated upon using a standard iterator
-// these values are usable in for loops, comprehensions, ect.
-export template<T>
-interf Iterable {
-    // the starting index, length, and all iterable indices must
-    // be unsigned
+export include { Iterator, Iterable } from iter;
 
-    // returns the value of the iterable at any given index
-    priv func at(ndx: uint) T;
 
-    // returns the starting index for the iterable
-    // this value should be the lowest index in the iterable
-    // as iterators progress in order of lowest to highest
-    func begin() uint;
+// ERRORS
+// Error Interface
+// represents the base interface for all other error types
+export interf Error {
+    func message() str;
 
-    // return the length of the iterable
-    // or equivalently how many moves a standard iterator can take
-    func len() uint;
+    func trace() str {
+        // add intrinsic here
+    }
 }
 
+
+// INTERFACES
 // Comparable Interface
 // any value that defines overloads for ALL primary
 // comparison operators (assumedly in a logical fashion)
@@ -48,6 +43,7 @@ export interf Comparable {
 export interf Hashable {
     func hash() uint;
 }
+
 
 // MATHEMATICAL BUILTINS
 // rounds a double to the nearest integer
@@ -86,7 +82,12 @@ export func range(a: int, b: int = 0, s: int = 1) list[int] {
     if (s > 0 && b < a || s < 0 && b > a)
         a, b = b, a;
 
-    if (s > 0) {
+    // assumed end only case
+    if (a > b && b == 0) {
+        for (n = 0; n < a; n += s)
+            lst.push(n);
+    }
+    elif (s > 0) {
         for (n = a; n < b; n += s)
             lst.push(n);
     }
@@ -191,18 +192,10 @@ func clamp(val, s1, e1: T, s2, e2: S) double
 
 
 // SORTS
-// uses Tim Sort to sort based values based on a key function that returns an unsigned integer
-export template<T> 
-func sort(it: Iterable<T>, key=|x: T| => cast<Hashable>(x).hash()) Iterable<T> {
-    let keyDct: dict[uint, list[T]];
-
-    for (n <- it) {
-        let k = key(n);
-
-        keyDct[k] = keyDct.get(k) + [n];
-    }
-
-    let sorted = keyDct.keys();
+// uses to tim sort to sort a list of comparables into an ordered list
+export template<T: Comparable>
+func sort(it: Iterable<T>) list[T] {
+    let sorted = it.collect();
     let len = sorted.len();
 
     for (r = 0; r < len; r += 32) {
@@ -230,10 +223,8 @@ func sort(it: Iterable<T>, key=|x: T| => cast<Hashable>(x).hash()) Iterable<T> {
         n *= 2;
     }
         
-    return sorted.map(|x: uint| => keyDct[x]).foldl(|a, b: list[T]| => a + b);
+    return sorted;
 }
-
-// add numeric only sort
 
 // merges two adjacent blocks of sorted items
 template<T>
@@ -259,4 +250,33 @@ func merge(const arr: ref list[T], left, mid, right: int) list[T] {
         result.push(arr[j]);
 
     return result;
+}
+
+
+// uses LSD Radix Sort (base 10) to sort based values based on a key function that returns an unsigned integer
+// into a list of values
+export template<T> 
+func keySort(it: Iterable<T>, key=|x: T| => cast<Hashable>(x).hash()) list[T] {
+    let keyDct: dict[uint, list[T]];
+
+    for (n <- it) {
+        let k = key(n);
+
+        keyDct[k] = keyDct.get(k) + [n];
+    }
+
+    let sorted = keyDct.keys();
+
+    let (len= sorted.len(), mx = max(sorted));
+    for (pow = 0; 10 ~^ pow < mx; pow++) {
+        let buckets: list[list[uint]] = for(null | _ <- range(10));
+
+        for (n <- sorted) {
+            buckets[n ~/ (10 ~^ pow) % 10] = n;
+        }
+
+        sorted = buckets.foldl(|a, b: list[uint]| => a + b);
+    }
+        
+    return for(keyDct[x] | x <- sorted).foldl(|a, b: list[T]| => a + b);
 }

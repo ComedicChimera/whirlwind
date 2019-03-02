@@ -6,6 +6,8 @@
 - allow primitives to implement interfaces (have duck typing)
 - convert `this` to a pointer (for typing purposes, not for usage)
 - add template overloads
+- prevent declaration of null type lists
+- remove MirrorType and declare builtins in SymbolTable as necessary
 
 # THOUGHTS
 
