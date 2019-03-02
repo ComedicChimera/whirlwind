@@ -4,6 +4,61 @@ export template<T>
 interf Iterable {
     // returns an iterator
     func iter() Iterator<T>;
+
+    // converts iterable into a collection
+    func collect() list[T]
+        => this.iter().collect();
+
+    // goes through each value in the collection
+    func each(fn: func(T)()) {
+        for (item <- this)
+            fn(item);
+    }
+
+    // FIND A WAY TO JOIN THESE MORE EFFECTIVELY
+    // POSSIBLY BY RETURNING AN ITERABLE
+    // join this iterable to another iterable
+    func concat(it: Iterable<T>) Iterable<T>
+        => new PureIterable(new CombinedIterator(this.iter(), it.iter()));
+
+    // reduces the size of iterable to exist between two values
+    func subset(s: uint, e: uint) Iterable<T> {
+        return new PureIterable(this.iter()
+            .enumerate()
+            .filter(|x: (T, int)| => s <= x.1 < e)
+            .map(|x: (T, int)| => x.0)
+        );
+
+    }
+
+    // join this iterable and another iterable
+    // without duplicating values
+    func union(it: Iterable<T>) Iterable<T> 
+        => new PureIterable(new CombinedIterator(this.iter(), it.iter).distinct()));
+
+    // join this iterable and another iterable
+    // while including values found in both
+    func intersect(it: Iterable) Iterable<T> {
+        let iter = it.iter();
+
+        return new PureIterable(
+
+        );
+    }
+}
+
+// a default iterable type class used in basic
+// iterable and iterator operations
+template<T>
+type PureIterable : Iterable<T> {
+    let itr: Iterator<T>;
+
+    constructor(itr: Iterator<T>) {
+        this.itr = itr;
+    }
+
+    func iter() Iterator<T>
+        => this.itr;
 }
 
 // Iterator
@@ -18,13 +73,27 @@ interf Iterator {
     // and moves it forward one step
     func next() (T, bool);
 
-    // moves the iterator to a specific position
-    // and returns the value there (null if none exists)
-    func move(ndx: int) T;
+    // moves the iterator forward by some amount
+    // and returns true if possible, false if impossible
+    func move(amt: int) bool;
 
-    // convert the iterator back into an iterable
-    // and collect all completed values
-    func unwind() Iterable<T>;
+    // return how many items are in left in iteration
+    // -1 if indeterminant or infinite
+    func left() int;
+
+    // convert the iterator into a collection
+    func collect() list[T] {
+        let lst: list[T];
+
+        let (val, next) = this.next();
+
+        for (next) {
+            lst.push(val);
+            val, next = this.next();
+        }
+
+        return lst;
+    }
 }
 
 // Map Iterator
@@ -32,7 +101,7 @@ interf Iterator {
 // returned by the lower iterator
 template<T, R>
 type MapIterator : Iterator<R> {
-    let (it: Iterator<T>, fn: func(T)(R));
+    priv let (it: Iterator<T>, fn: func(T)(R));
 
     constructor(it: Iterator<T>, fn: func(T)(R)) {
         this.it, this.fn = it, fn;
@@ -44,8 +113,114 @@ type MapIterator : Iterator<R> {
     func next() (R, bool) 
         => this.fn(this.it.next());
 
-    func move(ndx: int) R
-        => this.fn(this.it.move(ndx));
+    func move(amt: int) bool
+        => this.it.move(amt);
 
-    // figure out what to do with unwind
+    func left() int
+        => this.it.left(); 
+}
+
+// Filter Iterator
+// iterates through a collection returning
+// only values that match the result of a function
+template<T>
+type FilterIterator : Iterator<T> {
+    priv let it: Iterator<T>;
+    priv let filter: func(T)(bool);
+
+    constructor(it: Iterator<T>, filter: func(T)(bool)) {
+        this.it, this.filter = it, filter;
+    }
+
+    // add protective get
+    func get() T {
+
+    }
+}
+
+// Reverse Iterator
+
+// Enumerated Iterator
+
+// Group Iterator
+
+// Combined Iterator
+// iterates through two iterators at once
+template<T>
+type CombinedIterator : Iterator<T> {
+    priv let (it1, it2): Iterator<T>;
+    priv let which: bool;
+
+    constructor(it1, it2: Iterator<T>) {
+        this.it1, this.it2 = it1, it2;
+    }
+
+    func get() T
+        => (this.which ? this.it2 : this.it1).get();
+
+    func next() (T, bool) {
+        if (this.which)
+            return this.it2.next(); 
+        else {
+            let val, next = this.it1.next();
+
+            if (!next)
+                this.which = true;
+
+            return val, next;
+        }
+    }
+
+    func move(amt: int) bool {
+        if (this.which)
+            return this.it2.move(amt);
+        
+        let left = this.it1.left();
+        let res = this.it1.move(amt);
+
+        if (!res) {
+            this.which = true;
+            return this.it2.move(amt - left - 1);
+        }
+
+        return res;
+    }
+
+    func left() int
+        => this.it1.left() + this.it2.left();
+}
+
+// Distinct Iterator
+// takes in an iterator and only yields
+//  non-duplicate values from that iterator
+template<T>
+type DistinctIterator : Iterator<T> {
+    priv let returned: list[T];
+    priv let it: Iterator<T>
+
+    constructor(it: Iterator<T>) {
+        this.it = it;
+    }
+
+    // add protective get
+    func get() T
+        => this.it.get();
+
+    func next() (T, bool) {
+        let val, next = this.it.next();
+
+        for (returned.has(val)) {
+            if (!next)
+                break;
+
+            val, next = this.it.next();
+        }
+        after 
+            returned.push(val);
+
+        return val, next;
+    }
+
+    func left() int
+        => -1;
 }
