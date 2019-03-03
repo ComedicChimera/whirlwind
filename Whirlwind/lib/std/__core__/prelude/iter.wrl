@@ -1,226 +1,384 @@
-// Iterable Interface
-// an iterable is any value that can generate an iterator
-export template<T>
-interf Iterable {
-    // returns an iterator
-    func iter() Iterator<T>;
-
-    // converts iterable into a collection
-    func collect() list[T]
-        => this.iter().collect();
-
-    // goes through each value in the collection
-    func each(fn: func(T)()) {
-        for (item <- this)
-            fn(item);
-    }
-
-    // FIND A WAY TO JOIN THESE MORE EFFECTIVELY
-    // POSSIBLY BY RETURNING AN ITERABLE
-    // join this iterable to another iterable
-    func concat(it: Iterable<T>) Iterable<T>
-        => new PureIterable(new CombinedIterator(this.iter(), it.iter()));
-
-    // reduces the size of iterable to exist between two values
-    func subset(s: uint, e: uint) Iterable<T> {
-        return new PureIterable(this.iter()
-            .enumerate()
-            .filter(|x: (T, int)| => s <= x.1 < e)
-            .map(|x: (T, int)| => x.0)
-        );
-
-    }
-
-    // join this iterable and another iterable
-    // without duplicating values
-    func union(it: Iterable<T>) Iterable<T> 
-        => new PureIterable(new CombinedIterator(this.iter(), it.iter).distinct()));
-
-    // join this iterable and another iterable
-    // while including values found in both
-    func intersect(it: Iterable) Iterable<T> {
-        let iter = it.iter();
-
-        return new PureIterable(
-
-        );
-    }
-}
-
-// a default iterable type class used in basic
-// iterable and iterator operations
-template<T>
-type PureIterable : Iterable<T> {
-    let itr: Iterator<T>;
-
-    constructor(itr: Iterator<T>) {
-        this.itr = itr;
-    }
-
-    func iter() Iterator<T>
-        => this.itr;
-}
-
 // Iterator
-// an iterator is anything that can be used to iterate
-// upon an iterator
+// used to iterate through each item in
+// an iterable forward and backward
 export template<T>
 interf Iterator {
-    // get the item at the current position in the iterator
-    func get() T;
-
-    // returns the next item in the iterator
-    // and moves it forward one step
+    // get the next item from the iterator
+    // T is the value, bool is whether or
+    // not the value should be interpreted as null
     func next() (T, bool);
 
-    // moves the iterator forward by some amount
-    // and returns true if possible, false if impossible
-    func move(amt: int) bool;
+    // get the next last item from the iterator
+    // T is the value, bool is whether or
+    // not the value should be interpreted as null
+    // bool is also false if there is no end
+    func back() (T, bool);
 
-    // return how many items are in left in iteration
-    // -1 if indeterminant or infinite
-    func left() int;
+    // lazily converts Iterator back into an iterable
+    func unwind() Iterable<T>
+        => new Sequence(this);
 
-    // convert the iterator into a collection
+    // converts iterator back into a collection
+    // and FULLY consumes the iterator (no laziness)
     func collect() list[T] {
-        let lst: list[T];
+        let col: list[T];
 
-        let (val, next) = this.next();
+        let (v, e) = this.next();
 
-        for (next) {
-            lst.push(val);
-            val, next = this.next();
+        for (e) {
+            col.push(v);
+            v, e = this.next();
         }
 
-        return lst;
-    }
-}
-
-// Map Iterator
-// an iterator that applies a function to each item
-// returned by the lower iterator
-template<T, R>
-type MapIterator : Iterator<R> {
-    priv let (it: Iterator<T>, fn: func(T)(R));
-
-    constructor(it: Iterator<T>, fn: func(T)(R)) {
-        this.it, this.fn = it, fn;
+        return col;
     }
 
-    func get() R
-        => this.fn(this.it.get());
+    // call for each value returned by the iterator
+    func each(fn: func(T)()) {
+        let (v, e) = this.next();
 
-    func next() (R, bool) 
-        => this.fn(this.it.next());
-
-    func move(amt: int) bool
-        => this.it.move(amt);
-
-    func left() int
-        => this.it.left(); 
-}
-
-// Filter Iterator
-// iterates through a collection returning
-// only values that match the result of a function
-template<T>
-type FilterIterator : Iterator<T> {
-    priv let it: Iterator<T>;
-    priv let filter: func(T)(bool);
-
-    constructor(it: Iterator<T>, filter: func(T)(bool)) {
-        this.it, this.filter = it, filter;
-    }
-
-    // add protective get
-    func get() T {
-
-    }
-}
-
-// Reverse Iterator
-
-// Enumerated Iterator
-
-// Group Iterator
-
-// Combined Iterator
-// iterates through two iterators at once
-template<T>
-type CombinedIterator : Iterator<T> {
-    priv let (it1, it2): Iterator<T>;
-    priv let which: bool;
-
-    constructor(it1, it2: Iterator<T>) {
-        this.it1, this.it2 = it1, it2;
-    }
-
-    func get() T
-        => (this.which ? this.it2 : this.it1).get();
-
-    func next() (T, bool) {
-        if (this.which)
-            return this.it2.next(); 
-        else {
-            let val, next = this.it1.next();
-
-            if (!next)
-                this.which = true;
-
-            return val, next;
+        for (e) {
+            fn(v);
+            v, e = this.next;
         }
     }
 
-    func move(amt: int) bool {
-        if (this.which)
-            return this.it2.move(amt);
-        
-        let left = this.it1.left();
-        let res = this.it1.move(amt);
+    // lazily applies a function to each item
+    // given by the iterator
+    template<R>
+    func map(fn: func(T)(R)) Iterator<R>
+        => new MapIterator(ref this, fn);
 
-        if (!res) {
-            this.which = true;
-            return this.it2.move(amt - left - 1);
+    // filters the iterator based on a function
+    func filter(fn: func(T)(bool)) Iterator<T>
+        => new FilterIterator(ref this, fn);
+
+    // reverses the iterator
+    func rev() Iterator<T>
+        => new ReverseIterator(ref this);
+
+    // enumerates the iterator
+    func enumerate() Iterator<T>
+        => new EnumerateIterator(ref this);
+
+    // removes all duplicate items from the iterator
+    func distinct() Iterator<T> {
+        let duplicates: list[T];
+
+        func distFilter(item: T) bool {
+            let res = duplicates.has(item);
+
+            if (res)
+                return false;
+            else {
+                duplicates.push(item);
+                return true;
+            }
         }
 
-        return res;
+        return new FilterIterator(ref this, distFilter);
     }
 
-    func left() int
-        => this.it1.left() + this.it2.left();
+    // joins to iterables
+    func concat(other: Iterator<T>) Iterator<T>
+        // ownership if `other` is passed to concat (if necessary)
+        => new CompoundIterator(ref this, ref other);
+
+    // finds the union of two "sets"
+    // joins two iterables and removes all duplicate items
+    func union(other: Iterator<T>) Iterator<T>
+        => new CompoundIterator(ref this, ref other).distinct();
+
+    // finds the intesection of two "sets"
+    // joins two iterables only including values found in both
+    // this operation is NOT completely lazy
+    // it is only lazy for main iterator not the argument
+    func intersect(other: Iterator<T>) Iterator<T> {
+        // non lazy collection as a result of forced has operator
+        let c2 = other.collect();
+
+        return new FilterIterator(ref this, |x: T| => {
+            return c1.has(x);
+        });
+    }
+
+    // collect into a dictionary based on the return
+    // value of a function as a value with base as key
+    template<R>
+    func group(fn: func(T)(R)) dict[T, R] {
+        let (v, e) = this.next();
+
+        let dct: dict[T, R];
+        for (e) {
+            dct[v] = fn(v);
+            v, e = this.next();
+        }
+
+        return dct;
+    }
+
+    // take some values from an iterator
+    func take(n = 1) Iterator<T> {
+        let copy = this;
+
+        let (_, e) = copy.next();
+        for (i = 0; i < n && e; i++)
+            _, e = copy.next();
+
+        return copy;
+    }
+
+    // take values while a condition is true
+    func takeWhile(fn: func(T)(bool)) Iterator<T> {
+        let copy = this;
+
+        let (v, e) = copy.next();
+
+        for (e && fn(v))
+            v, e = copy.next();
+
+        return copy;
+    }
+
+    // check if all values match some condition
+    func all(fn: func(T)(bool)) bool {
+        let (v, e) = this.next();
+
+        for (e) {
+            if (!fn(v))
+                return false;
+
+            v, e = this.next();
+        }
+
+        return !e;
+    }
+
+    // check if any values match some condition
+    func any(fn: func(T)(bool)) bool {
+        let (v, e) = this.next();
+
+        for (e) {
+            if (fn(v))
+                return true;
+            
+            v, e = this.next();
+        }
+
+        return false;
+    }
+
+    // collapse all values of an iterable in one value
+    // based on the value of a reduction function (left handed)
+    template<R>
+    func foldl(fn: func(R, T)(R)) R {
+        let aggr: R;
+
+        let (v, e) = this.next();
+
+        for (e) {
+            aggr = fn(aggr, v);
+
+            v, e = this.next();
+        }
+
+        return aggr;
+    }
+
+    // collapse all values of an iterable in one value
+    // based on the value of a reduction function (right handed)
+    template<R>
+    func foldr(fn: func(R, T)(R)) R {
+        let aggr: R;
+
+        let (v, e) = this.back();
+
+        for (e) {
+            aggr = fn(aggr, v);
+
+            v, e = this.back();
+        }
+
+        return aggr;
+    }
 }
 
-// Distinct Iterator
-// takes in an iterator and only yields
-//  non-duplicate values from that iterator
+// Iterable
+// can be iterated through using an iterator
+export template<T>
+interf Iterable {
+    // returns an iterator over the iterable
+    func iter() Iterator<T>;
+    
+    // converts iterable to standard collection
+    // and fully evaluates any lazy sub iterators
+    func collect() list[T]
+        => for(x | x <- this);
+
+    // call a function for a each item in an iterable
+    func each(fn: func(T)()) {
+        for (x <- this)
+            fn(x);
+    }
+
+    // collect into a dictionary based on the return
+    // value of a function as a value with base as key
+    template<R>
+    func group(fn: func(T)(R)) dict[T, R]
+        => for (x: fn(x) | x <- this);
+}
+
+// Sequence
+// sequence is a pure, lazily evaluated iterable
 template<T>
-type DistinctIterator : Iterator<T> {
-    priv let returned: list[T];
-    priv let it: Iterator<T>
+type Sequence : Iterable<T> {
+    priv let (it: Iterator<T>);
 
     constructor(it: Iterator<T>) {
         this.it = it;
     }
 
-    // add protective get
-    func get() T
-        => this.it.get();
+    func iter() Iterator<T>
+        => this.it;
+}
 
-    func next() (T, bool) {
-        let val, next = this.it.next();
+// Map Iterator
+// used to iterate through an iterable applying
+// a given function as long as the function is valid
+template<T, R>
+type MapIterator : Iterator<R> {
+    priv let (it: ref Iterator<T>, fn: func(T)(R));
 
-        for (returned.has(val)) {
-            if (!next)
-                break;
-
-            val, next = this.it.next();
-        }
-        after 
-            returned.push(val);
-
-        return val, next;
+    constructor(ref it: Iterator<T>, fn: func(T)(R)) {
+        this.it, this.fn = it, fn;
     }
 
-    func left() int
-        => -1;
+    func next() (T, bool)
+        => this.fn(this.it.next());
+
+    func back() (T, bool)
+        => this.fn(this.it.back());
+}
+
+// Filter Iterator
+// used to iterate through an iterable applying
+// a function that returns true if the item
+// should be present and false if it shouldn't
+// and then strips the item based on that return
+template<T>
+type FilterIterator : Iterator<T> {
+    priv let (it: ref Iterator<T>, fn: func(T)(bool));
+
+    constructor(it: ref Iterator<T>, fn: func(T)(bool)) {
+        this.it, this.fn = it, fn;
+    }
+
+    func next() (T, bool) {
+        let (v, e) = this.it.next();
+
+        for (e && !this.fn(v))
+            v, e = this.it.next();
+
+        return v, e;
+    }
+
+    func back() (T, bool) {
+        let (v, e) = this.it.back();
+
+        for (e && !this.fn(v))
+            v, e = this.it.back();
+
+        return v, e;
+    }
+}
+
+// Reverse Iterator
+// iterates through an iterable
+// in reverse (swaps next and back)
+template<T>
+type ReverseIterator : Iterator<T> {
+    priv let (it: ref Iterator<T>);
+
+    constructor(it: ref Iterator<T>) {
+        this.it = it;
+    }
+
+    func next() (T, bool)
+        => this.it.back();
+
+    func back() (T, bool)
+        => this.it.next();
+}
+
+// Enumerate Iterator
+// iterates through an iterable
+// giving both the value and the
+// current position as a tuple
+template<T>
+type EnumerateIterator : Iterator<(T, uint)> {
+    priv let (it: ref Iterator<T>, pos: uint);
+
+    constructor(it: ref Iterator<T>) {
+        this.it = it;
+    }
+
+    func next() ((T, uint), bool) {
+        let (v, e) = this.it.next();
+    
+        return (v, this.pos++), e;
+    }
+
+    // back still yields position in the same order
+    func back() ((T, uint)), bool) {
+        let (v, e) = this.it.back();
+
+        return (v, this.pos++), e;
+    }
+}
+
+// Compound Iterator
+// iterates through two iterators
+// at once combining their values
+// into one iterator
+template<T>
+type CompoundIterator : Iterator<T> {
+    priv let (it1, it2): ref Iterator<T>;
+    priv let (which): bool // true = first, false = second
+
+    constructor(it1, it2: ref Iterator<T>) {
+        this.it1, this.it2 = it1, it2;
+
+        this.which = true;
+    }
+
+    func next() (T, bool) {
+        if (this.which) {
+            let (v, e) = this.it1.next();
+
+            if (!e) {
+                this.which = false;
+                return this.it2.next();
+            }
+
+            return v, e;
+        }
+        else
+            return this.it2.next();
+    }
+
+    // for back, which is reversed
+    func back() (T, bool) {
+        if (this.which) {
+            let (v, e) = this.it2.back();
+
+            if (!e) {
+                this.which = false;
+                return this.it1.back();
+            }
+
+            return v, e;
+        }
+        else
+            return this.it1.back();
+    }
 }

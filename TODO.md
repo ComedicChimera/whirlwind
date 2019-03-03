@@ -7,6 +7,8 @@
 - add template overloads
 - prevent declaration of null type lists
 - remove MirrorType and declare builtins in SymbolTable as necessary
+- allow for incomplete type declaration of type classes (and other higher order types)
+- review ownership rules for deletion of values
 
 # THOUGHTS
 
