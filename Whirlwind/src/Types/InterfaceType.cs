@@ -64,25 +64,6 @@ namespace Whirlwind.Types
             return false;
         }
 
-        public bool MatchObject(ObjectType obj)
-        {
-            var objInstance = obj.GetInternalInstance();
-            foreach (var fn in _methods.Concat(_methodTemplates))
-            {
-                if (fn.Value)
-                    continue;
-
-                if (objInstance.GetMember(fn.Key.Name, out Symbol match))
-                {
-                    if (!fn.Key.DataType.Coerce(match.DataType) || _wrongModifiers(fn.Key.Modifiers, match.Modifiers))
-                        return false;
-                }
-                else return false;
-            }
-
-            return true;
-        }
-
         private bool _wrongModifiers(List<Modifier> interfMod, List<Modifier> objMod)
             => objMod.Contains(Modifier.PRIVATE) && !interfMod.Contains(Modifier.PRIVATE);
 
@@ -90,13 +71,9 @@ namespace Whirlwind.Types
 
         protected sealed override bool _coerce(IDataType other)
         {
-            if (other.Classify() == TypeClassifier.OBJECT_INSTANCE)
-            {
-                if (((ObjectType)other).Inherits.Contains(this))
-                    return true;
+            var interf = other.GetInterface();
 
-                return MatchObject((ObjectType)other);
-            }
+            // add coercion checking
             return false;
         }
 
@@ -140,24 +117,21 @@ namespace Whirlwind.Types
             return false;
         }
 
-        // tests if it is possible for the child to be a derivation of the parent interface
-        // and gives any methods to the child that are implemented within the interface
-        public bool Derive(ObjectType child)
+        // tests if a type implements all necessary methods to be a child of this interface
+        public bool Derive(IDataType child)
         {
-            if (MatchObject(child))
-            {
-                foreach (var method in _methods)
-                {
-                    if (method.Value)
-                        // fails silently if it was unable to add member (allows for overriding)
-                        child.AddMember(method.Key);
+            var interf = child.GetInterface();
+
+            if (_methods.Where(x => !x.Value).All(x => interf._methods.Contains(x)) &&
+            _methodTemplates.Where(x => !x.Value).All(x => interf._methodTemplates.Contains(x))) {
+                foreach (var method in _methods) {
+                    if (method.Value && !interf._methods.Contains(method))
+                        interf.AddMethod(method.Key, method.Value);
                 }
 
-                foreach (var methodTemplate in _methodTemplates)
-                {
-                    if (methodTemplate.Value)
-                        // read the previous comment
-                        child.AddMember(methodTemplate.Key);
+                foreach (var methodTemplate in _methodTemplates) {
+                    if (methodTemplate.Value && !interf._methodTemplates.Contains(methodTemplate))
+                        interf.AddTemplate(methodTemplate.Key, methodTemplate.Value);
                 }
 
                 return true;

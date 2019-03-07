@@ -22,8 +22,6 @@ Changes:
 - improved operator overloading syntax
 - `then` operator
   * allow value to be accessed through `val` syntax if one exists
-- changing conditional operator
-  * `cond ? case1 : case2` now is `case1 if cond else case2`
 - constancy now bound on type not on variable
   * `let x: const T;` is equivalent to `const x: T;`
   * `x: const T` in function call is equivalent to `const x: T`
@@ -32,12 +30,17 @@ Changes:
 - variance added to interfaces
 - `~*` function composition operator
 - introduction of struct constructors
-- add type specific compositions
+- add type specific comprehensions
   * { comp } for arrays
   * [ comp ] for lists
   * { dict_comp } for dictionaries
 - add function overloading
 - remove privacy
-- remove null coalescion operator
 - allow compound assignment with any operator
 - remove agents (maybe)
+- remove constexpr
+
+# Completed
+- remove null coalescion operator
+- changing conditional operator
+  * `cond ? case1 : case2` now is `case1 if cond else case2`

@@ -29,28 +29,18 @@ namespace Whirlwind.Semantic.Visitor
                             _visitInlineCase((ASTNode)item);
                     }
 
-                    if (op == "?")
+                    if (op == "IF")
                     {
                         _nodes.Add(new ExprNode("InlineCompare", _nodes.Last().Type));
                         PushForward(3);
 
                         var content = ((ExprNode)_nodes.Last()).Nodes;
 
-                        if (!new SimpleType(SimpleType.DataType.BOOL).Coerce(content[0].Type))
+                        if (!new SimpleType(SimpleType.DataType.BOOL).Coerce(content[1].Type))
                             throw new SemanticException("Comparison expression of inline comparison must evaluate to a boolean", node.Content[0].Position);
 
-                        if (!content[1].Type.Coerce(content[2].Type) || !content[2].Type.Coerce(content[1].Type))
+                        if (!content[0].Type.Coerce(content[2].Type) || !content[2].Type.Coerce(content[0].Type))
                             throw new SemanticException("Possible results of inline comparison must be the same type", ((ASTNode)subNode).Content.Last().Position);
-                    }
-                    else if (op == "??")
-                    {
-                        _nodes.Add(new ExprNode("NullCoalesce", _nodes.Last().Type));
-                        PushForward(2);
-
-                        var content = ((ExprNode)_nodes.Last()).Nodes;
-
-                        if (!content[0].Type.Coerce(content[1].Type) || !content[1].Type.Coerce(content[0].Type))
-                            throw new SemanticException("Base value and coalesced value of null coalescion must be the same type", ((ASTNode)subNode).Content.Last().Position);
                     }
                     else if (op == "IS")
                     {

@@ -198,8 +198,7 @@ yield_stmt: 'YIELD' expr (',' expr)* ;
 
 // EXPRESSIONS - basic unit of statements 
 expr: or [expr_extension] ;
-expr_extension: '?' or ':' or
-| ('??' or)+
+expr_extension: 'IF' expr 'ELSE' expr 
 | case_extension+
 | 'IS' types 
 ; 
