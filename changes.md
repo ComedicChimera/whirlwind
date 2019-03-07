@@ -21,7 +21,7 @@ Changes:
   * adding Monad<T> interface
 - improved operator overloading syntax
 - `then` operator
-  * allow value to be accessed through `$0` syntax if one exists
+  * allow value to be accessed through `val` syntax if one exists
 - changing conditional operator
   * `cond ? case1 : case2` now is `case1 if cond else case2`
 - constancy now bound on type not on variable
@@ -38,3 +38,6 @@ Changes:
   * { dict_comp } for dictionaries
 - add function overloading
 - remove privacy
+- remove null coalescion operator
+- allow compound assignment with any operator
+- remove agents (maybe)
