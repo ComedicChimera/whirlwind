@@ -1,14 +1,15 @@
 # TODO
 
-- add get struct (for default types)
+- **OVERRIDE** Implement `changes.md`
+- add get struct (for default types) - deprecated
 - add prelude (later)
 - add 3 sanitizers (const, constexpr, and memory) [Note: constexpr does in depth checking on all constant expressions]
-- allow primitives to implement interfaces (have duck typing)
-- add template overloads
+- allow primitives to implement interfaces (have duck typing) - deprecated
+- add template overloads 
 - prevent declaration of null type lists
 - remove MirrorType and declare builtins in SymbolTable as necessary
-- allow for incomplete type declaration of type classes (and other higher order types)
-- review ownership rules for deletion of values
+- allow for incomplete type declaration of type classes (and other higher order types) - deprecated
+- review ownership rules for deletion of values - deprecated
 
 # THOUGHTS
 
