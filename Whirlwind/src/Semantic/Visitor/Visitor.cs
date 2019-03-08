@@ -114,9 +114,9 @@ namespace Whirlwind.Semantic.Visitor
             ((BlockNode)_nodes.Last()).Block.Add(child);
         }
 
-        private bool _isVoid(IDataType type)
+        private bool _isVoid(DataType type)
         {
-            return type.Classify() == TypeClassifier.SIMPLE && ((SimpleType)type).Type == SimpleType.DataType.VOID;
+            return type.Classify() == TypeClassifier.SIMPLE && ((SimpleType)type).Type == SimpleType.SimpleClassifier.VOID;
         }
 
         public ITypeNode Result() => _nodes.First();

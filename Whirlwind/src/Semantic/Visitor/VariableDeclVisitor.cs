@@ -11,10 +11,10 @@ namespace Whirlwind.Semantic.Visitor
     {
         private struct Variable
         {
-            public IDataType Type;
+            public DataType Type;
             public TextPosition Position;
 
-            public Variable(IDataType type, TextPosition position)
+            public Variable(DataType type, TextPosition position)
             {
                 Type = type;
                 Position = position;
@@ -24,7 +24,7 @@ namespace Whirlwind.Semantic.Visitor
         private void _visitVarDecl(ASTNode stmt, List<Modifier> modifiers)
         {
             bool constant = false, constexpr = false, hasType = false, hasInitializer = false;
-            IDataType mainType = new SimpleType();
+            DataType mainType = new SimpleType();
 
             var variables = new Dictionary<string, Variable>();
             var initializers = new Dictionary<string, Tuple<bool, ITypeNode>>();
@@ -67,7 +67,7 @@ namespace Whirlwind.Semantic.Visitor
                                                     }
                                                     break;
                                                 case "extension":
-                                                    IDataType dt = _generateType((ASTNode)((ASTNode)elem).Content[1]);
+                                                    DataType dt = _generateType((ASTNode)((ASTNode)elem).Content[1]);
                                                     variables[currentIdentifier] = new Variable(dt, variables[currentIdentifier].Position);
                                                     break;
                                                 case "variable_initializer":
@@ -154,8 +154,8 @@ namespace Whirlwind.Semantic.Visitor
                 }
             }
 
-            bool isVoidOrNull(IDataType dt) => dt.Classify() == TypeClassifier.NULL 
-                || dt.Classify() == TypeClassifier.SIMPLE && ((SimpleType)dt).Type == SimpleType.DataType.VOID;
+            bool isVoidOrNull(DataType dt) => dt.Classify() == TypeClassifier.NULL 
+                || dt.Classify() == TypeClassifier.SIMPLE && ((SimpleType)dt).Type == SimpleType.SimpleClassifier.VOID;
 
             if (hasType && hasInitializer && mainType.Classify() == TypeClassifier.TUPLE && variables.Keys.Count > 1)
             {
@@ -165,7 +165,7 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     int i = 0, j = 0;
                     string id;
-                    IDataType dt;
+                    DataType dt;
 
                     while (i < variables.Count && j < tupleType.Types.Count)
                     {

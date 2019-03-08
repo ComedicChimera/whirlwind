@@ -7,7 +7,7 @@ namespace Whirlwind.Semantic.Checker
 {
     static partial class Checker
     {
-        public static bool TypeCast(IDataType start, IDataType desired)
+        public static bool TypeCast(DataType start, DataType desired)
         {
             if (desired.Coerce(start))
                 return true;
@@ -20,11 +20,11 @@ namespace Whirlwind.Semantic.Checker
                         {
                             switch (((SimpleType)start).Type)
                             {
-                                case SimpleType.DataType.BOOL:
-                                    return ((SimpleType)desired).Type != SimpleType.DataType.STRING;
-                                case SimpleType.DataType.BYTE:
-                                case SimpleType.DataType.CHAR:
-                                    return ((SimpleType)desired).Type != SimpleType.DataType.BOOL;
+                                case SimpleType.SimpleClassifier.BOOL:
+                                    return ((SimpleType)desired).Type != SimpleType.SimpleClassifier.STRING;
+                                case SimpleType.SimpleClassifier.BYTE:
+                                case SimpleType.SimpleClassifier.CHAR:
+                                    return ((SimpleType)desired).Type != SimpleType.SimpleClassifier.BOOL;
                             }
 
                             // possibly add extra guard logic here
@@ -32,7 +32,7 @@ namespace Whirlwind.Semantic.Checker
                                 return true;
                         }
                         else if (desired.Classify() == TypeClassifier.POINTER)
-                            return ((SimpleType)start).Type == SimpleType.DataType.INTEGER && ((SimpleType)start).Unsigned;
+                            return ((SimpleType)start).Type == SimpleType.SimpleClassifier.INTEGER && ((SimpleType)start).Unsigned;
                     }
                     break;
                 case TypeClassifier.ARRAY:
@@ -55,7 +55,7 @@ namespace Whirlwind.Semantic.Checker
                         return TypeCast(startPointer.Type, desiredPointer.Type) && startPointer.Pointers == desiredPointer.Pointers;
                     }
                     else if (desired.Classify() == TypeClassifier.SIMPLE)
-                        return ((SimpleType)desired).Type == SimpleType.DataType.INTEGER && ((SimpleType)desired).Unsigned;
+                        return ((SimpleType)desired).Type == SimpleType.SimpleClassifier.INTEGER && ((SimpleType)desired).Unsigned;
                     else if (desired.Classify() == TypeClassifier.ARRAY)
                         return ((ArrayType)desired).ElementType.Equals(((PointerType)start).Type);
                     break;

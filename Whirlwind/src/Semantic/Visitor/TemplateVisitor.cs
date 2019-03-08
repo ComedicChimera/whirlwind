@@ -16,7 +16,7 @@ namespace Whirlwind.Semantic.Visitor
             _table.AddScope();
             _table.DescendScope();
 
-            var templateVars = new Dictionary<string, List<IDataType>>();
+            var templateVars = new Dictionary<string, List<DataType>>();
 
             foreach (var item in node.Content)
             {
@@ -29,7 +29,7 @@ namespace Whirlwind.Semantic.Visitor
                     if (templateVars.ContainsKey(varName))
                         throw new SemanticException("Template type aliases must have different names", templateVar.Content[0].Position);
 
-                    List<IDataType> restrictors = new List<IDataType>();
+                    List<DataType> restrictors = new List<DataType>();
 
                     if (templateVar.Content.Count == 3)
                         restrictors.AddRange(_generateTypeList((ASTNode)templateVar.Content[2]));
@@ -90,7 +90,7 @@ namespace Whirlwind.Semantic.Visitor
 
         private TemplateEvaluator _decorateEval(ASTNode node, Action<ASTNode, List<Modifier>> vfn)
         {
-            return delegate (Dictionary<string, IDataType> aliases, TemplateType parent)
+            return delegate (Dictionary<string, DataType> aliases, TemplateType parent)
             {
                 _table.AddScope();
                 _table.DescendScope();
@@ -106,7 +106,7 @@ namespace Whirlwind.Semantic.Visitor
 
                 _nodes.RemoveAt(_nodes.Count - 1);
 
-                IDataType dt = _table.GetScope().Last().DataType;
+                DataType dt = _table.GetScope().Last().DataType;
 
                 _table.AscendScope();
                 _table.RemoveScope();
@@ -150,7 +150,7 @@ namespace Whirlwind.Semantic.Visitor
 
                     _nodes.Add(new BlockNode("Variant"));
                     // won't fail because add variant succeeded
-                    tt.CreateTemplate(types, out IDataType dt);
+                    tt.CreateTemplate(types, out DataType dt);
                     // remove the last generate added because its body is not accurate to the variant
                     tt.Generates.RemoveAt(tt.Generates.Count - 1);
 

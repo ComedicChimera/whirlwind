@@ -150,7 +150,7 @@ namespace Whirlwind.Semantic.Visitor
             }
             else
             {
-                var tupleTypes = new List<IDataType>();
+                var tupleTypes = new List<DataType>();
 
                 for (int i = 0; i < exprCount; i++)
                 {
@@ -166,8 +166,8 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitAssignment(ASTNode stmt)
         {
-            var varTypes = new List<IDataType>();
-            var exprTypes = new List<IDataType>();
+            var varTypes = new List<DataType>();
+            var exprTypes = new List<DataType>();
             string op = "";
 
             foreach (var node in stmt.Content)
@@ -208,7 +208,7 @@ namespace Whirlwind.Semantic.Visitor
                     {
                         if (subOp != "")
                         {
-                            IDataType tt = varTypes[i];
+                            DataType tt = varTypes[i];
                             CheckOperand(ref tt, exprTypes[i], subOp, stmt.Position);
 
                             if (!varTypes[i].Coerce(tt))
@@ -238,7 +238,7 @@ namespace Whirlwind.Semantic.Visitor
                                 } 
                                 else if (subOp != "")
                                 {
-                                    IDataType tt = e1.Current;
+                                    DataType tt = e1.Current;
                                     CheckOperand(ref tt, type, subOp, stmt.Position);
                                 }
                                 else
@@ -249,7 +249,7 @@ namespace Whirlwind.Semantic.Visitor
                         {
                             if (subOp != "")
                             {
-                                IDataType tt = e1.Current;
+                                DataType tt = e1.Current;
                                 CheckOperand(ref tt, e2.Current, subOp, stmt.Position);
                             }
                             else

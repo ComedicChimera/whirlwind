@@ -2,17 +2,17 @@
 
 namespace Whirlwind.Types
 {
-    class StructType : DataType, IDataType
+    class StructType : DataType, DataType
     {
         private bool _instance;
 
         public readonly string Name;
-        public readonly Dictionary<string, IDataType> Members;
+        public readonly Dictionary<string, DataType> Members;
 
         public StructType(string name, bool instance)
         {
             Name = name;
-            Members = new Dictionary<string, IDataType>();
+            Members = new Dictionary<string, DataType>();
             _instance = instance;
         }
 
@@ -23,7 +23,7 @@ namespace Whirlwind.Types
             _instance = true;
         }
 
-        public bool AddMember(string name, IDataType dt)
+        public bool AddMember(string name, DataType dt)
         {
             if (Members.ContainsKey(name))
                 return false;
@@ -34,7 +34,7 @@ namespace Whirlwind.Types
         public StructType GetInstance()
             => new StructType(this);
 
-        protected sealed override bool _coerce(IDataType other)
+        protected sealed override bool _coerce(DataType other)
         {
             if (other.Classify() == TypeClassifier.STRUCT_INSTANCE)
             {
@@ -60,6 +60,6 @@ namespace Whirlwind.Types
 
         public TypeClassifier Classify() => _instance ? TypeClassifier.STRUCT_INSTANCE : TypeClassifier.STRUCT;
 
-        public bool Equals(IDataType other) => Coerce(other);
+        public bool Equals(DataType other) => Coerce(other);
     }
 }

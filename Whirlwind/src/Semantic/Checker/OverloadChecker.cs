@@ -6,7 +6,7 @@ namespace Whirlwind.Semantic.Checker
 {
     partial class Checker
     {
-        public static bool HasOverload(IDataType type, string methodName, out IDataType returnType)
+        public static bool HasOverload(DataType type, string methodName, out DataType returnType)
         {
             if (type.Classify() == TypeClassifier.OBJECT_INSTANCE)
             {
@@ -29,7 +29,7 @@ namespace Whirlwind.Semantic.Checker
             return false;
         }
 
-        public static bool HasOverload(IDataType type, string methodName, ArgumentList arguments, out IDataType returnType)
+        public static bool HasOverload(DataType type, string methodName, ArgumentList arguments, out DataType returnType)
         {
             if (type.Classify() == TypeClassifier.OBJECT_INSTANCE)
             {

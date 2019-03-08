@@ -14,7 +14,7 @@ namespace Whirlwind.Semantic
         VOLATILE
     }
 
-    class Package : IDataType
+    class Package : DataType
     {
         public readonly SymbolTable ExternalTable;
         public readonly string Name;
@@ -25,10 +25,10 @@ namespace Whirlwind.Semantic
             Name = name;
         }
 
-        public bool Coerce(IDataType _) => false;
+        public bool Coerce(DataType _) => false;
         public TypeClassifier Classify() => TypeClassifier.PACKAGE;
 
-        public bool Equals(IDataType other)
+        public bool Equals(DataType other)
         {
             if (other.Classify() == TypeClassifier.PACKAGE)
                 return Name == ((Package)other).Name;
@@ -40,27 +40,27 @@ namespace Whirlwind.Semantic
     class Symbol
     {
         public readonly string Name;
-        public readonly IDataType DataType;
+        public readonly DataType DataType;
 
         public List<Modifier> Modifiers;
 
         public readonly string Value;
 
-        public Symbol(string name, IDataType dt)
+        public Symbol(string name, DataType dt)
         {
             Name = name;
             DataType = dt;
             Modifiers = new List<Modifier>();
         }
 
-        public Symbol(string name, IDataType dt, List<Modifier> modifiers)
+        public Symbol(string name, DataType dt, List<Modifier> modifiers)
         {
             Name = name;
             DataType = dt;
             Modifiers = modifiers;
         }
 
-        public Symbol(string name, IDataType dt, string value)
+        public Symbol(string name, DataType dt, string value)
         {
             Name = name;
             DataType = dt;
@@ -68,7 +68,7 @@ namespace Whirlwind.Semantic
             Value = value;
         }
 
-        public Symbol(string name, IDataType dt, List<Modifier> modifiers, string value)
+        public Symbol(string name, DataType dt, List<Modifier> modifiers, string value)
         {
             Name = name;
             DataType = dt;

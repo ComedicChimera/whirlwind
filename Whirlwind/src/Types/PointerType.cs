@@ -1,32 +1,32 @@
 ﻿namespace Whirlwind.Types
 {
-    class PointerType : DataType, IDataType
+    class PointerType : DataType
     {
-        public readonly IDataType Type;
+        public readonly DataType Type;
         public int Pointers;
 
-        public PointerType(IDataType dt, int pointers)
+        public PointerType(DataType dt, int pointers)
         {
             Type = dt;
             Pointers = pointers;
         }
 
-        protected sealed override bool _coerce(IDataType other)
+        protected sealed override bool _coerce(DataType other)
         {
             if (Equals(other))
                 return true;
             else if (other.Classify() == TypeClassifier.POINTER)
             {
-                if (Type.Classify() == TypeClassifier.SIMPLE && ((SimpleType)Type).Type == SimpleType.DataType.VOID)
+                if (Type.Classify() == TypeClassifier.SIMPLE && ((SimpleType)Type).Type == SimpleType.SimpleClassifier.VOID)
                     return true;
             }
 
             return false;
         }
 
-        public TypeClassifier Classify() => TypeClassifier.POINTER;
+        public override TypeClassifier Classify() => TypeClassifier.POINTER;
 
-        public bool Equals(IDataType other)
+        public override bool Equals(DataType other)
         {
             if (other.Classify() == TypeClassifier.POINTER)
             {

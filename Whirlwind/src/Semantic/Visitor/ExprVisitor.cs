@@ -36,7 +36,7 @@ namespace Whirlwind.Semantic.Visitor
 
                         var content = ((ExprNode)_nodes.Last()).Nodes;
 
-                        if (!new SimpleType(SimpleType.DataType.BOOL).Coerce(content[1].Type))
+                        if (!new SimpleType(SimpleType.SimpleClassifier.BOOL).Coerce(content[1].Type))
                             throw new SemanticException("Comparison expression of inline comparison must evaluate to a boolean", node.Content[0].Position);
 
                         if (!content[0].Type.Coerce(content[2].Type) || !content[2].Type.Coerce(content[0].Type))
@@ -46,7 +46,7 @@ namespace Whirlwind.Semantic.Visitor
                     {
                         _nodes.Add(new ValueNode("Type", _generateType((ASTNode)((ASTNode)subNode).Content[1])));
 
-                        _nodes.Add(new ExprNode("Is", new SimpleType(SimpleType.DataType.BOOL)));
+                        _nodes.Add(new ExprNode("Is", new SimpleType(SimpleType.SimpleClassifier.BOOL)));
 
                         PushForward(2);
                     }
@@ -56,8 +56,8 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitInlineCase(ASTNode node)
         {
-            IDataType dt = new SimpleType();
-            IDataType rootType = _nodes.Last().Type;
+            DataType dt = new SimpleType();
+            DataType rootType = _nodes.Last().Type;
 
             int caseCount = 2;
             foreach (var item in node.Content)
@@ -145,7 +145,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             string op = "";
             bool hitFirst = false;
-            IDataType rootType = new SimpleType();
+            DataType rootType = new SimpleType();
 
             foreach (var subNode in node.Content)
             {
@@ -187,7 +187,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             string op = "";
             bool hitFirst = false;
-            IDataType rootType = new SimpleType();
+            DataType rootType = new SimpleType();
 
             foreach (var subNode in node.Content)
             {
@@ -216,9 +216,9 @@ namespace Whirlwind.Semantic.Visitor
                     {
                         _visitShift((ASTNode)notNode.Content[1]);
 
-                        if (new SimpleType(SimpleType.DataType.BOOL).Coerce(_nodes.Last().Type))
+                        if (new SimpleType(SimpleType.SimpleClassifier.BOOL).Coerce(_nodes.Last().Type))
                         {
-                            _nodes.Add(new ExprNode("Not", new SimpleType(SimpleType.DataType.BOOL)));
+                            _nodes.Add(new ExprNode("Not", new SimpleType(SimpleType.SimpleClassifier.BOOL)));
                             PushForward();
                         }
                         else if (_nodes.Last().Type.Classify() == TypeClassifier.SIMPLE)
@@ -226,7 +226,7 @@ namespace Whirlwind.Semantic.Visitor
                             _nodes.Add(new ExprNode("Not", _nodes.Last().Type));
                             PushForward();
                         }
-                        else if (HasOverload(_nodes.Last().Type, "__not__", out IDataType returnType))
+                        else if (HasOverload(_nodes.Last().Type, "__not__", out DataType returnType))
                         {
                             _nodes.Add(new ExprNode("Not", returnType));
                             PushForward();
@@ -255,7 +255,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             string op = "";
             bool hitFirst = false;
-            IDataType rootType = new SimpleType();
+            DataType rootType = new SimpleType();
 
             foreach (var subNode in node.Content)
             {
@@ -298,7 +298,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             string op = "";
             bool hitFirst = false;
-            IDataType rootType = new SimpleType();
+            DataType rootType = new SimpleType();
 
             foreach (var subNode in node.Content)
             {
@@ -403,8 +403,8 @@ namespace Whirlwind.Semantic.Visitor
 
             string treeName;
 
-            IDataType rootType = _nodes.Last().Type;
-            IDataType dt;
+            DataType rootType = _nodes.Last().Type;
+            DataType dt;
 
 
             switch (op)
@@ -440,7 +440,7 @@ namespace Whirlwind.Semantic.Visitor
                         // only simple types are numeric - remove unsigned
                         dt = new SimpleType(((SimpleType)rootType).Type);
                     }
-                    else if (HasOverload(rootType, "__neg__", out IDataType newDt))
+                    else if (HasOverload(rootType, "__neg__", out DataType newDt))
                     {
                         _nodes.Add(new ExprNode("ChangeSign", newDt));
                         // push root type
@@ -455,7 +455,7 @@ namespace Whirlwind.Semantic.Visitor
 
                     if (rootType.Classify() == TypeClassifier.SIMPLE)
                         dt = rootType;
-                    else if (HasOverload(rootType, "__comp__", out IDataType newDt))
+                    else if (HasOverload(rootType, "__comp__", out DataType newDt))
                     {
                         _nodes.Add(new ExprNode("Complement", newDt));
                         // push root type

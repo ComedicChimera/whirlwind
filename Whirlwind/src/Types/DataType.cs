@@ -1,24 +1,17 @@
 ﻿namespace Whirlwind.Types
 {
-    interface IDataType
+    abstract class DataType
     {
-        // coerce other to self
-        bool Coerce(IDataType other);
-        // get a given data type classifier as a string
-        TypeClassifier Classify();
-        // check two data types for perfect equality (rarely used)
-        bool Equals(IDataType other);
-        // return whether or not a given data type is constant
-        bool Constant();
-        // returns the interface of a given type
-        InterfaceType GetInterface(); 
-    }
-
-    class DataType
-    {
+        // store constancy
         private bool _constant = false;
+        // store the types interface
         private InterfaceType _interf;
-        public bool Coerce(IDataType other)
+
+        // returns whether or not the type is constant
+        public virtual bool Constant() => _constant;
+
+        // check if another data type can be coerced to this type
+        public virtual bool Coerce(DataType other)
         {
             if (other.Classify() == TypeClassifier.NULL || other.Classify() == TypeClassifier.TEMPLATE_PLACEHOLDER)
                 return true;
@@ -29,20 +22,26 @@
             return _coerce(other);
         }
 
-        protected virtual bool _coerce(IDataType other) => false;
+        // internal coerce method
+        protected virtual bool _coerce(DataType other) => false;
 
-        public bool Constant() => _constant;
+        // returns the types interface
+        public virtual InterfaceType GetInterface() => _interf;
 
-        public InterfaceType GetInterface() => _interf;
+        // get a given data type classifier as a string
+        public abstract TypeClassifier Classify();
+
+        // check two data types for perfect equality (rarely used)
+        public abstract bool Equals(DataType other);
     }
 
-    class NullType : IDataType
+    class NullType : DataType
     {
-        public bool Coerce(IDataType other) => true;
+        public override bool Coerce(DataType other) => true;
 
-        public TypeClassifier Classify() => TypeClassifier.NULL;
+        public override TypeClassifier Classify() => TypeClassifier.NULL;
 
-        public bool Equals(IDataType other) => false;
+        public override bool Equals(DataType other) => false;
     }
 
     enum TypeClassifier
@@ -57,15 +56,13 @@
         TUPLE,
         INTERFACE,
         INTERFACE_INSTANCE,
+        TYPE_CLASS,
+        TYPE_CLASS_INSTANCE,
         FUNCTION,
-        OBJECT,
-        OBJECT_INSTANCE,
         TEMPLATE,
         TEMPLATE_ALIAS,
         TEMPLATE_PLACEHOLDER,
         PACKAGE,
-        ENUM,
-        ENUM_MEMBER,
         NULL,
         REFERENCE,
         AGENT,

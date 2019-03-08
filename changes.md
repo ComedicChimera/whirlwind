@@ -37,8 +37,9 @@ Changes:
 - add function overloading
 - remove privacy
 - allow compound assignment with any operator
-- remove agents (maybe)
 - remove constexpr
+- allow for multitype generics
+  * type any<...T> V from T;
 
 # Completed
 - remove null coalescion operator

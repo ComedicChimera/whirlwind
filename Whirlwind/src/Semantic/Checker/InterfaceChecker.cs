@@ -22,19 +22,19 @@ namespace Whirlwind.Semantic.Checker
                 "StaticGet"
         };
 
-        public static bool Hashable(IDataType dt)
+        public static bool Hashable(DataType dt)
         {
             if (new[] { TypeClassifier.ARRAY, TypeClassifier.DICT, TypeClassifier.LIST, TypeClassifier.FUNCTION, TypeClassifier.TUPLE }.Contains(dt.Classify()))
                 return false;
             return true;
         }
 
-        public static bool Iterable(IDataType dt)
+        public static bool Iterable(DataType dt)
         {
             if (dt is IIterable)
                 return true;
 
-            if (HasOverload(dt, "__next__", out IDataType returnType))
+            if (HasOverload(dt, "__next__", out DataType returnType))
             {
                 if (returnType.Classify() == TypeClassifier.STRUCT_INSTANCE)
                 {
@@ -81,18 +81,18 @@ namespace Whirlwind.Semantic.Checker
 
         // also not technically an interface, but it exhibits similar behavior
         // checks if it is a number type (int, float, ect.)
-        public static bool Numeric(IDataType dt)
+        public static bool Numeric(DataType dt)
         {
             if (dt.Classify() == TypeClassifier.SIMPLE)
             {
                 return !new[] {
-                        SimpleType.DataType.STRING, SimpleType.DataType.BYTE, SimpleType.DataType.BOOL, SimpleType.DataType.CHAR
+                        SimpleType.SimpleClassifier.STRING, SimpleType.SimpleClassifier.BYTE, SimpleType.SimpleClassifier.BOOL, SimpleType.SimpleClassifier.CHAR
                     }.Contains(((SimpleType)dt).Type);
             }
             return false;
         }
 
-        public static bool IsException(IDataType dt)
+        public static bool IsException(DataType dt)
         {
             return false;
         }

@@ -3,18 +3,18 @@ using System.Linq;
 
 namespace Whirlwind.Types
 {
-    class TupleType : DataType, IDataType
+    class TupleType : DataType
     {
-        public readonly List<IDataType> Types;
+        public readonly List<DataType> Types;
 
-        public TupleType(List<IDataType> types)
+        public TupleType(List<DataType> types)
         {
             Types = types;
         }
 
-        public TypeClassifier Classify() => TypeClassifier.TUPLE;
+        public override TypeClassifier Classify() => TypeClassifier.TUPLE;
 
-        protected sealed override bool _coerce(IDataType other)
+        protected sealed override bool _coerce(DataType other)
         {
             if (other.Classify() == TypeClassifier.TUPLE)
             {
@@ -26,6 +26,6 @@ namespace Whirlwind.Types
             return false;
         }
 
-        public bool Equals(IDataType other) => Coerce(other);
+        public override bool Equals(DataType other) => Coerce(other);
     }
 }

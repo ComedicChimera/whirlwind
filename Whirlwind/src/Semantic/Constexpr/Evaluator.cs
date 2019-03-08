@@ -157,7 +157,7 @@ namespace Whirlwind.Semantic.Constexpr
                 {
                     var val = Evaluate(node.Nodes[1]);
 
-                    if (val.Type is SimpleType && ((SimpleType)val.Type).Type == SimpleType.DataType.INTEGER)
+                    if (val.Type is SimpleType && ((SimpleType)val.Type).Type == SimpleType.SimpleClassifier.INTEGER)
                     {
                         int ndx = int.Parse(((ValueNode)val).Value);
 
@@ -279,7 +279,7 @@ namespace Whirlwind.Semantic.Constexpr
                 throw new ArgumentException("Unable to evaluate the given argument");              
         }
 
-        private static dynamic _convertToCSharpType(IDataType dt, string value)
+        private static dynamic _convertToCSharpType(DataType dt, string value)
         {
             if (dt is SimpleType)
             {
@@ -287,19 +287,19 @@ namespace Whirlwind.Semantic.Constexpr
 
                 switch (sdc)
                 {
-                    case SimpleType.DataType.INTEGER:
+                    case SimpleType.SimpleClassifier.INTEGER:
                         return int.Parse(value);
-                    case SimpleType.DataType.FLOAT:
+                    case SimpleType.SimpleClassifier.FLOAT:
                         return float.Parse(value);
-                    case SimpleType.DataType.DOUBLE:
+                    case SimpleType.SimpleClassifier.DOUBLE:
                         return double.Parse(value);
-                    case SimpleType.DataType.LONG:
+                    case SimpleType.SimpleClassifier.LONG:
                         return long.Parse(value);
-                    case SimpleType.DataType.BOOL:
+                    case SimpleType.SimpleClassifier.BOOL:
                         return bool.Parse(value);
-                    case SimpleType.DataType.CHAR:
+                    case SimpleType.SimpleClassifier.CHAR:
                         return char.Parse(value);
-                    case SimpleType.DataType.STRING:
+                    case SimpleType.SimpleClassifier.STRING:
                         return value;
                 }
             }

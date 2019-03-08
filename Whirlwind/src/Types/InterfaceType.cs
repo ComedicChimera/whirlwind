@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Whirlwind.Types
 {
-    class InterfaceType : DataType, IDataType
+    class InterfaceType : DataType, DataType
     {
         private readonly Dictionary<Symbol, bool> _methods;
         private readonly Dictionary<Symbol, bool> _methodTemplates;
@@ -69,7 +69,7 @@ namespace Whirlwind.Types
 
         public TypeClassifier Classify() => initialized ? TypeClassifier.INTERFACE_INSTANCE : TypeClassifier.INTERFACE;
 
-        protected sealed override bool _coerce(IDataType other)
+        protected sealed override bool _coerce(DataType other)
         {
             var interf = other.GetInterface();
 
@@ -79,7 +79,7 @@ namespace Whirlwind.Types
 
         public InterfaceType GetInstance() => new InterfaceType(this);
 
-        public bool Equals(IDataType other)
+        public bool Equals(DataType other)
         {
             if (other.Classify() == TypeClassifier.INTERFACE || other.Classify() == TypeClassifier.INTERFACE_INSTANCE)
             {
@@ -118,7 +118,7 @@ namespace Whirlwind.Types
         }
 
         // tests if a type implements all necessary methods to be a child of this interface
-        public bool Derive(IDataType child)
+        public bool Derive(DataType child)
         {
             var interf = child.GetInterface();
 

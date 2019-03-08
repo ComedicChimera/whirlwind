@@ -7,7 +7,7 @@ using Whirlwind.Semantic;
 namespace Whirlwind.Types
 {
     // represents the template placeholder in the template signature
-    class TemplatePlaceholder : IDataType
+    class TemplatePlaceholder : DataType
     {
         public readonly string Name;
         
@@ -17,10 +17,10 @@ namespace Whirlwind.Types
         }
 
         // the actual type of placeholder is irrelevant
-        public bool Coerce(IDataType other) => true;
-        public TypeClassifier Classify() => TypeClassifier.TEMPLATE_PLACEHOLDER;
+        public override bool Coerce(DataType other) => true;
+        public override TypeClassifier Classify() => TypeClassifier.TEMPLATE_PLACEHOLDER;
 
-        public bool Equals(IDataType other)
+        public override bool Equals(DataType other)
         {
             if (other.Classify() == TypeClassifier.TEMPLATE_PLACEHOLDER)
                 return Name == ((TemplatePlaceholder)other).Name;
@@ -30,31 +30,31 @@ namespace Whirlwind.Types
     }
 
     // represents the various aliases of the templates (ie. the T in template<T>)
-    class TemplateAlias : IDataType
+    class TemplateAlias : DataType
     {
-        public readonly IDataType ReplacementType;
+        public readonly DataType ReplacementType;
 
-        public TemplateAlias(IDataType replacementType)
+        public TemplateAlias(DataType replacementType)
         {
             ReplacementType = replacementType;
         }
 
-        public bool Coerce(IDataType other) => false;
-        public TypeClassifier Classify() => TypeClassifier.TEMPLATE_ALIAS;
+        public override bool Coerce(DataType other) => false;
+        public override TypeClassifier Classify() => TypeClassifier.TEMPLATE_ALIAS;
 
-        public bool Equals(IDataType other) => false;
+        public override bool Equals(DataType other) => false;
     }
 
     // function used to evaluate template body
-    delegate TemplateGenerate TemplateEvaluator(Dictionary<string, IDataType> aliases, TemplateType parent);
+    delegate TemplateGenerate TemplateEvaluator(Dictionary<string, DataType> aliases, TemplateType parent);
 
     // a struct containing the template name and its restrictors
     struct TemplateVariable
     {
         public readonly string Name;
-        public readonly List<IDataType> Restrictors;
+        public readonly List<DataType> Restrictors;
 
-        public TemplateVariable(string name, List<IDataType> restrictors)
+        public TemplateVariable(string name, List<DataType> restrictors)
         {
             Name = name;
             Restrictors = restrictors;
@@ -64,10 +64,10 @@ namespace Whirlwind.Types
     // represents a single template generate instance
     struct TemplateGenerate
     {
-        public IDataType DataType;
+        public DataType DataType;
         public BlockNode Block;
 
-        public TemplateGenerate(IDataType dt, BlockNode block)
+        public TemplateGenerate(DataType dt, BlockNode block)
         {
             DataType = dt;
             Block = block;
@@ -75,32 +75,32 @@ namespace Whirlwind.Types
     }
 
     // represents the full template object (entire template method, obj, ect.)
-    class TemplateType : IDataType
+    class TemplateType : DataType
     {
         private readonly List<TemplateVariable> _templates;
         private readonly TemplateEvaluator _evaluator;
-        private readonly List<List<IDataType>> _variants;
+        private readonly List<List<DataType>> _variants;
 
-        public IDataType DataType { get; private set; }
+        public DataType DataType { get; private set; }
         public List<TemplateGenerate> Generates { get; private set; }
 
-        public TemplateType(List<TemplateVariable> templates, IDataType type, TemplateEvaluator evaluator)
+        public TemplateType(List<TemplateVariable> templates, DataType type, TemplateEvaluator evaluator)
         {
             _templates = templates;
             DataType = type;
 
             _evaluator = evaluator;
 
-            _variants = new List<List<IDataType>>();
+            _variants = new List<List<DataType>>();
 
             Generates = new List<TemplateGenerate>();
         }
 
-        public bool CreateTemplate(List<IDataType> dataTypes, out IDataType templateType)
+        public bool CreateTemplate(List<DataType> dataTypes, out DataType templateType)
         {
             if (dataTypes.Count == _templates.Count)
             {
-                var aliases = new Dictionary<string, IDataType>();
+                var aliases = new Dictionary<string, DataType>();
 
                 using (var e1 = _templates.GetEnumerator())
                 using (var e2 = dataTypes.GetEnumerator())
@@ -132,7 +132,7 @@ namespace Whirlwind.Types
             return false;
         }
 
-        public bool Infer(ArgumentList arguments, out List<IDataType> inferredTypes)
+        public bool Infer(ArgumentList arguments, out List<DataType> inferredTypes)
         {
             switch (DataType.Classify())
             {
@@ -144,13 +144,13 @@ namespace Whirlwind.Types
                     break;
             }
 
-            inferredTypes = new List<IDataType>();
+            inferredTypes = new List<DataType>();
             return false;
         }
 
-        private bool _inferFromFunction(FunctionType fnType, ArgumentList arguments, out List<IDataType> inferredTypes)
+        private bool _inferFromFunction(FunctionType fnType, ArgumentList arguments, out List<DataType> inferredTypes)
         {
-            var completedAliases = new Dictionary<string, IDataType>();
+            var completedAliases = new Dictionary<string, DataType>();
 
             using (var e1 = fnType.Parameters.GetEnumerator())
             using (var e2 = arguments.UnnamedArguments.GetEnumerator())
@@ -159,7 +159,7 @@ namespace Whirlwind.Types
                 {
                     if (!_checkCompletedAliases(e1.Current.DataType, e2.Current, completedAliases))
                     {
-                        inferredTypes = new List<IDataType>();
+                        inferredTypes = new List<DataType>();
                         return false;
                     }
                 }
@@ -174,7 +174,7 @@ namespace Whirlwind.Types
                 {
                     if (!_checkCompletedAliases(matches.First().DataType, nArg.Value, completedAliases))
                     {
-                        inferredTypes = new List<IDataType>();
+                        inferredTypes = new List<DataType>();
                         return false;
                     }
                 }
@@ -194,11 +194,11 @@ namespace Whirlwind.Types
                 }
             }
 
-            inferredTypes = new List<IDataType>();
+            inferredTypes = new List<DataType>();
             return false;
         }
 
-        private bool _checkCompletedAliases(IDataType paramType, IDataType argType, Dictionary<string, IDataType> completedAliases)
+        private bool _checkCompletedAliases(DataType paramType, DataType argType, Dictionary<string, DataType> completedAliases)
         {
             var aliases = _getCompletedAliases(paramType);
 
@@ -221,7 +221,7 @@ namespace Whirlwind.Types
             return true;
         }
 
-        private List<string> _getCompletedAliases(IDataType dt)
+        private List<string> _getCompletedAliases(DataType dt)
         {
             var aliasesCompleted = new List<string>();
 
@@ -284,7 +284,7 @@ namespace Whirlwind.Types
             return aliasesCompleted;
         }
 
-        public bool AddVariant(List<IDataType> dataTypes)
+        public bool AddVariant(List<DataType> dataTypes)
         {
             if (dataTypes.Count != _templates.Count)
                 return false;
@@ -308,11 +308,11 @@ namespace Whirlwind.Types
             return true;
         }
 
-        public bool Coerce(IDataType other) => Equals(other);
+        public override bool Coerce(DataType other) => Equals(other);
 
-        public TypeClassifier Classify() => TypeClassifier.TEMPLATE;
+        public override TypeClassifier Classify() => TypeClassifier.TEMPLATE;
 
-        public bool Equals(IDataType other)
+        public override bool Equals(DataType other)
         {
             if (other.Classify() == TypeClassifier.TEMPLATE)
             {

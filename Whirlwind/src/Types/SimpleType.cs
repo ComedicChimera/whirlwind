@@ -2,9 +2,9 @@
 
 namespace Whirlwind.Types
 {
-    class SimpleType : DataType, IDataType
+    class SimpleType : DataType
     {
-        public enum DataType
+        public enum SimpleClassifier
         {
             INTEGER,
             FLOAT,
@@ -17,27 +17,27 @@ namespace Whirlwind.Types
             VOID
         }
 
-        public DataType Type { get; private set; }
+        public SimpleClassifier Type { get; private set; }
         public readonly bool Unsigned;
 
         public SimpleType()
         {
-            Type = DataType.VOID;
+            Type = SimpleClassifier.VOID;
             Unsigned = false;
         }
 
-        public SimpleType(DataType dt, bool unsigned = false)
+        public SimpleType(SimpleClassifier dt, bool unsigned = false)
         {
             Type = dt;
             Unsigned = unsigned;
         }
 
-        public TypeClassifier Classify() => TypeClassifier.SIMPLE;
+        public override TypeClassifier Classify() => TypeClassifier.SIMPLE;
 
-        protected sealed override bool _coerce(IDataType other)
+        protected sealed override bool _coerce(DataType other)
         {
             // null can coerce to anything
-            if (Type == DataType.VOID)
+            if (Type == SimpleClassifier.VOID)
                 return true;
             if (other.Classify() == TypeClassifier.SIMPLE)
             {
@@ -51,23 +51,23 @@ namespace Whirlwind.Types
                 switch (((SimpleType)other).Type)
                 {
                     // integer to long, double, and float
-                    case DataType.INTEGER:
-                        return new[] { DataType.FLOAT, DataType.LONG, DataType.DOUBLE }.Contains(Type);
+                    case SimpleClassifier.INTEGER:
+                        return new[] { SimpleClassifier.FLOAT, SimpleClassifier.LONG, SimpleClassifier.DOUBLE }.Contains(Type);
                     // float to double
-                    case DataType.FLOAT:
-                        return Type == DataType.DOUBLE;
+                    case SimpleClassifier.FLOAT:
+                        return Type == SimpleClassifier.DOUBLE;
                     // char to integer and string
-                    case DataType.CHAR:
-                        return Type == DataType.STRING;
+                    case SimpleClassifier.CHAR:
+                        return Type == SimpleClassifier.STRING;
                     // byte to everything except boolean and data type
-                    case DataType.BYTE:
-                        return Type != DataType.BOOL;
+                    case SimpleClassifier.BYTE:
+                        return Type != SimpleClassifier.BOOL;
                 }
             }
             return false; 
         }
 
-        public bool Equals(IDataType other)
+        public override bool Equals(DataType other)
         {
             if (other.Classify() == TypeClassifier.SIMPLE)
             {

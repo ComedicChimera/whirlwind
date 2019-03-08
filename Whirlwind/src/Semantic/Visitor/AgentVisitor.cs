@@ -16,7 +16,7 @@ namespace Whirlwind.Semantic.Visitor
             _table.DescendScope();
 
             string name = "";
-            List<IDataType> evhTypes = new List<IDataType>();
+            List<DataType> evhTypes = new List<DataType>();
 
             foreach (var item in node.Content)
             {
@@ -61,7 +61,7 @@ namespace Whirlwind.Semantic.Visitor
         private void _visitEventDecl(ASTNode node)
         {
             _nodes.Add(new BlockNode("EventHandler"));
-            IDataType exprType = new SimpleType();
+            DataType exprType = new SimpleType();
 
             _table.AddScope();
             _table.DescendScope();
@@ -92,7 +92,7 @@ namespace Whirlwind.Semantic.Visitor
                             ASTNode evhCond = (ASTNode)item;
 
                             string idName = ((TokenNode)evhCond.Content[0]).Tok.Value;
-                            IDataType dt = _generateType((ASTNode)evhCond.Content[2]);
+                            DataType dt = _generateType((ASTNode)evhCond.Content[2]);
 
                             _nodes.Add(new IdentifierNode(idName, dt, true));
                             // since it is the first item in scope, no check necessary
@@ -100,7 +100,7 @@ namespace Whirlwind.Semantic.Visitor
 
                             _visitExpr((ASTNode)evhCond.Content[4]);
 
-                            if (!new SimpleType(SimpleType.DataType.BOOL).Coerce(_nodes.Last().Type))
+                            if (!new SimpleType(SimpleType.SimpleClassifier.BOOL).Coerce(_nodes.Last().Type))
                                 throw new SemanticException("Condition must be evaluate to a boolean", evhCond.Content[4].Position);
 
                             _nodes.Add(new ExprNode("ConditionHandler", dt));

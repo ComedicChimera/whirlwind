@@ -15,26 +15,26 @@ namespace Whirlwind.Semantic.Visitor
         {
             if (node.Content[0].Name == "TOKEN")
             {
-                SimpleType.DataType dt = SimpleType.DataType.VOID;
+                SimpleType.SimpleClassifier dt = SimpleType.SimpleClassifier.VOID;
                 bool unsigned = false;
                 switch (((TokenNode)node.Content[0]).Tok.Type)
                 {
                     case "INTEGER_LITERAL":
-                        dt = SimpleType.DataType.INTEGER;
+                        dt = SimpleType.SimpleClassifier.INTEGER;
                         unsigned = true;
                         break;
                     case "FLOAT_LITERAL":
-                        dt = SimpleType.DataType.FLOAT;
+                        dt = SimpleType.SimpleClassifier.FLOAT;
                         unsigned = true;
                         break;
                     case "BOOL_LITERAL":
-                        dt = SimpleType.DataType.BOOL;
+                        dt = SimpleType.SimpleClassifier.BOOL;
                         break;
                     case "STRING_LITERAL":
-                        dt = SimpleType.DataType.STRING;
+                        dt = SimpleType.SimpleClassifier.STRING;
                         break;
                     case "CHAR_LITERAL":
-                        dt = SimpleType.DataType.CHAR;
+                        dt = SimpleType.SimpleClassifier.CHAR;
                         break;
                     case "HEX_LITERAL":
                     case "BINARY_LITERAL":
@@ -112,9 +112,9 @@ namespace Whirlwind.Semantic.Visitor
             }
         }
 
-        private Tuple<IDataType, int> _visitSet(ASTNode node)
+        private Tuple<DataType, int> _visitSet(ASTNode node)
         {
-            IDataType elementType = new SimpleType();
+            DataType elementType = new SimpleType();
             int size = 0;
             foreach (var element in node.Content)
             {
@@ -125,12 +125,12 @@ namespace Whirlwind.Semantic.Visitor
                     size++;
                 }
             }
-            return new Tuple<IDataType, int>(elementType, size);
+            return new Tuple<DataType, int>(elementType, size);
         }
 
-        private Tuple<IDataType, IDataType, int> _visitDict(ASTNode node)
+        private Tuple<DataType, DataType, int> _visitDict(ASTNode node)
         {
-            IDataType keyType = new SimpleType(), valueType = new SimpleType();
+            DataType keyType = new SimpleType(), valueType = new SimpleType();
             bool isKey = true;
             int size = 0;
 
@@ -161,12 +161,12 @@ namespace Whirlwind.Semantic.Visitor
                 }
             }
 
-            return new Tuple<IDataType, IDataType, int>(keyType, valueType, size);
+            return new Tuple<DataType, DataType, int>(keyType, valueType, size);
         }
 
-        private void _coerceSet(ref IDataType baseType, TextPosition pos)
+        private void _coerceSet(ref DataType baseType, TextPosition pos)
         {
-            IDataType newType = _nodes.Last().Type;
+            DataType newType = _nodes.Last().Type;
 
             if (_isVoid(baseType))
             {
@@ -202,7 +202,7 @@ namespace Whirlwind.Semantic.Visitor
             {
                 if (token.Value.Length < 5 /* 5 to account for prefix */)
                 {
-                    _nodes.Add(new ValueNode("Literal", new SimpleType(SimpleType.DataType.BYTE, true), token.Value));
+                    _nodes.Add(new ValueNode("Literal", new SimpleType(SimpleType.SimpleClassifier.BYTE, true), token.Value));
                 }
                 else
                 {
@@ -212,11 +212,11 @@ namespace Whirlwind.Semantic.Visitor
                         .Where(x => x % 2 == 0)
                         .Select(x => "0x" + value[x] + value[x + 1])
                         .Select(x => new ValueNode("Literal",
-                            new SimpleType(SimpleType.DataType.BYTE, true),
+                            new SimpleType(SimpleType.SimpleClassifier.BYTE, true),
                             x))
                         .ToArray();
                     _nodes.Add(new ExprNode("Array",
-                        new ArrayType(new SimpleType(SimpleType.DataType.BYTE, true), pairs.Length)
+                        new ArrayType(new SimpleType(SimpleType.SimpleClassifier.BYTE, true), pairs.Length)
                         ));
                     foreach (ValueNode node in pairs)
                     {
@@ -229,7 +229,7 @@ namespace Whirlwind.Semantic.Visitor
             {
                 if (token.Value.Length < 11 /* 11 to account for prefix */)
                 {
-                    _nodes.Add(new ValueNode("Literal", new SimpleType(SimpleType.DataType.BYTE, true), token.Value));
+                    _nodes.Add(new ValueNode("Literal", new SimpleType(SimpleType.SimpleClassifier.BYTE, true), token.Value));
                 }
                 else
                 {
@@ -240,11 +240,11 @@ namespace Whirlwind.Semantic.Visitor
                         .Where(x => x % 8 == 0)
                         .Select(x => "0b" + value.Substring(x, 8))
                         .Select(x => new ValueNode("Literal",
-                            new SimpleType(SimpleType.DataType.BYTE, true),
+                            new SimpleType(SimpleType.SimpleClassifier.BYTE, true),
                             x))
                         .ToArray();
                     _nodes.Add(new ExprNode("Array",
-                        new ArrayType(new SimpleType(SimpleType.DataType.BYTE, true), pairs.Length)
+                        new ArrayType(new SimpleType(SimpleType.SimpleClassifier.BYTE, true), pairs.Length)
                         ));
                     foreach (ValueNode node in pairs)
                     {
@@ -258,7 +258,7 @@ namespace Whirlwind.Semantic.Visitor
         private void _visitClosure(ASTNode node)
         {
             var args = new List<Parameter>();
-            IDataType rtType = new SimpleType();
+            DataType rtType = new SimpleType();
             bool async = false;
 
             foreach (var item in node.Content)
@@ -290,7 +290,7 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitTypeCast(ASTNode node)
         {
-            IDataType dt = new SimpleType();
+            DataType dt = new SimpleType();
 
             foreach (var item in node.Content)
             {
@@ -310,7 +310,7 @@ namespace Whirlwind.Semantic.Visitor
         private void _visitTuple(ASTNode node)
         {
             int count = 0;
-            var types = new List<IDataType>();
+            var types = new List<DataType>();
 
             foreach (var subNode in node.Content)
             {

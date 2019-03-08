@@ -14,9 +14,9 @@ namespace Whirlwind.Semantic.Visitor
     {
         bool _selfNeedsPointer = false;
 
-        public List<IDataType> _generateTypeList(ASTNode node)
+        public List<DataType> _generateTypeList(ASTNode node)
         {
-            var dataTypes = new List<IDataType>();
+            var dataTypes = new List<DataType>();
             foreach (var subNode in node.Content)
             {
                 if (subNode.Name == "types")
@@ -25,9 +25,9 @@ namespace Whirlwind.Semantic.Visitor
             return dataTypes;
         }
 
-        public IDataType _generateType(ASTNode node)
+        public DataType _generateType(ASTNode node)
         {
-            IDataType dt = new SimpleType();
+            DataType dt = new SimpleType();
             int pointers = 0;
             bool reference = false;
 
@@ -109,43 +109,43 @@ namespace Whirlwind.Semantic.Visitor
             return dt;
         }
 
-        private IDataType _generateBaseType(ASTNode node)
+        private DataType _generateBaseType(ASTNode node)
         {
             foreach (var subNode in node.Content)
             {
                 if (subNode.Name == "simple_types")
                 {
-                    SimpleType.DataType dt;
+                    SimpleType.SimpleClassifier dt;
                     Token tok = ((TokenNode)((ASTNode)subNode).Content[0]).Tok;
                     switch (tok.Type)
                     {
                         case "BOOL_TYPE":
-                            dt = SimpleType.DataType.BOOL;
+                            dt = SimpleType.SimpleClassifier.BOOL;
                             break;
                         case "INT_TYPE":
-                            dt = SimpleType.DataType.INTEGER;
+                            dt = SimpleType.SimpleClassifier.INTEGER;
                             break;
                         case "FLOAT_TYPE":
-                            dt = SimpleType.DataType.FLOAT;
+                            dt = SimpleType.SimpleClassifier.FLOAT;
                             break;
                         case "DOUBLE_TYPE":
-                            dt = SimpleType.DataType.DOUBLE;
+                            dt = SimpleType.SimpleClassifier.DOUBLE;
                             break;
                         case "LONG_TYPE":
-                            dt = SimpleType.DataType.LONG;
+                            dt = SimpleType.SimpleClassifier.LONG;
                             break;
                         case "BYTE_TYPE":
-                            dt = SimpleType.DataType.BYTE;
+                            dt = SimpleType.SimpleClassifier.BYTE;
                             break;
                         case "STRING_TYPE":
-                            dt = SimpleType.DataType.STRING;
+                            dt = SimpleType.SimpleClassifier.STRING;
                             break;
                         case "CHAR_TYPE":
-                            dt = SimpleType.DataType.CHAR;
+                            dt = SimpleType.SimpleClassifier.CHAR;
                             break;
                         // void type
                         default:
-                            dt = SimpleType.DataType.VOID;
+                            dt = SimpleType.SimpleClassifier.VOID;
                             break;
                     }
 
@@ -156,7 +156,7 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     string collectionType = "";
                     int size = 0;
-                    var subTypes = new List<IDataType>();
+                    var subTypes = new List<DataType>();
 
                     foreach (var component in ((ASTNode)subNode).Content)
                     {
@@ -185,7 +185,7 @@ namespace Whirlwind.Semantic.Visitor
 
                             var val = Evaluator.Evaluate((ExprNode)_nodes.Last());
 
-                            if (!new SimpleType(SimpleType.DataType.INTEGER).Coerce(val.Type))
+                            if (!new SimpleType(SimpleType.SimpleClassifier.INTEGER).Coerce(val.Type))
                             {
                                 throw new SemanticException("Invalid data type for array bound", component.Position);
                             }
@@ -220,7 +220,7 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     bool async = false;
 
-                    List<IDataType> returnTypes = new List<IDataType>();
+                    List<DataType> returnTypes = new List<DataType>();
                     List<Parameter> args = new List<Parameter>();
 
                     foreach (var item in ((ASTNode)subNode).Content)
@@ -246,7 +246,7 @@ namespace Whirlwind.Semantic.Visitor
                                     else if (elem.Name == "func_arg_indef")
                                     {
                                         ASTNode arg = (ASTNode)elem;
-                                        IDataType dt = arg.Content.Count == 2 ? _generateType((ASTNode)arg.Content[1]) : new SimpleType();
+                                        DataType dt = arg.Content.Count == 2 ? _generateType((ASTNode)arg.Content[1]) : new SimpleType();
 
                                         args.Add(new Parameter("Arg" + args.Count.ToString(), dt, true, false));
                                     }
@@ -258,7 +258,7 @@ namespace Whirlwind.Semantic.Visitor
                         }
                     }
 
-                    IDataType returnType;
+                    DataType returnType;
 
                     switch (returnTypes.Count)
                     {

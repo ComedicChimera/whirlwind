@@ -22,22 +22,22 @@ namespace Whirlwind.Semantic
     // stores arguments that are passed in to a given function
     class ArgumentList
     {
-        public readonly List<IDataType> UnnamedArguments;
-        public readonly Dictionary<string, IDataType> NamedArguments;
+        public readonly List<DataType> UnnamedArguments;
+        public readonly Dictionary<string, DataType> NamedArguments;
 
         public ArgumentList()
         {
-            UnnamedArguments = new List<IDataType>();
-            NamedArguments = new Dictionary<string, IDataType>();
+            UnnamedArguments = new List<DataType>();
+            NamedArguments = new Dictionary<string, DataType>();
         }
 
-        public ArgumentList(List<IDataType> args)
+        public ArgumentList(List<DataType> args)
         {
             UnnamedArguments = args;
-            NamedArguments = new Dictionary<string, IDataType>();
+            NamedArguments = new Dictionary<string, DataType>();
         }
 
-        public ArgumentList(List<IDataType> _uArgs, Dictionary<string, IDataType> _nArgs)
+        public ArgumentList(List<DataType> _uArgs, Dictionary<string, DataType> _nArgs)
         {
             UnnamedArguments = _uArgs;
             NamedArguments = _nArgs;

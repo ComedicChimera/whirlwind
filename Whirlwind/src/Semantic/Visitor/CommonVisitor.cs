@@ -15,7 +15,7 @@ namespace Whirlwind.Semantic.Visitor
             _visitExpr((ASTNode)node.Content.Last());
 
             var iterable = _nodes.Last().Type;
-            IDataType iteratorType;
+            DataType iteratorType;
 
             if (Iterable(iterable))
             {
@@ -30,7 +30,7 @@ namespace Whirlwind.Semantic.Visitor
                 .Select(x => ((TokenNode)x).Tok.Value)
                 .ToArray();
 
-            var iteratorTypes = iteratorType.Classify() == TypeClassifier.TUPLE ? ((TupleType)iteratorType).Types : new List<IDataType>() { iteratorType };
+            var iteratorTypes = iteratorType.Classify() == TypeClassifier.TUPLE ? ((TupleType)iteratorType).Types : new List<DataType>() { iteratorType };
 
             if (identifiers.Length != iteratorTypes.Count)
                 throw new SemanticException("Base iterator and its aliases don't match", node.Position);
@@ -56,7 +56,7 @@ namespace Whirlwind.Semantic.Visitor
             MergeBack(identifiers.Length);
         }
 
-        private IDataType _getIterableElementType(IDataType iterable)
+        private DataType _getIterableElementType(DataType iterable)
         {
             if (iterable is IIterable)
                 return (iterable as IIterable).GetIterator();
@@ -71,12 +71,12 @@ namespace Whirlwind.Semantic.Visitor
             return new SimpleType();
         }
 
-        private IDataType _generateTemplate(TemplateType baseType, ASTNode templateSpecifier)
+        private DataType _generateTemplate(TemplateType baseType, ASTNode templateSpecifier)
         {
             // template_spec -> type_list
             var typeList = _generateTypeList((ASTNode)templateSpecifier.Content[1]);
             
-            if (baseType.CreateTemplate(typeList, out IDataType dt))
+            if (baseType.CreateTemplate(typeList, out DataType dt))
                 return dt;
             else
                 throw new SemanticException("Invalid type specifier for the given template", templateSpecifier.Position);

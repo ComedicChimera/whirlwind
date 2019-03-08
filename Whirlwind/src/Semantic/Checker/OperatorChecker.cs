@@ -10,7 +10,7 @@ namespace Whirlwind.Semantic.Checker
     partial class Checker
     {
         // takes in rootType by reference so it can handle overloads / type mutations
-        public static void CheckOperand(ref IDataType rootType, IDataType operandType, string op, TextPosition position)
+        public static void CheckOperand(ref DataType rootType, DataType operandType, string op, TextPosition position)
         {
             bool valid = false;
             switch (op)
@@ -19,14 +19,14 @@ namespace Whirlwind.Semantic.Checker
                     {
                         if (Numeric(operandType))
                             valid = true;
-                        else if (new SimpleType(SimpleType.DataType.STRING).Coerce(operandType))
+                        else if (new SimpleType(SimpleType.SimpleClassifier.STRING).Coerce(operandType))
                             valid = true;
                         else if (new[] { TypeClassifier.ARRAY, TypeClassifier.LIST }.Contains(operandType.Classify()))
                             valid = true;
-                        else if (rootType.Classify() == TypeClassifier.POINTER && new SimpleType(SimpleType.DataType.INTEGER).Coerce(operandType))
+                        else if (rootType.Classify() == TypeClassifier.POINTER && new SimpleType(SimpleType.SimpleClassifier.INTEGER).Coerce(operandType))
                             return;
-                        else if (HasOverload(rootType, "__add__", new ArgumentList(new List<IDataType>() { operandType }), 
-                            out IDataType returnType))
+                        else if (HasOverload(rootType, "__add__", new ArgumentList(new List<DataType>() { operandType }), 
+                            out DataType returnType))
                         {
                             rootType = returnType;
                             return;
@@ -45,7 +45,7 @@ namespace Whirlwind.Semantic.Checker
                             valid = true;
                             break;
                         }
-                        if (rootType.Classify() == TypeClassifier.POINTER && new SimpleType(SimpleType.DataType.INTEGER).Coerce(operandType))
+                        if (rootType.Classify() == TypeClassifier.POINTER && new SimpleType(SimpleType.SimpleClassifier.INTEGER).Coerce(operandType))
                             return;
 
                         string methodName;
@@ -68,7 +68,7 @@ namespace Whirlwind.Semantic.Checker
                                 break;
                         }
 
-                        if (HasOverload(rootType, methodName, new ArgumentList(new List<IDataType>() { operandType }), out IDataType returnType))
+                        if (HasOverload(rootType, methodName, new ArgumentList(new List<DataType>() { operandType }), out DataType returnType))
                         {
                             rootType = returnType;
                             return;
@@ -78,10 +78,10 @@ namespace Whirlwind.Semantic.Checker
                 case ">>":
                 case "<<":
                     {
-                        if (rootType.Classify() == TypeClassifier.SIMPLE && new SimpleType(SimpleType.DataType.INTEGER).Coerce(operandType))
+                        if (rootType.Classify() == TypeClassifier.SIMPLE && new SimpleType(SimpleType.SimpleClassifier.INTEGER).Coerce(operandType))
                             return;
-                        else if (HasOverload(rootType, op == ">>" ? "__lshift__" : "__rshift__", new ArgumentList(new List<IDataType>() { operandType }),
-                            out IDataType returnType))
+                        else if (HasOverload(rootType, op == ">>" ? "__lshift__" : "__rshift__", new ArgumentList(new List<DataType>() { operandType }),
+                            out DataType returnType))
                         {
                             rootType = returnType;
                             return;
@@ -91,8 +91,8 @@ namespace Whirlwind.Semantic.Checker
                 case "==":
                 case "!=":
                     {
-                        if (HasOverload(rootType, op == "==" ? "__eq__" : "__neq__", new ArgumentList(new List<IDataType>() { operandType }),
-                            out IDataType returnType))
+                        if (HasOverload(rootType, op == "==" ? "__eq__" : "__neq__", new ArgumentList(new List<DataType>() { operandType }),
+                            out DataType returnType))
                         {
                             rootType = returnType;
                             return;
@@ -108,7 +108,7 @@ namespace Whirlwind.Semantic.Checker
                     {
                         if (Numeric(operandType) || (rootType.Classify() == TypeClassifier.POINTER && operandType.Classify() == TypeClassifier.POINTER))
                         {
-                            rootType = new SimpleType(SimpleType.DataType.BOOL);
+                            rootType = new SimpleType(SimpleType.SimpleClassifier.BOOL);
                             return;
                         }  
 
@@ -130,8 +130,8 @@ namespace Whirlwind.Semantic.Checker
                                 break;
                         }
 
-                        if (HasOverload(rootType, methodName, new ArgumentList(new List<IDataType>() { operandType }), 
-                            out IDataType returnType))
+                        if (HasOverload(rootType, methodName, new ArgumentList(new List<DataType>() { operandType }), 
+                            out DataType returnType))
                         {
                             rootType = returnType;
                             return;
@@ -146,13 +146,13 @@ namespace Whirlwind.Semantic.Checker
                         {
                             SimpleType simpleRoot = (SimpleType)rootType, simpleOperand = (SimpleType)operandType;
 
-                            if (simpleRoot.Type == SimpleType.DataType.BOOL && simpleOperand.Type == SimpleType.DataType.BOOL)
+                            if (simpleRoot.Type == SimpleType.SimpleClassifier.BOOL && simpleOperand.Type == SimpleType.SimpleClassifier.BOOL)
                                 return;
 
                             valid = true;
                         }
-                        else if (HasOverload(rootType, $"__{op.ToLower()}__", new ArgumentList(new List<IDataType>() { operandType }), 
-                            out IDataType returnType))
+                        else if (HasOverload(rootType, $"__{op.ToLower()}__", new ArgumentList(new List<DataType>() { operandType }), 
+                            out DataType returnType))
                         {
                             rootType = returnType;
                             return;
@@ -163,7 +163,7 @@ namespace Whirlwind.Semantic.Checker
 
             if (valid)
             {
-                if (rootType.Classify() == TypeClassifier.SIMPLE && ((SimpleType)rootType).Type == SimpleType.DataType.VOID)
+                if (rootType.Classify() == TypeClassifier.SIMPLE && ((SimpleType)rootType).Type == SimpleType.SimpleClassifier.VOID)
                     throw new SemanticException("Unable to apply operator to root type of void", position);
 
                 if (!rootType.Coerce(operandType))
@@ -176,11 +176,11 @@ namespace Whirlwind.Semantic.Checker
 
                 // all roots that reach this point are simple
                 if (op == "/")
-                    rootType = new SimpleType(_large((SimpleType)rootType) ? SimpleType.DataType.DOUBLE : SimpleType.DataType.FLOAT);
+                    rootType = new SimpleType(_large((SimpleType)rootType) ? SimpleType.SimpleClassifier.DOUBLE : SimpleType.SimpleClassifier.FLOAT);
                 else if (op == "~/")
-                    rootType = new SimpleType(_large((SimpleType)rootType) ? SimpleType.DataType.LONG : SimpleType.DataType.INTEGER);
+                    rootType = new SimpleType(_large((SimpleType)rootType) ? SimpleType.SimpleClassifier.LONG : SimpleType.SimpleClassifier.INTEGER);
                 else if (op == "==" || op == "!=")
-                    rootType = new SimpleType(SimpleType.DataType.BOOL);
+                    rootType = new SimpleType(SimpleType.SimpleClassifier.BOOL);
                 else if (op == "-")
                     // convert all operands in a subtraction operation to signed
                     rootType = new SimpleType(((SimpleType)rootType).Type);
@@ -191,7 +191,7 @@ namespace Whirlwind.Semantic.Checker
 
         static private bool _large(SimpleType rootType)
         {
-            if (new[] { SimpleType.DataType.LONG, SimpleType.DataType.DOUBLE }.Contains(rootType.Type))
+            if (new[] { SimpleType.SimpleClassifier.LONG, SimpleType.SimpleClassifier.DOUBLE }.Contains(rootType.Type))
                 return true;
 
             return false;

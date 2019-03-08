@@ -134,7 +134,7 @@ namespace Whirlwind.Semantic.Visitor
                             processingStack.Add((TokenNode)item);
                         else if (item.Name == "types")
                         {
-                            IDataType type = _generateType((ASTNode)item);
+                            DataType type = _generateType((ASTNode)item);
 
                             foreach (var member in processingStack)
                             {
@@ -176,7 +176,7 @@ namespace Whirlwind.Semantic.Visitor
                     {
                         FunctionType decorType = (FunctionType)_nodes.Last().Type;
 
-                        if (decorType.MatchArguments(new ArgumentList(new List<IDataType>() { fnType })))
+                        if (decorType.MatchArguments(new ArgumentList(new List<DataType>() { fnType })))
                         {
                             // check for void decorators
                             if (_isVoid(decorType.ReturnType))

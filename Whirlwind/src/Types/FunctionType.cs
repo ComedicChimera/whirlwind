@@ -10,13 +10,13 @@ namespace Whirlwind.Types
     struct Parameter
     {
         public string Name;
-        public IDataType DataType;
+        public DataType DataType;
         public bool Optional;
         public bool Indefinite;
         public bool Constant;
         public ITypeNode DefaultValue;
 
-        public Parameter(string name, IDataType dt, bool indefinite, bool constant)
+        public Parameter(string name, DataType dt, bool indefinite, bool constant)
         {
             Name = name;
             DataType = dt;
@@ -26,7 +26,7 @@ namespace Whirlwind.Types
             DefaultValue = new ValueNode("", dt);
         }
 
-        public Parameter(string name, IDataType dt, bool optional)
+        public Parameter(string name, DataType dt, bool optional)
         {
             Name = name;
             DataType = dt;
@@ -36,7 +36,7 @@ namespace Whirlwind.Types
             DefaultValue = new ValueNode("", dt);
         }
 
-        public Parameter(string name, IDataType dt, bool indefinite, bool constant, ITypeNode defaultVal)
+        public Parameter(string name, DataType dt, bool indefinite, bool constant, ITypeNode defaultVal)
         {
             Name = name;
             DataType = dt;
@@ -66,22 +66,22 @@ namespace Whirlwind.Types
         }
     }
 
-    class FunctionType : DataType, IDataType
+    class FunctionType : DataType
     {
-        public readonly IDataType ReturnType;
+        public readonly DataType ReturnType;
         public readonly List<Parameter> Parameters;
         public readonly bool Async;
 
-        public FunctionType(List<Parameter> parameters, IDataType returnType, bool async)
+        public FunctionType(List<Parameter> parameters, DataType returnType, bool async)
         {
             Parameters = parameters;
             ReturnType = async ? MirrorType.Future(returnType) : returnType;
             Async = async;
         }
 
-        public TypeClassifier Classify() => TypeClassifier.FUNCTION;
+        public override TypeClassifier Classify() => TypeClassifier.FUNCTION;
 
-        protected sealed override bool _coerce(IDataType other)
+        protected sealed override bool _coerce(DataType other)
         {
             if (other.Classify() == TypeClassifier.FUNCTION)
             {
@@ -109,7 +109,7 @@ namespace Whirlwind.Types
             return !data.IsError;
         }
 
-        public bool Equals(IDataType other)
+        public override bool Equals(DataType other)
         {
             if (other.Classify() == TypeClassifier.FUNCTION)
             {

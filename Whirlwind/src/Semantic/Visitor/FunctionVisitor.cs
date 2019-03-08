@@ -16,7 +16,7 @@ namespace Whirlwind.Semantic.Visitor
             bool isAsync = false;
             string name = "";
             var arguments = new List<Parameter>();
-            IDataType dataType = new SimpleType();
+            DataType dataType = new SimpleType();
 
             TextPosition namePosition = new TextPosition();
 
@@ -65,7 +65,7 @@ namespace Whirlwind.Semantic.Visitor
         }
 
         private void _createFunction(
-            List<Parameter> parameters, IDataType dataType, string name, TextPosition namePosition, bool isAsync, List<Modifier> modifiers
+            List<Parameter> parameters, DataType dataType, string name, TextPosition namePosition, bool isAsync, List<Modifier> modifiers
             )
         {
             _nodes.Add(new BlockNode(isAsync ? "AsyncFunction" : "Function"));
@@ -125,9 +125,9 @@ namespace Whirlwind.Semantic.Visitor
             }
         }
 
-        private IDataType _visitFuncBody(ASTNode node)
+        private DataType _visitFuncBody(ASTNode node)
         {
-            IDataType rtType = new SimpleType();
+            DataType rtType = new SimpleType();
 
             foreach (var item in node.Content)
             {
@@ -159,7 +159,7 @@ namespace Whirlwind.Semantic.Visitor
             return rtType;
         }
 
-        private IDataType _extractReturnType(ASTNode ast)
+        private DataType _extractReturnType(ASTNode ast)
         {
             var positions = new List<TextPosition>();
             _getReturnPositions(ast, ref positions);
@@ -175,16 +175,16 @@ namespace Whirlwind.Semantic.Visitor
             return returnData.Item2;
         }
 
-        private Tuple<bool, IDataType> _extractReturnType(BlockNode block, List<TextPosition> positions, ref int pos)
+        private Tuple<bool, DataType> _extractReturnType(BlockNode block, List<TextPosition> positions, ref int pos)
         {
-            IDataType rtType = new SimpleType();
+            DataType rtType = new SimpleType();
             bool returnsValue = false, setReturn = false, terminatingReturn = false;
 
             foreach (var node in block.Block)
             {
                 if (node.Name == "Return" || node.Name == "Yield")
                 {
-                    var typeList = new List<IDataType>();
+                    var typeList = new List<DataType>();
 
                     foreach (var expr in ((StatementNode)node).Nodes)
                     {
@@ -196,7 +196,7 @@ namespace Whirlwind.Semantic.Visitor
                         if (!returnsValue && setReturn)
                             throw new SemanticException("Inconsistent return types", positions[pos]);
 
-                        IDataType dt = typeList.Count == 1 ? typeList[0] : new TupleType(typeList);
+                        DataType dt = typeList.Count == 1 ? typeList[0] : new TupleType(typeList);
 
                         if (!returnsValue)
                             rtType = dt;
@@ -290,7 +290,7 @@ namespace Whirlwind.Semantic.Visitor
                 }
             }
 
-            return new Tuple<bool, IDataType>(!returnsValue || terminatingReturn, rtType);
+            return new Tuple<bool, DataType>(!returnsValue || terminatingReturn, rtType);
         }
 
         private void _getReturnPositions(ASTNode node, ref List<TextPosition> positions)
@@ -315,7 +315,7 @@ namespace Whirlwind.Semantic.Visitor
                         constant = false,
                         hasExtension = false;
                     var identifiers = new List<string>();
-                    IDataType paramType = new SimpleType();
+                    DataType paramType = new SimpleType();
 
                     foreach (var argPart in ((ASTNode)subNode).Content)
                     {
@@ -365,7 +365,7 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     bool constant = false;
                     string name = "";
-                    IDataType dt = new SimpleType();
+                    DataType dt = new SimpleType();
 
                     foreach (var item in ((ASTNode)subNode).Content)
                     {
@@ -388,8 +388,8 @@ namespace Whirlwind.Semantic.Visitor
         // generate a argument list from a function call and generate the corresponding tree
         private ArgumentList _generateArgsList(ASTNode node)
         {
-            var uArgs = new List<IDataType>();
-            var nArgs = new Dictionary<string, IDataType>();
+            var uArgs = new List<DataType>();
+            var nArgs = new Dictionary<string, DataType>();
 
             foreach (var subNode in node.Content)
             {
@@ -412,7 +412,7 @@ namespace Whirlwind.Semantic.Visitor
                         string name = ((TokenNode)argNode.Content[0]).Tok.Value;
 
                         _visitExpr((ASTNode)argNode.Content[2]);
-                        IDataType dt = _nodes.Last().Type;
+                        DataType dt = _nodes.Last().Type;
 
                         _nodes.Add(new ExprNode("NamedArgument", dt));
                         PushForward();

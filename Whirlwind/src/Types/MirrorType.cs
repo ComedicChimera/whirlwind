@@ -1,28 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
 
 namespace Whirlwind.Types
 {
     static class MirrorType
     {
-        public static StructType Element(IDataType dt)
-        {
-            var elementStruct = new StructType("Element", false);
-            elementStruct.AddMember("next", new SimpleType(SimpleType.DataType.BOOL));
-            elementStruct.AddMember("val", dt);
-
-            return elementStruct;
-        }
-
-        public static ObjectType Future(IDataType dt)
-        {
-            // add body to future type
-            return new ObjectType("Future", true, false);
-        }
-
-        public static ObjectType BaseException()
-        {
-            // add body
-            return new ObjectType("Exception", true, false);
-        }
+        public static StructType Future(DataType returnType)
+            // find way to construct actual future type
+            => new StructType("Future", false);
     }
 }

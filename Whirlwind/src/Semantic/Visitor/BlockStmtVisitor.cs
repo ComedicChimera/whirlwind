@@ -83,7 +83,7 @@ namespace Whirlwind.Semantic.Visitor
                         _nodes.Add(new BlockNode("If"));
                         _visitExpr((ASTNode)item);
 
-                        if (!new SimpleType(SimpleType.DataType.BOOL).Coerce(_nodes.Last().Type))
+                        if (!new SimpleType(SimpleType.SimpleClassifier.BOOL).Coerce(_nodes.Last().Type))
                             throw new SemanticException("Condition value of if statement must be a boolean", item.Position);
 
                         MergeBack();
@@ -104,7 +104,7 @@ namespace Whirlwind.Semantic.Visitor
 
                         _visitExpr((ASTNode)((ASTNode)item).Content[2]);
 
-                        if (!new SimpleType(SimpleType.DataType.BOOL).Coerce(_nodes.Last().Type))
+                        if (!new SimpleType(SimpleType.SimpleClassifier.BOOL).Coerce(_nodes.Last().Type))
                             throw new SemanticException("Condition value of elif statement must be a boolean",
                                 ((ASTNode)item).Content[2].Position);
 
@@ -136,7 +136,7 @@ namespace Whirlwind.Semantic.Visitor
             _nodes.Add(new BlockNode("Select"));
 
             _visitExpr((ASTNode)blockStmt.Content[2]);
-            IDataType exprType = _nodes.Last().Type;
+            DataType exprType = _nodes.Last().Type;
 
             MergeBack();
 
@@ -205,7 +205,7 @@ namespace Whirlwind.Semantic.Visitor
                         _nodes.Add(new BlockNode("ForCondition"));
                         _visitExpr((ASTNode)subNode);
 
-                        if (!new SimpleType(SimpleType.DataType.BOOL).Coerce(_nodes.Last().Type))
+                        if (!new SimpleType(SimpleType.SimpleClassifier.BOOL).Coerce(_nodes.Last().Type))
                             throw new SemanticException("Condition of for loop must be a boolean", subNode.Position);
 
                         MergeBack();
@@ -290,7 +290,7 @@ namespace Whirlwind.Semantic.Visitor
                             MergeBack();
                             break;
                         case 1:
-                            if (!new SimpleType(SimpleType.DataType.BOOL).Coerce(_nodes.Last().Type))
+                            if (!new SimpleType(SimpleType.SimpleClassifier.BOOL).Coerce(_nodes.Last().Type))
                                 throw new SemanticException("Condition of for loop must be a boolean", item.Position);
 
                             _nodes.Add(new ExprNode("CForCondition", _nodes.Last().Type));
@@ -326,7 +326,7 @@ namespace Whirlwind.Semantic.Visitor
                 if (item.Name == "handle_block")
                 {
                     _nodes.Add(new BlockNode("Handle"));
-                    IDataType exceptionType = MirrorType.BaseException();
+                    DataType exceptionType = MirrorType.BaseException();
 
                     _table.AddScope();
                     _table.DescendScope();

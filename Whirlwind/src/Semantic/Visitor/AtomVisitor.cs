@@ -52,7 +52,7 @@ namespace Whirlwind.Semantic.Visitor
                 throw new SemanticException("Missing `new` keyword to properly create instance.", node.Position);
             else if (!needsNew && hasNew)
             {
-                if (new SimpleType(SimpleType.DataType.INTEGER, true).Coerce(_nodes.Last().Type))
+                if (new SimpleType(SimpleType.SimpleClassifier.INTEGER, true).Coerce(_nodes.Last().Type))
                 {
                     _nodes.Add(new ExprNode("HeapAlloc", new PointerType(new SimpleType(), 1)));
                     PushForward();
@@ -80,10 +80,10 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitComprehension(ASTNode node)
         {
-            IDataType elementType = new SimpleType();
+            DataType elementType = new SimpleType();
 
             // used in case of map comprehension
-            IDataType valueType = new SimpleType();
+            DataType valueType = new SimpleType();
 
             int sizeBack = 0;
             bool isKeyPair = false, isCondition = false;
@@ -98,10 +98,10 @@ namespace Whirlwind.Semantic.Visitor
                     {
                         _visitExpr((ASTNode)item);
 
-                        if (!new SimpleType(SimpleType.DataType.BOOL).Coerce(_nodes.Last().Type))
+                        if (!new SimpleType(SimpleType.SimpleClassifier.BOOL).Coerce(_nodes.Last().Type))
                             throw new SemanticException("The condition of the comprehension must evaluate to a boolean", item.Position);
 
-                        _nodes.Add(new ExprNode("Filter", new SimpleType(SimpleType.DataType.BOOL)));
+                        _nodes.Add(new ExprNode("Filter", new SimpleType(SimpleType.SimpleClassifier.BOOL)));
                         MergeBack();
 
                         sizeBack++;
@@ -212,7 +212,7 @@ namespace Whirlwind.Semantic.Visitor
 
                                     if (tupleNdx < dataTypes.Count)
                                     {
-                                        _nodes.Add(new ValueNode("IntegerMember", new SimpleType(SimpleType.DataType.INTEGER), token.Value));
+                                        _nodes.Add(new ValueNode("IntegerMember", new SimpleType(SimpleType.SimpleClassifier.INTEGER), token.Value));
                                         _nodes.Add(new ExprNode("GetTupleMember", dataTypes[tupleNdx]));
 
                                         PushForward(2);
@@ -314,7 +314,7 @@ namespace Whirlwind.Semantic.Visitor
             }
         }
 
-        private Symbol _getMember(IDataType type, string name, TextPosition opPos, TextPosition idPos)
+        private Symbol _getMember(DataType type, string name, TextPosition opPos, TextPosition idPos)
         {
             Symbol symbol;
             switch (type.Classify())
@@ -347,14 +347,14 @@ namespace Whirlwind.Semantic.Visitor
             return symbol;
         }
 
-        private bool _getStruct(IDataType type, out StructType strc)
+        private bool _getStruct(DataType type, out StructType strc)
         {
             strc = new StructType("", false);
 
             return true;
         }
 
-        private Symbol _getStaticMember(IDataType type, string name, TextPosition opPos, TextPosition idPos)
+        private Symbol _getStaticMember(DataType type, string name, TextPosition opPos, TextPosition idPos)
         {
             Symbol symbol;
 
@@ -397,7 +397,7 @@ namespace Whirlwind.Semantic.Visitor
                 else if (!isFunction && !((ObjectType)root.Type).GetConstructor(args, out FunctionType constructor))
                     throw new SemanticException($"Typeclass `{((ObjectType)root.Type).Name}` has no constructor the accepts the given parameters", node.Position);
 
-                IDataType returnType = isFunction ? ((FunctionType)root.Type).ReturnType : ((ObjectType)root.Type).GetInstance();
+                DataType returnType = isFunction ? ((FunctionType)root.Type).ReturnType : ((ObjectType)root.Type).GetInstance();
 
                 _nodes.Add(new ExprNode(isFunction ? (((FunctionType)root.Type).Async ? "CallAsync" : "Call") : "CallConstructor", returnType));
 
@@ -413,10 +413,10 @@ namespace Whirlwind.Semantic.Visitor
             }
             else if (root.Type.Classify() == TypeClassifier.TEMPLATE)
             {
-                if (((TemplateType)root.Type).Infer(args, out List<IDataType> inferredTypes))
+                if (((TemplateType)root.Type).Infer(args, out List<DataType> inferredTypes))
                 {
                     // always works - try auto eval if possible
-                    ((TemplateType)root.Type).CreateTemplate(inferredTypes, out IDataType templateType);
+                    ((TemplateType)root.Type).CreateTemplate(inferredTypes, out DataType templateType);
 
                     _nodes.Add(new ExprNode("CreateTemplate", templateType));
                     PushForward(args.Count() + 1);
@@ -439,11 +439,11 @@ namespace Whirlwind.Semantic.Visitor
                 throw new SemanticException("Unable to call non-callable type", node.Content[0].Position);
         }
 
-        private void _visitSubscript(IDataType rootType, ASTNode node)
+        private void _visitSubscript(DataType rootType, ASTNode node)
         {
             bool hasStartingExpr = false;
             int expressionCount = 0, colonCount = 0;
-            var types = new List<IDataType>();
+            var types = new List<DataType>();
             var textPositions = new List<TextPosition>();
 
             foreach (var item in node.Content)
@@ -530,7 +530,7 @@ namespace Whirlwind.Semantic.Visitor
             }
             else if (rootType.Classify() == TypeClassifier.OBJECT_INSTANCE)
             {
-                var args = new List<IDataType>();
+                var args = new List<DataType>();
 
                 switch (name)
                 {
@@ -539,18 +539,18 @@ namespace Whirlwind.Semantic.Visitor
                         args.Add(types[0]);
                         break;
                     case "SliceEnd":
-                        args.AddRange(new List<IDataType>() { new SimpleType(SimpleType.DataType.INTEGER), types[0] });
+                        args.AddRange(new List<DataType>() { new SimpleType(SimpleType.SimpleClassifier.INTEGER), types[0] });
                         break;
                     case "SliceEndStep":
-                        args.AddRange(new List<IDataType>() { new SimpleType(SimpleType.DataType.INTEGER), types[0], types[1] });
+                        args.AddRange(new List<DataType>() { new SimpleType(SimpleType.SimpleClassifier.INTEGER), types[0], types[1] });
                         break;
                     case "SliceBeginStep":
-                        args.AddRange(new List<IDataType>() { types[0], new SimpleType(SimpleType.DataType.INTEGER), types[1] });
+                        args.AddRange(new List<DataType>() { types[0], new SimpleType(SimpleType.SimpleClassifier.INTEGER), types[1] });
                         break;
                     case "SliceStep":
-                        args.AddRange(new List<IDataType>() {
-                            new SimpleType(SimpleType.DataType.INTEGER),
-                            new SimpleType(SimpleType.DataType.INTEGER),
+                        args.AddRange(new List<DataType>() {
+                            new SimpleType(SimpleType.SimpleClassifier.INTEGER),
+                            new SimpleType(SimpleType.SimpleClassifier.INTEGER),
                             types[0]
                         });
                         break;
@@ -560,7 +560,7 @@ namespace Whirlwind.Semantic.Visitor
                 }
 
                 string methodName = string.Format("__%s%s", _isGetMode ? "get" : "set", name == "Subscript" ? "item__" : "region__");
-                if (HasOverload(rootType, methodName, new ArgumentList(args), out IDataType returnType))
+                if (HasOverload(rootType, methodName, new ArgumentList(args), out DataType returnType))
                 {
                     _nodes.Add(new ExprNode(name, returnType));
                     // capture root as well
@@ -571,14 +571,14 @@ namespace Whirlwind.Semantic.Visitor
             }
             else
             {
-                var intType = new SimpleType(SimpleType.DataType.INTEGER);
+                var intType = new SimpleType(SimpleType.SimpleClassifier.INTEGER);
                 if (!types.All(x => intType.Coerce(x))) {
                     throw new SemanticException($"Invalid index type for {(expressionCount == 1 && hasStartingExpr ? "subscript" : "slice")}", 
                         textPositions[Enumerable.Range(0, expressionCount).Where(x => !intType.Coerce(types[x])).First()]
                         );
                 }
 
-                IDataType elementType;
+                DataType elementType;
                 switch (rootType.Classify())
                 {
                     case TypeClassifier.ARRAY:
@@ -588,9 +588,9 @@ namespace Whirlwind.Semantic.Visitor
                         elementType = ((ListType)rootType).ElementType;
                         break;
                     case TypeClassifier.SIMPLE:
-                        if (((SimpleType)rootType).Type == SimpleType.DataType.STRING)
+                        if (((SimpleType)rootType).Type == SimpleType.SimpleClassifier.STRING)
                         {
-                            elementType = new SimpleType(SimpleType.DataType.CHAR);
+                            elementType = new SimpleType(SimpleType.SimpleClassifier.CHAR);
                             break;
                         }
 
@@ -612,7 +612,7 @@ namespace Whirlwind.Semantic.Visitor
             // new ( alloc_body ) -> types , expr
             var allocBody = (ASTNode)node.Content[2];
 
-            IDataType dt = new SimpleType();
+            DataType dt = new SimpleType();
             bool hasSizeExpr = false;
 
             foreach (var item in allocBody.Content)
@@ -634,8 +634,8 @@ namespace Whirlwind.Semantic.Visitor
                 throw new SemanticException("Invalid data type for raw heap allocation", allocBody.Content[0].Position);
 
             if (!hasSizeExpr)
-                _nodes.Add(new ValueNode("Literal", new SimpleType(SimpleType.DataType.INTEGER, true), "1"));
-            else if (!new SimpleType(SimpleType.DataType.INTEGER, true).Coerce(_nodes.Last().Type))
+                _nodes.Add(new ValueNode("Literal", new SimpleType(SimpleType.SimpleClassifier.INTEGER, true), "1"));
+            else if (!new SimpleType(SimpleType.SimpleClassifier.INTEGER, true).Coerce(_nodes.Last().Type))
                 throw new SemanticException("Size of heap allocated type must be an integer", allocBody.Content[2].Position);
 
             _nodes.Add(new ExprNode("HeapAllocType", new PointerType(dt, 1)));

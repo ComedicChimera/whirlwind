@@ -2,34 +2,34 @@
 {
     interface IIterable
     {
-        IDataType GetIterator();
+        DataType GetIterator();
     }
 
-    class ArrayType : DataType, IDataType, IIterable
+    class ArrayType : DataType, IIterable
     {
-        public readonly IDataType ElementType;
-        public readonly int Size;
+        public readonly DataType ElementType;
+        public readonly int Size; // size = -1 for unsized array
 
-        public ArrayType(IDataType elementType, int size)
+        public ArrayType(DataType elementType, int size)
         {
             ElementType = elementType;
             Size = size;
         }
 
-        public TypeClassifier Classify() => TypeClassifier.ARRAY;
+        public override TypeClassifier Classify() => TypeClassifier.ARRAY;
 
-        protected sealed override bool _coerce(IDataType other)
+        protected sealed override bool _coerce(DataType other)
         {
             if (other.Classify() == TypeClassifier.ARRAY)
             {
-                return ElementType.Coerce(((ArrayType)other).ElementType) && ((ArrayType)other).Size == Size;
+                return ElementType.Coerce(((ArrayType)other).ElementType) && (Size < 0 || ((ArrayType)other).Size == Size);
             }
             return false;
         }
 
-        public IDataType GetIterator() => ElementType;
+        public DataType GetIterator() => ElementType;
 
-        public bool Equals(IDataType other)
+        public override bool Equals(DataType other)
         {
             if (other.Classify() == TypeClassifier.ARRAY)
             {
@@ -40,18 +40,18 @@
         }
     }
 
-    class ListType : DataType, IDataType, IIterable
+    class ListType : DataType, IIterable
     {
-        public readonly IDataType ElementType;
+        public readonly DataType ElementType;
 
-        public ListType(IDataType elementType)
+        public ListType(DataType elementType)
         {
             ElementType = elementType;
         }
 
-        public TypeClassifier Classify() => TypeClassifier.LIST;
+        public override TypeClassifier Classify() => TypeClassifier.LIST;
 
-        protected sealed override bool _coerce(IDataType other)
+        protected sealed override bool _coerce(DataType other)
         {
             if (other.Classify() == TypeClassifier.ARRAY)
             {
@@ -64,9 +64,9 @@
             return false;
         }
 
-        public IDataType GetIterator() => ElementType;
+        public DataType GetIterator() => ElementType;
 
-        public bool Equals(IDataType other)
+        public override bool Equals(DataType other)
         {
             if (other.Classify() == TypeClassifier.LIST)
             {
@@ -77,19 +77,19 @@
         }
     }
 
-    class DictType : DataType, IDataType, IIterable
+    class DictType : DataType,  IIterable
     {
-        public readonly IDataType KeyType, ValueType;
+        public readonly DataType KeyType, ValueType;
 
-        public DictType(IDataType keyType, IDataType valueType)
+        public DictType(DataType keyType, DataType valueType)
         {
             KeyType = keyType;
             ValueType = valueType;
         }
 
-        public TypeClassifier Classify() => TypeClassifier.DICT;
+        public override TypeClassifier Classify() => TypeClassifier.DICT;
 
-        protected sealed override bool _coerce(IDataType other)
+        protected sealed override bool _coerce(DataType other)
         {
             if (other.Classify() == TypeClassifier.DICT)
             {
@@ -98,9 +98,9 @@
             return false;
         }
 
-        public IDataType GetIterator() => KeyType;
+        public DataType GetIterator() => KeyType;
 
-        public bool Equals(IDataType other)
+        public override bool Equals(DataType other)
         {
             if (other.Classify() == TypeClassifier.DICT)
             {
