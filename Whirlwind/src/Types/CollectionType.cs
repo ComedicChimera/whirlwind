@@ -24,6 +24,10 @@
             {
                 return ElementType.Coerce(((ArrayType)other).ElementType) && (Size < 0 || ((ArrayType)other).Size == Size);
             }
+            else if (other.Classify() == TypeClassifier.LIST)
+            {
+                return ElementType.Coerce(((ListType)other).ElementType) && Size < 0;
+            }
             return false;
         }
 

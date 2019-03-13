@@ -52,7 +52,6 @@ namespace Whirlwind.Semantic.Visitor
                         {
                             throw new SemanticException($"Undefined Symbol: `{((TokenNode)node.Content[0]).Tok.Value}`", node.Position);
                         }
-
                     case "THIS":
                         if (_table.Lookup("$THIS", out Symbol instance))
                         {
@@ -61,6 +60,14 @@ namespace Whirlwind.Semantic.Visitor
                         }
                         {
                             throw new SemanticException("Use of `this` outside of object", node.Content[0].Position);
+                        }
+                    case "VAL":
+                        {
+                            if (_isVoid(_thenExprType))
+                                throw new SemanticException("No valid chained value is accessible", node.Content[0].Position);
+
+                            _nodes.Add(new ValueNode("Val", _thenExprType));
+                            return;
                         }
                     case "NULL":
                         _nodes.Add(new ValueNode("Null", new NullType()));
@@ -180,15 +187,12 @@ namespace Whirlwind.Semantic.Visitor
                     baseType = newType;
                 else
                 {
-                    if (baseType is ObjectType && newType is Object)
-                    {
-                        var commonInherits = ((ObjectType)baseType).Inherits.Where(x => ((ObjectType)newType).Inherits.Contains(x));
+                    InterfaceType i1 = baseType.GetInterface(), i2 = newType.GetInterface();
 
-                        if (commonInherits.Count() > 0)
-                            baseType = commonInherits.First();
-                        else
-                            throw new SemanticException("All values in a collection must be the same type", pos);
-                    }
+                    var matches = i1.Implements.Where(x => i2.Implements.Contains(x));
+
+                    if (matches.Count() > 0)
+                        baseType = matches.First();
                     else
                         throw new SemanticException("All values in a collection must be the same type", pos);
                 }

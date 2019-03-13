@@ -4,17 +4,55 @@ using Whirlwind.Types;
 using static Whirlwind.Semantic.Checker.Checker;
 
 using System.Linq;
+using System.Collections.Generic;
 
 namespace Whirlwind.Semantic.Visitor
 {
     partial class Visitor
     {
-        private void _visitExpr(ASTNode node)
+        DataType _thenExprType = new SimpleType();
+
+        private void _visitExpr(ASTNode node, bool needsSubscope=true)
         {
             foreach (var subNode in node.Content)
             {
-                if (subNode.Name == "or")
-                    _visitLogical((ASTNode)subNode);
+                if (subNode.Name == "func_op")
+                    _visitFuncOp((ASTNode)subNode);
+                else if (subNode.Name == "expr_var")
+                {
+                    ASTNode exprVarDecl = (ASTNode)subNode;
+
+                    string name = ((TokenNode)exprVarDecl.Content[0]).Tok.Value;
+                    _visitExpr((ASTNode)exprVarDecl.Content[2]);
+
+                    if (_isVoid(_nodes.Last().Type))
+                        throw new SemanticException("Unable to determine type of variable", exprVarDecl.Content[0].Position);
+
+                    _nodes.Add(new IdentifierNode(name, _nodes.Last().Type, true));
+
+                    if (needsSubscope)
+                    {
+                        _table.AddScope();
+                        _table.DescendScope();
+                    }
+
+                    if (!_table.AddSymbol(new Symbol(name, _nodes.Last().Type, new List<Modifier> { Modifier.CONSTANT })))
+                    {
+                        if (needsSubscope)
+                            _table.AscendScope();
+
+                        throw new SemanticException("Unable to redeclare symbol in scope", exprVarDecl.Content[0].Position);
+                    }
+
+                    _nodes.Add(new ExprNode("ExprVarDecl", new SimpleType()));
+                    PushForward(2);
+
+                    _visitThen((ASTNode)exprVarDecl.Content[4], false);
+
+                    if (needsSubscope)
+                        _table.AscendScope();
+                        
+                }
                 else if (subNode.Name == "expr_extension")
                 {
                     string op = "";
@@ -23,10 +61,12 @@ namespace Whirlwind.Semantic.Visitor
                     {
                         if (item.Name == "TOKEN" && op == "")
                             op = ((TokenNode)item).Tok.Type;
-                        else if (item.Name == "or")
-                            _visitLogical((ASTNode)item);
+                        else if (item.Name == "expr")
+                            _visitExpr((ASTNode)item);
                         else if (item.Name == "case_extension")
                             _visitInlineCase((ASTNode)item);
+                        else if (item.Name == "then_extension")
+                            _visitThen((ASTNode)item, needsSubscope);
                     }
 
                     if (op == "IF")
@@ -49,6 +89,22 @@ namespace Whirlwind.Semantic.Visitor
                         _nodes.Add(new ExprNode("Is", new SimpleType(SimpleType.SimpleClassifier.BOOL)));
 
                         PushForward(2);
+                    }
+                    else if (op == ":>")
+                    {
+                        var extractExpr = (ASTNode)subNode;
+
+                        if (HasOverload(_nodes.Last().Type, "__extract__", out DataType rtType))
+                        {
+                            _thenExprType = rtType;
+
+                            _visitExpr((ASTNode)extractExpr.Content[1]);
+
+                            _nodes.Add(new ExprNode("ExtractInto", _nodes.Last().Type));
+                            PushForward(2);
+                        }
+                        else
+                            throw new SemanticException("The `:>` operator is not defined on the given type", extractExpr.Content[0].Position);
                     }
                 }
             }
@@ -91,20 +147,15 @@ namespace Whirlwind.Semantic.Visitor
                             dt = _nodes.Last().Type;
                         else
                         {
-                            if (dt is ObjectType && _nodes.Last().Type is ObjectType)
-                            {
-                                var commonInherits = ((ObjectType)dt).Inherits.Where(x => 
-                                    ((ObjectType)_nodes.Last().Type).Inherits.Contains(x));
+                            InterfaceType i1 = dt.GetInterface(), i2 = _nodes.Last().Type.GetInterface();
 
-                                if (commonInherits.Count() > 0)
-                                    dt = commonInherits.First();
-                                else
-                                    throw new SemanticException("All case types must match",
-                                        ((ASTNode)item).Content[((ASTNode)item).Content.Count - 2].Position);
-                            }
+                            var matches = i1.Implements.Where(x => i2.Implements.Contains(x));
+
+                            if (matches.Count() > 0)
+                                dt = matches.First();
                             else
                                 throw new SemanticException("All case types must match",
-                                    ((ASTNode)item).Content[((ASTNode)item).Content.Count - 2].Position);
+                                        ((ASTNode)item).Content[((ASTNode)item).Content.Count - 2].Position);
                         }
                             
                     }
@@ -127,7 +178,16 @@ namespace Whirlwind.Semantic.Visitor
                         if (_nodes.Last().Type.Coerce(dt))
                             dt = _nodes.Last().Type;
                         else
-                            throw new SemanticException("All case types must match", ((ASTNode)item).Content.Last().Position);
+                        {
+                            InterfaceType i1 = dt.GetInterface(), i2 = _nodes.Last().Type.GetInterface();
+
+                            var matches = i1.Implements.Where(x => i2.Implements.Contains(x));
+
+                            if (matches.Count() > 0)
+                                dt = matches.First();
+                            else
+                                throw new SemanticException("All case types must match", ((ASTNode)item).Content.Last().Position);
+                        }            
                     }
 
                     _nodes.Add(new ExprNode("Default", dt));
@@ -139,6 +199,63 @@ namespace Whirlwind.Semantic.Visitor
 
             _nodes.Add(new ExprNode("InlineCaseExpr", dt));
             PushForward(caseCount);
+        }
+
+        private void _visitThen(ASTNode node, bool needsSubscope)
+        {
+            _thenExprType = _nodes.Last().Type;
+
+            _visitExpr((ASTNode)node.Content[1], needsSubscope);
+
+            _nodes.Add(new ExprNode("Then", _nodes.Last().Type));
+            PushForward(2);
+        }
+
+        private void _visitFuncOp(ASTNode node)
+        {
+            if (node.Content.Count > 1)
+            {
+                int opPos = 1;
+                string treeName;
+                DataType rootType = _nodes.Last().Type;
+
+                while (opPos < node.Content.Count)
+                {
+                    treeName = ((TokenNode)node.Content[opPos]).Tok.Type == ">>=" ? "Bind" : "Compose";
+
+                    _visitLogical((ASTNode)node.Content[opPos + 1]);
+
+                    if (treeName == "Bind")
+                    {
+                        if (HasOverload(rootType, "__bind__", new ArgumentList(new List<DataType> { _nodes.Last().Type }), out DataType rtType))
+                            _nodes.Add(new ExprNode("Bind", rtType));
+                        else
+                            throw new SemanticException("The `>>=` operator is not defined on the given type", node.Content[opPos].Position);
+                    }
+                    else
+                    {
+                        if (rootType is FunctionType rft && _nodes.Last().Type is FunctionType oft)
+                        {
+                            _nodes.Add(new ExprNode("Compose", new FunctionType(rft.Parameters.Take(1).Concat(oft.Parameters).ToList(),
+                                rft.ReturnType, rft.Async)));
+                        }
+                        else if (HasOverload(rootType, "__compose__", new ArgumentList(new List<DataType> { _nodes.Last().Type}), 
+                            out DataType rtType))
+                        {
+                            _nodes.Add(new ExprNode("Compose", rtType));
+                        }
+                        else
+                            throw new SemanticException("The `~*` operator not defined on the given types", node.Content[opPos].Position);
+                    }
+
+                    PushForward(2);
+
+                    rootType = _nodes.Last().Type;
+                    opPos += 2;
+                }
+            }
+            else
+                _visitLogical((ASTNode)node.Content[0]);
         }
 
         private void _visitLogical(ASTNode node)
@@ -469,7 +586,7 @@ namespace Whirlwind.Semantic.Visitor
                 case "&VOL":
                 case "&":
                     if (new[] {
-                        TypeClassifier.STRUCT, TypeClassifier.INTERFACE, TypeClassifier.OBJECT, TypeClassifier.TEMPLATE,
+                        TypeClassifier.STRUCT, TypeClassifier.INTERFACE, TypeClassifier.TEMPLATE,
                     }.Contains(rootType.Classify()))
                         throw new SemanticException("The given object is not able to referenced", node.Content[0].Position);
                     treeName = op == "&" ? "Indirect" : "VolatileIndirect";

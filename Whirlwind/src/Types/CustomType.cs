@@ -1,61 +1,151 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace Whirlwind.Types
 {
     class CustomType : DataType
     {
-        private readonly List<CustomInstance> _instances;
+        public string Name { get; private set; }
+        public List<CustomInstance> Instances { get; private set; }
 
-        public CustomType(List<CustomInstance> instances)
+        public CustomType(string name)
         {
-            _instances = instances;
+            Name = name;
+            Instances = new List<CustomInstance>();
+        }
+
+        public bool AddInstance(CustomInstance instance)
+        {
+            if (Instances.Any(x => x.Equals(instance)))
+                return false;
+
+            Instances.Add(instance);
+            return true;
+        }
+
+        public bool CreateInstance(DataType dt, out CustomAlias cAlias)
+        {
+            var matches = Instances.Where(x => x is CustomAlias)
+                .Select(x => (CustomAlias)x)
+                .Where(x => x.Type.Equals(dt));
+
+            if (matches.Count() == 1)
+            {
+                cAlias = matches.First();
+                return true;
+            }
+            
+            cAlias = new CustomAlias(this, new SimpleType());
+            return false;
+        }
+
+        public bool CreateInstance(string name, List<DataType> values, out CustomNewType cnType)
+        {
+            var matches = Instances.Where(x => x is CustomInstance)
+                .Select(x => (CustomNewType)x);
+
+            foreach (var match in matches)
+            {
+                if (match.Name == name || match.Values.Count == values.Count)
+                {
+                    if (match.Values.Zip(values, (a, b) => a.Equals(b)).All(x => x))
+                    {
+                        cnType = new CustomNewType(this, name, values);
+                        return true;
+                    }
+                }
+            }
+
+            cnType = new CustomNewType(this, "", new List<DataType>());
+            return false;
         }
 
         public override TypeClassifier Classify() => TypeClassifier.TYPE_CLASS;
 
         public override bool Equals(DataType other)
         {
-            throw new NotImplementedException();
+            if (other is CustomType cType)
+            {
+                if (Name != cType.Name)
+                    return false;
+
+                if (Instances.Count == cType.Instances.Count)
+                    return Instances.Zip(cType.Instances, (a, b) => a.Equals(b)).All(x => x);
+            }
+
+            return false;
         }
 
         public override bool Coerce(DataType other)
         {
-            return base.Coerce(other);
+            if (other is CustomType)
+                return Equals(other);
+            else if (other is CustomInstance instance)
+                return Equals(instance.Parent);
+
+            return false;
         }
     }
 
     abstract class CustomInstance : DataType
     {
-        public CustomType Parent { get; private set; }
+        public CustomType Parent { get; protected set; }
 
         public override TypeClassifier Classify() => TypeClassifier.TYPE_CLASS_INSTANCE;
+
+        public override bool Coerce(DataType other)
+        {
+            if (other is CustomType)
+                return Parent.Equals(other);
+            else if (other is CustomInstance cInst)
+                return Parent.Equals(cInst.Parent);
+
+            return false;
+        }
     }
 
     class CustomNewType : CustomInstance
     {
-        public override bool Equals(DataType other)
+        public readonly string Name;
+        public readonly List<DataType> Values;
+
+        public CustomNewType(CustomType parent, string name, List<DataType> values)
         {
-            throw new NotImplementedException();
+            Parent = parent;
+            Name = name;
+            Values = values;
         }
 
-        public override bool Coerce(DataType other)
+        public override bool Equals(DataType other)
         {
-            return base.Coerce(other);
+            if (other is CustomNewType cnType)
+            {
+                if (!Parent.Equals(cnType.Parent) || Name != cnType.Name)
+                    return false;
+
+                return Values.Zip(cnType.Values, (a, b) => a.Equals(b)).All(x => x);
+            }
+
+            return false;
         }
     }
 
     class CustomAlias : CustomInstance
     {
-        public override bool Equals(DataType other)
+        public readonly DataType Type;
+
+        public CustomAlias(CustomType parent, DataType dt)
         {
-            throw new NotImplementedException();
+            Parent = parent;
+            Type = dt;
         }
 
-        public override bool Coerce(DataType other)
+        public override bool Equals(DataType other)
         {
-            return base.Coerce(other);
+            if (other is CustomAlias cAlias)
+                return Parent.Equals(cAlias.Parent) && Type.Equals(cAlias.Type);
+
+            return false;
         }
     }
 }

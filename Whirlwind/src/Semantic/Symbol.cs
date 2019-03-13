@@ -7,7 +7,6 @@ namespace Whirlwind.Semantic
 {
     enum Modifier
     {
-        PRIVATE,
         EXPORTED,
         CONSTANT,
         CONSTEXPR,
@@ -25,10 +24,10 @@ namespace Whirlwind.Semantic
             Name = name;
         }
 
-        public bool Coerce(DataType _) => false;
-        public TypeClassifier Classify() => TypeClassifier.PACKAGE;
+        public override bool Coerce(DataType _) => false;
+        public override TypeClassifier Classify() => TypeClassifier.PACKAGE;
 
-        public bool Equals(DataType other)
+        public override bool Equals(DataType other)
         {
             if (other.Classify() == TypeClassifier.PACKAGE)
                 return Name == ((Package)other).Name;

@@ -67,8 +67,9 @@ A multi-value structure or some form of operation.
 | HeapAlloc | Size | Allocate a set amount of memory on the heap |
 | HeapAllocType | Type | Allocate enough memory to store a given type |
 | Await | Async Function | Set a function to run on the current thread |
-| DictComprehension | Iterator, Expression, Expression, \[Filter\] | Perform a map comprehension |
-| Comprehension | Iterator, Expression, \[Filter\] | Perform a comprehension |
+| DictComprehension | Iterator, Expression, Expression, \[Filter\] | Perform a dictionary comprehension |
+| ListComprehension | Iterator, Expression, \[Filter\] | Perform a list comprehension |
+| ArrayComprehension | Iterator, Expression, \[Filter\] | Perform an array comprehension |
 | Filter | expr | A filter component for a comprehension |
 | Iterator | Root, *Identifiers* | Create an iterator over the some iterable |
 | CreateTemplate | Template | Converts a template to a value, return type is template type |
@@ -113,7 +114,7 @@ A multi-value structure or some form of operation.
 | And | *Values* | Perform an and/bitwise and logical operation |
 | Complement | Value | Perform a bitwise complement operation |
 | Floordiv | *Values* | Perform a floor division operation |
-| InlineComparison | Comparison Expr, Option1, Option2 | Perform an inline comparison |
+| InlineComparison |  Option1, Comparison Expr, Option2 | Perform an inline comparison |
 | NullCoalesce | NullableExpr, DefaultExpr | Perform a null coalescion operation |
 | Is | Expr, Type | Tests if an object is a given data type |
 
@@ -130,6 +131,11 @@ ExprNodes made specifically for use in a certain statements as structural compon
 | Initializer | Expr | An initializer for variable / constant declarations |
 | Var | Identifier, \[*Initializer*\] | A single variable in variable declaration unit |
 | Variables | *Vars* | A list of all the individual variables in a single variable declaration |
+| CustomNewType | *none* | The new type value in a type class |
+| CustomAlias | \[Identifier, Expr\] | Indicates an alias value in a type class |
+| BindInterface | Interface, Type | Binds an interface to the given data type |
+| Implements | *Types* | A list of interfaces implemented by a given type interface |
+| Implement | *none* | Interface implemented by a type interface |
 
 ### Block Components
 
@@ -218,6 +224,7 @@ All block declaration containing identifiers are using the identifier to represe
 | Function | Identifier | A function declaration |
 | Struct | Identifier | A struct declaration |
 | Interface | Identifier | An interface declaration |
+| TypeInterface | BindInterface, [Implements] | A type interface declaration |
 | Decorator | *Expr* | A function declared with one or more decorators |
 | TypeClass | Identifier, *Implements* | A type class declaration |
 | Constructor | Identifier | A constructor within a type class |

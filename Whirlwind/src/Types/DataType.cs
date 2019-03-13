@@ -1,12 +1,16 @@
-﻿namespace Whirlwind.Types
+﻿using System.Collections.Generic;
+using System.Linq;
+
+namespace Whirlwind.Types
 {
     abstract class DataType
     {
+        // store the types interface
+        private static Dictionary<DataType, InterfaceType> _interfaces;
+
         // store constancy
         private bool _constant = false;
-        // store the types interface
-        private InterfaceType _interf;
-
+        
         // returns whether or not the type is constant
         public virtual bool Constant() => _constant;
 
@@ -26,7 +30,15 @@
         protected virtual bool _coerce(DataType other) => false;
 
         // returns the types interface
-        public virtual InterfaceType GetInterface() => _interf;
+        public virtual InterfaceType GetInterface()
+        {
+            if (_interfaces.Keys.Any(x => x.Coerce(this)))
+                return _interfaces.Where(x => x.Key.Coerce(this)).First().Value;
+
+            _interfaces[this] = new InterfaceType();
+
+            return _interfaces[this];
+        }
 
         // get a given data type classifier as a string
         public abstract TypeClassifier Classify();

@@ -20,37 +20,11 @@ pkg_name: [pkg_back_move] 'IDENTIFIER' ('.' 'IDENTIFIER' | pkg_back_move )* ;
 pkg_back_move: '.' '.' ;
 include_set: '{' 'IDENTIFIER' (',' 'IDENTIFIER')* '}' ;
 
-
-// TYPE CLASSES
-// type class declaration
-type_class_decl: 'TYPE' 'IDENTIFIER' [impl] '{' type_class_main+ '}' ;
-type_class_main: ['PRIV'] ( variable_decl ';' 
-| func_decl
-| method_template
-| variant_decl
-| constructor_decl
-) ;
-
-// method template
-method_template: 'TEMPLATE' '<' template (',' template)* '>' func_decl ;
-
-// constructor declaration
-constructor_decl: 'CONSTRUCTOR' '(' args_decl_list ')' func_body ;
-
-// implementation clause
-impl: ':' 'IDENTIFIER' (',' 'IDENTIFIER')* ;
-
-
-// BLOCK DECLARATIONS
-block_decl: func_decl
-| interface_decl
-| type_class_decl
-| struct_decl
-| template_decl
-| variant_decl
-| decor_decl
-| enum_decl
-;
+// export declaration
+export_decl: 'EXPORT' ( block_decl
+| include_stmt ';'
+| variable_decl ';'
+);
 
 // agent declaration
 agent_decl: 'AGENT' 'IDENTIFIER' '{' agent_main+ '}' ;
@@ -63,17 +37,42 @@ evh_decl: 'WHEN' '(' ( evh_val | evh_cond ) ')' block ;
 evh_val: expr '=>' ( 'IDENTIFIER' | '_' ) ;
 evh_cond: 'IDENTIFIER' ':' types '=>' expr ;
 
+
+// BLOCK DECLARATIONS
+block_decl: func_decl
+| interface_decl
+| type_class_decl
+| struct_decl
+| template_decl
+| variant_decl
+| decor_decl
+;
+
 // function declaration
 func_decl: ('FUNC' | 'ASYNC') 'IDENTIFIER' '(' args_decl_list ')' [ types ] (func_body | ';') ;
 
 // interface declaration
-interface_decl: 'INTERF' 'IDENTIFIER' '{' interface_main '}' ;
-interface_main: ( ['PRIV'] ( func_decl | method_template ) )+ ;
+interface_decl: 'INTERF' interface_header '{' interface_main '}' ;
+interface_header: 'IDENTIFIER' | 'FOR' types ['IS' implements] ;
+implements: types (',' types)* ;
+interface_main: ( func_decl | variant_decl | method_template )+ ;
+
+// method template
+method_template: 'TEMPLATE' '<' template (',' template)* '>' func_decl ;
+
+// type class declaration
+type_class_decl: 'TYPE' 'IDENTIFIER' ( type_class_main | ( '|' type_class_main )+ ) ';' ;
+type_class_main: types [value_restrictor] | 'IDENTIFIER' [type_constructor] ;
+value_restrictor: '{' 'IDENTIFIER' '}' 'WHEN' expr ;
+type_constructor: '(' type_list ')' ;
 
 // struct declaration
 struct_decl: 'STRUCT' 'IDENTIFIER' '{' struct_main '}' ;
-struct_main: (struct_var ';')+ ;
+struct_main: (struct_var ';' | constructor_decl )+ ;
 struct_var: 'IDENTIFIER' (',' 'IDENTIFIER')* ':' types ;
+
+// constructor declaration
+constructor_decl: 'CONSTRUCTOR' '(' args_decl_list ')' func_body ;
 
 // template declaration
 template_decl: 'TEMPLATE' '<' template (',' template)* '>' template_block_decl ;
@@ -93,10 +92,6 @@ variant: '<' type_list '>' ;
 // decorator declaration
 decor_decl: decor func_decl ;
 decor: '#' '[' expr (',' expr)* ']' ;
-
-// pure enum declaration
-enum_decl: 'ENUM' 'IDENTIFIER' '{' enum_main '}' ;
-enum_main: 'IDENTIFIER'+ ;
 
 
 // BLOCK STATEMENTS (control flow, context managers and except blocks)
@@ -131,12 +126,6 @@ handle_block: expr ':' '(' ['IDENTIFIER'] ')' '=>' block ;
 from_block: 'FROM' from_body [from_except_clause] [after_clause] ;
 from_body: '(' variable_decl ')' block ;
 from_except_clause: 'EXCEPT' block ;
-
-// export declaration
-export_decl: 'EXPORT' ( block_decl
-| include_stmt ';'
-| variable_decl ';'
-);
 
 // after clause
 after_clause: 'AFTER' block ;
@@ -197,16 +186,27 @@ yield_stmt: 'YIELD' expr (',' expr)* ;
 
 
 // EXPRESSIONS - basic unit of statements 
-expr: or [expr_extension] ;
+expr: func_op [expr_extension] | expr_var ;
 expr_extension: 'IF' expr 'ELSE' expr 
 | case_extension+
-| 'IS' types 
+| 'IS' types
+| ':>' expr
+| then_extension
 ; 
+
+// then extension
+then_extension: 'THEN' expr ;
 
 // case extension
 case_extension: 'CASE' '{' inline_case+ default_case '}' ;
 inline_case: expr (',' expr)* '=>' expr ',' ;
 default_case: '_' '=>' expr ;
+
+// expression local variable declaration
+expr_var: 'IDENTIFIER' '=' expr then_extension ;
+
+// functional/monadic operators
+func_op: or (('>>=' | '~*') or)* ;
 
 // logical operators
 or: xor ('OR' xor)* ;
@@ -259,8 +259,9 @@ init_list: 'IDENTIFIER' initializer (',' 'IDENTIFIER' initializer)* ;
 static_get: get_op 'IDENTIFIER' ;
 get_op: ':' ':' ;
 
-// for comprehension
-comprehension: 'FOR' '(' expr [':' expr] '|' iterator ['WHEN' expr] ')' ;
+// comprehension
+comprehension: '{' comp_body '}' | '[' comp_body ']' ;
+comp_body: expr [':' expr] '|' iterator ['WHEN' expr] ;
 
 // allocate a type on the heap
 heap_alloc: 'NEW' '(' alloc_body ')' ;
@@ -278,6 +279,7 @@ base: 'INTEGER_LITERAL'
 | 'THIS'
 | 'IDENTIFIER'
 | 'NULL'
+| 'VAL'
 | array
 | list
 | dict
@@ -338,7 +340,7 @@ simple_types: 'BOOL_TYPE'
 | 'VOID_TYPE'
 ;
 
-collection_types: 'ARRAY_TYPE' '[' types ',' expr ']'
+collection_types: 'ARRAY_TYPE' '[' types [ ',' expr ] ']'
 | 'LIST_TYPE' '[' types ']'
 | 'DICT_TYPE' '[' types ',' types ']'
 ;

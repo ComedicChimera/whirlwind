@@ -50,10 +50,11 @@ namespace Whirlwind.Semantic.Visitor
                             {
                                 if (symbol.DataType.Classify() == TypeClassifier.TEMPLATE_ALIAS)
                                     dt = ((TemplateAlias)symbol.DataType).ReplacementType;
-                                else if (!new[] { TypeClassifier.TEMPLATE_PLACEHOLDER, TypeClassifier.OBJECT, TypeClassifier.STRUCT,
-                                    TypeClassifier.INTERFACE, TypeClassifier.ENUM, TypeClassifier.TEMPLATE }.Contains(symbol.DataType.Classify()))
+                                else if (!new[] { TypeClassifier.TEMPLATE_PLACEHOLDER, TypeClassifier.STRUCT,
+                                    TypeClassifier.INTERFACE,  TypeClassifier.TEMPLATE, TypeClassifier.TYPE_CLASS }
+                                    .Contains(symbol.DataType.Classify()))
                                 {
-                                    throw new SemanticException("Identifier data type must be a struct, type class, enum, or interface",
+                                    throw new SemanticException("Identifier data type must be a struct, type class, or interface",
                                         tokenNode.Position);
                                 }
                                 else
@@ -80,14 +81,8 @@ namespace Whirlwind.Semantic.Visitor
 
             switch (dt.Classify())
             {
-                case TypeClassifier.OBJECT:
-                    dt = ((ObjectType)dt).GetInstance();
-                    break;
                 case TypeClassifier.STRUCT:
                     dt = ((StructType)dt).GetInstance();
-                    break;
-                case TypeClassifier.ENUM:
-                    dt = ((EnumType)dt).GetInstance();
                     break;
                 case TypeClassifier.INTERFACE:
                     dt = ((InterfaceType)dt).GetInstance();
@@ -155,7 +150,7 @@ namespace Whirlwind.Semantic.Visitor
                 else if (subNode.Name == "collection_types")
                 {
                     string collectionType = "";
-                    int size = 0;
+                    int size = -1;
                     var subTypes = new List<DataType>();
 
                     foreach (var component in ((ASTNode)subNode).Content)

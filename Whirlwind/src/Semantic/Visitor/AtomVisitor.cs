@@ -64,14 +64,10 @@ namespace Whirlwind.Semantic.Visitor
 
             if (_nodes.Last().Name == "CallAsync" && hasAwait)
             {
-                // should never fail on future type
-                if (((ObjectType)_nodes.Last().Type).GetMember("result", out Symbol resultFn))
-                {
-                    var rtType = ((FunctionType)resultFn.DataType).ReturnType;
-                    _nodes.Add(new ExprNode("Await", rtType));
-                    PushForward();
-                }
-                return;
+                ((StructType)_nodes.Last().Type).GetInterface().GetFunction("result", out Symbol fn);
+
+                _nodes.Add(new ExprNode("Await", ((FunctionType)fn.DataType).ReturnType));
+                PushForward();
             }
             else if (hasAwait)
                 // await always first element
@@ -86,11 +82,11 @@ namespace Whirlwind.Semantic.Visitor
             DataType valueType = new SimpleType();
 
             int sizeBack = 0;
-            bool isKeyPair = false, isCondition = false;
+            bool isKeyPair = false, isCondition = false, isList = ((TokenNode)node.Content[0]).Tok.Type == "[";
 
             var body = new List<ASTNode>();
 
-            foreach (var item in node.Content)
+            foreach (var item in ((ASTNode)node.Content[1]).Content)
             {
                 if (item.Name == "expr")
                 {
@@ -134,7 +130,12 @@ namespace Whirlwind.Semantic.Visitor
                 else if (item.Name == "TOKEN")
                 {
                     if (((TokenNode)item).Tok.Type == ":")
+                    {
+                        if (isList)
+                            throw new SemanticException("Unable to have key-value pairs in a list comprehension", item.Position);
+
                         isKeyPair = true;
+                    }     
                     else if (((TokenNode)item).Tok.Type == "WHEN")
                         isCondition = true;
                 }
@@ -144,8 +145,10 @@ namespace Whirlwind.Semantic.Visitor
 
             if (isKeyPair)
                 _nodes.Add(new ExprNode("DictComprehension", new DictType(elementType, valueType)));
+            else if (isList)
+                _nodes.Add(new ExprNode("ListComprehension", new ListType(elementType)));
             else
-                _nodes.Add(new ExprNode("Comprehension", new ListType(elementType)));
+                _nodes.Add(new ExprNode("ArrayComprehension", new ArrayType(elementType, -1)));
 
             PushForward(sizeBack);
         }
@@ -267,26 +270,7 @@ namespace Whirlwind.Semantic.Visitor
                             }
                         }
 
-                        if (root.Type.Classify() == TypeClassifier.OBJECT)
-                        {
-                            var objInstance = ((ObjectType)root.Type).GetInstance();
-                            for (int i = 1; i < initCount + 1; i++)
-                            {
-                                var item = (ExprNode)_nodes[_nodes.Count - i];
-                                if (objInstance.GetMember(((ValueNode)item.Nodes[0]).Value, out Symbol sym))
-                                {
-                                    if (!sym.DataType.Coerce(item.Type))
-                                        throw new SemanticException($"Unable to initializer property {sym.Name} with the given type", positions[i - 1]);
-                                }
-                                else
-                                    throw new SemanticException($"Object has no public member {((ValueNode)item.Nodes[0]).Value}", positions[i - 1]);
-                            }
-                            _nodes.Add(new ExprNode("InitList", objInstance));
-                            // add in root
-                            PushForward(initCount + 1);
-                            break;
-                        }
-                        else if (root.Type.Classify() == TypeClassifier.STRUCT)
+                        if (root.Type.Classify() == TypeClassifier.STRUCT)
                         {
                             var members = ((StructType)root.Type).Members;
 
@@ -319,39 +303,21 @@ namespace Whirlwind.Semantic.Visitor
             Symbol symbol;
             switch (type.Classify())
             {
-                case TypeClassifier.OBJECT_INSTANCE:
-                    if (!((ObjectType)type).GetMember(name, out symbol))
-                        throw new SemanticException($"Object has no {(((ObjectType)type).Internal ? "" : "public ")}member `{name}`", idPos);
-                    break;
                 case TypeClassifier.STRUCT_INSTANCE:
                     if (((StructType)type).Members.ContainsKey(name))
                         return new Symbol(name, ((StructType)type).Members[name]);
-                    else
-                        throw new SemanticException($"Struct has no member `{name}`", idPos);
+                    goto default;
                 case TypeClassifier.INTERFACE_INSTANCE:
                     if (!((InterfaceType)type).GetFunction(name, out symbol))
                         throw new SemanticException($"Interface has no function `{name}`", idPos);
                     break;
                 default:
-                    if (_getStruct(type, out StructType strc))
-                    {
-                        if (strc.Members.ContainsKey("name"))
-                            return new Symbol(name, strc.Members[name]);
-                        else
-                            throw new SemanticException($"Type has no property `{name}`", idPos);
-                    }
-                    else
-                        throw new SemanticException("The `.` operator is not valid on the given type", opPos);
+                    if (!type.GetInterface().GetFunction(name, out symbol))
+                        throw new SemanticException($"Type has no interface member `{name}`", idPos);
+                    break;
             }
 
             return symbol;
-        }
-
-        private bool _getStruct(DataType type, out StructType strc)
-        {
-            strc = new StructType("", false);
-
-            return true;
         }
 
         private Symbol _getStaticMember(DataType type, string name, TextPosition opPos, TextPosition idPos)
@@ -364,12 +330,6 @@ namespace Whirlwind.Semantic.Visitor
                     if (!((Package)type).ExternalTable.Lookup(name, out symbol))
                         throw new SemanticException($"Package has no member `{name}`", idPos);
                     break;
-                case TypeClassifier.ENUM:
-                    if (((EnumType)type).HasMember(name))
-                        symbol = new Symbol(name, ((EnumType)type).GetInstance());
-                    else
-                        throw new SemanticException($"Enum has no value `{name}`", idPos);
-                    break;
                 default:
                     throw new SemanticException("The `::` operator is not valid on the given type", opPos);
             }
@@ -381,7 +341,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             var args = node.Content.Count == 2 ? new ArgumentList() : _generateArgsList((ASTNode)node.Content[1]);
 
-            if (new[] { TypeClassifier.OBJECT, TypeClassifier.FUNCTION }.Contains(root.Type.Classify()))
+            if (new[] { TypeClassifier.STRUCT, TypeClassifier.FUNCTION }.Contains(root.Type.Classify()))
             {
                 bool isFunction = root.Type.Classify() == TypeClassifier.FUNCTION;
 
@@ -394,10 +354,10 @@ namespace Whirlwind.Semantic.Visitor
                             ((ASTNode)node.Content[1]).Content.Where(x => x.Name == "arg").ToArray()[paramData.ParameterPosition].Position
                         );
                 }
-                else if (!isFunction && !((ObjectType)root.Type).GetConstructor(args, out FunctionType constructor))
-                    throw new SemanticException($"Typeclass `{((ObjectType)root.Type).Name}` has no constructor the accepts the given parameters", node.Position);
+                else if (!isFunction && !((StructType)root.Type).GetConstructor(args, out FunctionType constructor))
+                    throw new SemanticException($"Typeclass `{((StructType)root.Type).Name}` has no constructor the accepts the given parameters", node.Position);
 
-                DataType returnType = isFunction ? ((FunctionType)root.Type).ReturnType : ((ObjectType)root.Type).GetInstance();
+                DataType returnType = isFunction ? ((FunctionType)root.Type).ReturnType : ((StructType)root.Type).GetInstance();
 
                 _nodes.Add(new ExprNode(isFunction ? (((FunctionType)root.Type).Async ? "CallAsync" : "Call") : "CallConstructor", returnType));
 
@@ -528,7 +488,8 @@ namespace Whirlwind.Semantic.Visitor
                 else
                     throw new SemanticException("The subscript type and the key type must match", textPositions[0]);
             }
-            else if (rootType.Classify() == TypeClassifier.OBJECT_INSTANCE)
+            // fix operator overload
+            /*else if (rootType.Classify() == TypeClassifier.OBJECT_INSTANCE)
             {
                 var args = new List<DataType>();
 
@@ -568,7 +529,7 @@ namespace Whirlwind.Semantic.Visitor
                 }
                 else
                     throw new SemanticException("The given obj defines an invalid overload for the `[]` operator", node.Position);
-            }
+            }*/
             else
             {
                 var intType = new SimpleType(SimpleType.SimpleClassifier.INTEGER);

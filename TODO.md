@@ -1,15 +1,30 @@
 # TODO
 
-- **OVERRIDE** Implement `changes.md`
-- add get struct (for default types) - deprecated
+- remove template syntax (change to pure generic syntax)
+  * interf<T> for
+  * interf name<T>
+  * type name<T>
+  * struct name<T>
+  * func name<T>() 
+  * async name<T>()
+- change from using "templates" to using "generics"
+- monadic typing
+  * adding `>>=` and `:>` operators
+  * adding Monad<T> interface
+- improved operator overloading syntax
+- constancy now bound on type not on variable
+  * `let x: const T;` is equivalent to `const x: T;`
+  * `x: const T` in function call is equivalent to `const x: T`
+- add function overloading
+- allow compound assignment with any operator
+  * make interface static on non-user types
+- add empty type classes
+  * type Thing;
+- add generic operator overloads
 - add prelude (later)
 - add 3 sanitizers (const, constexpr, and memory) [Note: constexpr does in depth checking on all constant expressions]
-- allow primitives to implement interfaces (have duck typing) - deprecated
-- add template overloads 
 - prevent declaration of null type lists
 - remove MirrorType and declare builtins in SymbolTable as necessary
-- allow for incomplete type declaration of type classes (and other higher order types) - deprecated
-- review ownership rules for deletion of values - deprecated
 
 # THOUGHTS
 
@@ -22,19 +37,43 @@
 
 - add operator overloading during generation
 
-# TESTING
+# COMPLETED
 
+- remove null coalescion operator
+- changing conditional operator
+  * `cond ? case1 : case2` now is `case1 if cond else case2`
+- unsized arrays
+- removal of enums
+- removal of classes
+- introduction of high level type classes
+  * type Integer int;
+  * type Positive int{v} when v > 0;
+  * type Color | Red | Blue | Green;
+  * type Option<T> | Some(T) | None;
+  * type FloatOrString<T> | Float(float) | String(str);
+- introduction of struct constructors
+- add type specific comprehensions
+  * { comp } for arrays
+  * [ comp ] for lists
+  * { dict_comp } for dictionaries
+- interfaces can now be bound to any type and classify any type
+  * `interf for` syntax
+  * `interf ... is inherits` syntax
+- `~*` function composition operator
+- `then` operator
+  * allow value to be accessed through `val` syntax if one exists
+- expression local variable declarations
+  * `name = t`
+- common interface coercion (implements on interface type)
+- change list and array coercion
+  * list to unsized array
+  * array to list
 - after clause (except clause)
 - static get
 - reference types
 - new syntax
-- templates
-- variants
-- interfaces
-- types
 - agents
 - object level method variance
 - recursive type definition
 - is operator
 - exception ending
-- EVERYTHING

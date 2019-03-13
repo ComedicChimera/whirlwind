@@ -5,8 +5,10 @@ using System.Linq;
 
 namespace Whirlwind.Types
 {
-    class InterfaceType : DataType, DataType
+    class InterfaceType : DataType
     {
+        public readonly List<InterfaceType> Implements;
+
         private readonly Dictionary<Symbol, bool> _methods;
         private readonly Dictionary<Symbol, bool> _methodTemplates;
 
@@ -14,12 +16,16 @@ namespace Whirlwind.Types
 
         public InterfaceType()
         {
+            Implements = new List<InterfaceType>();
+
             _methods = new Dictionary<Symbol, bool>();
             _methodTemplates = new Dictionary<Symbol, bool>();
         }
 
         private InterfaceType(InterfaceType interf)
         {
+            Implements = new List<InterfaceType>();
+
             _methods = interf._methods;
             _methodTemplates = interf._methodTemplates;
             initialized = true;
@@ -52,34 +58,48 @@ namespace Whirlwind.Types
             if (_methods.Select(x => x.Key.Name).Contains(fnName))
             {
                 symbol = _methods.Keys.Where(x => x.Name == fnName).ToArray()[0];
-                return !symbol.Modifiers.Contains(Modifier.PRIVATE);
+                return true;
             }
             else if (_methodTemplates.Select(x => x.Key.Name).Contains(fnName))
             {
                 symbol = _methodTemplates.Keys.Where(x => x.Name == fnName).ToArray()[0];
-                return !symbol.Modifiers.Contains(Modifier.PRIVATE);
+                return true;
             }
 
             symbol = null;
             return false;
         }
 
-        private bool _wrongModifiers(List<Modifier> interfMod, List<Modifier> objMod)
-            => objMod.Contains(Modifier.PRIVATE) && !interfMod.Contains(Modifier.PRIVATE);
-
-        public TypeClassifier Classify() => initialized ? TypeClassifier.INTERFACE_INSTANCE : TypeClassifier.INTERFACE;
+        public override TypeClassifier Classify() => initialized ? TypeClassifier.INTERFACE_INSTANCE : TypeClassifier.INTERFACE;
 
         protected sealed override bool _coerce(DataType other)
         {
-            var interf = other.GetInterface();
+            if (other.Classify() == TypeClassifier.INTERFACE)
+                return Equals(other);
+            else if (other.Classify() == TypeClassifier.INTERFACE_INSTANCE)
+                return MatchInterface((InterfaceType)other);
+            else
+            {
+                var interf = other.GetInterface();
 
-            // add coercion checking
+                return MatchInterface(interf);
+            }
+        }
+
+        private bool MatchInterface(InterfaceType it)
+        {
+            if (_methods.Count != it._methods.Count || _methodTemplates.Count != it._methodTemplates.Count)
+                return false;
+
+            if (_methods.Any(x => it._methods.Any(y => x.Equals(y))))
+                return _methodTemplates.Any(x => it._methodTemplates.Any(y => x.Equals(y)));
+
             return false;
         }
 
         public InterfaceType GetInstance() => new InterfaceType(this);
 
-        public bool Equals(DataType other)
+        public override bool Equals(DataType other)
         {
             if (other.Classify() == TypeClassifier.INTERFACE || other.Classify() == TypeClassifier.INTERFACE_INSTANCE)
             {
@@ -120,6 +140,10 @@ namespace Whirlwind.Types
         // tests if a type implements all necessary methods to be a child of this interface
         public bool Derive(DataType child)
         {
+
+            if (child is InterfaceType)
+                return false;
+
             var interf = child.GetInterface();
 
             if (_methods.Where(x => !x.Value).All(x => interf._methods.Contains(x)) &&
@@ -133,6 +157,8 @@ namespace Whirlwind.Types
                     if (methodTemplate.Value && !interf._methodTemplates.Contains(methodTemplate))
                         interf.AddTemplate(methodTemplate.Key, methodTemplate.Value);
                 }
+
+                interf.Implements.Add(this);
 
                 return true;
             }

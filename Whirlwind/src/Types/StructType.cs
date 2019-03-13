@@ -1,18 +1,24 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
+
+using Whirlwind.Semantic;
 
 namespace Whirlwind.Types
 {
-    class StructType : DataType, DataType
+    class StructType : DataType
     {
-        private bool _instance;
-
         public readonly string Name;
         public readonly Dictionary<string, DataType> Members;
+
+        private List<FunctionType> _constructors;
+        private bool _instance;
 
         public StructType(string name, bool instance)
         {
             Name = name;
             Members = new Dictionary<string, DataType>();
+
+            _constructors = new List<FunctionType>();
             _instance = instance;
         }
 
@@ -20,6 +26,8 @@ namespace Whirlwind.Types
         {
             Name = str.Name;
             Members = str.Members;
+
+            _constructors = str._constructors;
             _instance = true;
         }
 
@@ -33,6 +41,31 @@ namespace Whirlwind.Types
 
         public StructType GetInstance()
             => new StructType(this);
+
+        public bool AddConstructor(FunctionType fnType)
+        {
+            if (_constructors.Where(x => x.Coerce(fnType)).Count() == 0)
+            {
+                _constructors.Add(fnType);
+                return true;
+            }
+
+            return false;
+        }
+
+        public bool GetConstructor(ArgumentList args, out FunctionType fnType)
+        {
+            var matches = _constructors.Where(x => x.MatchArguments(args));
+
+            if (matches.Count() > 0)
+            {
+                fnType = matches.First();
+                return true;
+            }
+
+            fnType = new FunctionType(new List<Parameter>(), new SimpleType(), false);
+            return false;
+        }
 
         protected sealed override bool _coerce(DataType other)
         {
@@ -58,8 +91,9 @@ namespace Whirlwind.Types
             return false;
         }
 
-        public TypeClassifier Classify() => _instance ? TypeClassifier.STRUCT_INSTANCE : TypeClassifier.STRUCT;
+        public override TypeClassifier Classify() 
+            => _instance ? TypeClassifier.STRUCT_INSTANCE : TypeClassifier.STRUCT;
 
-        public bool Equals(DataType other) => Coerce(other);
+        public override bool Equals(DataType other) => Coerce(other);
     }
 }

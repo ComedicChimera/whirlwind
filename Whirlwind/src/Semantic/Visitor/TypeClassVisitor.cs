@@ -13,152 +13,106 @@ namespace Whirlwind.Semantic.Visitor
             _nodes.Add(new BlockNode("TypeClass"));
 
             string name = ((TokenNode)node.Content[1]).Tok.Value;
-            ObjectType objType = new ObjectType(name, false, false);
-
-            var interfaces = new List<InterfaceType>();
 
             _table.AddScope();
             _table.DescendScope();
 
-            // self referential pointer declaration (can accept raw obj type now, b/c obj type is reference)
-            _table.AddSymbol(new Symbol(name, new SelfType(objType), new List<Modifier> { Modifier.CONSTANT }));
+            var typeClass = new CustomType(name);
 
-
-            bool needsDefaultConstr = true;
+            // self referential pointer declaration
+            _table.AddSymbol(new Symbol(name, new SelfType(typeClass), new List<Modifier> { Modifier.CONSTANT }));
 
             foreach (var item in node.Content)
             {
-                if (item.Name == "impl")
-                    _visitImplClause((ASTNode)item, ref interfaces);
-                else if (item.Name == "type_class_main")
+                if (item.Name == "type_class_main")
                 {
-                    ASTNode decl = (ASTNode)((ASTNode)item).Content.Where(x => x.Name != "TOKEN").Last();
+                    var decl = (ASTNode)item;
 
-                    List<Modifier> modifiers = decl.Name == "variable_decl" ? new List<Modifier>() : new List<Modifier>() { Modifier.CONSTANT };
-
-                    if (((ASTNode)item).Content.First() is TokenNode)
-                        modifiers.Add(Modifier.PRIVATE);
-
-                    // handle moving symbols from scope to type class
-                    switch (decl.Name)
+                    if (decl.Content[0].Name == "types")
                     {
-                        case "variable_decl":
-                            // variables must have pointer as type if they are self referential
-                            _selfNeedsPointer = true;
-                            _visitVarDecl(decl, modifiers);
-                            _selfNeedsPointer = false;
-                            break;
-                        case "func_decl":
-                            _visitFunction(decl, modifiers);
-                            break;
-                        case "constructor_decl":
-                            FunctionType ft = _visitConstructor(decl, modifiers);
+                        var types = (ASTNode)decl.Content[0];
 
-                            if (!objType.AddConstructor(ft, modifiers.Contains(Modifier.PRIVATE)))
-                                throw new SemanticException("Unable to distinguish between constructor signatures", decl.Content[2].Position);
+                        if (types.Content[0] is TokenNode tn && tn.Tok.Type == "IDENTIFIER" 
+                            && types.Content.Count == 1 && decl.Content.Count == 1 
+                            && !_table.Lookup(tn.Tok.Value, out Symbol _))
+                        {
+                            var ct = new CustomNewType(typeClass, tn.Tok.Value, new List<DataType>());
 
-                            needsDefaultConstr = false;
-                            break;
-                        case "method_template":
-                            _visitTemplate(decl, modifiers);
-                            break;
+                            // the only things that would match as types have no values
+                            typeClass.AddInstance(ct);
+
+                            _nodes.Add(new ExprNode("NewType", ct));
+                        }
+                        else
+                        {
+                            var dt = _generateType(types);
+
+                            _nodes.Add(new ExprNode("AliasType", dt));
+
+                            if (decl.Content.Count > 1)
+                            {
+                                _table.AddScope();
+                                _table.DescendScope();
+
+                                foreach (var elem in decl.Content.Skip(1))
+                                {
+                                    if (elem is TokenNode tn2 && tn2.Tok.Type == "IDENTIFIER")
+                                    {
+                                        _nodes.Add(new IdentifierNode(tn2.Tok.Value, dt, true));
+                                        MergeBack();                                       
+
+                                        // no check necessary (private sub scope)
+                                        _table.AddSymbol(new Symbol(tn2.Tok.Value, dt, new List<Modifier> { Modifier.CONSTANT }));
+                                    }
+                                    else if (elem.Name == "expr")
+                                    {
+                                        _visitExpr((ASTNode)elem);
+                                        MergeBack();
+                                    }
+                                }
+
+                                _table.AscendScope();
+                            }
+
+                            typeClass.AddInstance(new CustomAlias(typeClass, dt));
+                        }
                     }
+                    else
+                    {
+                        string newTypeName = ((TokenNode)decl.Content[0]).Tok.Value;
 
-                    MergeToBlock();
+                        var values = new List<DataType>();
+
+                        if (decl.Content.Count == 2)
+                            values = _generateTypeList((ASTNode)((ASTNode)decl.Content[1]).Content[1]);
+
+                        var ct = new CustomNewType(typeClass, newTypeName, values);
+
+                        if (!typeClass.AddInstance(ct))
+                            throw new SemanticException("Members of type class must be distinguishable", decl.Position);
+
+                        _nodes.Add(new ExprNode("NewType", ct));
+                    }
                 }
             }
-
-            var symbols = _table.GetScope();
-
-            foreach (var sym in symbols)
-                objType.AddMember(sym);
-
-            for (int i = 0; i < interfaces.Count; i++)
-            {
-                var inter = interfaces[i];
-
-                if (inter.Derive(objType))
-                    objType.AddInherit(inter);
-                else
-                    throw new SemanticException("This type class does not implement all of its interfaces", ((ASTNode)node.Content[2]).Content[i * 2 + 1].Position);
-            }
-
-            // give objects a default constructor (if necessary)
-            if (needsDefaultConstr)
-                objType.AddConstructor(new FunctionType(new List<Parameter>(), new SimpleType(), false), false);
-
-            _nodes.Add(new IdentifierNode(name, objType, true));
 
             _table.AscendScope();
 
-            if (!_table.AddSymbol(new Symbol(name, objType, typeModifiers)))
-                throw new SemanticException($"Unable to redeclare symbol {name}", node.Content[1].Position);
+            if (!_table.AddSymbol(new Symbol(name, typeClass, typeModifiers)))
+                throw new SemanticException($"Unable to redeclare symbol by name `{name}`", node.Content[1].Position);
 
-            _nodes.Add(new ExprNode("Implements", new SimpleType()));
-
-            for (int i = 0; i < interfaces.Count; i++)
+            // declare new types
+            for (int i = 0; i < typeClass.Instances.Count; i++)
             {
-                var inter = interfaces[i];
+                if (typeClass.Instances[i] is CustomNewType cnType)
+                {
+                    if (!_table.AddSymbol(new Symbol(cnType.Name, cnType)))
+                        throw new SemanticException("All new type members of a type class must be declarable within the enclosing scope",
+                            node.Content.Where(x => x.Name == "type_class_main").ElementAt(i).Position);
+                }
 
-                _nodes.Add(new IdentifierNode(((TokenNode)((ASTNode)node.Content[2]).Content[i * 2 + 1]).Tok.Value, inter, true));
                 MergeBack();
             }
-
-            MergeBack(2);
-        }
-
-        private void _visitImplClause(ASTNode node, ref List<InterfaceType> interfaces)
-        {
-            foreach (var elem in node.Content)
-            {
-                // all elements are tokens
-                Token token = ((TokenNode)elem).Tok;
-
-                if (token.Type == "IDENTIFIER")
-                {
-                    if (_table.Lookup(token.Value, out Symbol symbol))
-                    {
-                        if (symbol.DataType.Classify() == TypeClassifier.INTERFACE)
-                        {
-                            if (interfaces.Any(x => x.Equals(symbol.DataType)))
-                                throw new SemanticException("Unable to inherit from an interface multiple times", elem.Position);
-
-                            interfaces.Add((InterfaceType)symbol.DataType);
-                        }
-                        else
-                            throw new SemanticException("Unable to implement a non-interface", elem.Position);
-                    }
-                    else
-                        throw new SemanticException($"Undefined Symbol: `{token.Value}`", elem.Position);
-                }
-            }
-        }
-
-        private FunctionType _visitConstructor(ASTNode decl, List<Modifier> modifiers)
-        {
-            List<Parameter> args = new List<Parameter>();
-
-            _nodes.Add(new BlockNode("Constructor"));
-
-            foreach (var item in decl.Content)
-            {
-                if (item.Name == "args_decl_list")
-                    args = _generateArgsDecl((ASTNode)item);
-                else if (item.Name == "func_body")
-                {
-                    
-
-                    _nodes.Add(new IncompleteNode((ASTNode)item));
-                    MergeToBlock();
-                }
-            }
-
-            FunctionType ft = new FunctionType(args, new SimpleType(), false);
-
-            _nodes.Add(new ValueNode("ConstructorSignature", ft));
-            MergeBack();
-
-            return ft;
         }
     }
 }

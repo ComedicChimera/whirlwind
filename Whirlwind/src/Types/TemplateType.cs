@@ -138,8 +138,8 @@ namespace Whirlwind.Types
             {
                 case TypeClassifier.FUNCTION:
                     return _inferFromFunction((FunctionType)DataType, arguments, out inferredTypes);
-                case TypeClassifier.OBJECT:
-                    if (((ObjectType)DataType).GetConstructor(arguments, out FunctionType constructor))
+                case TypeClassifier.STRUCT:
+                    if (((StructType)DataType).GetConstructor(arguments, out FunctionType constructor))
                         return _inferFromFunction(constructor, arguments, out inferredTypes);
                     break;
             }
@@ -261,13 +261,6 @@ namespace Whirlwind.Types
                     break;
                 case TypeClassifier.REFERENCE:
                     aliasesCompleted.AddRange(_getCompletedAliases(((ReferenceType)dt).DataType));
-                    break;
-                case TypeClassifier.OBJECT:
-                    {
-                        var members = (Dictionary<string, Symbol>)typeof(ObjectType).GetField("_members").GetValue(dt);
-
-                        aliasesCompleted.AddRange(members.SelectMany(x => _getCompletedAliases(x.Value.DataType)));
-                    }
                     break;
                 case TypeClassifier.STRUCT:
                     aliasesCompleted.AddRange(((StructType)dt).Members.SelectMany(x => _getCompletedAliases(x.Value)));
