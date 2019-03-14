@@ -25,7 +25,7 @@ namespace Whirlwind.Semantic.Checker
                             valid = true;
                         else if (rootType.Classify() == TypeClassifier.POINTER && new SimpleType(SimpleType.SimpleClassifier.INTEGER).Coerce(operandType))
                             return;
-                        else if (HasOverload(rootType, "__add__", new ArgumentList(new List<DataType>() { operandType }), 
+                        else if (HasOverload(rootType, "__+__", new ArgumentList(new List<DataType>() { operandType }), 
                             out DataType returnType))
                         {
                             rootType = returnType;
@@ -48,27 +48,7 @@ namespace Whirlwind.Semantic.Checker
                         if (rootType.Classify() == TypeClassifier.POINTER && new SimpleType(SimpleType.SimpleClassifier.INTEGER).Coerce(operandType))
                             return;
 
-                        string methodName;
-                        switch (op)
-                        {
-                            case "-":
-                                methodName = "__sub__";
-                                break;
-                            case "*":
-                                methodName = "__mul__";
-                                break;
-                            case "%":
-                                methodName = "__mod__";
-                                break;
-                            case "/":
-                                methodName = "__div__";
-                                break;
-                            default:
-                                methodName = "__pow__";
-                                break;
-                        }
-
-                        if (HasOverload(rootType, methodName, new ArgumentList(new List<DataType>() { operandType }), out DataType returnType))
+                        if (HasOverload(rootType, $"__{op}__", new ArgumentList(new List<DataType>() { operandType }), out DataType returnType))
                         {
                             rootType = returnType;
                             return;
@@ -80,7 +60,7 @@ namespace Whirlwind.Semantic.Checker
                     {
                         if (rootType.Classify() == TypeClassifier.SIMPLE && new SimpleType(SimpleType.SimpleClassifier.INTEGER).Coerce(operandType))
                             return;
-                        else if (HasOverload(rootType, op == ">>" ? "__lshift__" : "__rshift__", new ArgumentList(new List<DataType>() { operandType }),
+                        else if (HasOverload(rootType, $"__{op}__", new ArgumentList(new List<DataType>() { operandType }),
                             out DataType returnType))
                         {
                             rootType = returnType;
@@ -91,7 +71,7 @@ namespace Whirlwind.Semantic.Checker
                 case "==":
                 case "!=":
                     {
-                        if (HasOverload(rootType, op == "==" ? "__eq__" : "__neq__", new ArgumentList(new List<DataType>() { operandType }),
+                        if (HasOverload(rootType, $"__{op}__", new ArgumentList(new List<DataType>() { operandType }),
                             out DataType returnType))
                         {
                             rootType = returnType;
@@ -112,25 +92,8 @@ namespace Whirlwind.Semantic.Checker
                             return;
                         }  
 
-                        string methodName;
-                        switch (op)
-                        {
-                            case ">":
-                                methodName = "__gt__";
-                                break;
-                            case "<":
-                                methodName = "__lt__";
-                                break;
-                            case ">=":
-                                methodName = "__gteq__";
-                                break;
-                            // <=
-                            default:
-                                methodName = "__lteq__";
-                                break;
-                        }
 
-                        if (HasOverload(rootType, methodName, new ArgumentList(new List<DataType>() { operandType }), 
+                        if (HasOverload(rootType, $"__{op}__", new ArgumentList(new List<DataType>() { operandType }), 
                             out DataType returnType))
                         {
                             rootType = returnType;
@@ -151,7 +114,7 @@ namespace Whirlwind.Semantic.Checker
 
                             valid = true;
                         }
-                        else if (HasOverload(rootType, $"__{op.ToLower()}__", new ArgumentList(new List<DataType>() { operandType }), 
+                        else if (HasOverload(rootType, $"__{op}__", new ArgumentList(new List<DataType>() { operandType }), 
                             out DataType returnType))
                         {
                             rootType = returnType;

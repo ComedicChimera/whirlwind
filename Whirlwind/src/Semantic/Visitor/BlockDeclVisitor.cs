@@ -74,6 +74,44 @@ namespace Whirlwind.Semantic.Visitor
                 }
                 else if (func.Name == "variant_decl")
                     _visitVariant((ASTNode)func);
+                else if (func.Name == "operator_decl")
+                {
+                    _nodes.Add(new BlockNode("OperatorOverload"));
+
+                    ASTNode decl = (ASTNode)func;
+
+                    string op = ((ASTNode)decl.Content[1]).Content
+                        .Select(x => ((TokenNode)x).Tok.Type)
+                        .Aggregate((a, b) => a + b);               
+
+                    var args = _generateArgsDecl((ASTNode)decl.Content[3]);
+
+                    DataType rtType = new SimpleType();
+                    if (decl.Content[5].Name == "types")
+                        rtType = _generateType((ASTNode)decl.Content[5]);
+
+                    var ft = new FunctionType(args, rtType, false);
+
+                    _nodes.Add(new ValueNode("Operator", ft, op));
+                    MergeBack();
+
+                    if (args.Count == 0 && decl.Content[5].Name == "func_body")
+                        _nodes.Add(new IncompleteNode((ASTNode)decl.Content[5]));
+                    else if (args.Count > 0 && decl.Content[6].Name == "func_body")
+                        _nodes.Add(new IncompleteNode((ASTNode)decl.Content[6]));
+                    else
+                    {
+                        interfaceType.AddMethod(new Symbol($"__{op}__", ft), false);
+
+                        // merge operator overload
+                        MergeToBlock();
+                        continue;
+                    }
+
+                    interfaceType.AddMethod(new Symbol($"__{op}__", ft), true);
+
+                    MergeToBlock();
+                }
                 else
                 {
                     _visitFunction((ASTNode)func, memberModifiers);
@@ -83,66 +121,66 @@ namespace Whirlwind.Semantic.Visitor
                         ((ASTNode)func).Content.Last().Name == "func_body"))
                         throw new SemanticException("Interface cannot contain duplicate members", ((ASTNode)func).Content[1].Position);
                 }
-
-                if (tn.Tok.Value == "FOR")
-                {
-                    _selfNeedsPointer = false;
-
-                    DataType dt = _generateType((ASTNode)node.Content[2]);
-
-                    // implement interface
-                    if (!interfaceType.Derive(dt))
-                        throw new SemanticException("All methods of type interface must define a body", node.Content[2].Position);
-
-                    _nodes.Add(new ExprNode("BindInterface", interfaceType));
-
-                    _nodes.Add(new ValueNode("Interface", interfaceType));
-                    _nodes.Add(new ValueNode("Type", dt));
-
-                    MergeBack(2);
-                    MergeBack(); // merge to interface decl
-
-                    if (node.Content.Count > 3)
-                    {
-                        _nodes.Add(new ExprNode("Implements", new SimpleType()));
-
-                        foreach (var item in node.Content.Skip(4))
-                        {
-                            if (item.Name == "types")
-                            {
-                                DataType impl = _generateType((ASTNode)item);
-
-                                if (impl.Classify() != TypeClassifier.INTERFACE)
-                                    throw new SemanticException("Type interface can only implement interfaces", item.Position);
-
-                                if (!((InterfaceType)impl).Derive(dt))
-                                    throw new SemanticException("The given data type does not implement all required methods of the interface",
-                                        item.Position);
-
-                                _nodes.Add(new ValueNode("Implement", impl));
-                                MergeBack();
-                            }
-                        }
-
-                        MergeBack(); // merge to interface decl
-                    }
-                    
-                }
-                else
-                {
-                    string name = tn.Tok.Value;
-
-                    _nodes.Add(new IdentifierNode(name, interfaceType, true));
-                    MergeBack();
-
-                    _table.AscendScope();
-
-                    if (!_table.AddSymbol(new Symbol(name, interfaceType, modifiers)))
-                        throw new SemanticException($"Unable to redeclare symbol by name `{name}`", tn.Position);
-                }
                 
                 // add function to interface block
                 MergeToBlock();                
+            }
+
+            if (tn.Tok.Value == "FOR")
+            {
+                _selfNeedsPointer = false;
+
+                DataType dt = _generateType((ASTNode)node.Content[2]);
+
+                // implement interface
+                if (!interfaceType.Derive(dt))
+                    throw new SemanticException("All methods of type interface must define a body", node.Content[2].Position);
+
+                _nodes.Add(new ExprNode("BindInterface", interfaceType));
+
+                _nodes.Add(new ValueNode("Interface", interfaceType));
+                _nodes.Add(new ValueNode("Type", dt));
+
+                MergeBack(2);
+                MergeBack(); // merge to interface decl
+
+                if (node.Content.Count > 3)
+                {
+                    _nodes.Add(new ExprNode("Implements", new SimpleType()));
+
+                    foreach (var item in node.Content.Skip(4))
+                    {
+                        if (item.Name == "types")
+                        {
+                            DataType impl = _generateType((ASTNode)item);
+
+                            if (impl.Classify() != TypeClassifier.INTERFACE)
+                                throw new SemanticException("Type interface can only implement interfaces", item.Position);
+
+                            if (!((InterfaceType)impl).Derive(dt))
+                                throw new SemanticException("The given data type does not implement all required methods of the interface",
+                                    item.Position);
+
+                            _nodes.Add(new ValueNode("Implement", impl));
+                            MergeBack();
+                        }
+                    }
+
+                    MergeBack(); // merge to interface decl
+                }
+
+            }
+            else
+            {
+                string name = tn.Tok.Value;
+
+                _nodes.Add(new IdentifierNode(name, interfaceType, true));
+                MergeBack();
+
+                _table.AscendScope();
+
+                if (!_table.AddSymbol(new Symbol(name, interfaceType, modifiers)))
+                    throw new SemanticException($"Unable to redeclare symbol by name `{name}`", tn.Position);
             }
         }
 

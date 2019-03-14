@@ -34,7 +34,7 @@ namespace Whirlwind.Semantic.Checker
             if (dt is IIterable)
                 return true;
 
-            if (HasOverload(dt, "__next__", out DataType returnType))
+            if (HasOverload(dt, "__<-__", out DataType returnType))
             {
                 if (returnType.Classify() == TypeClassifier.STRUCT_INSTANCE)
                 {

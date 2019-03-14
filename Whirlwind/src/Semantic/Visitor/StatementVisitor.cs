@@ -184,7 +184,18 @@ namespace Whirlwind.Semantic.Visitor
                         MergeBack();
                         break;
                     case "assign_op":
-                        op = string.Join("", ((ASTNode)node).Content.Select(x => ((TokenNode)x).Tok.Type));
+                        {
+                            var opNode = (ASTNode)node;
+
+                            if (opNode.Content.Count == 2)
+                            {
+                                op += ((ASTNode)opNode.Content[0]).Content
+                                    .Select(x => ((TokenNode)x).Tok.Type)
+                                    .Aggregate((a, b) => a + b);
+                            }
+
+                            op += "=";
+                        }
                         break;
                     case "expr":
                         if (exprTypes.Count == 0)

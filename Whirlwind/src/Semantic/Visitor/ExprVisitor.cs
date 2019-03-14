@@ -94,7 +94,7 @@ namespace Whirlwind.Semantic.Visitor
                     {
                         var extractExpr = (ASTNode)subNode;
 
-                        if (HasOverload(_nodes.Last().Type, "__extract__", out DataType rtType))
+                        if (HasOverload(_nodes.Last().Type, "__:>__", out DataType rtType))
                         {
                             _thenExprType = rtType;
 
@@ -159,8 +159,6 @@ namespace Whirlwind.Semantic.Visitor
                         }
                             
                     }
-
-
 
                     _nodes.Add(new ExprNode("Case", dt));
                     PushForward(exprs);
@@ -227,7 +225,7 @@ namespace Whirlwind.Semantic.Visitor
 
                     if (treeName == "Bind")
                     {
-                        if (HasOverload(rootType, "__bind__", new ArgumentList(new List<DataType> { _nodes.Last().Type }), out DataType rtType))
+                        if (HasOverload(rootType, "__>>=__", new ArgumentList(new List<DataType> { _nodes.Last().Type }), out DataType rtType))
                             _nodes.Add(new ExprNode("Bind", rtType));
                         else
                             throw new SemanticException("The `>>=` operator is not defined on the given type", node.Content[opPos].Position);
@@ -239,7 +237,7 @@ namespace Whirlwind.Semantic.Visitor
                             _nodes.Add(new ExprNode("Compose", new FunctionType(rft.Parameters.Take(1).Concat(oft.Parameters).ToList(),
                                 rft.ReturnType, rft.Async)));
                         }
-                        else if (HasOverload(rootType, "__compose__", new ArgumentList(new List<DataType> { _nodes.Last().Type}), 
+                        else if (HasOverload(rootType, "__~*__", new ArgumentList(new List<DataType> { _nodes.Last().Type}), 
                             out DataType rtType))
                         {
                             _nodes.Add(new ExprNode("Compose", rtType));
@@ -343,7 +341,7 @@ namespace Whirlwind.Semantic.Visitor
                             _nodes.Add(new ExprNode("Not", _nodes.Last().Type));
                             PushForward();
                         }
-                        else if (HasOverload(_nodes.Last().Type, "__not__", out DataType returnType))
+                        else if (HasOverload(_nodes.Last().Type, "__!__", out DataType returnType))
                         {
                             _nodes.Add(new ExprNode("Not", returnType));
                             PushForward();
@@ -557,7 +555,7 @@ namespace Whirlwind.Semantic.Visitor
                         // only simple types are numeric - remove unsigned
                         dt = new SimpleType(((SimpleType)rootType).Type);
                     }
-                    else if (HasOverload(rootType, "__neg__", out DataType newDt))
+                    else if (HasOverload(rootType, "__-__", out DataType newDt))
                     {
                         _nodes.Add(new ExprNode("ChangeSign", newDt));
                         // push root type
@@ -572,7 +570,7 @@ namespace Whirlwind.Semantic.Visitor
 
                     if (rootType.Classify() == TypeClassifier.SIMPLE)
                         dt = rootType;
-                    else if (HasOverload(rootType, "__comp__", out DataType newDt))
+                    else if (HasOverload(rootType, "__~__", out DataType newDt))
                     {
                         _nodes.Add(new ExprNode("Complement", newDt));
                         // push root type

@@ -16,7 +16,7 @@ subscope: '{' main '}' ;
 
 // include statement
 include_stmt: 'INCLUDE' ( pkg_name ['STRING_LITERAL'] | include_set 'FROM' pkg_name ) ;
-pkg_name: [pkg_back_move] 'IDENTIFIER' ('.' 'IDENTIFIER' | pkg_back_move )* ;
+pkg_name: [pkg_back_move] 'IDENTIFIER' (':' ':' 'IDENTIFIER' | pkg_back_move 'IDENTIFIER')* ;
 pkg_back_move: '.' '.' ;
 include_set: '{' 'IDENTIFIER' (',' 'IDENTIFIER')* '}' ;
 
@@ -55,7 +55,11 @@ func_decl: ('FUNC' | 'ASYNC') 'IDENTIFIER' '(' args_decl_list ')' [ types ] (fun
 interface_decl: 'INTERF' interface_header '{' interface_main '}' ;
 interface_header: 'IDENTIFIER' | 'FOR' types ['IS' implements] ;
 implements: types (',' types)* ;
-interface_main: ( func_decl | variant_decl | method_template )+ ;
+interface_main: ( func_decl | variant_decl | method_template | operator_decl )+ ;
+
+// operator overload
+operator_decl: 'OPERATOR' ( operator | ext_op ) '(' args_decl_list ')' [types] (func_body | ';') ;
+ext_op: '[' [ ':' ] ']' | '<- ;
 
 // method template
 method_template: 'TEMPLATE' '<' template (',' template)* '>' func_decl ;
@@ -162,19 +166,7 @@ variable_initializer: [ '=' expr
 assignment: assign_var (',' assign_var)* assign_op expr (',' expr)* ;
 assign_var: '*'* ( 'IDENTIFIER' | 'THIS' | '_' ) trailer* ;
 
-assign_op: [ '+'
-| '-'
-| '*'
-| '/'
-| '%'
-| '^'
-| '<' '<'
-| '>' '>'
-| 'AND'
-| 'OR'
-| 'XOR'
-] 
-'=' ;
+assign_op: [ operator ] '=' ;
 
 // simple statements
 continue_stmt: 'CONTINUE' ;
@@ -389,3 +381,7 @@ func_guard: 'WHEN' '(' expr ')' ;
 block: '{' [main] '}'
 | stmt
 ;
+
+// operator (wherever any operator can be used)
+operator: '+' | '-' | '*' | '/' | '%' | '<' | '>' | '<=' | '>=' | '==' | '!='
+| '>>=' | '~^' | '~*' | '~/' | '<' '<' | '>' '>' | 'AND' | 'OR' | 'XOR' | '~' ;

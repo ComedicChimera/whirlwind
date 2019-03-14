@@ -9,10 +9,8 @@
   * async name<T>()
 - change from using "templates" to using "generics"
 - add Monad<T> interface
-- improved operator overloading syntax
 - add constancy propagation
 - add function overloading
-- allow compound assignment with any operator
 - make interface static on non-user types
 - add generic operator overloads
 - add prelude (later)
@@ -78,3 +76,5 @@
 - 
 - add empty type classes
   * type Thing;
+- improved operator overloading syntax
+- allow compound assignment with any operator

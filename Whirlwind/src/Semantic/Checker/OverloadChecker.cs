@@ -1,53 +1,43 @@
 ﻿using Whirlwind.Types;
 
-using System.Collections.Generic;
-
 namespace Whirlwind.Semantic.Checker
 {
     partial class Checker
     {
         public static bool HasOverload(DataType type, string methodName, out DataType returnType)
         {
-            if (type.Classify() == TypeClassifier.OBJECT_INSTANCE)
+            if (type.Classify() != TypeClassifier.INTERFACE)
             {
-                if (((ObjectType)type).GetMember(methodName, out Symbol method))
+                if (type.GetInterface().GetFunction(methodName, out Symbol symbol))
                 {
-                    if (method.DataType.Classify() == TypeClassifier.FUNCTION)
+                    // ADD GENERIC CASE
+                    if (((FunctionType)symbol.DataType).MatchArguments(new ArgumentList()))
                     {
-                        if (CheckArguments((FunctionType)method.DataType, new ArgumentList()).IsError)
-                        {
-                            returnType = new SimpleType();
-                            return false;
-                        }
-                            
-                        returnType = ((FunctionType)method.DataType).ReturnType;
+                        returnType = ((FunctionType)symbol.DataType).ReturnType;
                         return true;
-                    }             
+                    }
                 }
             }
+
             returnType = new SimpleType();
             return false;
         }
 
         public static bool HasOverload(DataType type, string methodName, ArgumentList arguments, out DataType returnType)
         {
-            if (type.Classify() == TypeClassifier.OBJECT_INSTANCE)
+            if (type.Classify() != TypeClassifier.INTERFACE)
             {
-                if (((ObjectType)type).GetMember(methodName, out Symbol method))
+                if (type.GetInterface().GetFunction(methodName, out Symbol symbol))
                 {
-                    if (method.DataType.Classify() == TypeClassifier.FUNCTION)
+                    // ADD GENERIC CASE
+                    if (((FunctionType)symbol.DataType).MatchArguments(arguments))
                     {
-                        if (CheckArguments((FunctionType)method.DataType, arguments).IsError)
-                        {
-                            returnType = new SimpleType();
-                            return false;
-                        }
-                           
-                        returnType = ((FunctionType)method.DataType).ReturnType;
+                        returnType = ((FunctionType)symbol.DataType).ReturnType;
                         return true;
                     }
                 }
             }
+
             returnType = new SimpleType();
             return false;
         }
