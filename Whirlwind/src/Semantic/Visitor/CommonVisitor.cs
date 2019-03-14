@@ -61,7 +61,7 @@ namespace Whirlwind.Semantic.Visitor
             if (iterable is IIterable)
                 return (iterable as IIterable).GetIterator();
             // should never fail - not a true overload so check not required
-            else if (((ObjectType)iterable).GetMember("__next__", out Symbol method))
+            else if (iterable.GetInterface().GetFunction("__next__", out Symbol method))
             {
                 // all iterable __next__ methods return a specific element type (Element<T>)
                 var elementType = ((FunctionType)method.DataType).ReturnType;

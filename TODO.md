@@ -8,23 +8,20 @@
   * func name<T>() 
   * async name<T>()
 - change from using "templates" to using "generics"
-- monadic typing
-  * adding `>>=` and `:>` operators
-  * adding Monad<T> interface
+- add Monad<T> interface
 - improved operator overloading syntax
-- constancy now bound on type not on variable
-  * `let x: const T;` is equivalent to `const x: T;`
-  * `x: const T` in function call is equivalent to `const x: T`
+- add constancy propagation
 - add function overloading
 - allow compound assignment with any operator
-  * make interface static on non-user types
-- add empty type classes
-  * type Thing;
+- make interface static on non-user types
 - add generic operator overloads
 - add prelude (later)
 - add 3 sanitizers (const, constexpr, and memory) [Note: constexpr does in depth checking on all constant expressions]
 - prevent declaration of null type lists
 - remove MirrorType and declare builtins in SymbolTable as necessary
+- change include syntax to use `::` instead of `.`
+  * include { Println, Scan } from io::std;
+  * include ..a::b;
 
 # THOUGHTS
 
@@ -77,3 +74,7 @@
 - recursive type definition
 - is operator
 - exception ending
+- add `>>=` and `:> operators
+- 
+- add empty type classes
+  * type Thing;

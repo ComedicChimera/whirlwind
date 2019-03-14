@@ -61,7 +61,7 @@ interface_main: ( func_decl | variant_decl | method_template )+ ;
 method_template: 'TEMPLATE' '<' template (',' template)* '>' func_decl ;
 
 // type class declaration
-type_class_decl: 'TYPE' 'IDENTIFIER' ( type_class_main | ( '|' type_class_main )+ ) ';' ;
+type_class_decl: 'TYPE' 'IDENTIFIER' [ type_class_main | ( '|' type_class_main )+ ] ';' ;
 type_class_main: types [value_restrictor] | 'IDENTIFIER' [type_constructor] ;
 value_restrictor: '{' 'IDENTIFIER' '}' 'WHEN' expr ;
 type_constructor: '(' type_list ')' ;

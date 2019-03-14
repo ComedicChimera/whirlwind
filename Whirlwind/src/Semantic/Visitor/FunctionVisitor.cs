@@ -210,15 +210,12 @@ namespace Whirlwind.Semantic.Visitor
                             }
                             else
                             {
-                                if (rtType is ObjectType && dt is ObjectType)
-                                {
-                                    var commonInherits = ((ObjectType)rtType).Inherits.Where(x => ((ObjectType)dt).Inherits.Contains(x));
+                                InterfaceType i1 = rtType.GetInterface(), i2 = dt.GetInterface();
 
-                                    if (commonInherits.Count() > 0)
-                                        rtType = commonInherits.First();
-                                    else
-                                        throw new SemanticException("Inconsistent return types", positions[pos]);
-                                }
+                                var matches = i1.Implements.Where(x => i2.Implements.Contains(x));
+
+                                if (matches.Count() > 0)
+                                    rtType = matches.First();
                                 else
                                     throw new SemanticException("Inconsistent return types", positions[pos]);
                             }
@@ -263,16 +260,12 @@ namespace Whirlwind.Semantic.Visitor
                             rtType = blockReturn.Item2;
                         else
                         {
-                            if (rtType is ObjectType && blockReturn.Item2 is ObjectType)
-                            {
-                                var commonInherits = ((ObjectType)rtType).Inherits.Where(
-                                    x => ((ObjectType)blockReturn.Item2).Inherits.Contains(x));
+                            InterfaceType i1 = rtType.GetInterface(), i2 = blockReturn.Item2.GetInterface();
 
-                                if (commonInherits.Count() > 0)
-                                    rtType = commonInherits.First();
-                                else
-                                    throw new SemanticException("Inconsistent return type", positions[savedPos]);
-                            }
+                            var matches = i1.Implements.Where(x => i2.Implements.Contains(x));
+
+                            if (matches.Count() > 0)
+                                rtType = matches.First();
                             else
                                 throw new SemanticException("Inconsistent return type", positions[savedPos]);
                         }
