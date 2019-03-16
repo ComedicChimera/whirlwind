@@ -45,6 +45,12 @@ namespace Whirlwind.Types
 
         // check two data types for perfect equality (rarely used)
         public abstract bool Equals(DataType other);
+
+        public static bool operator==(DataType a, DataType b)
+            => a.Equals(b);
+
+        public static bool operator !=(DataType a, DataType b)
+            => !a.Equals(b);
     }
 
     class NullType : DataType
@@ -71,6 +77,7 @@ namespace Whirlwind.Types
         TYPE_CLASS,
         TYPE_CLASS_INSTANCE,
         FUNCTION,
+        FUNCTION_GROUP,
         TEMPLATE,
         TEMPLATE_ALIAS,
         TEMPLATE_PLACEHOLDER,

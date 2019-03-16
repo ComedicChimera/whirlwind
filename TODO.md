@@ -11,15 +11,11 @@
 - add Monad<T> interface
 - add constancy propagation
 - add function overloading
-- make interface static on non-user types
 - add generic operator overloads
 - add prelude (later)
 - add 3 sanitizers (const, constexpr, and memory) [Note: constexpr does in depth checking on all constant expressions]
 - prevent declaration of null type lists
 - remove MirrorType and declare builtins in SymbolTable as necessary
-- change include syntax to use `::` instead of `.`
-  * include { Println, Scan } from io::std;
-  * include ..a::b;
 
 # THOUGHTS
 
@@ -37,7 +33,7 @@
 - remove null coalescion operator
 - changing conditional operator
   * `cond ? case1 : case2` now is `case1 if cond else case2`
-- unsized arrays
+- unsized arraysw
 - removal of enums
 - removal of classes
 - introduction of high level type classes
@@ -78,3 +74,7 @@
   * type Thing;
 - improved operator overloading syntax
 - allow compound assignment with any operator
+- change include syntax to use `::` instead of `.`
+  * include { Println, Scan } from io::std;
+  * include ..a::b;
+- make interface static on non-user types

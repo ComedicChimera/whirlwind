@@ -99,6 +99,9 @@ namespace Whirlwind.Types
                     return true;
                 return false;
             }
+            else if (other.Classify() == TypeClassifier.FUNCTION_GROUP)
+                return ((FunctionGroup)other).Functions.Any(x => _coerce(x));
+
             return false;
         }
 
@@ -117,6 +120,52 @@ namespace Whirlwind.Types
 
                 return Async == otherFn.Async && ReturnType.Equals(otherFn.ReturnType) && 
                     Parameters.Count == otherFn.Parameters.Count && Enumerable.Range(0, Parameters.Count).All(i => Parameters[i].Equals(otherFn.Parameters[i]));
+            }
+
+            return false;
+        }
+    }
+
+    class FunctionGroup : DataType
+    {
+        public readonly List<FunctionType> Functions;
+
+        public FunctionGroup()
+        {
+            Functions = new List<FunctionType>();
+        }
+
+        public FunctionGroup(List<FunctionType> functions)
+        {
+            Functions = functions;
+        }
+
+        public bool AddFunction(FunctionType ft)
+        {
+            foreach (var item in Functions)
+            {
+                using (var e1 = item.Parameters.GetEnumerator())
+                using (var e2 = ft.Parameters.GetEnumerator())
+                {
+
+                }
+            }
+
+            Functions.Add(ft);
+            return true;
+        }
+
+        public override TypeClassifier Classify()
+            => TypeClassifier.FUNCTION_GROUP;
+
+        public override bool Equals(DataType other)
+        {
+            if (other is FunctionGroup)
+            {
+                var ofg = (FunctionGroup)other;
+
+                if (Functions.Count == ofg.Functions.Count)
+                    return Functions.All(x => ofg.Functions.Contains(x));
             }
 
             return false;
