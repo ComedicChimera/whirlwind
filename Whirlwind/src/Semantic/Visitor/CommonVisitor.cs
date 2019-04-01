@@ -63,10 +63,17 @@ namespace Whirlwind.Semantic.Visitor
             // should never fail - not a true overload so check not required
             else if (iterable.GetInterface().GetFunction("__next__", out Symbol method))
             {
-                // all iterable __next__ methods return a specific element type (Element<T>)
+                DataType mdt = method.DataType;
+
+                if (mdt is FunctionGroup fg && fg.GetFunction(new ArgumentList(), out FunctionType ft))
+                    mdt = ft;
+                else
+                    return new SimpleType();                   
+
+                // all iterable __next__ methods return a specific element type (T, bool)
                 var elementType = ((FunctionType)method.DataType).ReturnType;
 
-                return ((StructType)elementType).Members["val"];
+                return ((TupleType)elementType).Types[0];
             }
             return new SimpleType();
         }

@@ -229,6 +229,7 @@ unary_atom: ('REF' | '&' ['VOL'] | '-' | '~' | '++' | '--' | '*'+) atom
 atom: [ 'NEW' ] [ 'AWAIT' ] base trailer*
 | comprehension trailer*
 | heap_alloc
+| from_expr
 ;
 
 trailer: '[' (expr [slice] | slice) ']'
@@ -259,6 +260,8 @@ comp_body: expr [':' expr] '|' iterator ['WHEN' expr] ;
 heap_alloc: 'NEW' '(' alloc_body ')' ;
 alloc_body: types [',' expr] ;
 
+// access the value of a type class
+from_expr: 'FROM' expr ;
 
 // BASES - lowest component of an atom
 base: 'INTEGER_LITERAL'

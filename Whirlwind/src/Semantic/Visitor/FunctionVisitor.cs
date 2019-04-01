@@ -77,7 +77,26 @@ namespace Whirlwind.Semantic.Visitor
             MergeBack();
 
             if (!_table.AddSymbol(new Symbol(name, fnType, modifiers)))
+            {
+                _table.Lookup(name, out Symbol overload);
+                
+                if (overload.DataType is FunctionType)
+                {
+                    if (!overload.DataType.Coerce(fnType))
+                    {
+                        overload.DataType = new FunctionGroup(new List<FunctionType> { (FunctionType)overload.DataType, fnType });
+                        return;
+                    }
+                }
+                else if (overload.DataType is FunctionGroup)
+                {
+                    if (((FunctionGroup)overload.DataType).AddFunction(fnType))
+                        return;
+                }
+
                 throw new SemanticException($"Unable to redeclare symbol by name {name}", namePosition);
+            }
+                
 
         }
 

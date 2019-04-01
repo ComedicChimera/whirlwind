@@ -68,7 +68,7 @@ namespace Whirlwind.Semantic.Visitor
                     _visitTemplate((ASTNode)func, memberModifiers);
                     var fnNode = (IdentifierNode)((BlockNode)_nodes.Last()).Nodes[0];
 
-                    if (!interfaceType.AddTemplate(new Symbol(fnNode.IdName, fnNode.Type, memberModifiers),
+                    if (!interfaceType.AddMethod(new Symbol(fnNode.IdName, fnNode.Type, memberModifiers),
                         ((ASTNode)((ASTNode)func).Content.Last()).Content.Last().Name == "func_body"))
                         throw new SemanticException("Interface cannot contain duplicate members", ((ASTNode)func).Content[1].Position);
                 }
@@ -213,7 +213,7 @@ namespace Whirlwind.Semantic.Visitor
                             {
                                 _table.Lookup(((TokenNode)((ASTNode)node.Content[1]).Content[1]).Tok.Value, out Symbol sym);
 
-                                _table.ReplaceSymbol(sym.Name, new Symbol(sym.Name, decorType.ReturnType, sym.Modifiers));
+                                sym.DataType = decorType.ReturnType;
                             }
 
                             MergeBack();

@@ -10,7 +10,6 @@ namespace Whirlwind.Types
         public readonly List<InterfaceType> Implements;
 
         private readonly Dictionary<Symbol, bool> _methods;
-        private readonly Dictionary<Symbol, bool> _methodTemplates;
 
         bool initialized = false;
 
@@ -19,7 +18,6 @@ namespace Whirlwind.Types
             Implements = new List<InterfaceType>();
 
             _methods = new Dictionary<Symbol, bool>();
-            _methodTemplates = new Dictionary<Symbol, bool>();
         }
 
         private InterfaceType(InterfaceType interf)
@@ -27,27 +25,28 @@ namespace Whirlwind.Types
             Implements = new List<InterfaceType>();
 
             _methods = interf._methods;
-            _methodTemplates = interf._methodTemplates;
             initialized = true;
         }
 
         public bool AddMethod(Symbol fn, bool hasBody)
         {
-            if (!_methods.ContainsKey(fn))
+            if (!_methods.Any(x => x.Key.Name == fn.Name))
             {
                 _methods.Add(fn, hasBody);
 
                 return true;
             }
-            return false;
-        }
-
-        public bool AddTemplate(Symbol fn, bool hasBody)
-        {
-            if (!_methodTemplates.ContainsKey(fn))
+            else if (fn.DataType is FunctionType)
             {
-                _methodTemplates.Add(fn, hasBody);
-                return true;
+                Symbol symbol = _methods.Where(x => x.Key.Name == fn.Name).First().Key;
+
+                if (symbol.DataType is FunctionType && !symbol.DataType.Coerce(fn.DataType))
+                {
+                    symbol.DataType = new FunctionGroup(new List<FunctionType> { (FunctionType)symbol.DataType, (FunctionType)fn.DataType });
+                    return true;
+                }
+                else if (symbol.DataType is FunctionGroup)
+                    return ((FunctionGroup)symbol.DataType).AddFunction((FunctionType)fn.DataType);
             }
 
             return false;
@@ -58,11 +57,6 @@ namespace Whirlwind.Types
             if (_methods.Select(x => x.Key.Name).Contains(fnName))
             {
                 symbol = _methods.Keys.Where(x => x.Name == fnName).ToArray()[0];
-                return true;
-            }
-            else if (_methodTemplates.Select(x => x.Key.Name).Contains(fnName))
-            {
-                symbol = _methodTemplates.Keys.Where(x => x.Name == fnName).ToArray()[0];
                 return true;
             }
 
@@ -88,13 +82,10 @@ namespace Whirlwind.Types
 
         private bool MatchInterface(InterfaceType it)
         {
-            if (_methods.Count != it._methods.Count || _methodTemplates.Count != it._methodTemplates.Count)
+            if (_methods.Count != it._methods.Count)
                 return false;
 
-            if (_methods.Any(x => it._methods.Any(y => x.Equals(y))))
-                return _methodTemplates.Any(x => it._methodTemplates.Any(y => x.Equals(y)));
-
-            return false;
+            return _methods.Any(x => it._methods.Any(y => x.Equals(y)));
         }
 
         public InterfaceType GetInstance() => new InterfaceType(this);
@@ -108,20 +99,10 @@ namespace Whirlwind.Types
                 if (initialized != it.initialized)
                     return false;
 
-                if (_methods.Count == it._methods.Count && _methodTemplates.Count == it._methodTemplates.Count)
+                if (_methods.Count == it._methods.Count)
                 {
                     using (var e1 = _methods.GetEnumerator())
                     using (var e2 = it._methods.GetEnumerator())
-                    {
-                        while (e1.MoveNext() && e2.MoveNext())
-                        {
-                            if (!e1.Current.Key.Equals(e2.Current.Key) || e1.Current.Value != e2.Current.Value)
-                                return false;
-                        }
-                    }
-
-                    using (var e1 = _methodTemplates.GetEnumerator())
-                    using (var e2 = it._methodTemplates.GetEnumerator())
                     {
                         while (e1.MoveNext() && e2.MoveNext())
                         {
@@ -146,16 +127,10 @@ namespace Whirlwind.Types
 
             var interf = child.GetInterface();
 
-            if (_methods.Where(x => !x.Value).All(x => interf._methods.Contains(x)) &&
-            _methodTemplates.Where(x => !x.Value).All(x => interf._methodTemplates.Contains(x))) {
+            if (_methods.Where(x => !x.Value).All(x => interf._methods.Contains(x))) {
                 foreach (var method in _methods) {
                     if (method.Value && !interf._methods.Contains(method))
                         interf.AddMethod(method.Key, method.Value);
-                }
-
-                foreach (var methodTemplate in _methodTemplates) {
-                    if (methodTemplate.Value && !interf._methodTemplates.Contains(methodTemplate))
-                        interf.AddTemplate(methodTemplate.Key, methodTemplate.Value);
                 }
 
                 interf.Implements.Add(this);

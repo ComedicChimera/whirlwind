@@ -33,6 +33,9 @@ namespace Whirlwind.Semantic.Visitor
                     case "heap_alloc":
                         _visitHeapAlloc((ASTNode)subNode);
                         break;
+                    case "from_expr":
+                        _visitFromExpr((ASTNode)subNode);
+                        break;
                     case "TOKEN":
                         switch (((TokenNode)subNode).Tok.Type) {
                             case "AWAIT":
@@ -395,6 +398,19 @@ namespace Whirlwind.Semantic.Visitor
 
                 PushForward();
             }
+            else if (root.Type.Classify() == TypeClassifier.FUNCTION_GROUP)
+            {
+                FunctionGroup fg = (FunctionGroup)root.Type;
+
+                if (fg.GetFunction(args, out FunctionType ft))
+                {
+                    _nodes.Add(new ExprNode("CallFunctionOverload", ft.ReturnType));
+
+                    PushForward(args.Count() + 1);
+                }
+                else
+                    throw new SemanticException("No function in the function group matches the given arguments", node.Position);
+            }
             else
                 throw new SemanticException("Unable to call non-callable type", node.Content[0].Position);
         }
@@ -601,6 +617,21 @@ namespace Whirlwind.Semantic.Visitor
 
             _nodes.Add(new ExprNode("HeapAllocType", new PointerType(dt, 1)));
             PushForward(2);
+        }
+
+        private void _visitFromExpr(ASTNode node)
+        {
+            _visitExpr((ASTNode)node.Content[1]);
+
+            if (_nodes.Last().Type is CustomNewType cnt)
+            {
+                DataType dt = cnt.Values.Count > 1 ? new TupleType(cnt.Values) : cnt.Values.First();
+
+                _nodes.Add(new ExprNode("ExtractValue", dt));
+                PushForward();
+            }
+            else
+                throw new SemanticException("Unable to extract value from non-value-holding type class member", node.Content[1].Position);
         }
     }
 }

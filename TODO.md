@@ -10,11 +10,9 @@
 - change from using "templates" to using "generics"
 - add Monad<T> interface
 - add constancy propagation
-- add function overloading
-- add generic operator overloads
+- add generic operator overloads (*)
 - add prelude (later)
 - add 3 sanitizers (const, constexpr, and memory) [Note: constexpr does in depth checking on all constant expressions]
-- prevent declaration of null type lists
 - remove MirrorType and declare builtins in SymbolTable as necessary
 
 # THOUGHTS
@@ -69,7 +67,7 @@
 - is operator
 - exception ending
 - add `>>=` and `:> operators
-- 
+- prevent declaration of null type lists
 - add empty type classes
   * type Thing;
 - improved operator overloading syntax
@@ -78,3 +76,6 @@
   * include { Println, Scan } from io::std;
   * include ..a::b;
 - make interface static on non-user types
+- add function overloading
+- add monadic value extraction
+  * from T

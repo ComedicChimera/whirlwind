@@ -38,14 +38,6 @@ namespace Whirlwind.Semantic
                 Symbols[name] = newSymbol;
             }
 
-            public void ReplaceSymbol(string name, Symbol newSymbol, int[] scopePath)
-            {
-                if (scopePath.Length == 1)
-                    SubScopes[scopePath[0]].ReplaceSymbol(name, newSymbol);
-                else
-                    SubScopes[scopePath[0]].ReplaceSymbol(name, newSymbol, scopePath.Skip(1).ToArray());
-            }
-
             public void AddScope(int[] scopePath)
             {
                 if (scopePath.Length == 1)
@@ -170,15 +162,6 @@ namespace Whirlwind.Semantic
         public Dictionary<string, Symbol> Filter(Func<Symbol, bool> compareFunc)
         {
             return _table.Symbols.Where(x => compareFunc(x.Value)).Select(x => x.Value).ToDictionary(x => x.Name);
-        }
-
-        // no need for boolean since this is only called internally
-        public void ReplaceSymbol(string name, Symbol newSymbol)
-        {
-            if (_scopePath.Length == 0)
-                _table.ReplaceSymbol(name, newSymbol);
-            else
-                _table.ReplaceSymbol(name, newSymbol, _scopePath);
         }
 
         public List<Symbol> GetScope()

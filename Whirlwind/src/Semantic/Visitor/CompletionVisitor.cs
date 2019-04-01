@@ -31,15 +31,6 @@ namespace Whirlwind.Semantic.Visitor
 
                     scopePos++;
                     break;
-                case "TypeClass":
-                    _completeTypeClass((BlockNode)node);
-                    _table.MoveScope(_table.GetScopeCount() - 1, scopePos);
-
-                    // complete all sub templates (avoid scope complications)
-                    _completeTemplates((BlockNode)node, scopePos);
-
-                    scopePos++;
-                    break;
                 case "Interface":
                     _completeInterface((BlockNode)node);
                     _table.MoveScope(_table.GetScopeCount() - 1, scopePos);
@@ -65,8 +56,25 @@ namespace Whirlwind.Semantic.Visitor
                     // variants are basically functions for this stage of compilation
                     _completeFunction((BlockNode)node);
                     break;
-                // increment scope pos on struct
+                // add completion for structs
                 case "Struct":
+                    {
+                        _table.GotoScope(scopePos);
+
+                        IdentifierNode idNode = (IdentifierNode)((BlockNode)node).Nodes[0];
+
+                        _table.AddSymbol(new Symbol(idNode.Name, ((StructType)idNode.Type).GetInstance(), 
+                            new List<Modifier> { Modifier.CONSTANT }));
+
+                        foreach (var item in ((BlockNode)node).Block)
+                        {
+                            if (item.Name == "Constructor")
+                                _completeFunction((BlockNode)item);
+                        }
+
+                        _table.AscendScope();
+                    }
+
                     scopePos++;
                     break;
                 case "Agent":
@@ -159,35 +167,6 @@ namespace Whirlwind.Semantic.Visitor
                 
                 _nodes.RemoveAt(1);
             }
-        }
-
-        private void _completeTypeClass(BlockNode typeClass)
-        {
-            _table.AddScope();
-            _table.DescendScope();
-
-            _table.AddSymbol(new Symbol("$THIS", ((ObjectType)typeClass.Nodes[0].Type).GetInternalInstance()));
-
-            foreach (var item in typeClass.Block)
-            {
-                if (item.Name.EndsWith("Function"))
-                    _completeFunction((BlockNode)item);
-                else if (item.Name == "Constructor")
-                {
-                    _nodes.Add(item);
-
-                    BlockNode c = (BlockNode)item;
-
-                    _visitFunctionBody(((IncompleteNode)c.Block[0]).AST, (FunctionType)c.Nodes[0].Type);
-
-                    c.Block = ((BlockNode)_nodes.Last()).Block;
-                    c.Block.RemoveAt(0);
-
-                    _nodes.RemoveAt(1);
-                }
-            }
-
-            _table.AscendScope();
         }
 
         private void _completeInterface(BlockNode interf)

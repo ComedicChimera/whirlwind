@@ -144,15 +144,26 @@ namespace Whirlwind.Types
         {
             foreach (var item in Functions)
             {
-                using (var e1 = item.Parameters.GetEnumerator())
-                using (var e2 = ft.Parameters.GetEnumerator())
-                {
-
-                }
+                if (item.Coerce(ft))
+                    return false;
             }
 
             Functions.Add(ft);
             return true;
+        }
+
+        public bool GetFunction(ArgumentList args, out FunctionType ft)
+        {
+            var fns = Functions.Where(x => x.MatchArguments(args));
+
+            if (fns.Count() > 0)
+            {
+                ft = fns.First();
+                return true;
+            }
+
+            ft = null;
+            return false;
         }
 
         public override TypeClassifier Classify()

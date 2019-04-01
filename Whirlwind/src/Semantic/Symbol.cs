@@ -39,8 +39,8 @@ namespace Whirlwind.Semantic
     class Symbol
     {
         public readonly string Name;
-        public readonly DataType DataType;
 
+        public DataType DataType;
         public List<Modifier> Modifiers;
 
         public readonly string Value;
