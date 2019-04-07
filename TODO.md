@@ -23,7 +23,7 @@
 - change decorator syntax to `@` instead of `#`
 - make sure type classes coerce properly
 - allow for static data types (that persistently share data)
-- explicit data capture for asyncs
+- ability to add capture to both function and to block
 
 # THOUGHTS
 
