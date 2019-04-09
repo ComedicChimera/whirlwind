@@ -263,6 +263,7 @@ base: 'INTEGER_LITERAL'
 | sub_expr
 | type_cast
 | partial_func
+| range
 ;
 
 // collection types
@@ -290,6 +291,9 @@ partial_func: '|' expr partial_arg (',' partial_arg)* ')' ;
 partial_arg: '_'
 | expr
 ;
+
+// range literal
+range: expr '.' '.' expr ;
 
 
 // DATA TYPES - data type literals

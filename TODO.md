@@ -15,7 +15,6 @@
 - add 3 sanitizers (const, constexpr, and memory) [Note: constexpr does in depth checking on all constant expressions]
 - remove MirrorType and declare builtins in SymbolTable as necessary
 - add '!' tag to data types (means it is automatically deallocated with scope close)
-- add range syntax
 - add annotations to describe memory and program behavior (using `#` syntax)
 - change decorator syntax to `@` instead of `#`
 - make sure type classes coerce properly
@@ -89,4 +88,4 @@
 - remove agents
 - remove exceptions
 - add struct initializers
-
+- add range syntax
