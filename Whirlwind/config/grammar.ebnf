@@ -3,7 +3,6 @@ whirlwind: ( variable_decl ';'
 | block_decl
 | include_stmt ';'
 | export_decl
-| agent_decl
 )+ ;
 
 main: ( func_decl
@@ -25,18 +24,6 @@ export_decl: 'EXPORT' ( block_decl
 | include_stmt ';'
 | variable_decl ';'
 );
-
-// agent declaration
-agent_decl: 'AGENT' 'IDENTIFIER' '{' agent_main+ '}' ;
-agent_main: func_decl
-| variable_decl ';'
-| evh_decl
-| method_template
-;
-evh_decl: 'WHEN' '(' ( evh_val | evh_cond ) ')' block ;
-evh_val: expr '=>' ( 'IDENTIFIER' | '_' ) ;
-evh_cond: 'IDENTIFIER' ':' types '=>' expr ;
-
 
 // BLOCK DECLARATIONS
 block_decl: func_decl
@@ -73,7 +60,7 @@ type_constructor: '(' type_list ')' ;
 // struct declaration
 struct_decl: 'STRUCT' 'IDENTIFIER' '{' struct_main '}' ;
 struct_main: (struct_var ';' | constructor_decl )+ ;
-struct_var: 'IDENTIFIER' (',' 'IDENTIFIER')* ':' types ;
+struct_var: 'IDENTIFIER' (',' 'IDENTIFIER')* ':' types [initializer];
 
 // constructor declaration
 constructor_decl: 'CONSTRUCTOR' '(' args_decl_list ')' func_body ;
@@ -98,11 +85,10 @@ decor_decl: decor func_decl ;
 decor: '#' '[' expr (',' expr)* ']' ;
 
 
-// BLOCK STATEMENTS (control flow, context managers and except blocks)
+// BLOCK STATEMENTS (control flow and context managers)
 block_stmt: if_stmt
 | select_stmt
 | for_loop
-| except_block
 | from_block
 ;
 
@@ -122,14 +108,9 @@ for_loop: 'FOR' [for_body] block [after_clause] ;
 for_body: '(' (c_for | iterator | expr) ')' ;
 c_for: ['IDENTIFIER' '=' expr] ';' [expr] ';' [expr | assignment] ;
 
-// except block
-except_block: 'EXCEPT' '(' handle_block+ ')' block [after_clause] ;
-handle_block: expr ':' '(' ['IDENTIFIER'] ')' '=>' block ;
-
 // from block
-from_block: 'FROM' from_body [from_except_clause] [after_clause] ;
+from_block: 'FROM' from_body [after_clause] ;
 from_body: '(' variable_decl ')' block ;
-from_except_clause: 'EXCEPT' block ;
 
 // after clause
 after_clause: 'AFTER' block ;
@@ -171,7 +152,6 @@ assign_op: [ operator ] '=' ;
 // simple statements
 continue_stmt: 'CONTINUE' ;
 break_stmt: 'BREAK' ;
-throw_stmt: 'THROW' expr ;
 delete_stmt: 'DELETE' 'IDENTIFIER' (',' 'IDENTIFIER')* ;
 return_stmt: 'RETURN' [expr (',' expr)*] ;
 yield_stmt: 'YIELD' expr (',' expr)* ;

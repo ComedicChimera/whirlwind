@@ -36,9 +36,6 @@ namespace Whirlwind.Semantic.Visitor
                             case "for_loop":
                                 _visitForLoop(blockStatement, context);
                                 break;
-                            case "except_block":
-                                _visitExceptBlock(blockStatement, context);
-                                break;
                             case "from_block":
                                 _visitFromBlock(blockStatement, context);
                                 break;
@@ -314,60 +311,6 @@ namespace Whirlwind.Semantic.Visitor
 
                     MergeBack();
                 }
-            }
-        }
-
-        private void _visitExceptBlock(ASTNode stmt, StatementContext context)
-        {
-            _nodes.Add(new BlockNode("Except"));
-
-            foreach (var item in stmt.Content)
-            {
-                if (item.Name == "handle_block")
-                {
-                    _nodes.Add(new BlockNode("Handle"));
-                    DataType exceptionType = MirrorType.BaseException();
-
-                    _table.AddScope();
-                    _table.DescendScope();
-
-                    foreach (var node in ((ASTNode)item).Content)
-                    {
-                        switch (node.Name)
-                        {
-                            case "expr":
-                                _visitExpr((ASTNode)node);
-                                MergeBack();
-
-                                if (exceptionType.Coerce(_nodes.Last().Type))
-                                    exceptionType = _nodes.Last().Type;
-                                else
-                                    throw new SemanticException("Type of handle expression must be an exception", node.Position);
-                                break;
-                            case "TOKEN":
-                                if (((TokenNode)node).Tok.Type == "IDENTIFIER")
-                                {
-                                    string idName = ((TokenNode)node).Tok.Value;
-
-                                    _nodes.Add(new IdentifierNode(idName, exceptionType, true));
-                                    MergeBack();
-
-                                    // new scope => always works
-                                    _table.AddSymbol(new Symbol(idName, exceptionType));
-                                }
-                                break;
-                            case "block":
-                                _visitBlockNode((ASTNode)node, context);
-                                break;
-                        }
-                    }
-
-                    _table.AscendScope();
-                }
-                else if (item.Name == "block")
-                    _visitBlockNode((ASTNode)item, context);
-                else if (item.Name == "after_clause")
-                    _visitAfterClause((ASTNode)item, context);
             }
         }
 

@@ -65,17 +65,6 @@ namespace Whirlwind.Semantic.Visitor
                         else
                             throw new SemanticException("Invalid context for a continue statement", stmt.Position);
                         break;
-                    case "throw_stmt":
-                        ASTNode throwExpr = (ASTNode)stmt.Content[1];
-                        _visitExpr(throwExpr);
-
-                        if (IsException(_nodes.Last().Type))
-                            _nodes.Add(new StatementNode("ThrowException"));
-                        else
-                            _nodes.Add(new StatementNode("ThrowObject"));
-
-                        PushForward();
-                        break;
                     // return and yield types checked later
                     case "return_stmt":
                         if (context.Function)

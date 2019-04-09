@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 using Whirlwind.Parser;
 using Whirlwind.Types;
@@ -31,6 +32,7 @@ namespace Whirlwind.Semantic.Visitor
                 if (subNode.Name == "struct_var")
                 {
                     var processingStack = new List<TokenNode>();
+                    DataType type = new SimpleType();
 
                     foreach (var item in ((ASTNode)subNode).Content)
                     {
@@ -38,13 +40,33 @@ namespace Whirlwind.Semantic.Visitor
                             processingStack.Add((TokenNode)item);
                         else if (item.Name == "types")
                         {
-                            DataType type = _generateType((ASTNode)item);
+                            type = _generateType((ASTNode)item);
 
                             foreach (var member in processingStack)
                             {
                                 if (!structType.AddMember(member.Tok.Value, type))
                                     throw new SemanticException("Structs cannot contain duplicate members", member.Position);
                             }
+                        }
+                        else if (item.Name == "initializer")
+                        {
+                            _visitExpr((ASTNode)((ASTNode)item).Content[1]);
+
+                            if (!type.Coerce(_nodes.Last().Type))
+                                throw new SemanticException("Unable to initialize the given members with a value of the given type", item.Position);
+
+                            _nodes.Add(new ExprNode("MemberInitializer", _nodes.Last().Type));
+                            PushForward();
+
+                            foreach (var member in processingStack)
+                            {
+                                _nodes.Add(new IdentifierNode(member.Tok.Value, type, false));
+                            }
+
+                            MergeBack(processingStack.Count);
+
+                            // merge to block
+                            MergeToBlock();
                         }
                     }
                 }
