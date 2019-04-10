@@ -4,11 +4,13 @@
     {
         public readonly DataType Type;
         public int Pointers;
+        public readonly bool Owned;
 
-        public PointerType(DataType dt, int pointers)
+        public PointerType(DataType dt, int pointers, bool owned = false)
         {
             Type = dt;
             Pointers = pointers;
+            Owned = owned;
         }
 
         protected sealed override bool _coerce(DataType other)

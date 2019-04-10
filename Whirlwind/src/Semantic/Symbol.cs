@@ -9,8 +9,7 @@ namespace Whirlwind.Semantic
     {
         EXPORTED,
         CONSTANT,
-        CONSTEXPR,
-        VOLATILE
+        CONSTEXPR
     }
 
     class Package : DataType

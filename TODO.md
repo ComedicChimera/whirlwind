@@ -14,9 +14,7 @@
 - add prelude (later)
 - add 3 sanitizers (const, constexpr, and memory) [Note: constexpr does in depth checking on all constant expressions]
 - remove MirrorType and declare builtins in SymbolTable as necessary
-- add '!' tag to data types (means it is automatically deallocated with scope close)
 - add annotations to describe memory and program behavior (using `#` syntax)
-- change decorator syntax to `@` instead of `#`
 - make sure type classes coerce properly
 - allow for static data types (that persistently share data)
 - ability to add capture to both function and to block
@@ -24,9 +22,8 @@
 # THOUGHTS
 
 - add positioning data to some or all of the action tree (maybe identifiers?)
-- allow interfaces and agents to have variance
-- agent id methods
-- make sure to properly name arg and parameter videos
+- make sure to properly name arg and parameter variables
+- change integer literals to default to signed integers and make signed-unsigned coercion easier
 
 # FUTURE
 
@@ -89,3 +86,6 @@
 - remove exceptions
 - add struct initializers
 - add range syntax
+- change decorator syntax to `@` instead of `#`
+- add 'own' tag to data types (means it is automatically deallocated with scope close)
+

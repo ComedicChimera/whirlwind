@@ -29,7 +29,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             DataType dt = new SimpleType();
             int pointers = 0;
-            bool reference = false;
+            bool reference = false, owned = false;
 
             foreach (var subNode in node.Content)
             {
@@ -44,6 +44,9 @@ namespace Whirlwind.Semantic.Visitor
                             break;
                         case "REF":
                             reference = true;
+                            break;
+                        case "OWN":
+                            owned = true;
                             break;
                         case "IDENTIFIER":
                             if (_table.Lookup(tokenNode.Tok.Value, out Symbol symbol))
@@ -91,15 +94,16 @@ namespace Whirlwind.Semantic.Visitor
 
             if (pointers != 0)
             {
-                dt = new PointerType(dt, pointers);
+                dt = new PointerType(dt, pointers, owned);
             }
             else if (_isVoid(dt) || dt.Classify() == TypeClassifier.SELF && _selfNeedsPointer)
                 throw new SemanticException("Unable to declare incomplete type", node.Position);
 
             if (reference)
-                dt = new ReferenceType(dt);
+                dt = new ReferenceType(dt, owned);
 
-            
+            if (!reference && pointers == 0 && owned)
+                throw new SemanticException("Cannot declare ownership over type that is not pointer or reference", node.Position);
 
             return dt;
         }

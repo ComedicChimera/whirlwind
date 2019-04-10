@@ -151,7 +151,7 @@ namespace Whirlwind.Semantic.Visitor
             else if (isList)
                 _nodes.Add(new ExprNode("ListComprehension", new ListType(elementType)));
             else
-                _nodes.Add(new ExprNode("ArrayComprehension", new ArrayType(elementType, -1)));
+                throw new SemanticException("Unable to create an array comprehension", node.Position);
 
             PushForward(sizeBack);
         }

@@ -82,7 +82,7 @@ variant: '<' type_list '>' ;
 
 // decorator declaration
 decor_decl: decor func_decl ;
-decor: '#' '[' expr (',' expr)* ']' ;
+decor: '@' '[' expr (',' expr)* ']' ;
 
 
 // BLOCK STATEMENTS (control flow and context managers)
@@ -131,7 +131,7 @@ stmt: ( variable_decl
 ;
 
 // variable declaration
-variable_decl: ['VOL'] ('LET' | 'CONST') var extension variable_initializer  ;
+variable_decl: ('LET' | 'CONST') var extension variable_initializer  ;
 var: '(' var_id (',' var_id)* ')'
 | 'IDENTIFIER'
 ;
@@ -200,7 +200,7 @@ term: factor (('*' | '/' | '%' | '~/') factor)* ;
 factor: unary_atom ('~^' unary_atom)*;
 
 // unary operators
-unary_atom: ('REF' | '&' ['VOL'] | '-' | '~' | '++' | '--' | '*'+) atom
+unary_atom: ('REF' | '&' | '-' | '~' | '++' | '--' | '*'+) atom
 | atom ['++' | '--']
 ;
 
@@ -297,7 +297,7 @@ range: expr '.' '.' expr ;
 
 
 // DATA TYPES - data type literals
-types: ['REF'] '*'* ( base_types
+types: ['OWN'] ['REF'] '*'* ( base_types
 | 'IDENTIFIER' [template_spec]
 )
 ;

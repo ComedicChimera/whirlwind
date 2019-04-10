@@ -3,10 +3,12 @@
     class ReferenceType : DataType
     {
         public readonly DataType DataType;
+        public readonly bool Owned;
 
-        public ReferenceType(DataType dt)
+        public ReferenceType(DataType dt, bool owned = false)
         {
             DataType = dt;
+            Owned = owned;
         }
 
         public override bool Equals(DataType other)
