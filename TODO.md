@@ -16,8 +16,16 @@
 - make sure type classes coerce properly
 - allow for static data types (that persistently share data)
 - ability to add capture to both function and to block
+  * with[]
+  * with[a, b, c]
+  * with[const e, own f, val g]
+  * with[!z]
 - add volatile back as modifier (for variables, parameters, and structs)
+  * vol let a: float;
+  * vol a: int;
 - turn constancy into a type modifier
+  * const a = 10;
+  * let t: const str;
 
 # THOUGHTS
 
