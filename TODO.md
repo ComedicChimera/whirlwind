@@ -9,21 +9,23 @@
   * async name<T>()
 - change from using "templates" to using "generics"
 - add Monad<T> interface
-- add constancy propagation
 - add generic operator overloads (*)
 - add prelude (later)
 - add 3 sanitizers (const, constexpr, and memory) [Note: constexpr does in depth checking on all constant expressions]
 - remove MirrorType and declare builtins in SymbolTable as necessary
-- add annotations to describe memory and program behavior (using `#` syntax)
 - make sure type classes coerce properly
 - allow for static data types (that persistently share data)
 - ability to add capture to both function and to block
+- add volatile back as modifier (for variables, parameters, and structs)
+- turn constancy into a type modifier
 
 # THOUGHTS
 
 - add positioning data to some or all of the action tree (maybe identifiers?)
 - make sure to properly name arg and parameter variables
 - change integer literals to default to signed integers and make signed-unsigned coercion easier
+- add annotations to describe memory and program behavior (using `#` syntax)
+- add string interpolation
 
 # FUTURE
 
