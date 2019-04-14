@@ -36,6 +36,8 @@ namespace Whirlwind.Semantic.Visitor
                     case "TOKEN":
                         if (((TokenNode)item).Tok.Type == "CONST")
                             constant = true;
+                        else if (((TokenNode)item).Tok.Type == "VOL")
+                            modifiers.Add(Modifier.VOLATILE);
                         break;
                     case "var":
                         {

@@ -60,7 +60,7 @@ type_constructor: '(' type_list ')' ;
 // struct declaration
 struct_decl: 'STRUCT' 'IDENTIFIER' '{' struct_main '}' ;
 struct_main: (struct_var ';' | constructor_decl )+ ;
-struct_var: 'IDENTIFIER' (',' 'IDENTIFIER')* ':' types [initializer];
+struct_var: ['VOL'] 'IDENTIFIER' (',' 'IDENTIFIER')* ':' types [initializer];
 
 // constructor declaration
 constructor_decl: 'CONSTRUCTOR' '(' args_decl_list ')' func_body ;
@@ -131,7 +131,7 @@ stmt: ( variable_decl
 ;
 
 // variable declaration
-variable_decl: ('LET' | 'CONST') var extension variable_initializer  ;
+variable_decl: ('LET' | 'CONST') ['VOL'] var extension variable_initializer  ;
 var: '(' var_id (',' var_id)* ')'
 | 'IDENTIFIER'
 ;
@@ -339,7 +339,7 @@ type_list: types (',' types)* ;
 
 // argument declaration syntax
 args_decl_list: [ decl_arg (',' decl_arg)* [',' ending_arg] | ending_arg ] ;
-decl_arg: ['CONST'] 'IDENTIFIER' (',' 'IDENTIFIER')* extension [initializer] ;
+decl_arg: ['VOL'] ['CONST'] 'IDENTIFIER' (',' 'IDENTIFIER')* extension [initializer] ;
 ending_arg: '...' 'IDENTIFIER' extension ;
 
 // general purpose initializer

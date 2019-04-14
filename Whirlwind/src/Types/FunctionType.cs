@@ -14,35 +14,28 @@ namespace Whirlwind.Types
         public bool Optional;
         public bool Indefinite;
         public bool Constant;
+        public bool Volatile;
         public ITypeNode DefaultValue;
 
-        public Parameter(string name, DataType dt, bool indefinite, bool constant)
+        public Parameter(string name, DataType dt, bool constant, bool optional, bool indefinite, bool isVol)
         {
             Name = name;
             DataType = dt;
             Optional = false;
             Indefinite = indefinite;
             Constant = constant;
+            Volatile = isVol;
             DefaultValue = new ValueNode("", dt);
         }
 
-        public Parameter(string name, DataType dt, bool optional)
-        {
-            Name = name;
-            DataType = dt;
-            Optional = optional;
-            Indefinite = false;
-            Constant = false;
-            DefaultValue = new ValueNode("", dt);
-        }
-
-        public Parameter(string name, DataType dt, bool indefinite, bool constant, ITypeNode defaultVal)
+        public Parameter(string name, DataType dt, bool constant, bool optional, bool indefinite, bool isVol, ITypeNode defaultVal)
         {
             Name = name;
             DataType = dt;
             Optional = true;
             Indefinite = indefinite;
             Constant = constant;
+            Volatile = isVol;
             DefaultValue = defaultVal;
         }
 

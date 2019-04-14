@@ -285,7 +285,7 @@ namespace Whirlwind.Semantic.Visitor
                                 string name = ((IdentifierNode)item.Nodes[0]).IdName;
                                 if (!members.ContainsKey(name))
                                     throw new SemanticException($"Struct has no member {name}", positions[i - 1]);
-                                if (!members[name].Coerce(item.Nodes[1].Type))
+                                if (!members[name].DataType.Coerce(item.Nodes[1].Type))
                                     throw new SemanticException($"Unable to initialize member {name} with the given type", positions[i - 1]);
                             }
                             _nodes.Add(new ExprNode("InitList", ((StructType)root.Type).GetInstance()));
@@ -308,7 +308,7 @@ namespace Whirlwind.Semantic.Visitor
             {
                 case TypeClassifier.STRUCT_INSTANCE:
                     if (((StructType)type).Members.ContainsKey(name))
-                        return new Symbol(name, ((StructType)type).Members[name]);
+                        return new Symbol(name, ((StructType)type).Members[name].DataType);
                     goto default;
                 case TypeClassifier.INTERFACE_INSTANCE:
                     if (!((InterfaceType)type).GetFunction(name, out symbol))

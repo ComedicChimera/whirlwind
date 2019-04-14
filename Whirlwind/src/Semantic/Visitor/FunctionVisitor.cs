@@ -118,27 +118,23 @@ namespace Whirlwind.Semantic.Visitor
             // no symbol checking necessary since params have already been full filtered and override scope
             foreach (var arg in args)
             {
-                if (arg.Indefinite)
+                var modifiers = new List<Modifier>();
+
+                if (arg.Constant)
+                    modifiers.Add(Modifier.CONSTANT);
+
+                if (arg.Volatile)
+                    modifiers.Add(Modifier.VOLATILE);
+
+                if (_isVoid(arg.DataType))
                 {
-                    if (_isVoid(arg.DataType))
-                    {
-                        // add va_args param
-                    }
-                    else
-                    {
-                        _table.AddSymbol(new Symbol(
-                            arg.Name,
-                            new ListType(arg.DataType),
-                            arg.Constant ? new List<Modifier>() { Modifier.CONSTANT } : new List<Modifier>()
-                            ));
-                    }
+                    // add va_args param
                 }
                 else
                 {
-                    _table.AddSymbol(new Symbol(
-                        arg.Name,
-                        arg.DataType,
-                        arg.Constant ? new List<Modifier>() { Modifier.CONSTANT } : new List<Modifier>()
+                    _table.AddSymbol(new Symbol(arg.Name, 
+                        arg.Indefinite ? new ListType(arg.DataType) : arg.DataType,
+                        modifiers
                     ));
                 }
             }
@@ -323,9 +319,10 @@ namespace Whirlwind.Semantic.Visitor
             {
                 if (subNode.Name == "decl_arg")
                 {
-                    bool optional = false, 
+                    bool optional = false,
                         constant = false,
-                        hasExtension = false;
+                        hasExtension = false,
+                        isVolatile = false;
                     var identifiers = new List<string>();
                     DataType paramType = new SimpleType();
 
@@ -334,10 +331,19 @@ namespace Whirlwind.Semantic.Visitor
                         switch (argPart.Name)
                         {
                             case "TOKEN":
-                                if (((TokenNode)argPart).Tok.Type == "IDENTIFIER")
-                                    identifiers.Add(((TokenNode)argPart).Tok.Value);
-                                else if (((TokenNode)argPart).Tok.Type == "CONST")
-                                    constant = true;
+                                switch (((TokenNode)argPart).Tok.Type)
+                                {
+                                    case "IDENTIFIER":
+                                        identifiers.Add(((TokenNode)argPart).Tok.Value);
+                                        break;
+                                    case "CONST":
+                                        constant = true;
+                                        break;
+                                    case "VOL":
+                                        isVolatile = true;
+                                        break;
+                                }
+
                                 break;
                             case "extension":
                                 paramType = _generateType((ASTNode)((ASTNode)argPart).Content[1]);
@@ -363,14 +369,14 @@ namespace Whirlwind.Semantic.Visitor
                     if (optional)
                     {
                         foreach (var identifier in identifiers)
-                            argsDeclList.Add(new Parameter(identifier, paramType, false, constant, _nodes.Last()));
+                            argsDeclList.Add(new Parameter(identifier, paramType, constant, true, false, isVolatile, _nodes.Last()));
 
                         _nodes.RemoveAt(_nodes.Count - 1); // remove argument from node stack
                     }
                     else
                     {
                         foreach (var identifier in identifiers)
-                            argsDeclList.Add(new Parameter(identifier, paramType, false, constant));
+                            argsDeclList.Add(new Parameter(identifier, paramType, constant, false, false, isVolatile));
                     }
                 }
                 else if (subNode.Name == "ending_arg")
@@ -387,7 +393,7 @@ namespace Whirlwind.Semantic.Visitor
                             name = ((TokenNode)item).Tok.Value;
                     }
 
-                    argsDeclList.Add(new Parameter(name, dt, true, constant));
+                    argsDeclList.Add(new Parameter(name, dt, constant, false, true, false));
                 }
             }
 

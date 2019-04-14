@@ -33,6 +33,7 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     var processingStack = new List<TokenNode>();
                     DataType type = new SimpleType();
+                    bool isVolatile = false;
 
                     foreach (var item in ((ASTNode)subNode).Content)
                     {
@@ -44,8 +45,12 @@ namespace Whirlwind.Semantic.Visitor
 
                             foreach (var member in processingStack)
                             {
-                                if (!structType.AddMember(member.Tok.Value, type))
+                                if (!structType.AddMember(new Symbol(member.Tok.Value, type,
+                                    isVolatile ? new List<Modifier> { Modifier.VOLATILE } : new List<Modifier>()
+                                    )))
+                                {
                                     throw new SemanticException("Structs cannot contain duplicate members", member.Position);
+                                }  
                             }
                         }
                         else if (item.Name == "initializer")

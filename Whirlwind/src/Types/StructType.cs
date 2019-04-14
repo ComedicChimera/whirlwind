@@ -8,7 +8,7 @@ namespace Whirlwind.Types
     class StructType : DataType
     {
         public readonly string Name;
-        public readonly Dictionary<string, DataType> Members;
+        public readonly Dictionary<string, Symbol> Members;
 
         private List<FunctionType> _constructors;
         private bool _instance;
@@ -16,7 +16,7 @@ namespace Whirlwind.Types
         public StructType(string name, bool instance)
         {
             Name = name;
-            Members = new Dictionary<string, DataType>();
+            Members = new Dictionary<string, Symbol>();
 
             _constructors = new List<FunctionType>();
             _instance = instance;
@@ -31,11 +31,12 @@ namespace Whirlwind.Types
             _instance = true;
         }
 
-        public bool AddMember(string name, DataType dt)
+        public bool AddMember(Symbol sym)
         {
-            if (Members.ContainsKey(name))
+            if (Members.ContainsKey(sym.Name))
                 return false;
-            Members.Add(name, dt);
+
+            Members.Add(sym.Name, sym);
             return true;
         }
 
