@@ -4,7 +4,22 @@ Whirlwind is a compiled, modern, and multipurpose language designed with intenti
 It is strongly-typed, object-oriented, expressive, concurrent, and relatively easy to learn.
 It boasts numerous new and old features and is designed to represent the needs of any software developer.
 
-Get a look at Whirlwind: [demo.md](https://github.com/ComedicChimera/Whirlwind/blob/master/demo.md)
+### Goals:
+
+Whirlwind has several main goals all of which can be enscapsulated in the idea of speed.
+
+ * Speed of writing.
+ * Speed of thinking.
+ * Speed of compiling.
+ * Speed of running.
+ 
+Whirlwind tries to achieve all of these goals, and admittedly falls short in some areas.  When using more high level constructs,
+there is often a trade off between ease of thought and writing, and speed of compilation and execution.  When designing this
+language I aimed for an "85% solution" which effectively means close enough, but not perfect: each construct fulfills the majority of our speed goals, but not all at once.  In essence, instead of trying to make each and every construct perfect, I provide a variety of constructs and approaches each of which is suited to one of the goals, this design allowing you to choose what you find most important.
+
+If you are interested in the language, you can get a look at Whirlwind here: [demo.md](https://github.com/ComedicChimera/Whirlwind/blob/master/demo.md)
+
+*Insert website link here*
 
 ## Compiler Information and Contributing <a name="compiler-info">
 
