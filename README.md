@@ -17,9 +17,44 @@ Whirlwind tries to achieve all of these goals, and admittedly falls short in som
 there is often a trade off between ease of thought and writing, and speed of compilation and execution.  When designing this
 language I aimed for an "85% solution" which effectively means close enough, but not perfect: each construct fulfills the majority of our speed goals, but not all at once.  In essence, instead of trying to make each and every construct perfect, I provide a variety of constructs and approaches each of which is suited to one of the goals, this design allowing you to choose what you find most important.
 
-If you are interested in the language, you can get a look at Whirlwind here: [demo.md](https://github.com/ComedicChimera/Whirlwind/blob/master/demo.md)
+### Syntax:
 
-*Insert website link here*
+Whirlwind is designed to have a smooth, expressive, and concise syntax.  It is akin to a hodgepodge of various different styles, but they are all share similar patterns and styles.
+
+A FizzBuzz function in Whirlwind might look like the following:
+
+    include { Println } from io::std;
+    
+    func fizzBuzz() {
+        for (i = 0; i < 100; i++) {
+            if (i % 3 == 0 && i % 5 == 0)
+                Println("FizzBuzz");
+            elif (i % 3 == 0)
+                Println("Fizz");
+            elif (i % 5 == 0)
+                Println("Buzz");
+            else
+                Println(i);
+        }
+    }
+    
+This is a very imperative approach to FizzBuzz, and there are innumerable other ways to approach this problem.
+
+Whirlwind's blended syntax also propagates to the higher level language constructs.  For example,
+
+    struct Vector3 {
+        x, y, z: int;
+    }
+    
+Again, we can see the concise nature of Whirlwind's syntax.  Whirlwind only makes your write what is necessary and this can
+be seen everywhere in the language.
+
+### Resources:
+
+You can learn more about Whirlwind and its design on *whirlwind-lang.org*.  This site provides a formal language specification, a
+basic guide to the language, and many other useful tidbits of information and functionality.
+
+If you are looking for a more personal and interactive experience, you can look at our social media links down (below)[#social-media].
 
 ## Compiler Information and Contributing <a name="compiler-info">
 
@@ -37,6 +72,8 @@ suggestions and contributions to help make this language as great as it can be.
 
 By the time it is finished, this language will likely be the culminations of thousands of hours of work
 and I sincerely believe it will be worth it.
+
+## Social Media_<a name="social-media">
 
 If you would like to contribute to this compiler or this language, please review the information above
 and join our discord to get up to speed on the language in its current state.
