@@ -54,7 +54,7 @@ be seen everywhere in the language.
 You can learn more about Whirlwind and its design on *whirlwind-lang.org*.  This site provides a formal language specification, a
 basic guide to the language, and many other useful tidbits of information and functionality.
 
-If you are looking for a more personal and interactive experience, you can look at our social media links down (below)[#social-media].
+If you are looking for a more personal and interactive experience, you can look at our social media links down [below](#social-media).
 
 ## Compiler Information and Contributing <a name="compiler-info">
 
@@ -73,7 +73,7 @@ suggestions and contributions to help make this language as great as it can be.
 By the time it is finished, this language will likely be the culminations of thousands of hours of work
 and I sincerely believe it will be worth it.
 
-## Social Media_<a name="social-media">
+## Social Media <a name="social-media">
 
 If you would like to contribute to this compiler or this language, please review the information above
 and join our discord to get up to speed on the language in its current state.
