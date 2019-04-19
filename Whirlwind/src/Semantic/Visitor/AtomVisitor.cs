@@ -49,21 +49,12 @@ namespace Whirlwind.Semantic.Visitor
                 }
             }
 
-            bool needsNew = new[] { "CallConstructor", "InitList", "HeapAllocType", "InitStruct" }.Contains(_nodes.Last().Name);
+            bool needsNew = new[] { "CallConstructor", "InitList", "InitStruct" }.Contains(_nodes.Last().Name);
 
             if (needsNew && !hasNew)
                 throw new SemanticException("Missing `new` keyword to properly create instance.", node.Position);
             else if (!needsNew && hasNew)
-            {
-                if (new SimpleType(SimpleType.SimpleClassifier.INTEGER, true).Coerce(_nodes.Last().Type))
-                {
-                    _nodes.Add(new ExprNode("HeapAlloc", new PointerType(new SimpleType(), 1)));
-                    PushForward();
-                }
-                else
-                    // new is first unless there is an await
-                    throw new SemanticException("The `new` keyword is not valid for the given type", node.Content[hasAwait ? 1 : 0].Position);
-            }
+                throw new SemanticException("The `new` keyword is not valid for the given type", node.Content[hasAwait ? 1 : 0].Position);
 
             if (_nodes.Last().Name == "CallAsync" && hasAwait)
             {
@@ -586,11 +577,11 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitHeapAlloc(ASTNode node)
         {
-            // new ( alloc_body ) -> types , expr
+            // make ( alloc_body ) -> types , expr
             var allocBody = (ASTNode)node.Content[2];
 
             DataType dt = new SimpleType();
-            bool hasSizeExpr = false;
+            bool hasSizeExpr = false, isStructAlloc = false;
 
             foreach (var item in allocBody.Content)
             {
@@ -604,19 +595,42 @@ namespace Whirlwind.Semantic.Visitor
                     _visitExpr((ASTNode)item);
                     hasSizeExpr = true;
                 }
-                    
+                else if (item.Name == "base")
+                {
+                    _visitBase((ASTNode)item);
+                    hasSizeExpr = true;
+                }
+                else if (item.Name == "trailer")
+                {
+                    _visitTrailer((ASTNode)item);
+                    hasSizeExpr = false;
+                    isStructAlloc = true;
+
+                    dt = _nodes.Last().Type;
+                }
             }
 
-            if (new[] { TypeClassifier.ARRAY, TypeClassifier.LIST, TypeClassifier.DICT, TypeClassifier.FUNCTION }.Contains(dt.Classify()))
-                throw new SemanticException("Invalid data type for raw heap allocation", allocBody.Content[0].Position);
+            if (isStructAlloc)
+            {
+                if (dt.Classify() != TypeClassifier.STRUCT_INSTANCE)
+                    throw new SemanticException("Invalid dynamic allocation call", node.Content.Last().Position);
 
-            if (!hasSizeExpr)
-                _nodes.Add(new ValueNode("Literal", new SimpleType(SimpleType.SimpleClassifier.INTEGER, true), "1"));
-            else if (!new SimpleType(SimpleType.SimpleClassifier.INTEGER, true).Coerce(_nodes.Last().Type))
-                throw new SemanticException("Size of heap allocated type must be an integer", allocBody.Content[2].Position);
+                _nodes.Add(new ExprNode("HeapAllocStruct", new PointerType(dt, 1)));
+                PushForward();
+            }
+            else
+            {
+                if (new[] { TypeClassifier.LIST, TypeClassifier.DICT, TypeClassifier.FUNCTION }.Contains(dt.Classify()))
+                    throw new SemanticException("Invalid data type for raw heap allocation", allocBody.Content[0].Position);
 
-            _nodes.Add(new ExprNode("HeapAllocType", new PointerType(dt, 1)));
-            PushForward(2);
+                if (!hasSizeExpr)
+                    _nodes.Add(new ValueNode("Literal", new SimpleType(SimpleType.SimpleClassifier.INTEGER, true), "1"));
+                else if (!new SimpleType(SimpleType.SimpleClassifier.INTEGER, true).Coerce(_nodes.Last().Type))
+                    throw new SemanticException("Size of heap allocated type must be an integer", allocBody.Content[2].Position);
+
+                _nodes.Add(new ExprNode("HeapAllocType", new PointerType(dt, 1)));
+                PushForward(2);
+            }
         }
 
         private void _visitFromExpr(ASTNode node)

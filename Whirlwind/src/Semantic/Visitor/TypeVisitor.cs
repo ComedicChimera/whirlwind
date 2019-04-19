@@ -153,48 +153,43 @@ namespace Whirlwind.Semantic.Visitor
                 }
                 else if (subNode.Name == "collection_types")
                 {
-                    string collectionType = "";
+                    string collectionType = "list"; // default to list if no other types overrode it
                     int size = -1;
                     var subTypes = new List<DataType>();
 
                     foreach (var component in ((ASTNode)subNode).Content)
                     {
-                        if (component.Name == "TOKEN")
+                        switch (component.Name)
                         {
-                            switch (((TokenNode)component).Tok.Type)
-                            {
-                                case "ARRAY_TYPE":
+                            case "expr":
+                                {
+                                    _visitExpr((ASTNode)component);
                                     collectionType = "array";
-                                    break;
-                                case "LIST_TYPE":
-                                    collectionType = "list";
-                                    break;
-                                case "DICT_TYPE":
+
+                                    if (!Evaluator.TryEval((ExprNode)_nodes.Last()))
+                                    {
+                                        throw new SemanticException("Unable to initialize array with non constexpr array bound", component.Position);
+                                    }
+
+                                    var val = Evaluator.Evaluate((ExprNode)_nodes.Last());
+
+                                    if (!new SimpleType(SimpleType.SimpleClassifier.INTEGER).Coerce(val.Type))
+                                    {
+                                        throw new SemanticException("Invalid data type for array bound", component.Position);
+                                    }
+
+                                    size = Int32.Parse(((ValueNode)val).Value);
+                                    _nodes.RemoveAt(_nodes.Count - 1);
+                                }
+                                break;
+                            case "TOKEN":
+                                if (((TokenNode)component).Tok.Type == ":")
                                     collectionType = "dict";
-                                    break;
-                            }
-                        }
-                        else if (component.Name == "expr" && collectionType == "array")
-                        {
-                            _visitExpr((ASTNode)component);
-                            if (!Evaluator.TryEval((ExprNode)_nodes.Last()))
-                            {
-                                throw new SemanticException("Unable to initialize array with non constexpr array bound", component.Position);
-                            }
-
-                            var val = Evaluator.Evaluate((ExprNode)_nodes.Last());
-
-                            if (!new SimpleType(SimpleType.SimpleClassifier.INTEGER).Coerce(val.Type))
-                            {
-                                throw new SemanticException("Invalid data type for array bound", component.Position);
-                            }
-
-                            size = Int32.Parse(((ValueNode)val).Value);
-                            _nodes.RemoveAt(_nodes.Count - 1);
-                        }
-                        else if (component.Name == "types")
-                        {
-                            subTypes.Add(_generateType((ASTNode)component));
+                                break;
+                            case "types":
+                                subTypes.Add(_generateType((ASTNode)component));
+                                break;
+                            
                         }
                     }
 
@@ -239,7 +234,7 @@ namespace Whirlwind.Semantic.Visitor
 
                                         args.Add(new Parameter("Arg" + args.Count.ToString(), 
                                             _generateType((ASTNode)arg.Content[0]), 
-                                            arg.Content.Count == 2
+                                            false, arg.Content.Count == 2, false, false
                                             ));
                                     }
                                     else if (elem.Name == "func_arg_indef")
@@ -247,7 +242,7 @@ namespace Whirlwind.Semantic.Visitor
                                         ASTNode arg = (ASTNode)elem;
                                         DataType dt = arg.Content.Count == 2 ? _generateType((ASTNode)arg.Content[1]) : new SimpleType();
 
-                                        args.Add(new Parameter("Arg" + args.Count.ToString(), dt, true, false));
+                                        args.Add(new Parameter("Arg" + args.Count.ToString(), dt, false, false, true, false));
                                     }
                                 }
                                 break;

@@ -22,9 +22,6 @@
 - turn constancy into a type modifier
   * const a = 10;
   * let t: const str;
-- make a more concise collection type specifier syntax
-- distinguish between dynamic allocation and struct instantiation
-  * this is not what we want: `new (new Struct())`
 
 # THOUGHTS
 
@@ -100,3 +97,7 @@
 - add volatile back as modifier (for variables, parameters, and structs)
   * vol let a: float;
   * vol a: int;
+- distinguish between dynamic allocation and struct instantiation
+  * this is not what we want: `new (new Struct())`
+- make a more concise collection type specifier syntax
+

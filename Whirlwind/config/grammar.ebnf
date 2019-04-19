@@ -237,8 +237,11 @@ comprehension: '{' comp_body '}' | '[' comp_body ']' ;
 comp_body: expr [':' expr] '|' iterator ['WHEN' expr] ;
 
 // allocate a type on the heap
-heap_alloc: 'NEW' '(' alloc_body ')' ;
-alloc_body: types [',' expr] ;
+heap_alloc: 'MAKE' alloc_body ;
+alloc_body: '(' types ',' expr ')'
+| types 
+| base trailer
+;
 
 // access the value of a type class
 from_expr: 'FROM' expr ;
@@ -319,9 +322,9 @@ simple_types: 'BOOL_TYPE'
 | 'VOID_TYPE'
 ;
 
-collection_types: 'ARRAY_TYPE' '[' types [ ',' expr ] ']'
-| 'LIST_TYPE' '[' types ']'
-| 'DICT_TYPE' '[' types ',' types ']'
+collection_types: '[' [ expr ] ']' types
+| '[' types ']'
+| '[' types ':' types ']'
 ;
 
 func_types: ('FUNC' | 'ASYNC') '(' func_arg_types ')' '(' [ type_list ] ')' ;
