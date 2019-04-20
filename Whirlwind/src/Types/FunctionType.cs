@@ -13,28 +13,25 @@ namespace Whirlwind.Types
         public DataType DataType;
         public bool Optional;
         public bool Indefinite;
-        public bool Constant;
         public bool Volatile;
         public ITypeNode DefaultValue;
 
-        public Parameter(string name, DataType dt, bool constant, bool optional, bool indefinite, bool isVol)
+        public Parameter(string name, DataType dt, bool optional, bool indefinite, bool isVol)
         {
             Name = name;
             DataType = dt;
             Optional = false;
             Indefinite = indefinite;
-            Constant = constant;
             Volatile = isVol;
             DefaultValue = new ValueNode("", dt);
         }
 
-        public Parameter(string name, DataType dt, bool constant, bool optional, bool indefinite, bool isVol, ITypeNode defaultVal)
+        public Parameter(string name, DataType dt, bool optional, bool indefinite, bool isVol, ITypeNode defaultVal)
         {
             Name = name;
             DataType = dt;
             Optional = true;
             Indefinite = indefinite;
-            Constant = constant;
             Volatile = isVol;
             DefaultValue = defaultVal;
         }
@@ -54,8 +51,7 @@ namespace Whirlwind.Types
             return Name == other.Name &&
                 DataType.Equals(other.DataType) &&
                 Optional == other.Optional &&
-                Indefinite == other.Indefinite &&
-                Constant == other.Constant;
+                Indefinite == other.Indefinite;
         }
     }
 
@@ -117,6 +113,9 @@ namespace Whirlwind.Types
 
             return false;
         }
+
+        public override DataType ConstCopy()
+            => new FunctionType(Parameters, ReturnType, Async) { Constant = true };
     }
 
     class FunctionGroup : DataType
@@ -174,5 +173,8 @@ namespace Whirlwind.Types
 
             return false;
         }
+
+        public override DataType ConstCopy()
+            => new FunctionGroup(Functions) { Constant = true };
     }
 }

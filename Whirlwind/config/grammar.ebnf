@@ -300,7 +300,7 @@ range: expr '.' '.' expr ;
 
 
 // DATA TYPES - data type literals
-types: ['OWN'] ['REF'] '*'* ( base_types
+types: ['CONST'] ['OWN'] ['REF'] '*'* ( base_types
 | 'IDENTIFIER' [template_spec]
 )
 ;
@@ -342,7 +342,7 @@ type_list: types (',' types)* ;
 
 // argument declaration syntax
 args_decl_list: [ decl_arg (',' decl_arg)* [',' ending_arg] | ending_arg ] ;
-decl_arg: ['VOL'] ['CONST'] 'IDENTIFIER' (',' 'IDENTIFIER')* extension [initializer] ;
+decl_arg: ['VOL'] 'IDENTIFIER' (',' 'IDENTIFIER')* extension [initializer] ;
 ending_arg: '...' 'IDENTIFIER' extension ;
 
 // general purpose initializer

@@ -8,6 +8,6 @@ namespace Whirlwind.Types
     {
         public static StructType Future(DataType returnType)
             // find way to construct actual future type
-            => new StructType("Future", false);
+            => new StructType("Future");
     }
 }

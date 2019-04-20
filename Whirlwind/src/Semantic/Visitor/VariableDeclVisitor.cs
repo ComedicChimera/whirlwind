@@ -220,12 +220,12 @@ namespace Whirlwind.Semantic.Visitor
                     symbol.Modifiers.Add(modifier);
 
                 if (constant)
-                    symbol.Modifiers.Add(Modifier.CONSTANT);
+                    symbol.DataType.Constant = true;
 
                 if (!_table.AddSymbol(symbol))
                     throw new SemanticException("Variable declared multiple times in the current scope", variables[variable].Position);
 
-                _nodes.Add(new IdentifierNode(variable, variables[variable].Type, constant));
+                _nodes.Add(new IdentifierNode(variable, variables[variable].Type));
 
                 if (initializers.ContainsKey(variable))
                 {

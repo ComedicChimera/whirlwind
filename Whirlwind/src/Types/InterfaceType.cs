@@ -18,6 +18,8 @@ namespace Whirlwind.Types
             Implements = new List<InterfaceType>();
 
             _methods = new Dictionary<Symbol, bool>();
+
+            Constant = true;
         }
 
         private InterfaceType(InterfaceType interf)
@@ -140,5 +142,12 @@ namespace Whirlwind.Types
 
             return false;
         }
+
+        public override DataType ConstCopy()
+            => new InterfaceType(this)
+                {
+                    initialized = initialized,
+                    Constant = true
+                };
     }
 }

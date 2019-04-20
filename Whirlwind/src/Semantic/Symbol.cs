@@ -8,7 +8,6 @@ namespace Whirlwind.Semantic
     enum Modifier
     {
         EXPORTED,
-        CONSTANT,
         CONSTEXPR,
         VOLATILE
     }
@@ -22,6 +21,9 @@ namespace Whirlwind.Semantic
         {
             ExternalTable = eTable;
             Name = name;
+
+            // WATCH CLOSELY
+            Constant = true;
         }
 
         public override bool Coerce(DataType _) => false;
@@ -34,6 +36,9 @@ namespace Whirlwind.Semantic
 
             return false;
         }
+
+        public override DataType ConstCopy()
+            => new Package(ExternalTable, Name); // implicit const
     }
 
     class Symbol

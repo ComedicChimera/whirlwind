@@ -172,7 +172,7 @@ namespace Whirlwind.Semantic.Visitor
                 if (symbol.Modifiers.Contains(Modifier.CONSTEXPR))
                     _nodes.Add(new ConstexprNode(symbol.Name, symbol.DataType, symbol.Name));
                 else
-                    _nodes.Add(new IdentifierNode(symbol.Name, symbol.DataType, symbol.Modifiers.Contains(Modifier.CONSTANT)));
+                    _nodes.Add(new IdentifierNode(symbol.Name, symbol.DataType));
                 _nodes.Add(new ExprNode("StaticGet", symbol.DataType));
 
                 PushForward(2);
@@ -197,7 +197,7 @@ namespace Whirlwind.Semantic.Visitor
                                 _nodes.Add(new ExprNode("GetMember", symbol.DataType));
 
                                 PushForward();
-                                _nodes.Add(new IdentifierNode(identifier, new SimpleType(), symbol.Modifiers.Contains(Modifier.CONSTANT)));
+                                _nodes.Add(new IdentifierNode(identifier, symbol.DataType));
                                 MergeBack();
                             }
                             else
@@ -232,7 +232,7 @@ namespace Whirlwind.Semantic.Visitor
                             _nodes.Add(new ExprNode("GetMember", symbol.DataType));
 
                             PushForward();
-                            _nodes.Add(new IdentifierNode(pointerIdentifier, new SimpleType(), symbol.Modifiers.Contains(Modifier.CONSTANT)));
+                            _nodes.Add(new IdentifierNode(pointerIdentifier, symbol.DataType));
                             MergeBack();
                             break;
                         }
@@ -251,7 +251,7 @@ namespace Whirlwind.Semantic.Visitor
                                 if (((TokenNode)item).Tok.Type == "IDENTIFIER")
                                 {
                                     positions.Add(item.Position);
-                                    _nodes.Add(new IdentifierNode(((TokenNode)item).Tok.Value, new SimpleType(), false));
+                                    _nodes.Add(new IdentifierNode(((TokenNode)item).Tok.Value, new SimpleType()));
                                 }
                                     
                             }

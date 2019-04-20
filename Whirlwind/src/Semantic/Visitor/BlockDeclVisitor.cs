@@ -55,13 +55,13 @@ namespace Whirlwind.Semantic.Visitor
                 _nodes.Add(new BlockNode("Interface"));
 
                 // declare self referential type (ok early b/c reference)
-                _table.AddSymbol(new Symbol(tn.Tok.Value, new SelfType(interfaceType), new List<Modifier> { Modifier.CONSTANT }));
+                _table.AddSymbol(new Symbol(tn.Tok.Value, new SelfType(interfaceType) { Constant = true }));
             }
                 
 
             foreach (var func in ((ASTNode)node.Content[3]).Content)
             {
-                var memberModifiers = new List<Modifier>() { Modifier.CONSTANT };
+                var memberModifiers = new List<Modifier>();
 
                 if (func.Name == "method_template")
                 {
@@ -174,7 +174,7 @@ namespace Whirlwind.Semantic.Visitor
             {
                 string name = tn.Tok.Value;
 
-                _nodes.Add(new IdentifierNode(name, interfaceType, true));
+                _nodes.Add(new IdentifierNode(name, interfaceType));
                 MergeBack();
 
                 _table.AscendScope();

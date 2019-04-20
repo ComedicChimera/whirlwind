@@ -76,5 +76,8 @@ namespace Whirlwind.Types
 
             return false;
         }
+
+        public override DataType ConstCopy()
+            => new SimpleType(Type, Unsigned) { Constant = true };
     }
 }

@@ -10,6 +10,7 @@ namespace Whirlwind.Types
         public TupleType(List<DataType> types)
         {
             Types = types;
+            Constant = true;
         }
 
         public override TypeClassifier Classify() => TypeClassifier.TUPLE;
@@ -27,5 +28,8 @@ namespace Whirlwind.Types
         }
 
         public override bool Equals(DataType other) => Coerce(other);
+
+        public override DataType ConstCopy()
+            => new TupleType(Types); // implicit const
     }
 }

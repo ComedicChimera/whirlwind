@@ -13,14 +13,14 @@ namespace Whirlwind.Semantic.Visitor
             _nodes.Add(new BlockNode("Struct"));
             TokenNode name = (TokenNode)node.Content[1];
 
-            var structType = new StructType(name.Tok.Value, false);
+            var structType = new StructType(name.Tok.Value);
 
             // descent for self referential >:(
             _table.AddScope();
             _table.DescendScope();
 
             // declare self referential type (ok early, b/c reference)
-            _table.AddSymbol(new Symbol(name.Tok.Value, structType, new List<Modifier> { Modifier.CONSTANT }));
+            _table.AddSymbol(new Symbol(name.Tok.Value, structType));
             // since struct members are all variables
             _selfNeedsPointer = true;
 
@@ -65,7 +65,7 @@ namespace Whirlwind.Semantic.Visitor
 
                             foreach (var member in processingStack)
                             {
-                                _nodes.Add(new IdentifierNode(member.Tok.Value, type, false));
+                                _nodes.Add(new IdentifierNode(member.Tok.Value, type));
                             }
 
                             MergeBack(processingStack.Count);
@@ -79,7 +79,7 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     ASTNode decl = (ASTNode)subNode;
 
-                    var fnType = _visitConstructor(decl, new List<Modifier> { Modifier.CONSTANT });
+                    var fnType = _visitConstructor(decl, new List<Modifier>());
 
                     if (!structType.AddConstructor(fnType))
                         throw new SemanticException("Unable to declare duplicate constructors", decl.Content[2].Position);
@@ -91,7 +91,7 @@ namespace Whirlwind.Semantic.Visitor
             if (needsDefaultConstr)
                 structType.AddConstructor(new FunctionType(new List<Parameter>(), new SimpleType(), false));
 
-            _nodes.Add(new IdentifierNode(name.Tok.Value, structType, true));
+            _nodes.Add(new IdentifierNode(name.Tok.Value, structType));
             MergeBack();
 
             _table.AscendScope();
@@ -115,14 +115,15 @@ namespace Whirlwind.Semantic.Visitor
                     args = _generateArgsDecl((ASTNode)item);
                 else if (item.Name == "func_body")
                 {
-
-
                     _nodes.Add(new IncompleteNode((ASTNode)item));
                     MergeToBlock();
                 }
             }
 
-            FunctionType ft = new FunctionType(args, new SimpleType(), false);
+            FunctionType ft = new FunctionType(args, new SimpleType(), false)
+            {
+                Constant = true
+            };
 
             _nodes.Add(new ValueNode("ConstructorSignature", ft));
             MergeBack();

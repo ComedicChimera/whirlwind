@@ -63,8 +63,7 @@ namespace Whirlwind.Semantic.Visitor
 
                         IdentifierNode idNode = (IdentifierNode)((BlockNode)node).Nodes[0];
 
-                        _table.AddSymbol(new Symbol(idNode.Name, ((StructType)idNode.Type).GetInstance(), 
-                            new List<Modifier> { Modifier.CONSTANT }));
+                        _table.AddSymbol(new Symbol(idNode.Name, ((StructType)idNode.Type).GetInstance().ConstCopy()));
 
                         foreach (var item in ((BlockNode)node).Block)
                         {

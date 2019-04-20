@@ -106,12 +106,10 @@ namespace Whirlwind.Semantic.Checker
                     }
                     break;
                 case TypeClassifier.INTERFACE_INSTANCE:
-                    if (desired.Classify() == TypeClassifier.OBJECT)
                     {
                         var startInstance = (InterfaceType)start;
-                        var desiredInstance = (ObjectType)desired;
 
-                        if (startInstance.MatchObject(desiredInstance))
+                        if (startInstance.Coerce(desired.GetInterface()))
                             return true;
                     }
                     break;

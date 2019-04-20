@@ -277,7 +277,7 @@ namespace Whirlwind.Semantic.Visitor
                     switch (componentPosition)
                     {
                         case 0:
-                            _nodes.Add(new IdentifierNode(iterVarName, _nodes.Last().Type, false));
+                            _nodes.Add(new IdentifierNode(iterVarName, _nodes.Last().Type));
                             _nodes.Add(new ExprNode("IterVarDecl", _nodes.Last().Type));
                             PushForward(2);
 

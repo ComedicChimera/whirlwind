@@ -29,7 +29,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             DataType dt = new SimpleType();
             int pointers = 0;
-            bool reference = false, owned = false;
+            bool reference = false, owned = false, constant = false;
 
             foreach (var subNode in node.Content)
             {
@@ -47,6 +47,9 @@ namespace Whirlwind.Semantic.Visitor
                             break;
                         case "OWN":
                             owned = true;
+                            break;
+                        case "CONST":
+                            constant = true;
                             break;
                         case "IDENTIFIER":
                             if (_table.Lookup(tokenNode.Tok.Value, out Symbol symbol))
@@ -104,6 +107,9 @@ namespace Whirlwind.Semantic.Visitor
 
             if (!reference && pointers == 0 && owned)
                 throw new SemanticException("Cannot declare ownership over type that is not pointer or reference", node.Position);
+
+            if (constant)
+                dt.Constant = true;
 
             return dt;
         }
@@ -234,7 +240,7 @@ namespace Whirlwind.Semantic.Visitor
 
                                         args.Add(new Parameter("Arg" + args.Count.ToString(), 
                                             _generateType((ASTNode)arg.Content[0]), 
-                                            false, arg.Content.Count == 2, false, false
+                                            arg.Content.Count == 2, false, false
                                             ));
                                     }
                                     else if (elem.Name == "func_arg_indef")
@@ -242,7 +248,7 @@ namespace Whirlwind.Semantic.Visitor
                                         ASTNode arg = (ASTNode)elem;
                                         DataType dt = arg.Content.Count == 2 ? _generateType((ASTNode)arg.Content[1]) : new SimpleType();
 
-                                        args.Add(new Parameter("Arg" + args.Count.ToString(), dt, false, false, true, false));
+                                        args.Add(new Parameter("Arg" + args.Count.ToString(), dt, false, true, false));
                                     }
                                 }
                                 break;

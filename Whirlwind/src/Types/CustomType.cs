@@ -12,6 +12,8 @@ namespace Whirlwind.Types
         {
             Name = name;
             Instances = new List<CustomInstance>();
+
+            Constant = true;
         }
 
         public bool AddInstance(CustomInstance instance)
@@ -85,6 +87,13 @@ namespace Whirlwind.Types
 
             return false;
         }
+
+        public override DataType ConstCopy()
+            => new CustomType(Name)
+            {
+                Constant = true,
+                Instances = Instances
+            };
     }
 
     abstract class CustomInstance : DataType
@@ -128,6 +137,9 @@ namespace Whirlwind.Types
 
             return false;
         }
+
+        public override DataType ConstCopy()
+            => new CustomNewType(Parent, Name, Values) { Constant = true };  
     }
 
     class CustomAlias : CustomInstance
@@ -147,5 +159,8 @@ namespace Whirlwind.Types
 
             return false;
         }
+
+        public override DataType ConstCopy()
+            => new CustomAlias(Parent, Type) { Constant = true };
     }
 }

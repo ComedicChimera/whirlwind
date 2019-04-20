@@ -54,11 +54,11 @@ namespace Whirlwind.Semantic.Checker
         public static bool Modifiable(ITypeNode node)
         {
             if (node.Name == "Identifier")
-                return !((IdentifierNode)node).Constant;
+                return !((IdentifierNode)node).Type.Constant;
 
             if (_modifiableNodes.Contains(node.Name))
             {
-                if (node.Name == "GetMember" && ((IdentifierNode)((ExprNode)node).Nodes[1]).Constant)
+                if (node.Name == "GetMember" && ((IdentifierNode)((ExprNode)node).Nodes[1]).Type.Constant)
                     return false;
 
                 var rootNode = ((ExprNode)node).Nodes[0];

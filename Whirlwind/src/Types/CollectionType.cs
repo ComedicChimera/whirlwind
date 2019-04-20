@@ -42,6 +42,9 @@
 
             return false;
         }
+
+        public override DataType ConstCopy()
+            => new ArrayType(ElementType, Size) { Constant = true };
     }
 
     class ListType : DataType, IIterable
@@ -79,6 +82,9 @@
 
             return false;
         }
+
+        public override DataType ConstCopy()
+            => new ListType(ElementType) { Constant = true };
     }
 
     class DictType : DataType,  IIterable
@@ -113,5 +119,8 @@
 
             return false;
         }
+
+        public override DataType ConstCopy()
+            => new DictType(KeyType, ValueType) { Constant = true };
     }
 }

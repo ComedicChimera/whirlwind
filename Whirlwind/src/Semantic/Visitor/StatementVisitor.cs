@@ -92,7 +92,7 @@ namespace Whirlwind.Semantic.Visitor
                                     if (_table.Lookup(token.Value, out Symbol sym))
                                     {
                                         if (sym.DataType.Classify() == TypeClassifier.POINTER)
-                                            identifierList.Add(new IdentifierNode(sym.Name, sym.DataType, sym.Modifiers.Contains(Modifier.CONSTANT)));
+                                            identifierList.Add(new IdentifierNode(sym.Name, sym.DataType));
                                         else
                                             throw new SemanticException("Delete statement must only contain pointers", subNode.Position);
                                     }
@@ -285,23 +285,23 @@ namespace Whirlwind.Semantic.Visitor
                     {
                         if (_table.Lookup(token.Value, out Symbol symbol))
                         {
-                            if (symbol.Modifiers.Contains(Modifier.CONSTEXPR) || symbol.Modifiers.Contains(Modifier.CONSTANT))
+                            if (symbol.Modifiers.Contains(Modifier.CONSTEXPR) || symbol.DataType.Constant)
                                 throw new SemanticException("Unable to assign to immutable value", node.Position);
                             else
-                                _nodes.Add(new IdentifierNode(symbol.Name, symbol.DataType, false));
+                                _nodes.Add(new IdentifierNode(symbol.Name, symbol.DataType));
                         }
                         else
                             throw new SemanticException($"Undefined Identifier: `{token.Value}`", node.Position);
                     }
                     else if (token.Type == "_")
-                        _nodes.Add(new IdentifierNode("_", new SimpleType(), false));
+                        _nodes.Add(new IdentifierNode("_", new SimpleType()));
                     else if (token.Type == "*")
                         derefCount++;
                     // this
                     else
                     {
                         if (_table.Lookup("$THIS", out Symbol instance))
-                            _nodes.Add(new IdentifierNode("$THIS", instance.DataType, true));
+                            _nodes.Add(new IdentifierNode("$THIS", instance.DataType));
                         else
                             throw new SemanticException("Use of `this` outside of property", node.Position);
                     }

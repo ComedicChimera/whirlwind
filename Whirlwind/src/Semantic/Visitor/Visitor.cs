@@ -29,7 +29,7 @@ namespace Whirlwind.Semantic.Visitor
                 switch (node.Name)
                 {
                     case "block_decl":
-                        _visitBlockDecl((ASTNode)node, new List<Modifier>() { Modifier.CONSTANT });
+                        _visitBlockDecl((ASTNode)node, new List<Modifier>());
                         break;
                     case "variable_decl":
                         _visitVarDecl((ASTNode)node, new List<Modifier>());
@@ -40,7 +40,7 @@ namespace Whirlwind.Semantic.Visitor
                         switch (decl.Name)
                         {
                             case "block_decl":
-                                _visitBlockDecl(decl, new List<Modifier>() { Modifier.EXPORTED, Modifier.CONSTANT });
+                                _visitBlockDecl(decl, new List<Modifier>() { Modifier.EXPORTED });
                                 break;
                             case "variable_decl":
                                 _visitVarDecl(decl, new List<Modifier>() { Modifier.EXPORTED });

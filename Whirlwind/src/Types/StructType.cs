@@ -13,13 +13,15 @@ namespace Whirlwind.Types
         private List<FunctionType> _constructors;
         private bool _instance;
 
-        public StructType(string name, bool instance)
+        public StructType(string name)
         {
             Name = name;
             Members = new Dictionary<string, Symbol>();
 
             _constructors = new List<FunctionType>();
-            _instance = instance;
+            _instance = false;
+
+            Constant = true;
         }
 
         private StructType(StructType str)
@@ -96,5 +98,12 @@ namespace Whirlwind.Types
             => _instance ? TypeClassifier.STRUCT_INSTANCE : TypeClassifier.STRUCT;
 
         public override bool Equals(DataType other) => Coerce(other);
+
+        public override DataType ConstCopy()
+            => new StructType(this)
+            {
+                _instance = _instance,
+                Constant = true
+            };
     }
 }

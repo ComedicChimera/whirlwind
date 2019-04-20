@@ -39,8 +39,7 @@ namespace Whirlwind.Semantic.Visitor
                 else if (item.Name == "template_block_decl" || item.Name == "func_decl")
                 {
                     foreach (var templateVar in templateVars)
-                        _table.AddSymbol(new Symbol(templateVar.Key, new TemplatePlaceholder(templateVar.Key),
-                            new List<Modifier>() { Modifier.CONSTANT }));
+                        _table.AddSymbol(new Symbol(templateVar.Key, new TemplatePlaceholder(templateVar.Key)));
 
                     // for method templates
                     if (item.Name == "func_decl")
@@ -77,7 +76,7 @@ namespace Whirlwind.Semantic.Visitor
             var tt = new TemplateType(templateVars.Select(x => new TemplateVariable(x.Key, x.Value)).ToList(), sym.DataType, 
                 _decorateEval(funcNode, vfn));
 
-            _nodes.Add(new IdentifierNode(sym.Name, tt, true));
+            _nodes.Add(new IdentifierNode(sym.Name, tt));
             MergeBack();
 
             if (!_table.AddSymbol(new Symbol(sym.Name, tt, modifiers)))
@@ -98,7 +97,7 @@ namespace Whirlwind.Semantic.Visitor
                 foreach (var alias in aliases)
                     _table.AddSymbol(new Symbol(alias.Key, new TemplateAlias(alias.Value)));
 
-                vfn(node, new List<Modifier>() { Modifier.CONSTANT });
+                vfn(node, new List<Modifier>());
                 BlockNode generateNode = (BlockNode)_nodes.Last();
 
                 _nodes.RemoveAt(_nodes.Count - 1);
@@ -147,7 +146,7 @@ namespace Whirlwind.Semantic.Visitor
                     tt.Generates.RemoveAt(tt.Generates.Count - 1);
 
                     _nodes.Add(new ValueNode("VariantGenerate", dt));
-                    _nodes.Add(new IdentifierNode(id.Tok.Value, tt, true)); // identifier after so visit function works ;)
+                    _nodes.Add(new IdentifierNode(id.Tok.Value, tt)); // identifier after so visit function works ;)
                     MergeBack(2);
 
                     _nodes.Add(new IncompleteNode((ASTNode)node.Content.Last()));

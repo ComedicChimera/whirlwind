@@ -28,7 +28,10 @@ namespace Whirlwind.Semantic.Visitor
                     if (_isVoid(_nodes.Last().Type))
                         throw new SemanticException("Unable to determine type of variable", exprVarDecl.Content[0].Position);
 
-                    _nodes.Add(new IdentifierNode(name, _nodes.Last().Type, true));
+                    var copyType = _nodes.Last().Type.ConstCopy();
+
+                    // const copy
+                    _nodes.Add(new IdentifierNode(name, copyType));
 
                     if (needsSubscope)
                     {
@@ -36,7 +39,7 @@ namespace Whirlwind.Semantic.Visitor
                         _table.DescendScope();
                     }
 
-                    if (!_table.AddSymbol(new Symbol(name, _nodes.Last().Type, new List<Modifier> { Modifier.CONSTANT })))
+                    if (!_table.AddSymbol(new Symbol(name, copyType)))
                     {
                         if (needsSubscope)
                             _table.AscendScope();

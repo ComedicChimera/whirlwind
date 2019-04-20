@@ -78,18 +78,16 @@ namespace Whirlwind.Semantic
         public DataType Type { get; set; }
 
         public readonly string IdName;
-        public readonly bool Constant;
 
-        public IdentifierNode(string name, DataType type, bool constant)
+        public IdentifierNode(string name, DataType type)
         {
             IdName = name;
             Type = type;
-            Constant = constant;
         }
 
         public override string ToString()
         {
-            return $"{(Constant ? "Constant" : "Identifier")}({IdName}, {Type})";
+            return $"{(Type.Constant ? "Constant" : "Identifier")}({IdName}, {Type})";
         }
     }
 

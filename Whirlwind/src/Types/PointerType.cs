@@ -37,5 +37,8 @@
 
             return false;
         }
+
+        public override DataType ConstCopy()
+            => new PointerType(Type, Pointers, Owned) { Constant = true };
     }
 }

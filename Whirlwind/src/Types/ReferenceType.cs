@@ -22,6 +22,9 @@
         protected override bool _coerce(DataType other) => Equals(other);
 
         public override TypeClassifier Classify() => TypeClassifier.REFERENCE;
+
+        public override DataType ConstCopy()
+            => new ReferenceType(DataType, Owned);
     }
 
     // self referential type
@@ -51,5 +54,8 @@
         }
 
         public override TypeClassifier Classify() => TypeClassifier.SELF;
+
+        public override DataType ConstCopy()
+            => new SelfType(DataType) { Constant = true };
     }
 }

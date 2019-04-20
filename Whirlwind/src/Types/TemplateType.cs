@@ -14,6 +14,7 @@ namespace Whirlwind.Types
         public TemplatePlaceholder(string name)
         {
             Name = name;
+            Constant = true;
         }
 
         // the actual type of placeholder is irrelevant
@@ -27,6 +28,9 @@ namespace Whirlwind.Types
 
             return false;
         }
+
+        public override DataType ConstCopy()
+            => new TemplatePlaceholder(Name); // implict const
     }
 
     // represents the various aliases of the templates (ie. the T in template<T>)
@@ -37,12 +41,16 @@ namespace Whirlwind.Types
         public TemplateAlias(DataType replacementType)
         {
             ReplacementType = replacementType;
+            Constant = true;
         }
 
         public override bool Coerce(DataType other) => false;
         public override TypeClassifier Classify() => TypeClassifier.TEMPLATE_ALIAS;
 
         public override bool Equals(DataType other) => false;
+
+        public override DataType ConstCopy()
+            => new TemplateAlias(ReplacementType); // implicit const
     }
 
     // function used to evaluate template body
@@ -94,6 +102,8 @@ namespace Whirlwind.Types
             _variants = new List<List<DataType>>();
 
             Generates = new List<TemplateGenerate>();
+
+            Constant = true;
         }
 
         public bool CreateTemplate(List<DataType> dataTypes, out DataType templateType)
@@ -263,7 +273,7 @@ namespace Whirlwind.Types
                     aliasesCompleted.AddRange(_getCompletedAliases(((ReferenceType)dt).DataType));
                     break;
                 case TypeClassifier.STRUCT:
-                    aliasesCompleted.AddRange(((StructType)dt).Members.SelectMany(x => _getCompletedAliases(x.Value)));
+                    aliasesCompleted.AddRange(((StructType)dt).Members.SelectMany(x => _getCompletedAliases(x.Value.DataType)));
                     break;
                 case TypeClassifier.INTERFACE:
                     {
@@ -337,6 +347,19 @@ namespace Whirlwind.Types
             }
 
             return false;
+        }
+
+        public override DataType ConstCopy()
+        {
+            var tt = new TemplateType(_templates, DataType, _evaluator)
+            {
+                Generates = Generates
+            }; // implicit const
+
+            foreach (var variant in _variants)
+                tt._variants.Add(variant);
+
+            return tt;
         }
     }
 }

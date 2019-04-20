@@ -9,14 +9,14 @@ namespace Whirlwind.Types
         private static Dictionary<DataType, InterfaceType> _interfaces;
 
         // store constancy
-        private bool _constant = false;
-        
-        // returns whether or not the type is constant
-        public virtual bool Constant() => _constant;
+        public bool Constant = false;
 
         // check if another data type can be coerced to this type
         public virtual bool Coerce(DataType other)
         {
+            if (Constant && !other.Constant)
+                return false;
+
             if (other.Classify() == TypeClassifier.NULL || other.Classify() == TypeClassifier.TEMPLATE_PLACEHOLDER)
                 return true;
 
@@ -43,6 +43,9 @@ namespace Whirlwind.Types
         // get a given data type classifier as a string
         public abstract TypeClassifier Classify();
 
+        // returns a constant copy of a given data type
+        public abstract DataType ConstCopy();
+
         // check two data types for perfect equality (rarely used)
         public abstract bool Equals(DataType other);
 
@@ -60,6 +63,9 @@ namespace Whirlwind.Types
         public override TypeClassifier Classify() => TypeClassifier.NULL;
 
         public override bool Equals(DataType other) => false;
+
+        public override DataType ConstCopy()
+            => new NullType() { Constant = true };
     }
 
     enum TypeClassifier

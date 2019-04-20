@@ -46,7 +46,7 @@ namespace Whirlwind.Semantic.Visitor
                             if (sym.Modifiers.Contains(Modifier.CONSTEXPR))
                                 _nodes.Add(new ConstexprNode(sym.Name, sym.DataType, sym.Value));
                             else
-                                _nodes.Add(new IdentifierNode(sym.Name, sym.DataType, sym.Modifiers.Contains(Modifier.CONSTANT)));
+                                _nodes.Add(new IdentifierNode(sym.Name, sym.DataType));
                             return;
                         }
                         {
@@ -55,7 +55,7 @@ namespace Whirlwind.Semantic.Visitor
                     case "THIS":
                         if (_table.Lookup("$THIS", out Symbol instance))
                         {
-                            _nodes.Add(new IdentifierNode("$THIS", instance.DataType, true));
+                            _nodes.Add(new IdentifierNode("$THIS", instance.DataType));
                             return;
                         }
                         {

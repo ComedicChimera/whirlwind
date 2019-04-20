@@ -20,7 +20,7 @@ namespace Whirlwind.Semantic.Visitor
             var typeClass = new CustomType(name);
 
             // self referential pointer declaration
-            _table.AddSymbol(new Symbol(name, new SelfType(typeClass), new List<Modifier> { Modifier.CONSTANT }));
+            _table.AddSymbol(new Symbol(name, new SelfType(typeClass) { Constant = true }));
 
             foreach (var item in node.Content)
             {
@@ -58,11 +58,11 @@ namespace Whirlwind.Semantic.Visitor
                                 {
                                     if (elem is TokenNode tn2 && tn2.Tok.Type == "IDENTIFIER")
                                     {
-                                        _nodes.Add(new IdentifierNode(tn2.Tok.Value, dt, true));
+                                        _nodes.Add(new IdentifierNode(tn2.Tok.Value, dt));
                                         MergeBack();                                       
 
                                         // no check necessary (private sub scope)
-                                        _table.AddSymbol(new Symbol(tn2.Tok.Value, dt, new List<Modifier> { Modifier.CONSTANT }));
+                                        _table.AddSymbol(new Symbol(tn2.Tok.Value, dt));
                                     }
                                     else if (elem.Name == "expr")
                                     {

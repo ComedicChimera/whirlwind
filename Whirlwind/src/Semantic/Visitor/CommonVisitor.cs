@@ -30,7 +30,11 @@ namespace Whirlwind.Semantic.Visitor
                 .Select(x => ((TokenNode)x).Tok.Value)
                 .ToArray();
 
-            var iteratorTypes = iteratorType.Classify() == TypeClassifier.TUPLE ? ((TupleType)iteratorType).Types : new List<DataType>() { iteratorType };
+            var iteratorTypes = iteratorType.Classify() == TypeClassifier.TUPLE ? ((TupleType)iteratorType).Types : 
+                new List<DataType>() { iteratorType };
+
+            // create constant copies of all the types
+            iteratorTypes = iteratorTypes.Select(x => x.ConstCopy()).ToList();
 
             if (identifiers.Length != iteratorTypes.Count)
                 throw new SemanticException("Base iterator and its aliases don't match", node.Position);
@@ -43,14 +47,14 @@ namespace Whirlwind.Semantic.Visitor
             {
                 if (identifiers[i] != "_")
                 {
-                    if (!_table.AddSymbol(new Symbol(identifiers[i], iteratorTypes[i], new List<Modifier>() { Modifier.CONSTANT })))
+                    if (!_table.AddSymbol(new Symbol(identifiers[i], iteratorTypes[i])))
                         throw new SemanticException("Iterator cannot contain duplicate aliases",
                             node.Content.Where(x => x.Name == "iter_var").Select(x => ((ASTNode)x).Content[0].Position).ElementAt(i)
                         );
                 }
                     
 
-                _nodes.Add(new IdentifierNode(identifiers[i], iteratorTypes[i], true));
+                _nodes.Add(new IdentifierNode(identifiers[i], iteratorTypes[i]));
             }
 
             MergeBack(identifiers.Length);

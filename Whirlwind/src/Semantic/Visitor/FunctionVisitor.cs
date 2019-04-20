@@ -70,9 +70,9 @@ namespace Whirlwind.Semantic.Visitor
         {
             _nodes.Add(new BlockNode(isAsync ? "AsyncFunction" : "Function"));
 
-            var fnType = new FunctionType(parameters, dataType, isAsync);
+            var fnType = new FunctionType(parameters, dataType, isAsync) { Constant = true };
 
-            _nodes.Add(new IdentifierNode(name, fnType, true));
+            _nodes.Add(new IdentifierNode(name, fnType));
 
             MergeBack();
 
@@ -84,7 +84,7 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     if (!overload.DataType.Coerce(fnType))
                     {
-                        overload.DataType = new FunctionGroup(new List<FunctionType> { (FunctionType)overload.DataType, fnType });
+                        overload.DataType = new FunctionGroup(new List<FunctionType> { (FunctionType)overload.DataType, fnType }) { Constant = true };
                         return;
                     }
                 }
@@ -119,9 +119,6 @@ namespace Whirlwind.Semantic.Visitor
             foreach (var arg in args)
             {
                 var modifiers = new List<Modifier>();
-
-                if (arg.Constant)
-                    modifiers.Add(Modifier.CONSTANT);
 
                 if (arg.Volatile)
                     modifiers.Add(Modifier.VOLATILE);
@@ -320,7 +317,6 @@ namespace Whirlwind.Semantic.Visitor
                 if (subNode.Name == "decl_arg")
                 {
                     bool optional = false,
-                        constant = false,
                         hasExtension = false,
                         isVolatile = false;
                     var identifiers = new List<string>();
@@ -335,9 +331,6 @@ namespace Whirlwind.Semantic.Visitor
                                 {
                                     case "IDENTIFIER":
                                         identifiers.Add(((TokenNode)argPart).Tok.Value);
-                                        break;
-                                    case "CONST":
-                                        constant = true;
                                         break;
                                     case "VOL":
                                         isVolatile = true;
@@ -369,19 +362,18 @@ namespace Whirlwind.Semantic.Visitor
                     if (optional)
                     {
                         foreach (var identifier in identifiers)
-                            argsDeclList.Add(new Parameter(identifier, paramType, constant, true, false, isVolatile, _nodes.Last()));
+                            argsDeclList.Add(new Parameter(identifier, paramType, true, false, isVolatile, _nodes.Last()));
 
                         _nodes.RemoveAt(_nodes.Count - 1); // remove argument from node stack
                     }
                     else
                     {
                         foreach (var identifier in identifiers)
-                            argsDeclList.Add(new Parameter(identifier, paramType, constant, false, false, isVolatile));
+                            argsDeclList.Add(new Parameter(identifier, paramType, false, false, isVolatile));
                     }
                 }
                 else if (subNode.Name == "ending_arg")
                 {
-                    bool constant = false;
                     string name = "";
                     DataType dt = new SimpleType();
 
@@ -393,7 +385,7 @@ namespace Whirlwind.Semantic.Visitor
                             name = ((TokenNode)item).Tok.Value;
                     }
 
-                    argsDeclList.Add(new Parameter(name, dt, constant, false, true, false));
+                    argsDeclList.Add(new Parameter(name, dt, false, true, false));
                 }
             }
 
