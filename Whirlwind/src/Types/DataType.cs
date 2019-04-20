@@ -14,7 +14,7 @@ namespace Whirlwind.Types
         // check if another data type can be coerced to this type
         public virtual bool Coerce(DataType other)
         {
-            if (Constant && !other.Constant)
+            if (!Constant && other.Constant)
                 return false;
 
             if (other.Classify() == TypeClassifier.NULL || other.Classify() == TypeClassifier.TEMPLATE_PLACEHOLDER)

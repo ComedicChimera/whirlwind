@@ -12,6 +12,9 @@ namespace Whirlwind.Semantic.Checker
             if (desired.Coerce(start))
                 return true;
 
+            if (!desired.Constant && start.Constant)
+                return false;
+
             switch (start.Classify())
             {
                 case TypeClassifier.SIMPLE:
