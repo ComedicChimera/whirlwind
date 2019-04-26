@@ -8,10 +8,8 @@
   * func name<T>() 
   * async name<T>()
 - change from using "templates" to using "generics"
-- add Monad<T> interface
-- add generic operator overloads (*)
 - add prelude (later)
-- add 3 sanitizers (const, constexpr, and memory) [Note: constexpr does in depth checking on all constant expressions]
+- add 2 sanitizers (constexpr and memory) [Note: constexpr does in depth checking on all constant expressions]
 - remove MirrorType and declare builtins in SymbolTable as necessary
 - make sure type classes coerce properly
 - ability to add capture to both function and to block

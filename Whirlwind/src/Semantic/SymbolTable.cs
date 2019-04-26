@@ -4,17 +4,40 @@ using System;
 
 namespace Whirlwind.Semantic
 {
+    struct Capture
+    {
+        readonly Dictionary<Symbol, List<Modifier>> Captured;
+        readonly List<string> Blocked;
+
+        public Capture(Dictionary<Symbol, List<Modifier>> acc, List<string> block)
+        {
+            Captured = acc;
+            Blocked = block;
+        }
+    }
+
     class SymbolTable
     {
         private class Scope
         {
             public Dictionary<string, Symbol> Symbols;
             public List<Scope> SubScopes;
+            public bool HasCapture;
+            public Capture ScopeCapture;
 
             public Scope()
             {
                 Symbols = new Dictionary<string, Symbol>();
                 SubScopes = new List<Scope>();
+                HasCapture = false;
+            }
+
+            public Scope(Capture capture)
+            {
+                Symbols = new Dictionary<string, Symbol>();
+                SubScopes = new List<Scope>();
+                HasCapture = true;
+                ScopeCapture = capture;
             }
 
             public bool AddSymbol(Symbol symbol)
@@ -44,6 +67,14 @@ namespace Whirlwind.Semantic
                     SubScopes[scopePath[0]].SubScopes.Add(new Scope());
                 else
                     SubScopes[scopePath[0]].AddScope(scopePath.Skip(1).ToArray());
+            }
+
+            public void AddScope(int[] scopePath, Capture capture)
+            {
+                if (scopePath.Length == 1)
+                    SubScopes[scopePath[0]].SubScopes.Add(new Scope(capture));
+                else
+                    SubScopes[scopePath[0]].AddScope(scopePath.Skip(1).ToArray(), capture);
             }
         }
 
@@ -80,6 +111,14 @@ namespace Whirlwind.Semantic
                 _table.SubScopes.Add(new Scope());
             else
                 _table.AddScope(_scopePath);
+        }
+
+        public void AddScope(Capture capture)
+        {
+            if (_scopePath.Length == 0)
+                _table.SubScopes.Add(new Scope(capture));
+            else
+                _table.AddScope(_scopePath, capture);
         }
 
         public void DescendScope()

@@ -9,9 +9,11 @@ main: ( func_decl
 | block_stmt 
 | stmt
 | subscope
+| capture_block
 )+ ;
 
 subscope: '{' main '}' ;
+capture_block: capture subscope ;
 
 // include statement
 include_stmt: 'INCLUDE' ( pkg_name ['STRING_LITERAL'] | include_set 'FROM' pkg_name ) ;
@@ -36,7 +38,7 @@ block_decl: func_decl
 ;
 
 // function declaration
-func_decl: ('FUNC' | 'ASYNC') 'IDENTIFIER' '(' args_decl_list ')' [ types ] (func_body | ';') ;
+func_decl: ('FUNC' | 'ASYNC') 'IDENTIFIER' '(' args_decl_list ')' [ types ] [capture] (func_body | ';') ;
 
 // interface declaration
 interface_decl: 'INTERF' interface_header '{' interface_main '}' ;
@@ -375,3 +377,11 @@ block: '{' [main] '}'
 // operator (wherever any operator can be used)
 operator: '+' | '-' | '*' | '/' | '%' | '<' | '>' | '<=' | '>=' | '==' | '!='
 | '>>=' | '~^' | '~*' | '~/' | '<' '<' | '>' '>' | 'AND' | 'OR' | 'XOR' | '~' ;
+
+// capture (the standard capture block header)
+capture: 'WITH' '[' [ capture_symbol (',' capture_symbol)* ] ']'
+capture_symbol: ['CONST'] ['OWN'] 'IDENTIFIER' 
+| '!' 'IDENTIFIER'
+| 'VAL' 'IDENTIFIER'
+| 'THIS'
+;

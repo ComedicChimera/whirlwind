@@ -1,0 +1,16 @@
+﻿func main() {
+	let a = 3;
+	let b = 67;
+
+	let c = a if a > b else b;
+
+	let (d, k, g): int;
+	
+	d = a if b else b; // FAIL
+
+	k = a if true else "e"; // FAIL
+
+	g = "ae" if false else b; // FAIL
+
+	let z = a * b if a == b else a ~^ b;
+}
