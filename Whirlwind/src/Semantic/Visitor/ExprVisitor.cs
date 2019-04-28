@@ -593,7 +593,7 @@ namespace Whirlwind.Semantic.Visitor
                     if (rootType.Classify() == TypeClassifier.POINTER)
                     {
                         var pType = (PointerType)rootType;
-                        dt = new PointerType(pType.Type, pType.Pointers + 1);
+                        dt = new PointerType(pType.DataType, pType.Pointers + 1);
                     }
                     else
                         dt = new PointerType(rootType, 1);             
@@ -614,7 +614,7 @@ namespace Whirlwind.Semantic.Visitor
                             throw new SemanticException("Unable to dereference a non-pointer", node.Content[op.Length - pointerCount - 1].Position);
 
                         treeName = "Dereference";
-                        dt = op.Length == pointerCount ? ((PointerType)rootType).Type : new PointerType(((PointerType)rootType).Type, pointerCount - op.Length);
+                        dt = op.Length == pointerCount ? ((PointerType)rootType).DataType : new PointerType(((PointerType)rootType).DataType, pointerCount - op.Length);
 
                         if (_isVoid(dt))
                             throw new SemanticException("Unable to dereference a void pointer", node.Content[node.Content.Count - 1].Position);

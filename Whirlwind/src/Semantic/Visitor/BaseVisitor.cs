@@ -278,13 +278,7 @@ namespace Whirlwind.Semantic.Visitor
                     case "closure_body":
                         _nodes.Add(new BlockNode("ClosureBody"));
 
-                        _table.AddScope();
-                        _table.DescendScope();
-
-                        _declareArgs(args);
-                        rtType = _visitFuncBody((ASTNode)item);
-
-                        _table.AscendScope();
+                        rtType = _visitFuncBody((ASTNode)item, args);
                         break;
                 }
             }

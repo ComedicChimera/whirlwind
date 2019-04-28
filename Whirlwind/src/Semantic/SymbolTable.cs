@@ -6,14 +6,8 @@ namespace Whirlwind.Semantic
 {
     struct Capture
     {
-        readonly Dictionary<Symbol, List<Modifier>> Captured;
-        readonly List<string> Blocked;
-
-        public Capture(Dictionary<Symbol, List<Modifier>> acc, List<string> block)
-        {
-            Captured = acc;
-            Blocked = block;
-        }
+        public List<Symbol> Captured;
+        public List<string> Blocked;
     }
 
     class SymbolTable

@@ -41,11 +41,11 @@ namespace Whirlwind.Semantic.Checker
                 case TypeClassifier.ARRAY:
                 case TypeClassifier.LIST:
                     if (start.Classify() == TypeClassifier.ARRAY && desired.Classify() == TypeClassifier.POINTER)
-                        return ((ArrayType)start).ElementType.Equals(((PointerType)desired).Type);
+                        return ((ArrayType)start).ElementType.Equals(((PointerType)desired).DataType);
                     else if (new[] { TypeClassifier.ARRAY, TypeClassifier.LIST }.Contains(desired.Classify()))
                         return TypeCast((start as IIterable).GetIterator(), (desired as IIterable).GetIterator());
                     else if (desired.Classify() == TypeClassifier.POINTER)
-                        return TypeCast((start as IIterable).GetIterator(), ((PointerType)desired).Type);
+                        return TypeCast((start as IIterable).GetIterator(), ((PointerType)desired).DataType);
                     break;
                 case TypeClassifier.DICT:
                     if (desired.Classify() == TypeClassifier.DICT)
@@ -55,12 +55,12 @@ namespace Whirlwind.Semantic.Checker
                     if (desired.Classify() == TypeClassifier.POINTER)
                     {
                         PointerType startPointer = (PointerType)start, desiredPointer = (PointerType)desired;
-                        return TypeCast(startPointer.Type, desiredPointer.Type) && startPointer.Pointers == desiredPointer.Pointers;
+                        return TypeCast(startPointer.DataType, desiredPointer.DataType) && startPointer.Pointers == desiredPointer.Pointers;
                     }
                     else if (desired.Classify() == TypeClassifier.SIMPLE)
                         return ((SimpleType)desired).Type == SimpleType.SimpleClassifier.INTEGER && ((SimpleType)desired).Unsigned;
                     else if (desired.Classify() == TypeClassifier.ARRAY)
-                        return ((ArrayType)desired).ElementType.Equals(((PointerType)start).Type);
+                        return ((ArrayType)desired).ElementType.Equals(((PointerType)start).DataType);
                     break;
                 case TypeClassifier.FUNCTION:
                     if (desired.Classify() == TypeClassifier.FUNCTION)

@@ -267,7 +267,7 @@ namespace Whirlwind.Types
                     }
                     break;
                 case TypeClassifier.POINTER:
-                    aliasesCompleted.AddRange(_getCompletedAliases(((PointerType)dt).Type));
+                    aliasesCompleted.AddRange(_getCompletedAliases(((PointerType)dt).DataType));
                     break;
                 case TypeClassifier.REFERENCE:
                     aliasesCompleted.AddRange(_getCompletedAliases(((ReferenceType)dt).DataType));

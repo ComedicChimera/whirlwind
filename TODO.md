@@ -12,11 +12,6 @@
 - add 2 sanitizers (constexpr and memory) [Note: constexpr does in depth checking on all constant expressions]
 - remove MirrorType and declare builtins in SymbolTable as necessary
 - make sure type classes coerce properly
-- ability to add capture to both function and to block
-  * with[]
-  * with[a, b, c]
-  * with[const e, own f, val g]
-  * with[!z]
 
 # THOUGHTS
 
@@ -95,4 +90,8 @@
 - distinguish between dynamic allocation and struct instantiation
   * this is not what we want: `new (new Struct())`
 - make a more concise collection type specifier syntax
-
+- ability to add capture to both function and to block
+  * with[]
+  * with[a, b, c]
+  * with[const e, own f, val g]
+  * with[!z]

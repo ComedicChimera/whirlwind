@@ -323,13 +323,13 @@ namespace Whirlwind.Semantic.Visitor
                         throw new SemanticException("Unable to dereference non-pointer", assignVar.Position);
                     else if (pType.Pointers == derefCount)
                     {
-                        if (_isVoid(pType.Type))
+                        if (_isVoid(pType.DataType))
                             throw new SemanticException("Unable to dereference void pointer", assignVar.Position);
 
-                        _nodes.Add(new ExprNode("Dereference", pType.Type));
+                        _nodes.Add(new ExprNode("Dereference", pType.DataType));
                     }
                     else
-                        _nodes.Add(new ExprNode("Dereference", new PointerType(pType.Type, pType.Pointers - derefCount)));
+                        _nodes.Add(new ExprNode("Dereference", new PointerType(pType.DataType, pType.Pointers - derefCount)));
 
                     PushForward();
                 }

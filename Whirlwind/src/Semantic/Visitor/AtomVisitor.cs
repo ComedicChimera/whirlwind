@@ -228,7 +228,7 @@ namespace Whirlwind.Semantic.Visitor
                         {
                             string pointerIdentifier = ((TokenNode)node.Content[1]).Tok.Value;
 
-                            var symbol = _getMember(((PointerType)root.Type).Type, pointerIdentifier, node.Content[0].Position, node.Content[1].Position);
+                            var symbol = _getMember(((PointerType)root.Type).DataType, pointerIdentifier, node.Content[0].Position, node.Content[1].Position);
                             _nodes.Add(new ExprNode("GetMember", symbol.DataType));
 
                             PushForward();

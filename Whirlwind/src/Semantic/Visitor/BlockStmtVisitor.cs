@@ -58,9 +58,29 @@ namespace Whirlwind.Semantic.Visitor
                         }
                         break;
                     case "subscope":
+                        _table.AddScope();
+                        _table.DescendScope();
+
                         _nodes.Add(new BlockNode("Subscope"));
 
                         _visitBlockNode(stmt, context);
+
+                        _table.AscendScope();
+                        break;
+                    case "capture_block":
+                        {
+                            _nodes.Add(new BlockNode("CaptureBlock"));
+
+                            var capture = _generateCapture((ASTNode)stmt.Content[0]);
+
+                            // capture data stored in table so not necessary to bundle with tree
+                            _table.AddScope(capture);
+                            _table.DescendScope();
+
+                            _visitBlockNode((ASTNode)stmt.Content[1], context);
+
+                            _table.AscendScope();
+                        }
                         break;
                 }
 

@@ -100,17 +100,10 @@ namespace Whirlwind.Semantic.Visitor
 
         }
 
-        private void _visitFunctionBody(ASTNode body, FunctionType type)
+        private void _visitFunctionBody(ASTNode body, FunctionType ft)
         {
-            _table.AddScope();
-            _table.DescendScope();
-
-            _declareArgs(type.Parameters);
-
-            if (!type.ReturnType.Coerce(_visitFuncBody(body)))
+            if (!ft.ReturnType.Coerce(_visitFuncBody(body, ft.Parameters)))
                 throw new SemanticException("Return type of signature does not match return type of body", _dominantPosition);
-
-            _table.AscendScope();
         }
 
         private void _declareArgs(List<Parameter> args)
@@ -137,9 +130,22 @@ namespace Whirlwind.Semantic.Visitor
             }
         }
 
-        private DataType _visitFuncBody(ASTNode node)
+        private DataType _visitFuncBody(ASTNode node, List<Parameter> args)
         {
             DataType rtType = new SimpleType();
+
+            if (node.Content[0].Name == "capture")
+            {
+                var capture = _generateCapture((ASTNode)node.Content[0]);
+
+                _table.AddScope(capture);
+            }
+            else
+                _table.AddScope();
+
+            _table.DescendScope();
+
+            _declareArgs(args);
 
             foreach (var item in node.Content)
             {
@@ -167,6 +173,8 @@ namespace Whirlwind.Semantic.Visitor
                         break;
                 }
             }
+
+            _table.AscendScope();
 
             return rtType;
         }

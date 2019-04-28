@@ -2,13 +2,13 @@
 {
     class PointerType : DataType
     {
-        public readonly DataType Type;
+        public readonly DataType DataType;
         public int Pointers;
         public readonly bool Owned;
 
         public PointerType(DataType dt, int pointers, bool owned = false)
         {
-            Type = dt;
+            DataType = dt;
             Pointers = pointers;
             Owned = owned;
         }
@@ -19,7 +19,7 @@
                 return true;
             else if (other.Classify() == TypeClassifier.POINTER)
             {
-                if (Type.Classify() == TypeClassifier.SIMPLE && ((SimpleType)Type).Type == SimpleType.SimpleClassifier.VOID)
+                if (DataType.Classify() == TypeClassifier.SIMPLE && ((SimpleType)DataType).Type == SimpleType.SimpleClassifier.VOID)
                     return true;
             }
 
@@ -32,13 +32,13 @@
         {
             if (other.Classify() == TypeClassifier.POINTER)
             {
-                return Type.Equals(((PointerType)other).Type) && Pointers == ((PointerType)other).Pointers;
+                return DataType.Equals(((PointerType)other).DataType) && Pointers == ((PointerType)other).Pointers;
             }
 
             return false;
         }
 
         public override DataType ConstCopy()
-            => new PointerType(Type, Pointers, Owned) { Constant = true };
+            => new PointerType(DataType, Pointers, Owned) { Constant = true };
     }
 }

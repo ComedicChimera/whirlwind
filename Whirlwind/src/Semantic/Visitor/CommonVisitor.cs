@@ -93,5 +93,92 @@ namespace Whirlwind.Semantic.Visitor
                 throw new SemanticException("Invalid type specifier for the given template", templateSpecifier.Position);
 
         }
+
+        private Capture _generateCapture(ASTNode node)
+        {
+            var capture = new Capture();
+
+            string name;
+            bool excluded, constant, owned;
+            List<Modifier> modifiers;
+            DataType dt;
+
+            foreach (var item in node.Content)
+            {
+                if (item.Name == "capture_symbol")
+                {
+                    name = "";
+                    excluded = false;
+                    constant = false;
+                    owned = false;
+                    modifiers = new List<Modifier>();
+                    dt = new SimpleType();
+
+                    foreach (var elem in ((ASTNode)item).Content)
+                    {
+                        // all of the componenets are tokens so we good fam
+                        var tok = ((TokenNode)elem).Tok;
+
+                        switch (tok.Type)
+                        {
+                            case "IDENTIFIER":
+                                if (_table.Lookup(tok.Value, out Symbol sym))
+                                {
+                                    name = sym.Name;
+                                    dt = sym.DataType;
+                                }
+                                else
+                                    throw new SemanticException("Undefined symbol by name $`{tok.Value}`", elem.Position);
+                                break;
+                            // make captures work with interfaces and structs
+                            case "THIS":
+                                if (_table.Lookup("$THIS", out Symbol inst))
+                                {
+                                    name = "$THIS";
+                                    dt = inst.DataType;
+                                }
+                                else
+                                    throw new SemanticException("Unable to use this outside of instance", elem.Position);
+                                break;
+                            case "!":
+                                excluded = true;
+                                break;
+                            case "CONST":
+                                constant = true;
+                                break;
+                            case "VOL":
+                                modifiers.Add(Modifier.VOLATILE);
+                                break;
+                            case "OWN":
+                                owned = true;
+                                break;
+                            
+                        }
+                    }
+
+                    if (excluded)
+                        capture.Blocked.Add(name);
+                    else
+                    {
+                        if (constant)
+                            dt = dt.ConstCopy();
+
+                        if (owned)
+                        {
+                            if (dt is PointerType pt)
+                                dt = new PointerType(pt.DataType, pt.Pointers, true);
+                            else if (dt is ReferenceType rt)
+                                dt = new ReferenceType(rt.DataType, true);
+                        }
+
+                        var symbol = new Symbol(name, dt, modifiers);
+
+                        capture.Captured.Add(symbol);
+                    }
+                }
+            }
+
+            return capture;
+        }
     }
 }
