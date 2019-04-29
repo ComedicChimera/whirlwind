@@ -9,37 +9,38 @@ namespace Whirlwind.Semantic.Visitor
 {
     partial class Visitor
     {
-        private void _visitTemplate(ASTNode node, List<Modifier> modifiers)
+        // FIX THIS METHOD
+        private void _makeGeneric(ASTNode node, List<Modifier> modifiers)
         {
-            _nodes.Add(new BlockNode("Template"));
+            _nodes.Add(new BlockNode("Generic"));
 
             _table.AddScope();
             _table.DescendScope();
 
-            var templateVars = new Dictionary<string, List<DataType>>();
+            var genericVars = new Dictionary<string, List<DataType>>();
 
             foreach (var item in node.Content)
             {
-                if (item.Name == "template")
+                if (item.Name == "generic")
                 {
-                    ASTNode templateVar = (ASTNode)item;
+                    ASTNode genericVar = (ASTNode)item;
 
-                    string varName = ((TokenNode)templateVar.Content[0]).Tok.Value;
+                    string varName = ((TokenNode)genericVar.Content[0]).Tok.Value;
 
-                    if (templateVars.ContainsKey(varName))
-                        throw new SemanticException("Template type aliases must have different names", templateVar.Content[0].Position);
+                    if (genericVars.ContainsKey(varName))
+                        throw new SemanticException("Generic type aliases must have different names", genericVar.Content[0].Position);
 
                     List<DataType> restrictors = new List<DataType>();
 
-                    if (templateVar.Content.Count == 3)
-                        restrictors.AddRange(_generateTypeList((ASTNode)templateVar.Content[2]));
+                    if (genericVar.Content.Count == 3)
+                        restrictors.AddRange(_generateTypeList((ASTNode)genericVar.Content[2]));
 
-                    templateVars.Add(varName, restrictors);
+                    genericVars.Add(varName, restrictors);
                 }
                 else if (item.Name == "template_block_decl" || item.Name == "func_decl")
                 {
-                    foreach (var templateVar in templateVars)
-                        _table.AddSymbol(new Symbol(templateVar.Key, new TemplatePlaceholder(templateVar.Key)));
+                    foreach (var templateVar in genericVars)
+                        _table.AddSymbol(new Symbol(templateVar.Key, new GenericPlaceholder(templateVar.Key)));
 
                     // for method templates
                     if (item.Name == "func_decl")
@@ -73,7 +74,7 @@ namespace Whirlwind.Semantic.Visitor
             ASTNode funcNode = node.Name == "template_decl" ? (ASTNode)((ASTNode)node.Content.Last()).Content[0]
                 : (ASTNode)node.Content.Last();
 
-            var tt = new TemplateType(templateVars.Select(x => new TemplateVariable(x.Key, x.Value)).ToList(), sym.DataType, 
+            var tt = new GenericType(genericVars.Select(x => new GenericVariable(x.Key, x.Value)).ToList(), sym.DataType, 
                 _decorateEval(funcNode, vfn));
 
             _nodes.Add(new IdentifierNode(sym.Name, tt));
@@ -84,9 +85,9 @@ namespace Whirlwind.Semantic.Visitor
                 throw new SemanticException($"Unable to redeclare symbol by name `{sym.Name}`", ((ASTNode)node.Content.Last()).Content[1].Position);
         }
 
-        private TemplateEvaluator _decorateEval(ASTNode node, Action<ASTNode, List<Modifier>> vfn)
+        private GenericEvaluator _decorateEval(ASTNode node, Action<ASTNode, List<Modifier>> vfn)
         {
-            return delegate (Dictionary<string, DataType> aliases, TemplateType parent)
+            return delegate (Dictionary<string, DataType> aliases, GenericType parent)
             {
                 _table.AddScope();
                 _table.DescendScope();
@@ -95,7 +96,7 @@ namespace Whirlwind.Semantic.Visitor
                 _table.AddSymbol(new Symbol("$VARIANT_PARENT", parent));
 
                 foreach (var alias in aliases)
-                    _table.AddSymbol(new Symbol(alias.Key, new TemplateAlias(alias.Value)));
+                    _table.AddSymbol(new Symbol(alias.Key, new GenericAlias(alias.Value)));
 
                 vfn(node, new List<Modifier>());
                 BlockNode generateNode = (BlockNode)_nodes.Last();
@@ -107,7 +108,7 @@ namespace Whirlwind.Semantic.Visitor
                 _table.AscendScope();
                 _table.RemoveScope();
 
-                return new TemplateGenerate(dt, generateNode);
+                return new GenericGenerate(dt, generateNode);
             };
         }
 
@@ -123,30 +124,30 @@ namespace Whirlwind.Semantic.Visitor
             }
             
 
-            if (symbol.DataType.Classify() == TypeClassifier.TEMPLATE)
+            if (symbol.DataType.Classify() == TypeClassifier.GENERIC)
             {
                 if (node.Content[1].Name == "variant")
                 {
                     var types = _generateTypeList((ASTNode)((ASTNode)node.Content[1]).Content[1]);
-                    var tt = (TemplateType)symbol.DataType;
+                    var gt = (GenericType)symbol.DataType;
 
-                    if (!tt.AddVariant(types))
-                        throw new SemanticException("The variant type list is not valid for the base template", node.Content[1].Position);
+                    if (!gt.AddVariant(types))
+                        throw new SemanticException("The variant type list is not valid for the base generic", node.Content[1].Position);
 
-                    if (tt.DataType.Classify() == TypeClassifier.INTERFACE)
+                    if (gt.DataType.Classify() == TypeClassifier.INTERFACE)
                     {
-                        if (!((InterfaceType)tt.DataType).GetFunction(id.Tok.Value, out Symbol _))
+                        if (!((InterfaceType)gt.DataType).GetFunction(id.Tok.Value, out Symbol _))
                             throw new SemanticException("Unable to create sub variant of non-existent method", id.Position);
                     }
 
                     _nodes.Add(new BlockNode("Variant"));
                     // won't fail because add variant succeeded
-                    tt.CreateTemplate(types, out DataType dt);
+                    gt.CreateGeneric(types, out DataType dt);
                     // remove the last generate added because its body is not accurate to the variant
-                    tt.Generates.RemoveAt(tt.Generates.Count - 1);
+                    gt.Generates.RemoveAt(gt.Generates.Count - 1);
 
                     _nodes.Add(new ValueNode("VariantGenerate", dt));
-                    _nodes.Add(new IdentifierNode(id.Tok.Value, tt)); // identifier after so visit function works ;)
+                    _nodes.Add(new IdentifierNode(id.Tok.Value, gt)); // identifier after so visit function works ;)
                     MergeBack(2);
 
                     _nodes.Add(new IncompleteNode((ASTNode)node.Content.Last()));
@@ -157,7 +158,7 @@ namespace Whirlwind.Semantic.Visitor
                     throw new SemanticException("Unable to implement multilevel variance with a variant depth of one", node.Content[1].Position);
             }
             else
-                throw new SemanticException("Unable to add variant to non-template", id.Position);
+                throw new SemanticException("Unable to add variant to non-generic", id.Position);
         }
     }
 }

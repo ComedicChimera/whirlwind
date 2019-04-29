@@ -29,9 +29,6 @@ namespace Whirlwind.Semantic.Visitor
                 case "decor_decl":
                     _visitDecorator(root, modifiers);
                     break;
-                case "template_decl":
-                    _visitTemplate(root, modifiers);
-                    break;
                 case "variant_decl":
                     _visitVariant(root);
                     break;
@@ -63,9 +60,10 @@ namespace Whirlwind.Semantic.Visitor
             {
                 var memberModifiers = new List<Modifier>();
 
+                // FIX GENERICS
                 if (func.Name == "method_template")
                 {
-                    _visitTemplate((ASTNode)func, memberModifiers);
+                    _makeGeneric((ASTNode)func, memberModifiers);
                     var fnNode = (IdentifierNode)((BlockNode)_nodes.Last()).Nodes[0];
 
                     if (!interfaceType.AddMethod(new Symbol(fnNode.IdName, fnNode.Type, memberModifiers),

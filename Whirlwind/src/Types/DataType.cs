@@ -17,7 +17,7 @@ namespace Whirlwind.Types
             if (!Constant && other.Constant)
                 return false;
 
-            if (other.Classify() == TypeClassifier.NULL || other.Classify() == TypeClassifier.TEMPLATE_PLACEHOLDER)
+            if (other.Classify() == TypeClassifier.NULL || other.Classify() == TypeClassifier.GENERIC_PLACEHOLDER)
                 return true;
 
             if (other.Classify() == TypeClassifier.REFERENCE)
@@ -84,9 +84,9 @@ namespace Whirlwind.Types
         TYPE_CLASS_INSTANCE,
         FUNCTION,
         FUNCTION_GROUP,
-        TEMPLATE,
-        TEMPLATE_ALIAS,
-        TEMPLATE_PLACEHOLDER,
+        GENERIC,
+        GENERIC_ALIAS,
+        GENERIC_PLACEHOLDER,
         PACKAGE,
         NULL,
         REFERENCE,

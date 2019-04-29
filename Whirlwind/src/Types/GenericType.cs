@@ -6,12 +6,12 @@ using Whirlwind.Semantic;
 
 namespace Whirlwind.Types
 {
-    // represents the template placeholder in the template signature
-    class TemplatePlaceholder : DataType
+    // represents the generic placeholder in the generic signature
+    class GenericPlaceholder : DataType
     {
         public readonly string Name;
         
-        public TemplatePlaceholder(string name)
+        public GenericPlaceholder(string name)
         {
             Name = name;
             Constant = true;
@@ -19,100 +19,100 @@ namespace Whirlwind.Types
 
         // the actual type of placeholder is irrelevant
         public override bool Coerce(DataType other) => true;
-        public override TypeClassifier Classify() => TypeClassifier.TEMPLATE_PLACEHOLDER;
+        public override TypeClassifier Classify() => TypeClassifier.GENERIC_PLACEHOLDER;
 
         public override bool Equals(DataType other)
         {
-            if (other.Classify() == TypeClassifier.TEMPLATE_PLACEHOLDER)
-                return Name == ((TemplatePlaceholder)other).Name;
+            if (other.Classify() == TypeClassifier.GENERIC_PLACEHOLDER)
+                return Name == ((GenericPlaceholder)other).Name;
 
             return false;
         }
 
         public override DataType ConstCopy()
-            => new TemplatePlaceholder(Name); // implict const
+            => new GenericPlaceholder(Name); // implict const
     }
 
-    // represents the various aliases of the templates (ie. the T in template<T>)
-    class TemplateAlias : DataType
+    // represents the various aliases of the generics (ie. the T in id<T>)
+    class GenericAlias : DataType
     {
         public readonly DataType ReplacementType;
 
-        public TemplateAlias(DataType replacementType)
+        public GenericAlias(DataType replacementType)
         {
             ReplacementType = replacementType;
             Constant = true;
         }
 
         public override bool Coerce(DataType other) => false;
-        public override TypeClassifier Classify() => TypeClassifier.TEMPLATE_ALIAS;
+        public override TypeClassifier Classify() => TypeClassifier.GENERIC_ALIAS;
 
         public override bool Equals(DataType other) => false;
 
         public override DataType ConstCopy()
-            => new TemplateAlias(ReplacementType); // implicit const
+            => new GenericAlias(ReplacementType); // implicit const
     }
 
-    // function used to evaluate template body
-    delegate TemplateGenerate TemplateEvaluator(Dictionary<string, DataType> aliases, TemplateType parent);
+    // function used to evaluate generic body
+    delegate GenericGenerate GenericEvaluator(Dictionary<string, DataType> aliases, GenericType parent);
 
-    // a struct containing the template name and its restrictors
-    struct TemplateVariable
+    // a struct containing the generic name and its restrictors
+    struct GenericVariable
     {
         public readonly string Name;
         public readonly List<DataType> Restrictors;
 
-        public TemplateVariable(string name, List<DataType> restrictors)
+        public GenericVariable(string name, List<DataType> restrictors)
         {
             Name = name;
             Restrictors = restrictors;
         }
     }
 
-    // represents a single template generate instance
-    struct TemplateGenerate
+    // represents a single generic generate instance
+    struct GenericGenerate
     {
         public DataType DataType;
         public BlockNode Block;
 
-        public TemplateGenerate(DataType dt, BlockNode block)
+        public GenericGenerate(DataType dt, BlockNode block)
         {
             DataType = dt;
             Block = block;
         }
     }
 
-    // represents the full template object (entire template method, obj, ect.)
-    class TemplateType : DataType
+    // represents the full generic object (entire generic method, obj, ect.)
+    class GenericType : DataType
     {
-        private readonly List<TemplateVariable> _templates;
-        private readonly TemplateEvaluator _evaluator;
+        private readonly List<GenericVariable> _generics;
+        private readonly GenericEvaluator _evaluator;
         private readonly List<List<DataType>> _variants;
 
         public DataType DataType { get; private set; }
-        public List<TemplateGenerate> Generates { get; private set; }
+        public List<GenericGenerate> Generates { get; private set; }
 
-        public TemplateType(List<TemplateVariable> templates, DataType type, TemplateEvaluator evaluator)
+        public GenericType(List<GenericVariable> generics, DataType type, GenericEvaluator evaluator)
         {
-            _templates = templates;
+            _generics = generics;
             DataType = type;
 
             _evaluator = evaluator;
 
             _variants = new List<List<DataType>>();
 
-            Generates = new List<TemplateGenerate>();
+            Generates = new List<GenericGenerate>();
 
             Constant = true;
         }
 
-        public bool CreateTemplate(List<DataType> dataTypes, out DataType templateType)
+        public bool CreateGeneric(List<DataType> dataTypes, out DataType genericType)
         {
-            if (dataTypes.Count == _templates.Count)
+            if (dataTypes.Count == _generics.Count)
             {
                 var aliases = new Dictionary<string, DataType>();
 
-                using (var e1 = _templates.GetEnumerator())
+                using (var e1 = _generics.GetEnumerator())
                 using (var e2 = dataTypes.GetEnumerator())
                 {
                     while (e1.MoveNext() && e2.MoveNext())
@@ -120,7 +120,7 @@ namespace Whirlwind.Types
                         if (e1.Current.Restrictors.Count > 0 /* check for empty restrictors */ 
                             && !e1.Current.Restrictors.Any(y => y.Coerce(e2.Current)))
                         {
-                            templateType = null;
+                            genericType = null;
                             return false;
                         }
                         else
@@ -133,12 +133,12 @@ namespace Whirlwind.Types
                 var generate = _evaluator(aliases, this);
 
                 Generates.Add(generate);
-                templateType = generate.DataType;
+                genericType = generate.DataType;
                 return true;
             }
             
 
-            templateType = null;
+            genericType = null;
             return false;
         }
 
@@ -190,16 +190,16 @@ namespace Whirlwind.Types
                 }
             }
 
-            if (completedAliases.Count == _templates.Count)
+            if (completedAliases.Count == _generics.Count)
             {
-                _templates.Where(y => y.Name == "T").First().Restrictors.Any(y => y.Coerce(completedAliases["T"]));
+                _generics.Where(y => y.Name == "T").First().Restrictors.Any(y => y.Coerce(completedAliases["T"]));
 
                 if (completedAliases.All(x => {
-                    var res = _templates.Where(y => y.Name == x.Key).First().Restrictors;
+                    var res = _generics.Where(y => y.Name == x.Key).First().Restrictors;
                     return res.Count == 0 || res.Any(y => y.Coerce(x.Value));
                     }))
                 {
-                    inferredTypes = _templates.Select(x => completedAliases[x.Name]).ToList();
+                    inferredTypes = _generics.Select(x => completedAliases[x.Name]).ToList();
                     return true;
                 }
             }
@@ -237,8 +237,8 @@ namespace Whirlwind.Types
 
             switch (dt.Classify())
             {
-                case TypeClassifier.TEMPLATE_PLACEHOLDER:
-                    aliasesCompleted.Add(((TemplatePlaceholder)dt).Name);
+                case TypeClassifier.GENERIC_PLACEHOLDER:
+                    aliasesCompleted.Add(((GenericPlaceholder)dt).Name);
                     break;
                 case TypeClassifier.TUPLE:
                     aliasesCompleted.AddRange(
@@ -289,13 +289,13 @@ namespace Whirlwind.Types
 
         public bool AddVariant(List<DataType> dataTypes)
         {
-            if (dataTypes.Count != _templates.Count)
+            if (dataTypes.Count != _generics.Count)
                 return false;
 
             if (_variants.Contains(dataTypes))
                 return false;
 
-            using (var e1 = _templates.Select(x => x.Restrictors).GetEnumerator())
+            using (var e1 = _generics.Select(x => x.Restrictors).GetEnumerator())
             using (var e2 = dataTypes.GetEnumerator())
             {
                 while (e1.MoveNext() && e2.MoveNext())
@@ -313,21 +313,21 @@ namespace Whirlwind.Types
 
         public override bool Coerce(DataType other) => Equals(other);
 
-        public override TypeClassifier Classify() => TypeClassifier.TEMPLATE;
+        public override TypeClassifier Classify() => TypeClassifier.GENERIC;
 
         public override bool Equals(DataType other)
         {
-            if (other.Classify() == TypeClassifier.TEMPLATE)
+            if (other.Classify() == TypeClassifier.GENERIC)
             {
-                var tt = (TemplateType)other;
+                var tt = (GenericType)other;
 
                 if (!DataType.Equals(tt.DataType))
                     return false;
 
-                if (_templates.Count == tt._templates.Count)
+                if (_generics.Count == tt._generics.Count)
                 {
-                    using (var e1 = _templates.GetEnumerator())
-                    using (var e2 = tt._templates.GetEnumerator())
+                    using (var e1 = _generics.GetEnumerator())
+                    using (var e2 = tt._generics.GetEnumerator())
                     {
                         while (e1.MoveNext() && e2.MoveNext())
                         {
@@ -351,7 +351,7 @@ namespace Whirlwind.Types
 
         public override DataType ConstCopy()
         {
-            var tt = new TemplateType(_templates, DataType, _evaluator)
+            var tt = new GenericType(_generics, DataType, _evaluator)
             {
                 Generates = Generates
             }; // implicit const

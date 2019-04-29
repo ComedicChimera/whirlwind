@@ -54,10 +54,10 @@ namespace Whirlwind.Semantic.Visitor
                         case "IDENTIFIER":
                             if (_table.Lookup(tokenNode.Tok.Value, out Symbol symbol))
                             {
-                                if (symbol.DataType.Classify() == TypeClassifier.TEMPLATE_ALIAS)
-                                    dt = ((TemplateAlias)symbol.DataType).ReplacementType;
-                                else if (!new[] { TypeClassifier.TEMPLATE_PLACEHOLDER, TypeClassifier.STRUCT,
-                                    TypeClassifier.INTERFACE,  TypeClassifier.TEMPLATE, TypeClassifier.TYPE_CLASS }
+                                if (symbol.DataType.Classify() == TypeClassifier.GENERIC_ALIAS)
+                                    dt = ((GenericAlias)symbol.DataType).ReplacementType;
+                                else if (!new[] { TypeClassifier.GENERIC_PLACEHOLDER, TypeClassifier.STRUCT,
+                                    TypeClassifier.INTERFACE,  TypeClassifier.GENERIC, TypeClassifier.TYPE_CLASS }
                                     .Contains(symbol.DataType.Classify()))
                                 {
                                     throw new SemanticException("Identifier data type must be a struct, type class, or interface",
@@ -73,11 +73,11 @@ namespace Whirlwind.Semantic.Visitor
                             break;
                     }
                 }
-                else if (subNode.Name == "template_spec")
+                else if (subNode.Name == "generic_spec")
                 {
-                    if (dt.Classify() != TypeClassifier.TEMPLATE)
-                        throw new SemanticException("Unable to apply template specifier to non-template type", subNode.Position);
-                    dt = _generateTemplate((TemplateType)dt, (ASTNode)subNode);
+                    if (dt.Classify() != TypeClassifier.GENERIC)
+                        throw new SemanticException("Unable to apply generic specifier to non-generic type", subNode.Position);
+                    dt = _generateGeneric((GenericType)dt, (ASTNode)subNode);
                 }
                 else
                 {

@@ -149,17 +149,17 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitTrailer(ASTNode node)
         {
-            if (node.Content[0].Name == "template_spec")
+            if (node.Content[0].Name == "generic_spec")
             {
-                if (_nodes.Last().Type.Classify() == TypeClassifier.TEMPLATE)
+                if (_nodes.Last().Type.Classify() == TypeClassifier.GENERIC)
                 {
-                    var templateType = _generateTemplate((TemplateType)_nodes.Last().Type, (ASTNode)node.Content[0]);
+                    var genericType = _generateGeneric((GenericType)_nodes.Last().Type, (ASTNode)node.Content[0]);
 
-                    _nodes.Add(new ExprNode("CreateTemplate", templateType));
+                    _nodes.Add(new ExprNode("CreateGeneric", genericType));
                     PushForward();
                 }
                 else
-                    throw new SemanticException("Unable to apply template specifier to non-template type", node.Position);
+                    throw new SemanticException("Unable to apply generic specifier to non-generic type", node.Position);
             }
             else if (node.Content[0].Name == "static_get")
             {
@@ -365,20 +365,20 @@ namespace Whirlwind.Semantic.Visitor
                     _nodes.RemoveAt(_nodes.Count - 2);
                 }
             }
-            else if (root.Type.Classify() == TypeClassifier.TEMPLATE)
+            else if (root.Type.Classify() == TypeClassifier.GENERIC)
             {
-                if (((TemplateType)root.Type).Infer(args, out List<DataType> inferredTypes))
+                if (((GenericType)root.Type).Infer(args, out List<DataType> inferredTypes))
                 {
                     // always works - try auto eval if possible
-                    ((TemplateType)root.Type).CreateTemplate(inferredTypes, out DataType templateType);
+                    ((GenericType)root.Type).CreateGeneric(inferredTypes, out DataType genericType);
 
-                    _nodes.Add(new ExprNode("CreateTemplate", templateType));
+                    _nodes.Add(new ExprNode("CreateGeneric", genericType));
                     PushForward(args.Count() + 1);
 
                     _visitFunctionCall(node, _nodes.Last());
                 }
                 else
-                    throw new SemanticException("Unable to infer type of template arguments", node.Position);
+                    throw new SemanticException("Unable to infer type of generic arguments", node.Position);
             }
             else if (root.Type.Classify() == TypeClassifier.STRUCT)
             {

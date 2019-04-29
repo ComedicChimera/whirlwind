@@ -110,7 +110,7 @@ namespace Whirlwind.Semantic.Visitor
 
                             int tPos = 0;
 
-                            foreach (var generate in ((TemplateType)(((BlockNode)node).Nodes[0].Type)).Generates)
+                            foreach (var generate in ((GenericType)(((BlockNode)node).Nodes[0].Type)).Generates)
                             {
                                 // create artificial scope for all who need it
                                 if (new[] { "TypeClass", "Interface", "Decorator" }.Contains(generate.Block.Name))

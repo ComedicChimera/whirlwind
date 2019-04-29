@@ -586,7 +586,7 @@ namespace Whirlwind.Semantic.Visitor
                     break;
                 case "&":
                     if (new[] {
-                        TypeClassifier.STRUCT, TypeClassifier.INTERFACE, TypeClassifier.TEMPLATE,
+                        TypeClassifier.STRUCT, TypeClassifier.INTERFACE, TypeClassifier.GENERIC,
                     }.Contains(rootType.Classify()))
                         throw new SemanticException("The given object is not able to referenced", node.Content[0].Position);
                     treeName = "Indirect";

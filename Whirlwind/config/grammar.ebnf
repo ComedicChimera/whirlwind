@@ -32,50 +32,36 @@ block_decl: func_decl
 | interface_decl
 | type_class_decl
 | struct_decl
-| template_decl
 | variant_decl
 | decor_decl
 ;
 
 // function declaration
-func_decl: ('FUNC' | 'ASYNC') 'IDENTIFIER' '(' args_decl_list ')' [ types ] (func_body | ';') ;
+func_decl: ('FUNC' | 'ASYNC') 'IDENTIFIER' [generic_tag] '(' args_decl_list ')' [ types ] (func_body | ';') ;
 
 // interface declaration
 interface_decl: 'INTERF' interface_header '{' interface_main '}' ;
-interface_header: 'IDENTIFIER' | 'FOR' types ['IS' implements] ;
+interface_header: 'IDENTIFIER' [generic_tag] | [generic_tag] 'FOR' types ['IS' implements] ;
 implements: types (',' types)* ;
-interface_main: ( func_decl | variant_decl | method_template | operator_decl )+ ;
+interface_main: ( func_decl | variant_decl | operator_decl )+ ;
 
 // operator overload
-operator_decl: 'OPERATOR' ( operator | ext_op ) '(' args_decl_list ')' [types] (func_body | ';') ;
+operator_decl: 'OPERATOR' ( operator | ext_op ) [generic_tag] '(' args_decl_list ')' [types] (func_body | ';') ;
 ext_op: '[' [ ':' ] ']' | '<- ;
 
-// method template
-method_template: 'TEMPLATE' '<' template (',' template)* '>' func_decl ;
-
 // type class declaration
-type_class_decl: 'TYPE' 'IDENTIFIER' [ type_class_main | ( '|' type_class_main )+ ] ';' ;
-type_class_main: types [value_restrictor] | 'IDENTIFIER' [type_constructor] ;
+type_class_decl: 'TYPE' 'IDENTIFIER' [generic_tag] [ type_class_main | ( '|' type_class_main )+ ] ';' ;
+type_class_main: types [value_restrictor] | 'IDENTwIFIER' [type_constructor] ;
 value_restrictor: '{' 'IDENTIFIER' '}' 'WHEN' expr ;
 type_constructor: '(' type_list ')' ;
 
 // struct declaration
-struct_decl: 'STRUCT' 'IDENTIFIER' '{' struct_main '}' ;
+struct_decl: 'STRUCT' 'IDENTIFIER' [generic_tag] '{' struct_main '}' ;
 struct_main: (struct_var ';' | constructor_decl )+ ;
 struct_var: ['VOL'] 'IDENTIFIER' (',' 'IDENTIFIER')* ':' types [initializer];
 
 // constructor declaration
 constructor_decl: 'CONSTRUCTOR' '(' args_decl_list ')' func_body ;
-
-// template declaration
-template_decl: 'TEMPLATE' '<' template (',' template)* '>' template_block_decl ;
-template: 'IDENTIFIER' [':' type_list] ;
-template_block_decl: func_decl
-| type_class_decl
-| struct_decl
-| interface_decl
-| decor_decl
-;
 
 // variant declaration
 variant_decl: 'VARIANT' ( variant | variant_list ) 'IDENTIFIER' func_body ;
@@ -219,7 +205,7 @@ trailer: '[' (expr [slice] | slice) ']'
 | '{' init_list '}'
 | '.' ( 'IDENTIFIER' | 'INTEGER_LITERAL' )
 | '->' 'IDENTIFIER'
-| template_spec
+| generic_spec
 | static_get
 ;
 
@@ -303,7 +289,7 @@ range: expr '.' '.' expr ;
 
 // DATA TYPES - data type literals
 types: ['CONST'] ['OWN'] ['REF'] '*'* ( base_types
-| 'IDENTIFIER' [template_spec]
+| 'IDENTIFIER' [generic_spec]
 )
 ;
 
@@ -354,9 +340,6 @@ initializer: '=' expr ;
 iterator: iter_var (',' iter_var)* '<-' expr ;
 iter_var: 'IDENTIFIER' | '_' ;
 
-// template specifier
-template_spec: '<' type_list '>' ;
-
 // type extension
 extension: [':' types] ;
 
@@ -385,3 +368,10 @@ capture_symbol: ['CONST'] ['OWN'] 'IDENTIFIER'
 | 'VAL' 'IDENTIFIER'
 | 'THIS'
 ;
+
+// generic tag (placed after several block declarations)
+generic_tag: '<' generic (',' generic)* '>'
+generic: 'IDENTIFIER' [':' type_list] ;
+
+// generic specifier
+generic_spec: '<' type_list '>' ;

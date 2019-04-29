@@ -31,13 +31,13 @@ namespace Whirlwind.Semantic.Checker
                                 return true;
                             }
                             break;
-                        case TypeClassifier.TEMPLATE:
+                        case TypeClassifier.GENERIC:
                             {
-                                TemplateType tt = (TemplateType)symbol.DataType;
+                                GenericType tt = (GenericType)symbol.DataType;
 
                                 if (tt.DataType is FunctionType && tt.Infer(arguments, out List<DataType> inferredTypes))
                                 {
-                                    tt.CreateTemplate(inferredTypes, out DataType dt);
+                                    tt.CreateGeneric(inferredTypes, out DataType dt);
 
                                     returnType = ((FunctionType)dt).ReturnType;
                                     return true;

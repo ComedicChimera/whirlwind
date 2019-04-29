@@ -7,7 +7,6 @@
   * struct name<T>
   * func name<T>() 
   * async name<T>()
-- change from using "templates" to using "generics"
 - add prelude (later)
 - add 2 sanitizers (constexpr and memory) [Note: constexpr does in depth checking on all constant expressions]
 - remove MirrorType and declare builtins in SymbolTable as necessary
@@ -95,3 +94,4 @@
   * with[a, b, c]
   * with[const e, own f, val g]
   * with[!z]
+- change from using "templates" to using "generics"

@@ -82,15 +82,15 @@ namespace Whirlwind.Semantic.Visitor
             return new SimpleType();
         }
 
-        private DataType _generateTemplate(TemplateType baseType, ASTNode templateSpecifier)
+        private DataType _generateGeneric(GenericType baseType, ASTNode genericSpecifier)
         {
-            // template_spec -> type_list
-            var typeList = _generateTypeList((ASTNode)templateSpecifier.Content[1]);
+            // generic_spec -> type_list
+            var typeList = _generateTypeList((ASTNode)genericSpecifier.Content[1]);
             
-            if (baseType.CreateTemplate(typeList, out DataType dt))
+            if (baseType.CreateGeneric(typeList, out DataType dt))
                 return dt;
             else
-                throw new SemanticException("Invalid type specifier for the given template", templateSpecifier.Position);
+                throw new SemanticException("Invalid type specifier for the given generic", genericSpecifier.Position);
 
         }
 
