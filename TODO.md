@@ -1,12 +1,6 @@
 # TODO
 
-- remove template syntax (change to pure generic syntax)
-  * interf<T> for
-  * interf name<T>
-  * type name<T>
-  * struct name<T>
-  * func name<T>() 
-  * async name<T>()
+- add support for generic binding
 - add prelude (later)
 - add 2 sanitizers (constexpr and memory) [Note: constexpr does in depth checking on all constant expressions]
 - remove MirrorType and declare builtins in SymbolTable as necessary
@@ -95,3 +89,10 @@
   * with[const e, own f, val g]
   * with[!z]
 - change from using "templates" to using "generics"
+- remove template syntax (change to pure generic syntax)
+  * interf<T> for
+  * interf name<T>
+  * type name<T>
+  * struct name<T>
+  * func name<T>() 
+  * async name<T>()

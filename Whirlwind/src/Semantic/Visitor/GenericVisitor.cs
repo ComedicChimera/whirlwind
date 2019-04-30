@@ -9,17 +9,14 @@ namespace Whirlwind.Semantic.Visitor
 {
     partial class Visitor
     {
-        // FIX THIS METHOD
-        private void _makeGeneric(ASTNode node, List<Modifier> modifiers)
+        private List<GenericVariable> _primeGeneric(ASTNode tag)
         {
-            _nodes.Add(new BlockNode("Generic"));
+            var genericVars = new Dictionary<string, List<DataType>>();
 
             _table.AddScope();
             _table.DescendScope();
 
-            var genericVars = new Dictionary<string, List<DataType>>();
-
-            foreach (var item in node.Content)
+            foreach (var item in tag.Content)
             {
                 if (item.Name == "generic")
                 {
@@ -36,24 +33,23 @@ namespace Whirlwind.Semantic.Visitor
                         restrictors.AddRange(_generateTypeList((ASTNode)genericVar.Content[2]));
 
                     genericVars.Add(varName, restrictors);
-                }
-                else if (item.Name == "template_block_decl" || item.Name == "func_decl")
-                {
-                    foreach (var templateVar in genericVars)
-                        _table.AddSymbol(new Symbol(templateVar.Key, new GenericPlaceholder(templateVar.Key)));
 
-                    // for method templates
-                    if (item.Name == "func_decl")
-                        _visitFunction((ASTNode)item, modifiers);
-                    else
-                        _visitBlockDecl((ASTNode)item, modifiers);
-
-                    MergeToBlock();
+                    _table.AddSymbol(new Symbol(varName, new GenericPlaceholder(varName)));
                 }
             }
 
+            // exit generic scope later
+
+            return genericVars.Select(x => new GenericVariable(x.Key, x.Value)).ToList();   
+        }
+
+        private void _makeGeneric(ASTNode root, List<GenericVariable> genericVars, List<Modifier> modifiers, TextPosition position)
+        {
+            _nodes.Add(new BlockNode("Generic"));
+
             Symbol sym = _table.GetScope().Last();
 
+            // exit generic scope
             _table.AscendScope();
 
             Action<ASTNode, List<Modifier>> vfn;
@@ -71,18 +67,18 @@ namespace Whirlwind.Semantic.Visitor
                     break;
             }
 
-            ASTNode funcNode = node.Name == "template_decl" ? (ASTNode)((ASTNode)node.Content.Last()).Content[0]
-                : (ASTNode)node.Content.Last();
+            var gt = new GenericType(genericVars, sym.DataType, 
+                _decorateEval(root, vfn));
 
-            var tt = new GenericType(genericVars.Select(x => new GenericVariable(x.Key, x.Value)).ToList(), sym.DataType, 
-                _decorateEval(funcNode, vfn));
-
-            _nodes.Add(new IdentifierNode(sym.Name, tt));
+            _nodes.Add(new IdentifierNode(sym.Name, gt));
             MergeBack();
 
-            if (!_table.AddSymbol(new Symbol(sym.Name, tt, modifiers)))
+            // push in block declaration
+            PushToBlock();
+
+            if (!_table.AddSymbol(new Symbol(sym.Name, gt, modifiers)))
                 // pretty much all sub symbols have the same name position
-                throw new SemanticException($"Unable to redeclare symbol by name `{sym.Name}`", ((ASTNode)node.Content.Last()).Content[1].Position);
+                throw new SemanticException($"Unable to redeclare symbol by name `{sym.Name}`", position);
         }
 
         private GenericEvaluator _decorateEval(ASTNode node, Action<ASTNode, List<Modifier>> vfn)

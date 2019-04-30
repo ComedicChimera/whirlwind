@@ -12,6 +12,14 @@ namespace Whirlwind.Semantic.Visitor
         {
             ASTNode root = (ASTNode)node.Content[0];
 
+            var genericVars = new List<GenericVariable>();
+            var namePosition = new TextPosition();
+            if (root.Content[2].Name == "generic_tag")
+            {
+                genericVars = _primeGeneric((ASTNode)root.Content[1]);
+                namePosition = root.Content[1].Position;
+            }
+
             switch (root.Name)
             {
                 case "type_class_decl":
@@ -33,6 +41,10 @@ namespace Whirlwind.Semantic.Visitor
                     _visitVariant(root);
                     break;
             }
+
+            // FIX POSITION DATA
+            if (genericVars.Count > 0)
+                _makeGeneric(root, genericVars, modifiers, namePosition);
         }
 
         private void _visitInterface(ASTNode node, List<Modifier> modifiers)
@@ -56,31 +68,21 @@ namespace Whirlwind.Semantic.Visitor
             }
                 
 
-            foreach (var func in ((ASTNode)node.Content[3]).Content)
+            foreach (var method in ((ASTNode)node.Content[3]).Content)
             {
                 var memberModifiers = new List<Modifier>();
 
-                // FIX GENERICS
-                if (func.Name == "method_template")
-                {
-                    _makeGeneric((ASTNode)func, memberModifiers);
-                    var fnNode = (IdentifierNode)((BlockNode)_nodes.Last()).Nodes[0];
-
-                    if (!interfaceType.AddMethod(new Symbol(fnNode.IdName, fnNode.Type, memberModifiers),
-                        ((ASTNode)((ASTNode)func).Content.Last()).Content.Last().Name == "func_body"))
-                        throw new SemanticException("Interface cannot contain duplicate members", ((ASTNode)func).Content[1].Position);
-                }
-                else if (func.Name == "variant_decl")
-                    _visitVariant((ASTNode)func);
-                else if (func.Name == "operator_decl")
+                if (method.Name == "variant_decl")
+                    _visitVariant((ASTNode)method);
+                else if (method.Name == "operator_decl")
                 {
                     _nodes.Add(new BlockNode("OperatorOverload"));
 
-                    ASTNode decl = (ASTNode)func;
+                    ASTNode decl = (ASTNode)method;
 
                     string op = ((ASTNode)decl.Content[1]).Content
                         .Select(x => ((TokenNode)x).Tok.Type)
-                        .Aggregate((a, b) => a + b);               
+                        .Aggregate((a, b) => a + b);
 
                     var args = _generateArgsDecl((ASTNode)decl.Content[3]);
 
@@ -112,12 +114,31 @@ namespace Whirlwind.Semantic.Visitor
                 }
                 else
                 {
-                    _visitFunction((ASTNode)func, memberModifiers);
-                    var fnNode = (IdentifierNode)((BlockNode)_nodes.Last()).Nodes[0];
+                    ASTNode func = (ASTNode)method;
 
-                    if (!interfaceType.AddMethod(new Symbol(fnNode.IdName, fnNode.Type, memberModifiers),
-                        ((ASTNode)func).Content.Last().Name == "func_body"))
-                        throw new SemanticException("Interface cannot contain duplicate members", ((ASTNode)func).Content[1].Position);
+                    if (func.Content[2].Name == "generic_tag")
+                    {
+                        var genericVars = _primeGeneric((ASTNode)func.Content[2]);
+
+                        _visitFunction(func, memberModifiers);
+
+                        _makeGeneric(func, genericVars, memberModifiers, func.Content[1].Position);
+
+                        var genNode = (IdentifierNode)((BlockNode)_nodes.Last()).Nodes[0];
+
+                        if (!interfaceType.AddMethod(new Symbol(genNode.IdName, genNode.Type, memberModifiers),
+                            func.Content.Last().Name == "func_body"))
+                            throw new SemanticException("Interface cannot contain duplicate members", func.Content[1].Position);
+                    }
+                    else
+                    {
+                        _visitFunction(func, memberModifiers);
+                        var fnNode = (IdentifierNode)((BlockNode)_nodes.Last()).Nodes[0];
+
+                        if (!interfaceType.AddMethod(new Symbol(fnNode.IdName, fnNode.Type, memberModifiers), 
+                            func.Content.Last().Name == "func_body"))
+                            throw new SemanticException("Interface cannot contain duplicate members", func.Content[1].Position);
+                    }
                 }
                 
                 // add function to interface block
