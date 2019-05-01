@@ -34,16 +34,19 @@ block_decl: func_decl
 | struct_decl
 | variant_decl
 | decor_decl
+| interface_bind
 ;
 
 // function declaration
 func_decl: ('FUNC' | 'ASYNC') 'IDENTIFIER' [generic_tag] '(' args_decl_list ')' [ types ] (func_body | ';') ;
 
 // interface declaration
-interface_decl: 'INTERF' interface_header '{' interface_main '}' ;
-interface_header: 'IDENTIFIER' [generic_tag] | [generic_tag] 'FOR' types ['IS' implements] ;
-implements: types (',' types)* ;
+interface_decl: 'INTERF' 'IDENTIFIER' [generic_tag] '{' interface_main '}' ;
 interface_main: ( func_decl | variant_decl | operator_decl )+ ;
+
+// interface binding declaration
+interface_bind: 'INTERF' [generic_tag] 'FOR' types ['IS' implements] '{' interface_maiin '}' ;
+implements: types (',' types)* ;
 
 // operator overload
 operator_decl: 'OPERATOR' ( operator | ext_op ) [generic_tag] '(' args_decl_list ')' [types] (func_body | ';') ;
