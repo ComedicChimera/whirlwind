@@ -67,6 +67,13 @@ namespace Whirlwind.Types
             Name = name;
             Restrictors = restrictors;
         }
+
+        public bool Equals(GenericVariable other)
+        {
+            return Name == other.Name &&
+                Restrictors.Count == other.Restrictors.Count &&
+                Restrictors.All(x => other.Restrictors.Contains(x));
+        }
     }
 
     // represents a single generic generate instance
@@ -360,6 +367,12 @@ namespace Whirlwind.Types
                 tt._variants.Add(variant);
 
             return tt;
+        }
+
+        public bool CompareGenerics(List<GenericVariable> other)
+        {
+            return _generics.Count == other.Count &&
+                _generics.All(x => other.Where(y => y.Equals(x)).Count() > 0);
         }
     }
 }

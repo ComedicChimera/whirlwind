@@ -44,13 +44,32 @@ namespace Whirlwind.Semantic.Visitor
             var interfaceType = new InterfaceType();
             int genericOffset = 0;
 
-            // calculate generic offset account for generic interface bind
-            // which is now "interf<T> for A", NOT "interf<T> for A<T>"
+            DataType dt;
+            List<GenericVariable> genericVars;
 
+            if (node.Content[1].Name == "generic_tag")
+            {
+                genericVars = _primeGeneric((ASTNode)node.Content[1]);
 
-            DataType dt = _generateType((ASTNode)node.Content[2]);
+                dt = _generateType((ASTNode)node.Content[3]);
 
-            // implement interface
+                if (dt is GenericType gt)
+                {
+                    if (!gt.CompareGenerics(genericVars))
+                        throw new SemanticException("Generic variables of generic binding must match those of generic type",
+                            node.Content[1].Position);
+                }
+                else
+                    throw new SemanticException("Unable to create generic binding for non-generic type", node.Content[1].Position);
+
+                genericOffset = 1;
+            }
+            else
+            {
+                genericVars = new List<GenericVariable>();
+                dt = _generateType((ASTNode)node.Content[2]);
+            }  
+
             if (!interfaceType.Derive(dt))
                 throw new SemanticException("All methods of type interface must define a body", node.Content[2].Position);
 
@@ -62,22 +81,35 @@ namespace Whirlwind.Semantic.Visitor
             MergeBack(2);
             MergeBack(); // merge to interface decl
 
-            if (node.Content.Count > 3)
+            if (node.Content.Count > 3 + genericOffset)
             {
                 _nodes.Add(new ExprNode("Implements", new SimpleType()));
 
-                foreach (var item in node.Content.Skip(4))
+                foreach (var item in node.Content.Skip(4 + genericOffset))
                 {
                     if (item.Name == "types")
                     {
                         DataType impl = _generateType((ASTNode)item);
 
-                        if (impl.Classify() != TypeClassifier.INTERFACE)
-                            throw new SemanticException("Type interface can only implement interfaces", item.Position);
+                        if (impl is InterfaceType it)
+                        {
+                            if (!it.Derive(dt))
+                                throw new SemanticException("The given data type does not implement all required methods of the interface",
+                                    item.Position);
+                        }
+                        else if (impl is GenericType gt)
+                        {
+                            // check generic case (make sure variables match up
 
-                        if (!((InterfaceType)impl).Derive(dt))
-                            throw new SemanticException("The given data type does not implement all required methods of the interface",
-                                item.Position);
+                            if (gt.DataType.Classify() != TypeClassifier.INTERFACE)
+                                throw new SemanticException("Generic implement must be an interface", item.Position);
+
+                            // perform generic derivation
+                        }
+                        else
+                            throw new SemanticException("Type interface can only implement interfaces", item.Position);                            
+
+                        
 
                         _nodes.Add(new ValueNode("Implement", impl));
                         MergeBack();
