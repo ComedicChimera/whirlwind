@@ -123,7 +123,6 @@ namespace Whirlwind.Types
         // tests if a type implements all necessary methods to be a child of this interface
         public bool Derive(DataType child)
         {
-
             if (child is InterfaceType)
                 return false;
 

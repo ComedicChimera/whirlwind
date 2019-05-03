@@ -99,17 +99,20 @@ namespace Whirlwind.Semantic.Visitor
                         }
                         else if (impl is GenericType gt)
                         {
-                            // check generic case (make sure variables match up
+                            // check generic case (make sure variables match up)
+                            if (!gt.CompareGenerics(genericVars))
+                                throw new SemanticException("Generic variables of implements must match the generic variables of the base type", 
+                                    item.Position);
 
                             if (gt.DataType.Classify() != TypeClassifier.INTERFACE)
                                 throw new SemanticException("Generic implement must be an interface", item.Position);
 
-                            // perform generic derivation
+                            if (!((InterfaceType)gt.DataType).Derive(dt))
+                                throw new SemanticException("The given type does not implement all required methods of the interface",
+                                    item.Position);
                         }
                         else
-                            throw new SemanticException("Type interface can only implement interfaces", item.Position);                            
-
-                        
+                            throw new SemanticException("Type interface can only implement interfaces", item.Position);                                                  
 
                         _nodes.Add(new ValueNode("Implement", impl));
                         MergeBack();
