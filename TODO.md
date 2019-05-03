@@ -19,7 +19,6 @@
 
 # TESTING
 
-- remove null coalescion operator
 - changing conditional operator
   * `cond ? case1 : case2` now is `case1 if cond else case2`
 - unsized arraysw

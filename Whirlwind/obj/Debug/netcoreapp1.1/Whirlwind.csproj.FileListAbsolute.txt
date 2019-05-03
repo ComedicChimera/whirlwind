@@ -23,7 +23,6 @@ C:\Users\forlo\Desktop\Coding\Projects\Whirlwind\compiler\Whirlwind\bin\Debug\ne
 C:\Users\forlo\Desktop\Coding\Projects\Whirlwind\compiler\Whirlwind\bin\Debug\netcoreapp1.1\Whirlwind.runtimeconfig.dev.json
 C:\Users\forlo\Desktop\Coding\Projects\Whirlwind\compiler\Whirlwind\bin\Debug\netcoreapp1.1\Whirlwind.dll
 C:\Users\forlo\Desktop\Coding\Projects\Whirlwind\compiler\Whirlwind\bin\Debug\netcoreapp1.1\Whirlwind.pdb
-C:\Users\forlo\Desktop\Coding\Projects\Whirlwind\compiler\Whirlwind\obj\Debug\netcoreapp1.1\Whirlwind.csprojAssemblyReference.cache
 C:\Users\forlo\Desktop\Coding\Projects\Whirlwind\compiler\Whirlwind\obj\Debug\netcoreapp1.1\Whirlwind.csproj.CoreCompileInputs.cache
 C:\Users\forlo\Desktop\Coding\Projects\Whirlwind\compiler\Whirlwind\obj\Debug\netcoreapp1.1\Whirlwind.AssemblyInfoInputs.cache
 C:\Users\forlo\Desktop\Coding\Projects\Whirlwind\compiler\Whirlwind\obj\Debug\netcoreapp1.1\Whirlwind.AssemblyInfo.cs

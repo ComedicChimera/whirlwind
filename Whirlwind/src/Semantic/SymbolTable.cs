@@ -4,10 +4,16 @@ using System;
 
 namespace Whirlwind.Semantic
 {
-    struct Capture
+    class Capture
     {
         public List<Symbol> Captured;
         public List<string> Blocked;
+
+        public Capture()
+        {
+            Captured = new List<Symbol>();
+            Blocked = new List<string>();
+        }
     }
 
     class SymbolTable

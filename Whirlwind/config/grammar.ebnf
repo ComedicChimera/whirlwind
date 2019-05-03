@@ -25,7 +25,7 @@ include_set: '{' 'IDENTIFIER' (',' 'IDENTIFIER')* '}' ;
 export_decl: 'EXPORT' ( block_decl
 | include_stmt ';'
 | variable_decl ';'
-);
+) ;
 
 // BLOCK DECLARATIONS
 block_decl: func_decl
@@ -45,7 +45,7 @@ interface_decl: 'INTERF' 'IDENTIFIER' [generic_tag] '{' interface_main '}' ;
 interface_main: ( func_decl | variant_decl | operator_decl )+ ;
 
 // interface binding declaration
-interface_bind: 'INTERF' [generic_tag] 'FOR' types ['IS' implements] '{' interface_maiin '}' ;
+interface_bind: 'INTERF' [generic_tag] 'FOR' types ['IS' implements] '{' interface_main '}' ;
 implements: types (',' types)* ;
 
 // operator overload
@@ -54,7 +54,7 @@ ext_op: '[' [ ':' ] ']' | '<- ;
 
 // type class declaration
 type_class_decl: 'TYPE' 'IDENTIFIER' [generic_tag] [ type_class_main | ( '|' type_class_main )+ ] ';' ;
-type_class_main: types [value_restrictor] | 'IDENTwIFIER' [type_constructor] ;
+type_class_main: types [value_restrictor] | 'IDENTIFIER' [type_constructor] ;
 value_restrictor: '{' 'IDENTIFIER' '}' 'WHEN' expr ;
 type_constructor: '(' type_list ')' ;
 
@@ -365,7 +365,7 @@ operator: '+' | '-' | '*' | '/' | '%' | '<' | '>' | '<=' | '>=' | '==' | '!='
 | '>>=' | '~^' | '~*' | '~/' | '<' '<' | '>' '>' | 'AND' | 'OR' | 'XOR' | '~' ;
 
 // capture (the standard capture block header)
-capture: 'WITH' '[' [ capture_symbol (',' capture_symbol)* ] ']'
+capture: 'WITH' '[' [ capture_symbol (',' capture_symbol)* ] ']' ;
 capture_symbol: ['CONST'] ['OWN'] 'IDENTIFIER' 
 | '!' 'IDENTIFIER'
 | 'VAL' 'IDENTIFIER'
@@ -373,7 +373,7 @@ capture_symbol: ['CONST'] ['OWN'] 'IDENTIFIER'
 ;
 
 // generic tag (placed after several block declarations)
-generic_tag: '<' generic (',' generic)* '>'
+generic_tag: '<' generic (',' generic)* '>' ;
 generic: 'IDENTIFIER' [':' type_list] ;
 
 // generic specifier
