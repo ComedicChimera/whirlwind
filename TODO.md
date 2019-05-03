@@ -1,10 +1,9 @@
 # TODO
 
-- add support for generic binding
-- add prelude (later)
+- add package linker
 - add 2 sanitizers (constexpr and memory) [Note: constexpr does in depth checking on all constant expressions]
 - remove MirrorType and declare builtins in SymbolTable as necessary
-- make sure type classes coerce properly
+- add prelude (later)
 
 # THOUGHTS
 
@@ -96,3 +95,4 @@
   * struct name<T>
   * func name<T>() 
   * async name<T>()
+- add support for generic binding
