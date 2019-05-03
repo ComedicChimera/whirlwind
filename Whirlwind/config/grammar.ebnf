@@ -50,7 +50,7 @@ implements: types (',' types)* ;
 
 // operator overload
 operator_decl: 'OPERATOR' ( operator | ext_op ) [generic_tag] '(' args_decl_list ')' [types] (func_body | ';') ;
-ext_op: '[' [ ':' ] ']' | '<- ;
+ext_op: '[' [ ':' ] ']' | '<-';
 
 // type class declaration
 type_class_decl: 'TYPE' 'IDENTIFIER' [generic_tag] [ type_class_main | ( '|' type_class_main )+ ] ';' ;
