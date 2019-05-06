@@ -33,7 +33,7 @@
     "Newtonsoft.Json/11.0.2": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-QldT+TY6z/bCV8aEAl87gwofERMDmNeiFHKI1HFDbyCVx7E1AtfaBrBMyZmSEEf5+Wy8sGQFpM6E0AN84zRBpg==",
+      "sha512": "sha512-IvJe1pj7JHEsP8B8J8DwlMEx8UInrs/x+9oVY+oCD13jpLu4JbJU2WCIsMRn5C4yW9+DgkaO8uiVE5VHKjpmdQ==",
       "path": "newtonsoft.json/11.0.2",
       "hashPath": "newtonsoft.json.11.0.2.nupkg.sha512"
     }

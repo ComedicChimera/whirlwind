@@ -42,11 +42,7 @@ namespace Whirlwind.Semantic.Visitor
                 switch (stmt.Name)
                 {
                     case "assignment":
-                        _isGetMode = true;
-
                         _visitAssignment(stmt);
-
-                        _isGetMode = false;
                         break;
                     case "expr":
                         _visitExpr(stmt);

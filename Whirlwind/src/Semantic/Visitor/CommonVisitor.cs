@@ -9,7 +9,7 @@ namespace Whirlwind.Semantic.Visitor
 {
     partial class Visitor
     {
-        public void _visitIterator(ASTNode node)
+        public void _visitIterator(ASTNode node, bool constant)
         {
             // knows last node is expr
             _visitExpr((ASTNode)node.Content.Last());
@@ -33,8 +33,8 @@ namespace Whirlwind.Semantic.Visitor
             var iteratorTypes = iteratorType.Classify() == TypeClassifier.TUPLE ? ((TupleType)iteratorType).Types : 
                 new List<DataType>() { iteratorType };
 
-            // create constant copies of all the types
-            iteratorTypes = iteratorTypes.Select(x => x.ConstCopy()).ToList();
+            if (constant)
+                iteratorTypes = iteratorTypes.Select(x => x.ConstCopy()).ToList();
 
             if (identifiers.Length != iteratorTypes.Count)
                 throw new SemanticException("Base iterator and its aliases don't match", node.Position);

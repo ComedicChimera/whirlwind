@@ -1,0 +1,25 @@
+﻿struct Point {
+	x, y: int;
+}
+
+func main() {
+	let p = new Point();
+
+	let p2 = make Point;
+
+	let p3 = make int;
+
+	let p4 = make (int, 2);
+
+	p = Point(); // FAIL
+
+	p = Point{x = 2, y = 3}; // FAIL
+
+	p = new Point{x = -1, y = -1};
+
+	p = make Point{x = 4, y = -5};
+
+	p3 = make float; // FAIL
+
+	p3 = make uint;
+}

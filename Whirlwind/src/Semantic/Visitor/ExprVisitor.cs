@@ -109,6 +109,19 @@ namespace Whirlwind.Semantic.Visitor
                         else
                             throw new SemanticException("The `:>` operator is not defined on the given type", extractExpr.Content[0].Position);
                     }
+                    else if (op == ".")
+                    {
+                        var intType = new SimpleType(SimpleType.SimpleClassifier.INTEGER);
+
+                        if (!intType.Coerce(_nodes[_nodes.Count - 2].Type))
+                            throw new SemanticException("Range must be bounded by two integers", node.Content[0].Position);
+
+                        if (!intType.Coerce(_nodes.Last().Type))
+                            throw new SemanticException("Range must be bounded by two integers", ((ASTNode)subNode).Content[2].Position);
+
+                        _nodes.Add(new ExprNode("Range", new ArrayType(intType, -1)));
+                        PushForward(2);
+                    }
                 }
             }
         }
@@ -218,6 +231,8 @@ namespace Whirlwind.Semantic.Visitor
             {
                 int opPos = 1;
                 string treeName;
+
+                _visitLogical((ASTNode)node.Content[0]);
                 DataType rootType = _nodes.Last().Type;
 
                 while (opPos < node.Content.Count)
@@ -237,7 +252,10 @@ namespace Whirlwind.Semantic.Visitor
                     {
                         if (rootType is FunctionType rft && _nodes.Last().Type is FunctionType oft)
                         {
-                            _nodes.Add(new ExprNode("Compose", new FunctionType(rft.Parameters.Take(1).Concat(oft.Parameters).ToList(),
+                            if (rft.Parameters.Skip(1).Select(x => x.Name).Any(x => oft.Parameters.Any(y => x == y.Name)))
+                                throw new SemanticException("Composition cannot result in duplicate parameters", node.Content[opPos].Position);
+
+                            _nodes.Add(new ExprNode("Compose", new FunctionType(rft.Parameters.Skip(1).Concat(oft.Parameters).ToList(),
                                 rft.ReturnType, rft.Async)));
                         }
                         else if (HasOverload(rootType, "__~*__", new ArgumentList(new List<DataType> { _nodes.Last().Type}), 

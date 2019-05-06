@@ -113,7 +113,18 @@ namespace Whirlwind.Semantic.Visitor
 
         private bool _isVoid(DataType type)
         {
-            return type.Classify() == TypeClassifier.SIMPLE && ((SimpleType)type).Type == SimpleType.SimpleClassifier.VOID;
+            if (type.Classify() == TypeClassifier.SIMPLE)
+                return ((SimpleType)type).Type == SimpleType.SimpleClassifier.VOID;
+            else if (type.Classify() == TypeClassifier.DICT)
+            {
+                var dictType = (DictType)type;
+
+                return _isVoid(dictType.KeyType) || _isVoid(dictType.ValueType);
+            }
+            else if (type is IIterable)
+                return _isVoid(((IIterable)type).GetIterator());
+            else
+                return false;
         }
 
         public ITypeNode Result() => _nodes.First();

@@ -154,8 +154,7 @@ namespace Whirlwind.Semantic.Visitor
                 }
             }
 
-            bool isVoidOrNull(DataType dt) => dt.Classify() == TypeClassifier.NULL 
-                || dt.Classify() == TypeClassifier.SIMPLE && ((SimpleType)dt).Type == SimpleType.SimpleClassifier.VOID;
+            bool isVoidOrNull(DataType dt) => dt.Classify() == TypeClassifier.NULL || _isVoid(dt);
 
             if (hasType && hasInitializer && mainType.Classify() == TypeClassifier.TUPLE && variables.Keys.Count > 1)
             {

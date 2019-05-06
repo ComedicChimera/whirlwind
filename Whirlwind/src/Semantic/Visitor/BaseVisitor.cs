@@ -115,9 +115,6 @@ namespace Whirlwind.Semantic.Visitor
                     case "partial_func":
                         _visitPartialFunc((ASTNode)node.Content[0]);
                         break;
-                    case "range":
-                        _visitRange((ASTNode)node.Content[0]);
-                        break;
                 }
             }
         }
@@ -375,24 +372,6 @@ namespace Whirlwind.Semantic.Visitor
 
             // push forward root and args
             PushForward(removedArgs.Count + 1);
-        }
-
-        private void _visitRange(ASTNode node)
-        {
-            var intType = new SimpleType(SimpleType.SimpleClassifier.INTEGER);
-
-            _visitExpr((ASTNode)node.Content[0]);
-        
-            if (!intType.Coerce(_nodes.Last().Type))
-                throw new SemanticException("Range must be bounded by two integers", node.Content[0].Position);
-
-            _visitExpr((ASTNode)node.Content[3]);
-
-            if (!intType.Coerce(_nodes.Last().Type))
-                throw new SemanticException("Range must be bounded by two integers", node.Content[3].Position);
-
-            _nodes.Add(new ExprNode("Range", new ArrayType(intType, -1)));
-            PushForward(2);
         }
     }
 }

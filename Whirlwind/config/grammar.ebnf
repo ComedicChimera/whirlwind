@@ -112,7 +112,6 @@ after_clause: 'AFTER' block ;
 stmt: ( variable_decl
 | assignment
 | expr
-| throw_stmt 
 | continue_stmt
 | break_stmt
 | delete_stmt
@@ -155,6 +154,7 @@ expr_extension: 'IF' expr 'ELSE' expr
 | 'IS' types
 | ':>' expr
 | then_extension
+| '.' '.' expr
 ; 
 
 // then extension
@@ -230,8 +230,8 @@ comp_body: expr [':' expr] '|' iterator ['WHEN' expr] ;
 // allocate a type on the heap
 heap_alloc: 'MAKE' alloc_body ;
 alloc_body: '(' types ',' expr ')'
-| types 
 | base trailer
+| types
 ;
 
 // access the value of a type class
@@ -257,7 +257,6 @@ base: 'INTEGER_LITERAL'
 | sub_expr
 | type_cast
 | partial_func
-| range
 ;
 
 // collection types
@@ -285,10 +284,6 @@ partial_func: '|' expr partial_arg (',' partial_arg)* ')' ;
 partial_arg: '_'
 | expr
 ;
-
-// range literal
-range: expr '.' '.' expr ;
-
 
 // DATA TYPES - data type literals
 types: ['CONST'] ['OWN'] ['REF'] '*'* ( base_types

@@ -6,7 +6,8 @@ namespace Whirlwind.Types
     abstract class DataType
     {
         // store the types interface
-        private static Dictionary<DataType, InterfaceType> _interfaces;
+        private static Dictionary<DataType, InterfaceType> _interfaces
+            = new Dictionary<DataType, InterfaceType>();
 
         // store constancy
         public bool Constant = false;
@@ -14,9 +15,6 @@ namespace Whirlwind.Types
         // check if another data type can be coerced to this type
         public virtual bool Coerce(DataType other)
         {
-            if (!Constant && other.Constant)
-                return false;
-
             if (other.Classify() == TypeClassifier.NULL || other.Classify() == TypeClassifier.GENERIC_PLACEHOLDER)
                 return true;
 

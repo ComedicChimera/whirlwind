@@ -19,11 +19,6 @@
 
 # TESTING
 
-- changing conditional operator
-  * `cond ? case1 : case2` now is `case1 if cond else case2`
-- unsized arraysw
-- removal of enums
-- removal of classes
 - introduction of high level type classes
   * type Integer int;
   * type Positive int{v} when v > 0;
@@ -31,10 +26,6 @@
   * type Option<T> | Some(T) | None;
   * type FloatOrString<T> | Float(float) | String(str);
 - introduction of struct constructors
-- add type specific comprehensions
-  * { comp } for arrays
-  * [ comp ] for lists
-  * { dict_comp } for dictionaries
 - interfaces can now be bound to any type and classify any type
   * `interf for` syntax
   * `interf ... is inherits` syntax
@@ -44,20 +35,12 @@
 - expression local variable declarations
   * `name = t`
 - common interface coercion (implements on interface type)
-- change list and array coercion
-  * list to unsized array
-  * array to list
 - after clause (except clause)
 - static get
 - reference types
-- new syntax
-- agents
 - object level method variance
 - recursive type definition
-- is operator
-- exception ending
 - add `>>=` and `:> operators
-- prevent declaration of null type lists
 - add empty type classes
   * type Thing;
 - improved operator overloading syntax
@@ -66,21 +49,15 @@
   * include { Println, Scan } from io::std;
   * include ..a::b;
 - make interface static on non-user types
-- add function overloading
 - add monadic value extraction
   * from T
-- remove agents
-- remove exceptions
 - add struct initializers
-- add range syntax
-- change decorator syntax to `@` instead of `#`
 - add 'own' tag to data types (means it is automatically deallocated with scope close)
 - add volatile back as modifier (for variables, parameters, and structs)
   * vol let a: float;
   * vol a: int;
 - distinguish between dynamic allocation and struct instantiation
   * this is not what we want: `new (new Struct())`
-- make a more concise collection type specifier syntax
 - ability to add capture to both function and to block
   * with[]
   * with[a, b, c]

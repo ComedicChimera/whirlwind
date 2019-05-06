@@ -11,8 +11,6 @@ namespace Whirlwind.Semantic.Visitor
 {
     partial class Visitor
     {
-        bool _isGetMode = false;
-
         private void _visitAtom(ASTNode node)
         {
             bool hasAwait = false, hasNew = false;
@@ -104,7 +102,7 @@ namespace Whirlwind.Semantic.Visitor
                     _table.AddScope();
                     _table.DescendScope();
 
-                    _visitIterator((ASTNode)item);
+                    _visitIterator((ASTNode)item, false);
 
                     sizeBack++;
 
@@ -539,7 +537,7 @@ namespace Whirlwind.Semantic.Visitor
             }*/
             else
             {
-                var intType = new SimpleType(SimpleType.SimpleClassifier.INTEGER);
+                var intType = new SimpleType(SimpleType.SimpleClassifier.INTEGER) { Constant = true };
                 if (!types.All(x => intType.Coerce(x))) {
                     throw new SemanticException($"Invalid index type for {(expressionCount == 1 && hasStartingExpr ? "subscript" : "slice")}", 
                         textPositions[Enumerable.Range(0, expressionCount).Where(x => !intType.Coerce(types[x])).First()]
@@ -578,10 +576,10 @@ namespace Whirlwind.Semantic.Visitor
         private void _visitHeapAlloc(ASTNode node)
         {
             // make ( alloc_body ) -> types , expr
-            var allocBody = (ASTNode)node.Content[2];
+            var allocBody = (ASTNode)node.Content[1];
 
             DataType dt = new SimpleType();
-            bool hasSizeExpr = false, isStructAlloc = false;
+            bool hasSizeExpr = false, isStructAlloc = false, isTypeAlloc = false;
 
             foreach (var item in allocBody.Content)
             {
@@ -589,6 +587,7 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     dt = _generateType((ASTNode)item);
                     _nodes.Add(new ValueNode("DataType", dt));
+                    isTypeAlloc = true;
                 }
                 else if (item.Name == "expr")
                 {
@@ -610,6 +609,15 @@ namespace Whirlwind.Semantic.Visitor
                 }
             }
 
+            if (!isStructAlloc && !isTypeAlloc && new[] { TypeClassifier.TYPE_CLASS, TypeClassifier.INTERFACE, TypeClassifier.GENERIC }
+                .Contains(_nodes.Last().Type.Classify()))
+            {
+                isTypeAlloc = true;
+                hasSizeExpr = false;
+            }
+            else if (!isStructAlloc && _nodes.Last().Type.Classify() == TypeClassifier.STRUCT)
+                throw new SemanticException("Unable to initialize struct without a constructor", allocBody.Content[0].Position);
+
             if (isStructAlloc)
             {
                 if (dt.Classify() != TypeClassifier.STRUCT_INSTANCE)
@@ -618,7 +626,7 @@ namespace Whirlwind.Semantic.Visitor
                 _nodes.Add(new ExprNode("HeapAllocStruct", new PointerType(dt, 1)));
                 PushForward();
             }
-            else
+            else if (isTypeAlloc)
             {
                 if (new[] { TypeClassifier.LIST, TypeClassifier.DICT, TypeClassifier.FUNCTION }.Contains(dt.Classify()))
                     throw new SemanticException("Invalid data type for raw heap allocation", allocBody.Content[0].Position);
@@ -626,10 +634,18 @@ namespace Whirlwind.Semantic.Visitor
                 if (!hasSizeExpr)
                     _nodes.Add(new ValueNode("Literal", new SimpleType(SimpleType.SimpleClassifier.INTEGER, true), "1"));
                 else if (!new SimpleType(SimpleType.SimpleClassifier.INTEGER, true).Coerce(_nodes.Last().Type))
-                    throw new SemanticException("Size of heap allocated type must be an integer", allocBody.Content[2].Position);
+                    throw new SemanticException("Size of heap allocated type must be an unsigned integer", allocBody.Content[2].Position);
 
                 _nodes.Add(new ExprNode("HeapAllocType", new PointerType(dt, 1)));
                 PushForward(2);
+            }
+            else
+            {
+                if (!new SimpleType(SimpleType.SimpleClassifier.INTEGER, true).Coerce(_nodes.Last().Type))
+                    throw new SemanticException("Size of allocated space must be an unsigned integer", allocBody.Content[0].Position);
+
+                _nodes.Add(new ExprNode("HeapAllocSize", new PointerType(new SimpleType(), 1)));
+                PushForward();
             }
         }
 

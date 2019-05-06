@@ -231,7 +231,7 @@ namespace Whirlwind.Semantic.Visitor
                     {
                         _nodes.Add(new BlockNode("ForIter"));
 
-                        _visitIterator((ASTNode)subNode);
+                        _visitIterator((ASTNode)subNode, true);
 
                         MergeBack();
                     }
