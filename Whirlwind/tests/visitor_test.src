@@ -1,25 +1,29 @@
-﻿struct Point {
-	x, y: int;
-}
+﻿func main() {
+	let (a, b, c): int;
 
-func main() {
-	let p = new Point();
+	a += 4;
 
-	let p2 = make Point;
+	b %= 6;
 
-	let p3 = make int;
+	c += 0.5; // FAIL
 
-	let p4 = make (int, 2);
+	b -= 17;
 
-	p = Point(); // FAIL
+	b *= 5;
 
-	p = Point{x = 2, y = 3}; // FAIL
+	b ~/= 56;
 
-	p = new Point{x = -1, y = -1};
+	let d: char;
 
-	p = make Point{x = 4, y = -5};
+	d = 'a';
 
-	p3 = make float; // FAIL
+	d += 'a'; // FAIL
 
-	p3 = make uint;
+	let s: str;
+
+	s = "as";
+
+	s += "df"; 
+
+	s -= "ef"; // FAIL
 }

@@ -41,7 +41,7 @@ block_decl: func_decl
 func_decl: ('FUNC' | 'ASYNC') 'IDENTIFIER' [generic_tag] '(' args_decl_list ')' [ types ] (func_body | ';') ;
 
 // interface declaration
-interface_decl: 'INTERF' 'IDENTIFIER' [generic_tag] '{' interface_main '}' ;
+interface_decl: 'INTERF'/ 'IDENTIFIER' [generic_tag] '{' interface_main '}' ;
 interface_main: ( func_decl | variant_decl | operator_decl )+ ;
 
 // interface binding declaration

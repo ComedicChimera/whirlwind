@@ -40,7 +40,7 @@ namespace Whirlwind.Semantic.Visitor
 
                     scopePos++;
                     break;
-                case "Template":
+                case "Generic":
                     {
                         _table.GotoScope(scopePos);
 
@@ -64,6 +64,8 @@ namespace Whirlwind.Semantic.Visitor
                         IdentifierNode idNode = (IdentifierNode)((BlockNode)node).Nodes[0];
 
                         _table.AddSymbol(new Symbol(idNode.Name, ((StructType)idNode.Type).GetInstance().ConstCopy()));
+
+                        _table.AddSymbol(new Symbol("$THIS", ((StructType)idNode.Type).GetInstance()));
 
                         foreach (var item in ((BlockNode)node).Block)
                         {

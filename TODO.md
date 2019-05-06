@@ -25,11 +25,9 @@
   * type Color | Red | Blue | Green;
   * type Option<T> | Some(T) | None;
   * type FloatOrString<T> | Float(float) | String(str);
-- introduction of struct constructors
 - interfaces can now be bound to any type and classify any type
   * `interf for` syntax
   * `interf ... is inherits` syntax
-- `~*` function composition operator
 - `then` operator
   * allow value to be accessed through `val` syntax if one exists
 - expression local variable declarations
@@ -51,13 +49,10 @@
 - make interface static on non-user types
 - add monadic value extraction
   * from T
-- add struct initializers
 - add 'own' tag to data types (means it is automatically deallocated with scope close)
 - add volatile back as modifier (for variables, parameters, and structs)
   * vol let a: float;
   * vol a: int;
-- distinguish between dynamic allocation and struct instantiation
-  * this is not what we want: `new (new Struct())`
 - ability to add capture to both function and to block
   * with[]
   * with[a, b, c]

@@ -85,6 +85,8 @@ namespace Whirlwind.Semantic.Visitor
                         throw new SemanticException("Unable to declare duplicate constructors", decl.Content[2].Position);
 
                     needsDefaultConstr = false;
+
+                    MergeToBlock();
                 }
             }
 

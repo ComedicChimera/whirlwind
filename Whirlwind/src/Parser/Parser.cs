@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Whirlwind.Parser
 {
@@ -54,7 +55,7 @@ namespace Whirlwind.Parser
         {
             var production = _grammar.GetProduction(name);
             _semanticStack.Add(new ASTNode(name));
-            int ndx = offset;
+            int ndx = offset;                
 
             if (production.Type() == "ALTERNATOR")
                 ndx = _matchAll(production.Content, offset);
@@ -82,7 +83,7 @@ namespace Whirlwind.Parser
                                 _errorPosition = localOffset;
                             return -1;
                         }
-                        _semanticStack[_semanticStack.Count - 1].Content.Add(new TokenNode(GetToken(localOffset)));
+                        _semanticStack.Last().Content.Add(new TokenNode(GetToken(localOffset)));
                         localOffset++;
                         break;
                     case "NONTERMINAL":
@@ -93,7 +94,7 @@ namespace Whirlwind.Parser
                             // tree was empty
                             if (localOffset != newOffset)
                             {
-                                _semanticStack[_semanticStack.Count - 2].Content.Add(_semanticStack[_semanticStack.Count - 1]);
+                                _semanticStack[_semanticStack.Count - 2].Content.Add(_semanticStack.Last());
                                 _semanticStack.RemoveAt(_semanticStack.Count - 1);
 
                                 localOffset = newOffset;
@@ -148,13 +149,27 @@ namespace Whirlwind.Parser
 
         private int _matchAll(List<IGrammatical> productions, int offset)
         {
-            int localOffset;
+            int localOffset, cachedSize, sizeDiff;
             foreach (Production production in productions)
             {
+                cachedSize = _semanticStack.Last().Content.Count;
+
                 localOffset = _match(production, offset);
 
                 if (localOffset != -1)
                     return localOffset;
+
+                sizeDiff = _semanticStack.Last().Content.Count - cachedSize;
+
+                // clear out any residual trees from previous production
+                if (sizeDiff > 0)
+                {
+                    if (cachedSize == 0)
+                        _semanticStack.Last().Content.Clear();
+                    else
+                        _semanticStack.Last().Content.RemoveRange(cachedSize - 1, sizeDiff);
+                }
+                    
             }
             return -1;
         }
