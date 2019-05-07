@@ -28,14 +28,9 @@
 - interfaces can now be bound to any type and classify any type
   * `interf for` syntax
   * `interf ... is inherits` syntax
-- `then` operator
-  * allow value to be accessed through `val` syntax if one exists
-- expression local variable declarations
-  * `name = t`
 - common interface coercion (implements on interface type)
 - static get
 - object level method variance
-- recursive type definition
 - add `>>=` and `:> operators
 - add empty type classes
   * type Thing;

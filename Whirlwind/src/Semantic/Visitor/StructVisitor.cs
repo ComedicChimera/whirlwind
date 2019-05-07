@@ -20,7 +20,8 @@ namespace Whirlwind.Semantic.Visitor
             _table.DescendScope();
 
             // declare self referential type (ok early, b/c reference)
-            _table.AddSymbol(new Symbol(name.Tok.Value, structType));
+            _table.AddSymbol(new Symbol(name.Tok.Value, new SelfType(structType)));
+
             // since struct members are all variables
             _selfNeedsPointer = true;
 

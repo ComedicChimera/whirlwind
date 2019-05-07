@@ -56,8 +56,10 @@ namespace Whirlwind.Semantic.Visitor
                             {
                                 if (symbol.DataType.Classify() == TypeClassifier.GENERIC_ALIAS)
                                     dt = ((GenericAlias)symbol.DataType).ReplacementType;
+                                // identifier checking not needed for self types because self types are compiled declared
                                 else if (!new[] { TypeClassifier.GENERIC_PLACEHOLDER, TypeClassifier.STRUCT,
-                                    TypeClassifier.INTERFACE,  TypeClassifier.GENERIC, TypeClassifier.TYPE_CLASS }
+                                    TypeClassifier.INTERFACE,  TypeClassifier.GENERIC, TypeClassifier.TYPE_CLASS,
+                                    TypeClassifier.SELF }
                                     .Contains(symbol.DataType.Classify()))
                                 {
                                     throw new SemanticException("Identifier data type must be a struct, type class, or interface",

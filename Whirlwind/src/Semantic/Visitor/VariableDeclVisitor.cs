@@ -105,7 +105,7 @@ namespace Whirlwind.Semantic.Visitor
                                                             variables[currentIdentifier].Position);
 
                                                         initializers[currentIdentifier]
-                                                            = new Tuple<bool, ITypeNode>(((TokenNode)((ASTNode)item).Content[1]).Tok.Type == ":=", 
+                                                            = new Tuple<bool, ITypeNode>(((TokenNode)((ASTNode)elem).Content[0]).Tok.Type == ":=", 
                                                             initializer);
                                                     }
                                                     break;

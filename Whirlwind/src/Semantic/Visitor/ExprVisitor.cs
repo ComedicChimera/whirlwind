@@ -23,14 +23,15 @@ namespace Whirlwind.Semantic.Visitor
                     ASTNode exprVarDecl = (ASTNode)subNode;
 
                     string name = ((TokenNode)exprVarDecl.Content[0]).Tok.Value;
-                    _visitExpr((ASTNode)exprVarDecl.Content[2]);
+                    _visitFuncOp((ASTNode)exprVarDecl.Content[2]);
 
                     if (_isVoid(_nodes.Last().Type))
                         throw new SemanticException("Unable to determine type of variable", exprVarDecl.Content[0].Position);
 
                     var copyType = _nodes.Last().Type.ConstCopy();
+                    // clear out constancy
+                    copyType.Constant = false;
 
-                    // const copy
                     _nodes.Add(new IdentifierNode(name, copyType));
 
                     if (needsSubscope)
@@ -50,7 +51,7 @@ namespace Whirlwind.Semantic.Visitor
                     _nodes.Add(new ExprNode("ExprVarDecl", new SimpleType()));
                     PushForward(2);
 
-                    _visitThen((ASTNode)exprVarDecl.Content[4], false);
+                    _visitThen((ASTNode)exprVarDecl.Content[3], false);
 
                     if (needsSubscope)
                         _table.AscendScope();

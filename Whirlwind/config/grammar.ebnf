@@ -148,7 +148,7 @@ yield_stmt: 'YIELD' expr (',' expr)* ;
 
 
 // EXPRESSIONS - basic unit of statements 
-expr: func_op [expr_extension] | expr_var ;
+expr: expr_var | func_op [expr_extension] ;
 expr_extension: 'IF' expr 'ELSE' expr 
 | case_extension+
 | 'IS' types
@@ -166,7 +166,7 @@ inline_case: expr (',' expr)* '=>' expr ',' ;
 default_case: '_' '=>' expr ;
 
 // expression local variable declaration
-expr_var: 'IDENTIFIER' '=' expr then_extension ;
+expr_var: 'IDENTIFIER' '=' func_op then_extension ;
 
 // functional/monadic operators
 func_op: or (('>>=' | '~*') or)* ;

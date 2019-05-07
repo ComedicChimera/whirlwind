@@ -1,3 +1,55 @@
-﻿func main() {
-	
+﻿struct Vec2 {
+	x, y: int;
+
+	constructor(x, y: int) {
+		this.x, this.y = x, y;
+	}
+}
+
+struct Vec3 {
+	x, y, z: int;
+
+	constructor(x, y, z: int) {
+		this.x, this.y, this.z = x, y, z;
+	}
+}
+
+interf Vector {
+	func doThing(vec: Vector) int;
+}
+
+interf for Vec2 is Vector {
+	func doThing(vec: Vector) int {
+		if (vec is Vec2) {
+			let vec2 = cast<Vec2>(vec);
+
+			return ((this.x + vec2.x) ~/ 2 + (this.y + vec2.y) ~/ 2);
+		}
+
+		return -1;
+	}
+}
+
+interf for Vec3 is Vector {
+	func doThing(vec: Vector) int {
+		if (vec is Vec3) {
+			let vec3 = cast<Vec3>(vec);
+
+			return ((this.x + vec3.x) ~/ 2 + (this.y + vec3.y) ~/ 2 + (this.z + vec3.z) ~/ 2);
+		}
+
+		return -1;
+	}
+}
+
+func main() {
+	let vec2 = new Vec2(3, -4);
+
+	let vec3 = new Vec3(5, 4);
+
+	let vectors = [vec2, vec3];
+
+	vec2.doThing(vec3);
+	vec3.doThing(vec2);
+
 }
