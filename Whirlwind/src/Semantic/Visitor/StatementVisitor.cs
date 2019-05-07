@@ -200,19 +200,17 @@ namespace Whirlwind.Semantic.Visitor
             {
                 for (int i = 0; i < varTypes.Count; i++)
                 {
-                    if (!varTypes[i].Coerce(exprTypes[i]))
+                    if (subOp != "")
                     {
-                        if (subOp != "")
-                        {
-                            DataType tt = varTypes[i];
-                            CheckOperand(ref tt, exprTypes[i], subOp, stmt.Position);
+                        // b/c we are just checking what operators are valid constancy does not matter
+                        DataType ot = varTypes[i].ConstCopy();
+                        CheckOperand(ref ot, exprTypes[i], subOp, stmt.Position);
 
-                            if (!varTypes[i].Coerce(tt))
-                                throw new SemanticException("Unable to assign to dissimilar types", stmt.Position);
-                        }
-                        else
-                            throw new SemanticException("Unable to assign to dissimilar types", stmt.Position);
+                        if (!varTypes[i].Coerce(ot))
+                            throw new SemanticException("Unable to apply operator which would result in type change", stmt.Position);
                     }
+                    else if (!varTypes[i].Coerce(exprTypes[i]))
+                        throw new SemanticException("Unable to assign to dissimilar types", stmt.Position);
                 }
             }
             else if (varTypes.Count < exprTypes.Count)
@@ -228,31 +226,35 @@ namespace Whirlwind.Semantic.Visitor
                         {
                             foreach (var type in ((TupleType)e2.Current).Types)
                             {
-                                if (e1.Current.Coerce(type))
+                                if (subOp != "")
+                                {
+                                    // b/c we are just checking what operators are valid constancy does not matter
+                                    DataType ot = e1.Current.ConstCopy();
+                                    CheckOperand(ref ot, type, subOp, stmt.Position);
+
+                                    if (!e1.Current.Coerce(ot))
+                                        throw new SemanticException("Unable to apply operator which would result in type change", stmt.Position);
+                                }
+                                else if (e1.Current.Coerce(type))
                                 {
                                     if (!e1.MoveNext()) break;
                                 } 
-                                else if (subOp != "")
-                                {
-                                    DataType tt = e1.Current;
-                                    CheckOperand(ref tt, type, subOp, stmt.Position);
-                                }
                                 else
                                     throw new SemanticException("Unable to assign to dissimilar types", stmt.Position);
                             }
                         }
-                        else if (!e1.Current.Coerce(e2.Current))
+                        else if (subOp != "")
                         {
-                            if (subOp != "")
-                            {
-                                DataType tt = e1.Current;
-                                CheckOperand(ref tt, e2.Current, subOp, stmt.Position);
-                            }
-                            else
-                                throw new SemanticException("Unable to assign to dissimilar types", stmt.Position);
+                            // b/c we are just checking what operators are valid constancy does not matter
+                            DataType ot = e1.Current.ConstCopy();
+                            CheckOperand(ref ot, e2.Current, subOp, stmt.Position);
 
+                            if (!e1.Current.Coerce(ot))
+                                throw new SemanticException("Unable to apply operator which would result in type change", stmt.Position);
                         }
-                           
+                        else if (!e1.Current.Coerce(e2.Current))
+                            throw new SemanticException("Unable to assign to dissimilar types", stmt.Position);
+
                         metValues++;
                     }
                 }

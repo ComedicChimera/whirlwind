@@ -17,10 +17,15 @@ namespace Whirlwind.Semantic.Checker
             {
                 case "+":
                     {
+                        var stringType = new SimpleType(SimpleType.SimpleClassifier.STRING);
+
                         if (Numeric(operandType))
                             valid = true;
-                        else if (new SimpleType(SimpleType.SimpleClassifier.STRING).Coerce(operandType))
+                        else if (stringType.Coerce(rootType) && stringType.Coerce(operandType))
+                        {
+                            rootType = stringType;
                             valid = true;
+                        } 
                         else if (new[] { TypeClassifier.ARRAY, TypeClassifier.LIST }.Contains(operandType.Classify()))
                             valid = true;
                         else if (rootType.Classify() == TypeClassifier.POINTER && new SimpleType(SimpleType.SimpleClassifier.INTEGER).Coerce(operandType))

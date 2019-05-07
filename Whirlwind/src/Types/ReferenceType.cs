@@ -19,7 +19,13 @@
             return false;
         }
 
-        protected override bool _coerce(DataType other) => Equals(other);
+        protected override bool _coerce(DataType other)
+        {
+            if (other.Classify() == TypeClassifier.REFERENCE)
+                return DataType.Coerce(((ReferenceType)other).DataType);
+
+            return false;
+        }
 
         public override TypeClassifier Classify() => TypeClassifier.REFERENCE;
 

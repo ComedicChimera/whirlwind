@@ -18,7 +18,7 @@ namespace Whirlwind.Types
             if (other.Classify() == TypeClassifier.NULL || other.Classify() == TypeClassifier.GENERIC_PLACEHOLDER)
                 return true;
 
-            if (other.Classify() == TypeClassifier.REFERENCE)
+            if (Classify() != TypeClassifier.REFERENCE && other.Classify() == TypeClassifier.REFERENCE)
                 return Coerce(((ReferenceType)other).DataType);
 
             return _coerce(other);

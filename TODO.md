@@ -33,26 +33,18 @@
 - expression local variable declarations
   * `name = t`
 - common interface coercion (implements on interface type)
-- after clause (except clause)
 - static get
-- reference types
 - object level method variance
 - recursive type definition
 - add `>>=` and `:> operators
 - add empty type classes
   * type Thing;
 - improved operator overloading syntax
-- allow compound assignment with any operator
 - change include syntax to use `::` instead of `.`
   * include { Println, Scan } from io::std;
   * include ..a::b;
-- make interface static on non-user types
 - add monadic value extraction
   * from T
-- add 'own' tag to data types (means it is automatically deallocated with scope close)
-- add volatile back as modifier (for variables, parameters, and structs)
-  * vol let a: float;
-  * vol a: int;
 - ability to add capture to both function and to block
   * with[]
   * with[a, b, c]
