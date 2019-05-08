@@ -128,7 +128,10 @@ namespace Whirlwind.Types
 
             var interf = child.GetInterface();
 
-            if (_methods.Where(x => !x.Value).All(x => interf._methods.Contains(x))) {
+            if (interf._methods.Count > 0)
+                _methods.First().Key.Equals(interf._methods.First().Key);
+
+            if (_methods.Where(x => !x.Value).All(x => interf._methods.Select(y => y.Key).Contains(x.Key))) {
                 foreach (var method in _methods) {
                     if (method.Value && !interf._methods.Contains(method))
                         interf.AddMethod(method.Key, method.Value);

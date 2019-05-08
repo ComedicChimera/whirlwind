@@ -91,6 +91,7 @@ namespace Whirlwind.Types
                     return true;
                 }
             }
+
             return false;
         }
 

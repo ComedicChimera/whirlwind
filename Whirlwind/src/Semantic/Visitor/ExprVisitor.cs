@@ -167,7 +167,8 @@ namespace Whirlwind.Semantic.Visitor
                             InterfaceType i1 = dt.GetInterface(), i2 = _nodes.Last().Type.GetInterface();
 
                             if (i1.Implements.Count == 0 || i2.Implements.Count == 0)
-                                throw new SemanticException("All values in a collection must be the same type", pos);
+                                throw new SemanticException("All values in a collection must be the same type", 
+                                    ((ASTNode)item).Content[((ASTNode)item).Content.Count - 2].Position);
 
                             var matches = i1.Implements.Where(x => i2.Implements.Contains(x));
 
@@ -200,7 +201,8 @@ namespace Whirlwind.Semantic.Visitor
                             InterfaceType i1 = dt.GetInterface(), i2 = _nodes.Last().Type.GetInterface();
 
                             if (i1.Implements.Count == 0 || i2.Implements.Count == 0)
-                                throw new SemanticException("All values in a collection must be the same type", pos);
+                                throw new SemanticException("All values in a collection must be the same type", 
+                                    ((ASTNode)item).Content.Last().Position);
 
                             var matches = i1.Implements.Where(x => i2.Implements.Contains(x));
 

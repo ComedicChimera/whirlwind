@@ -3,12 +3,15 @@ using System.Linq;
 
 namespace Whirlwind.Types
 {
-    abstract class DataType
+    static class InterfaceRegistry
     {
         // store the types interface
-        private static Dictionary<DataType, InterfaceType> _interfaces
+        public static readonly Dictionary<DataType, InterfaceType> Interfaces
             = new Dictionary<DataType, InterfaceType>();
+    }
 
+    abstract class DataType
+    {
         // store constancy
         public bool Constant = false;
 
@@ -30,12 +33,12 @@ namespace Whirlwind.Types
         // returns the types interface
         public virtual InterfaceType GetInterface()
         {
-            if (_interfaces.Keys.Any(x => x.Coerce(this)))
-                return _interfaces.Where(x => x.Key.Coerce(this)).First().Value;
+            if (InterfaceRegistry.Interfaces.Keys.Any(x => x.Coerce(this)))
+                return InterfaceRegistry.Interfaces.Where(x => x.Key.Coerce(this)).First().Value;
 
-            _interfaces[this] = new InterfaceType();
+            InterfaceRegistry.Interfaces[this] = new InterfaceType();
 
-            return _interfaces[this];
+            return InterfaceRegistry.Interfaces[this];
         }
 
         // get a given data type classifier as a string

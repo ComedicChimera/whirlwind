@@ -70,7 +70,9 @@ namespace Whirlwind.Semantic.Visitor
             {
                 genericVars = new List<GenericVariable>();
                 dt = _generateType((ASTNode)node.Content[2]);
-            }  
+            }
+
+            _collectInterfaceMethods(interfaceType, (ASTNode)node.Content[node.Content.Count - 2]);
 
             if (!interfaceType.Derive(dt))
                 throw new SemanticException("All methods of type interface must define a body", node.Content[2].Position);
@@ -80,11 +82,11 @@ namespace Whirlwind.Semantic.Visitor
 
             MergeBack(2);
 
-            if (node.Content.Count > 3 + genericOffset)
+            if (node.Content.Count > 5 + genericOffset)
             {
                 _nodes.Add(new ExprNode("Implements", new SimpleType()));
 
-                foreach (var item in node.Content.Skip(4 + genericOffset))
+                foreach (var item in ((ASTNode)node.Content[4 + genericOffset]).Content)
                 {
                     if (item.Name == "types")
                     {
