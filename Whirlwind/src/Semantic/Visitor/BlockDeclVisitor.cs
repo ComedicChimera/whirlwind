@@ -31,6 +31,9 @@ namespace Whirlwind.Semantic.Visitor
                 case "interface_decl":
                     _visitInterface(root, modifiers);
                     break;
+                case "interface_bind":
+                    _visitInterfaceBind(root);
+                    break;
                 case "struct_decl":
                     _visitStruct(root, modifiers);
                     break;

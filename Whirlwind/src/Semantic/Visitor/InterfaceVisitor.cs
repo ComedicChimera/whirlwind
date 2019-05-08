@@ -36,6 +36,8 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitInterfaceBind(ASTNode node)
         {
+            _nodes.Add(new BlockNode("BindInterface"));
+
             _selfNeedsPointer = false;
 
             _table.AddScope();
@@ -73,13 +75,10 @@ namespace Whirlwind.Semantic.Visitor
             if (!interfaceType.Derive(dt))
                 throw new SemanticException("All methods of type interface must define a body", node.Content[2].Position);
 
-            _nodes.Add(new ExprNode("BindInterface", interfaceType));
-
             _nodes.Add(new ValueNode("Interface", interfaceType));
             _nodes.Add(new ValueNode("Type", dt));
 
             MergeBack(2);
-            MergeBack(); // merge to interface decl
 
             if (node.Content.Count > 3 + genericOffset)
             {

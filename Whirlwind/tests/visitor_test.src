@@ -45,7 +45,7 @@ interf for Vec3 is Vector {
 func main() {
 	let vec2 = new Vec2(3, -4);
 
-	let vec3 = new Vec3(5, 4);
+	let vec3 = new Vec3(5, 4, -7);
 
 	let vectors = [vec2, vec3];
 

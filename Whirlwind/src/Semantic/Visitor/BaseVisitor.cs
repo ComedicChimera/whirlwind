@@ -189,6 +189,9 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     InterfaceType i1 = baseType.GetInterface(), i2 = newType.GetInterface();
 
+                    if (i1.Implements.Count == 0 || i2.Implements.Count == 0)
+                        throw new SemanticException("All values in a collection must be the same type", pos);
+
                     var matches = i1.Implements.Where(x => i2.Implements.Contains(x));
 
                     if (matches.Count() > 0)
