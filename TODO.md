@@ -28,7 +28,7 @@
   * type FloatOrString<T> | Float(float) | String(str);
 - static get
 - object level method variance
-- add `>>=` and `:> operators
+- add `>>=` and `:>` operators
 - add empty type classes
   * type Thing;
 - improved operator overloading syntax
@@ -37,11 +37,6 @@
   * include ..a::b;
 - add monadic value extraction
   * from T
-- ability to add capture to both function and to block
-  * with[]
-  * with[a, b, c]
-  * with[const e, own f, val g]
-  * with[!z]
 - change from using "templates" to using "generics"
 - remove template syntax (change to pure generic syntax)
   * interf<T> for

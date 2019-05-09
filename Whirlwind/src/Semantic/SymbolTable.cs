@@ -2,6 +2,8 @@
 using System.Linq;
 using System;
 
+using Whirlwind.Types;
+
 namespace Whirlwind.Semantic
 {
     class Capture
@@ -180,17 +182,43 @@ namespace Whirlwind.Semantic
         {
             var visibleScopes = new List<Scope>() { _table };
             Scope currentScope = _table;
+
+            var capturedSymbol = new Symbol("$NOT_VALID", new SimpleType());
+
             foreach(int scopePos in _scopePath)
             {
                 currentScope = currentScope.SubScopes[scopePos];
                 visibleScopes.Add(currentScope);
+
+                // capture after scope has been added
+                if (currentScope.HasCapture)
+                {
+                    var capture = currentScope.ScopeCapture;
+
+                    if (capture.Blocked.Contains(name))
+                    {
+                        visibleScopes = visibleScopes.Skip(visibleScopes.Count - 1).ToList();
+                        continue;
+                    }                       
+
+                    if (capture.Captured.Select(x => x.Name).Contains(name))
+                        capturedSymbol = capture.Captured.Where(x => x.Name == name).First();
+                    else
+                        visibleScopes = visibleScopes.Skip(visibleScopes.Count - 1).ToList();
+                }
             }
+
             visibleScopes.Reverse();
             foreach (Scope scope in visibleScopes)
             {
                 if (scope.Symbols.ContainsKey(name))
                 {
                     symbol = scope.Symbols[name];
+                    return true;
+                }
+                else if (capturedSymbol.Name != "$NOT_VALID")
+                {
+                    symbol = capturedSymbol;
                     return true;
                 }
             }

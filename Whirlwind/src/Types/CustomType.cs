@@ -8,6 +8,8 @@ namespace Whirlwind.Types
         public string Name { get; private set; }
         public List<CustomInstance> Instances { get; private set; }
 
+        private bool _instance;
+
         public CustomType(string name)
         {
             Name = name;
@@ -39,6 +41,11 @@ namespace Whirlwind.Types
             
             cAlias = new CustomAlias(this, new SimpleType());
             return false;
+        }
+
+        public CustomType CreateInstance()
+        {
+            // work on custom instance
         }
 
         public bool CreateInstance(string name, List<DataType> values, out CustomNewType cnType)
