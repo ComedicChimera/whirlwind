@@ -232,7 +232,7 @@ namespace Whirlwind.Semantic.Visitor
                             {
                                 InterfaceType i1 = rtType.GetInterface(), i2 = dt.GetInterface();
 
-                                var matches = i1.Implements.Where(x => i2.Implements.Contains(x));
+                                var matches = i1.Implements.Where(x => i2.Implements.Any(y => y.Equals(x)));
 
                                 if (matches.Count() > 0)
                                     rtType = matches.First();

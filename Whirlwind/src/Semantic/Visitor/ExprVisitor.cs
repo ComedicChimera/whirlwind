@@ -170,7 +170,7 @@ namespace Whirlwind.Semantic.Visitor
                                 throw new SemanticException("All values in a collection must be the same type", 
                                     ((ASTNode)item).Content[((ASTNode)item).Content.Count - 2].Position);
 
-                            var matches = i1.Implements.Where(x => i2.Implements.Contains(x));
+                            var matches = i1.Implements.Where(x => i2.Implements.Any(y => y.Equals(x)));
 
                             if (matches.Count() > 0)
                                 dt = matches.First();

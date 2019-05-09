@@ -75,7 +75,7 @@ namespace Whirlwind.Semantic.Visitor
             _collectInterfaceMethods(interfaceType, (ASTNode)node.Content[node.Content.Count - 2]);
 
             if (!interfaceType.Derive(dt))
-                throw new SemanticException("All methods of type interface must define a body", node.Content[2].Position);
+                throw new SemanticException("All methods of type interface must define a body", node.Content[2].Position);    
 
             _nodes.Add(new ValueNode("Interface", interfaceType));
             _nodes.Add(new ValueNode("Type", dt));

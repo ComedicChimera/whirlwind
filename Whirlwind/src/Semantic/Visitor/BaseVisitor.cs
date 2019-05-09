@@ -192,7 +192,7 @@ namespace Whirlwind.Semantic.Visitor
                     if (i1.Implements.Count == 0 || i2.Implements.Count == 0)
                         throw new SemanticException("All values in a collection must be the same type", pos);
 
-                    var matches = i1.Implements.Where(x => i2.Implements.Contains(x));
+                    var matches = i1.Implements.Where(x => i2.Implements.Any(y => y.Equals(x)));
 
                     if (matches.Count() > 0)
                         baseType = matches.First();

@@ -46,7 +46,14 @@
         public override bool Equals(DataType other)
         {
             if (other.Classify() == TypeClassifier.SELF)
-                return DataType.Equals(((SelfType)other).DataType);
+                return true;
+
+            else if (DataType.Classify() == TypeClassifier.INTERFACE &&
+                other.Classify() == TypeClassifier.INTERFACE_INSTANCE)
+            {
+                // allow for self types to not be problematic
+                return ((InterfaceType)DataType).GetInstance().Equals(other);
+            }
 
             return DataType.Equals(other);
         }
@@ -54,9 +61,9 @@
         protected override bool _coerce(DataType other)
         {
             if (other.Classify() == TypeClassifier.SELF)
-                return DataType.Coerce(((SelfType)other).DataType);
+                return true;
 
-            else if (DataType.Classify() == TypeClassifier.INTERFACE && 
+            else if (DataType.Classify() == TypeClassifier.INTERFACE &&
                 other.Classify() == TypeClassifier.INTERFACE_INSTANCE)
             {
                 // allow for self types to not be problematic

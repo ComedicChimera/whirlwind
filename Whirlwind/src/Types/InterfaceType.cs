@@ -87,7 +87,7 @@ namespace Whirlwind.Types
             if (_methods.Count != it._methods.Count)
                 return false;
 
-            return _methods.Any(x => it._methods.Any(y => x.Equals(y)));
+            return _methods.All(x => it._methods.Any(y => x.Key.Equals(y.Key)));
         }
 
         public InterfaceType GetInstance() => new InterfaceType(this);
@@ -128,10 +128,7 @@ namespace Whirlwind.Types
 
             var interf = child.GetInterface();
 
-            if (interf._methods.Count > 0)
-                _methods.First().Key.Equals(interf._methods.First().Key);
-
-            if (_methods.Where(x => !x.Value).All(x => interf._methods.Select(y => y.Key).Contains(x.Key))) {
+            if (_methods.Where(x => !x.Value).All(x => interf._methods.Select(y => y.Key).Where(y => x.Key.Equals(y)).Count() > 0)) {
                 foreach (var method in _methods) {
                     if (method.Value && !interf._methods.Contains(method))
                         interf.AddMethod(method.Key, method.Value);

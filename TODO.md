@@ -1,5 +1,6 @@
 # TODO
 
+- change self referential types to work off a prefixed name system and remove self-type
 - add package linker
 - add 2 sanitizers (constexpr and memory) [Note: constexpr does in depth checking on all constant expressions]
 - remove MirrorType and declare builtins in SymbolTable as necessary
@@ -25,10 +26,6 @@
   * type Color | Red | Blue | Green;
   * type Option<T> | Some(T) | None;
   * type FloatOrString<T> | Float(float) | String(str);
-- interfaces can now be bound to any type and classify any type
-  * `interf for` syntax
-  * `interf ... is inherits` syntax
-- common interface coercion (implements on interface type)
 - static get
 - object level method variance
 - add `>>=` and `:> operators
