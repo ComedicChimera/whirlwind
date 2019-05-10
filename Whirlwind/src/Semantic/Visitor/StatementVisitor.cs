@@ -127,7 +127,7 @@ namespace Whirlwind.Semantic.Visitor
             }
 
             if (exprCount == 0)
-                _nodes.Add(new StatementNode(stmtName, new List<ITypeNode>() { new ValueNode("Literal", new SimpleType(), "null") }));
+                _nodes.Add(new StatementNode(stmtName, new List<ITypeNode>() { new ValueNode("Literal", new VoidType(), "null") }));
             else if (exprCount == 1)
             {
                 _nodes.Add(new StatementNode(stmtName));
@@ -161,7 +161,7 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     case "assign_var":
                         if (varTypes.Count == 0)
-                            _nodes.Add(new ExprNode("AssignVars", new SimpleType()));
+                            _nodes.Add(new ExprNode("AssignVars", new VoidType()));
 
                         _visitAssignVar((ASTNode)node);
                         varTypes.Add(_nodes.Last().Type);
@@ -184,7 +184,7 @@ namespace Whirlwind.Semantic.Visitor
                         break;
                     case "expr":
                         if (exprTypes.Count == 0)
-                            _nodes.Add(new ExprNode("AssignExprs", new SimpleType()));
+                            _nodes.Add(new ExprNode("AssignExprs", new VoidType()));
 
                         _visitExpr((ASTNode)node);
                         exprTypes.Add(_nodes.Last().Type);
@@ -292,7 +292,7 @@ namespace Whirlwind.Semantic.Visitor
                             throw new SemanticException($"Undefined Identifier: `{token.Value}`", node.Position);
                     }
                     else if (token.Type == "_")
-                        _nodes.Add(new IdentifierNode("_", new SimpleType()));
+                        _nodes.Add(new IdentifierNode("_", new VoidType()));
                     else if (token.Type == "*")
                         derefCount++;
                     // this

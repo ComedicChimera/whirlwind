@@ -39,7 +39,7 @@ namespace Whirlwind.Semantic.Visitor
             if (identifiers.Length != iteratorTypes.Count)
                 throw new SemanticException("Base iterator and its aliases don't match", node.Position);
 
-            _nodes.Add(new ExprNode("Iterator", new SimpleType()));
+            _nodes.Add(new ExprNode("Iterator", new VoidType()));
             // push forward base expression
             PushForward();
 
@@ -72,14 +72,14 @@ namespace Whirlwind.Semantic.Visitor
                 if (mdt is FunctionGroup fg && fg.GetFunction(new ArgumentList(), out FunctionType ft))
                     mdt = ft;
                 else
-                    return new SimpleType();                   
+                    return new VoidType();                   
 
                 // all iterable __next__ methods return a specific element type (T, bool)
                 var elementType = ((FunctionType)method.DataType).ReturnType;
 
                 return ((TupleType)elementType).Types[0];
             }
-            return new SimpleType();
+            return new VoidType();
         }
 
         private DataType _generateGeneric(GenericType baseType, ASTNode genericSpecifier)
@@ -112,7 +112,7 @@ namespace Whirlwind.Semantic.Visitor
                     constant = false;
                     owned = false;
                     modifiers = new List<Modifier>();
-                    dt = new SimpleType();
+                    dt = new VoidType();
 
                     foreach (var elem in ((ASTNode)item).Content)
                     {

@@ -15,7 +15,8 @@ namespace Whirlwind.Semantic.Visitor
         {
             if (node.Content[0].Name == "TOKEN")
             {
-                SimpleType.SimpleClassifier dt = SimpleType.SimpleClassifier.VOID;
+                SimpleType.SimpleClassifier dt = SimpleType.SimpleClassifier.INTEGER;
+
                 bool unsigned = false;
                 switch (((TokenNode)node.Content[0]).Tok.Type)
                 {
@@ -70,7 +71,7 @@ namespace Whirlwind.Semantic.Visitor
                             return;
                         }
                     case "NULL":
-                        _nodes.Add(new ValueNode("Null", new NullType()));
+                        _nodes.Add(new ValueNode("Null", new VoidType()));
                         return;
                 }
 
@@ -121,7 +122,7 @@ namespace Whirlwind.Semantic.Visitor
 
         private Tuple<DataType, int> _visitSet(ASTNode node)
         {
-            DataType elementType = new SimpleType();
+            DataType elementType = new VoidType();
             int size = 0;
             foreach (var element in node.Content)
             {
@@ -137,7 +138,7 @@ namespace Whirlwind.Semantic.Visitor
 
         private Tuple<DataType, DataType, int> _visitDict(ASTNode node)
         {
-            DataType keyType = new SimpleType(), valueType = new SimpleType();
+            DataType keyType = new VoidType(), valueType = new VoidType();
             bool isKey = true;
             int size = 0;
 
@@ -265,7 +266,7 @@ namespace Whirlwind.Semantic.Visitor
         private void _visitClosure(ASTNode node)
         {
             var args = new List<Parameter>();
-            DataType rtType = new SimpleType();
+            DataType rtType = new VoidType();
             bool async = false;
 
             foreach (var item in node.Content)
@@ -291,7 +292,7 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitTypeCast(ASTNode node)
         {
-            DataType dt = new SimpleType();
+            DataType dt = new VoidType();
 
             foreach (var item in node.Content)
             {

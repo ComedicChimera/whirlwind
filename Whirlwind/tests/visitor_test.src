@@ -1,11 +1,14 @@
-﻿type Bucket int;
+﻿struct Point<T> {
+	x, y: T;
+
+	constructor(x, y: T) {
+		this.x = x;
+		this.y = y;
+	}
+}
 
 func main() {
-	let x = 65;
+	let p = new Point<int>(3, 4);
 
-	let b: Bucket;
-
-	b = x;
-
-	x = b; // FAIL
+	p = new Point<int>(6, 7);
 }

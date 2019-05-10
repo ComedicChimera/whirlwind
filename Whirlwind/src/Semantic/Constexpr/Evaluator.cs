@@ -169,7 +169,7 @@ namespace Whirlwind.Semantic.Constexpr
                             return Evaluate(((ExprNode)node.Nodes[0]).Nodes[ndx]);
                         }
                         else
-                            return new ValueNode("None", new SimpleType());
+                            return new ValueNode("None", new VoidType());
                     }
 
                 }

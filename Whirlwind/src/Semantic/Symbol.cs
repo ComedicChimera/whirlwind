@@ -29,7 +29,7 @@ namespace Whirlwind.Semantic
         public override bool Coerce(DataType _) => false;
         public override TypeClassifier Classify() => TypeClassifier.PACKAGE;
 
-        public override bool Equals(DataType other)
+        protected override bool _equals(DataType other)
         {
             if (other.Classify() == TypeClassifier.PACKAGE)
                 return Name == ((Package)other).Name;

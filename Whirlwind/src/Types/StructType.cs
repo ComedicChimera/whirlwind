@@ -66,7 +66,7 @@ namespace Whirlwind.Types
                 return true;
             }
 
-            fnType = new FunctionType(new List<Parameter>(), new SimpleType(), false);
+            fnType = new FunctionType(new List<Parameter>(), new VoidType(), false);
             return false;
         }
 
@@ -76,20 +76,7 @@ namespace Whirlwind.Types
             {
                 StructType st = (StructType)other;
 
-                if (Name == st.Name && _instance && Members.Count == st.Members.Count)
-                {
-                    using (var e1 = Members.GetEnumerator())
-                    using (var e2 = st.Members.GetEnumerator())
-                    {
-                        while (e1.MoveNext() && e2.MoveNext())
-                        {
-                            if (!e1.Current.Equals(e2.Current))
-                                return false;
-                        }
-                    }
-
-                    return true;
-                }
+                return Name == st.Name;
             }
 
             return false;
@@ -98,7 +85,7 @@ namespace Whirlwind.Types
         public override TypeClassifier Classify() 
             => _instance ? TypeClassifier.STRUCT_INSTANCE : TypeClassifier.STRUCT;
 
-        public override bool Equals(DataType other) => Coerce(other);
+        protected override bool _equals(DataType other) => Coerce(other);
 
         public override DataType ConstCopy()
             => new StructType(this)

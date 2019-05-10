@@ -18,7 +18,7 @@ namespace Whirlwind.Types
         // check if another data type can be coerced to this type
         public virtual bool Coerce(DataType other)
         {
-            if (other.Classify() == TypeClassifier.NULL || other.Classify() == TypeClassifier.GENERIC_PLACEHOLDER)
+            if (other.Classify() == TypeClassifier.VOID || other.Classify() == TypeClassifier.GENERIC_PLACEHOLDER)
                 return true;
 
             if (Classify() != TypeClassifier.REFERENCE && other.Classify() == TypeClassifier.REFERENCE)
@@ -29,6 +29,8 @@ namespace Whirlwind.Types
 
         // internal coerce method
         protected virtual bool _coerce(DataType other) => false;
+
+        protected abstract bool _equals(DataType other);
 
         // returns the types interface
         public virtual InterfaceType GetInterface()
@@ -41,32 +43,38 @@ namespace Whirlwind.Types
             return InterfaceRegistry.Interfaces[this];
         }
 
+        // check two data types for perfect equality
+        public bool Equals(DataType other)
+        {
+            if (Constant == other.Constant)
+                return _equals(other);
+
+            return false;
+        }
+
+        public static bool operator ==(DataType a, DataType b)
+            => a.Equals(b);
+
+        public static bool operator !=(DataType a, DataType b)
+            => !a.Equals(b);
+
         // get a given data type classifier as a string
         public abstract TypeClassifier Classify();
 
         // returns a constant copy of a given data type
         public abstract DataType ConstCopy();
-
-        // check two data types for perfect equality (rarely used)
-        public abstract bool Equals(DataType other);
-
-        public static bool operator==(DataType a, DataType b)
-            => a.Equals(b);
-
-        public static bool operator !=(DataType a, DataType b)
-            => !a.Equals(b);
     }
 
-    class NullType : DataType
+    class VoidType : DataType
     {
         public override bool Coerce(DataType other) => true;
 
-        public override TypeClassifier Classify() => TypeClassifier.NULL;
+        public override TypeClassifier Classify() => TypeClassifier.VOID;
 
-        public override bool Equals(DataType other) => false;
+        protected override bool _equals(DataType other) => false;
 
         public override DataType ConstCopy()
-            => new NullType() { Constant = true };
+            => new VoidType() { Constant = true };
     }
 
     enum TypeClassifier
@@ -89,7 +97,7 @@ namespace Whirlwind.Types
         GENERIC_ALIAS,
         GENERIC_PLACEHOLDER,
         PACKAGE,
-        NULL,
+        VOID,
         REFERENCE,
         AGENT,
         SELF // self referential type

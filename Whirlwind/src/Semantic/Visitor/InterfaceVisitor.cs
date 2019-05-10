@@ -84,7 +84,7 @@ namespace Whirlwind.Semantic.Visitor
 
             if (node.Content.Count > 5 + genericOffset)
             {
-                _nodes.Add(new ExprNode("Implements", new SimpleType()));
+                _nodes.Add(new ExprNode("Implements", new VoidType()));
 
                 foreach (var item in ((ASTNode)node.Content[4 + genericOffset]).Content)
                 {
@@ -146,21 +146,20 @@ namespace Whirlwind.Semantic.Visitor
                         .Select(x => ((TokenNode)x).Tok.Type)
                         .Aggregate((a, b) => a + b);
 
-                    var args = _generateArgsDecl((ASTNode)decl.Content[3]);
+                    var args = decl.Content[3].Name == "args_decl_list" ? _generateArgsDecl((ASTNode)decl.Content[3]) : new List<Parameter>();
+                    int argsOffset = args.Count > 0 ? 1 : 0;
 
-                    DataType rtType = new SimpleType();
-                    if (decl.Content[5].Name == "types")
-                        rtType = _generateType((ASTNode)decl.Content[5]);
+                    DataType rtType = new VoidType();
+                    if (decl.Content[4 + argsOffset].Name == "types")
+                        rtType = _generateType((ASTNode)decl.Content[4 + argsOffset]);
 
                     var ft = new FunctionType(args, rtType, false);
 
                     _nodes.Add(new ValueNode("Operator", ft, op));
                     MergeBack();
 
-                    if (args.Count == 0 && decl.Content[5].Name == "func_body")
-                        _nodes.Add(new IncompleteNode((ASTNode)decl.Content[5]));
-                    else if (args.Count > 0 && decl.Content[6].Name == "func_body")
-                        _nodes.Add(new IncompleteNode((ASTNode)decl.Content[6]));
+                    if (decl.Content.Last().Name == "func_body")
+                        _nodes.Add(new IncompleteNode((ASTNode)decl.Content.Last()));
                     else
                     {
                         interfaceType.AddMethod(new Symbol($"__{op}__", ft), false);

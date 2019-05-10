@@ -33,7 +33,7 @@
 
         public DataType GetIterator() => ElementType;
 
-        public override bool Equals(DataType other)
+        protected override bool _equals(DataType other)
         {
             if (other.Classify() == TypeClassifier.ARRAY)
             {
@@ -73,7 +73,7 @@
 
         public DataType GetIterator() => ElementType;
 
-        public override bool Equals(DataType other)
+        protected override bool _equals(DataType other)
         {
             if (other.Classify() == TypeClassifier.LIST)
             {
@@ -110,7 +110,7 @@
 
         public DataType GetIterator() => KeyType;
 
-        public override bool Equals(DataType other)
+        protected override bool _equals(DataType other)
         {
             if (other.Classify() == TypeClassifier.DICT)
             {

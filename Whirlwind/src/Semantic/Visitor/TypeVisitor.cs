@@ -27,7 +27,7 @@ namespace Whirlwind.Semantic.Visitor
 
         public DataType _generateType(ASTNode node)
         {
-            DataType dt = new SimpleType();
+            DataType dt = new VoidType();
             int pointers = 0;
             bool reference = false, owned = false, constant = false;
 
@@ -95,6 +95,9 @@ namespace Whirlwind.Semantic.Visitor
                 case TypeClassifier.INTERFACE:
                     dt = ((InterfaceType)dt).GetInstance();
                     break;
+                case TypeClassifier.TYPE_CLASS:
+                    dt = ((CustomType)dt).GetInstance();
+                    break;
             }
 
             if (pointers != 0)
@@ -124,6 +127,10 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     SimpleType.SimpleClassifier dt;
                     Token tok = ((TokenNode)((ASTNode)subNode).Content[0]).Tok;
+
+                    if (tok.Type == "VOID_TYPE")
+                        return new VoidType();
+
                     switch (tok.Type)
                     {
                         case "BOOL_TYPE":
@@ -147,12 +154,9 @@ namespace Whirlwind.Semantic.Visitor
                         case "STRING_TYPE":
                             dt = SimpleType.SimpleClassifier.STRING;
                             break;
-                        case "CHAR_TYPE":
-                            dt = SimpleType.SimpleClassifier.CHAR;
-                            break;
-                        // void type
+                        // char type
                         default:
-                            dt = SimpleType.SimpleClassifier.VOID;
+                            dt = SimpleType.SimpleClassifier.CHAR;
                             break;
                     }
 
@@ -248,7 +252,7 @@ namespace Whirlwind.Semantic.Visitor
                                     else if (elem.Name == "func_arg_indef")
                                     {
                                         ASTNode arg = (ASTNode)elem;
-                                        DataType dt = arg.Content.Count == 2 ? _generateType((ASTNode)arg.Content[1]) : new SimpleType();
+                                        DataType dt = arg.Content.Count == 2 ? _generateType((ASTNode)arg.Content[1]) : new VoidType();
 
                                         args.Add(new Parameter("Arg" + args.Count.ToString(), dt, false, true, false));
                                     }
@@ -265,7 +269,7 @@ namespace Whirlwind.Semantic.Visitor
                     switch (returnTypes.Count)
                     {
                         case 0:
-                            returnType = new SimpleType();
+                            returnType = new VoidType();
                             break;
                         case 1:
                             returnType = returnTypes[0];
@@ -280,7 +284,7 @@ namespace Whirlwind.Semantic.Visitor
             }
 
             // cover all your bases ;)
-            return new SimpleType();
+            return new VoidType();
         }
     }
 }

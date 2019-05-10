@@ -11,7 +11,7 @@
             Owned = owned;
         }
 
-        public override bool Equals(DataType other)
+        protected override bool _equals(DataType other)
         {
             if (other.Classify() == TypeClassifier.REFERENCE)
                 return DataType.Equals(((ReferenceType)other).DataType);
@@ -43,7 +43,7 @@
             DataType = dt;
         }
 
-        public override bool Equals(DataType other)
+        protected override bool _equals(DataType other)
         {
             if (other.Classify() == TypeClassifier.SELF)
                 return true;

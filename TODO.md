@@ -21,23 +21,13 @@
 # TESTING
 
 - introduction of high level type classes
-  * type Integer int;
-  * type Positive int{v} when v > 0;
-  * type Color | Red | Blue | Green;
   * type Option<T> | Some(T) | None;
   * type FloatOrString<T> | Float(float) | String(str);
 - static get
 - object level method variance
-- add `>>=` and `:>` operators
-- add empty type classes
-  * type Thing;
-- improved operator overloading syntax
 - change include syntax to use `::` instead of `.`
   * include { Println, Scan } from io::std;
   * include ..a::b;
-- add monadic value extraction
-  * from T
-- change from using "templates" to using "generics"
 - remove template syntax (change to pure generic syntax)
   * interf<T> for
   * interf name<T>

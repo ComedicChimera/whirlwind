@@ -8,14 +8,18 @@ namespace Whirlwind.Types
         public string Name { get; private set; }
         public List<CustomInstance> Instances { get; private set; }
 
-        private bool _instance;
-
         public CustomType(string name)
         {
             Name = name;
             Instances = new List<CustomInstance>();
 
             Constant = true;
+        }
+
+        public CustomType(CustomType ct)
+        {
+            Name = ct.Name;
+            Instances = ct.Instances;
         }
 
         public bool AddInstance(CustomInstance instance)
@@ -39,14 +43,12 @@ namespace Whirlwind.Types
                 return true;
             }
             
-            cAlias = new CustomAlias(this, new SimpleType());
+            cAlias = new CustomAlias(this, new VoidType());
             return false;
         }
 
-        public CustomType CreateInstance()
-        {
-            // work on custom instance
-        }
+        // doesn't actually create an instance, just removes the constancy from the type class
+        public CustomType GetInstance() => new CustomType(this);
 
         public bool CreateInstance(string name, List<DataType> values, out CustomNewType cnType)
         {
@@ -71,28 +73,22 @@ namespace Whirlwind.Types
 
         public override TypeClassifier Classify() => TypeClassifier.TYPE_CLASS;
 
-        public override bool Equals(DataType other)
+        protected override bool _equals(DataType other)
         {
             if (other is CustomType cType)
-            {
-                if (Name != cType.Name)
-                    return false;
-
-                if (Instances.Count == cType.Instances.Count)
-                    return Instances.Zip(cType.Instances, (a, b) => a.Equals(b)).All(x => x);
-            }
+                return Name == cType.Name;
 
             return false;
         }
 
-        public override bool Coerce(DataType other)
+        protected override bool _coerce(DataType other)
         {
             if (other is CustomType)
                 return Equals(other);
             else if (other is CustomInstance instance)
-                return Equals(instance.Parent);
-
-            return false;
+                return Equals(instance.Parent.GetInstance());
+            else
+                return Instances.Where(x => x is CustomAlias).Any(x => ((CustomAlias)x).Type.Coerce(other));
         }
 
         public override DataType ConstCopy()
@@ -112,7 +108,7 @@ namespace Whirlwind.Types
         public override bool Coerce(DataType other)
         {
             if (other is CustomType)
-                return Parent.Equals(other);
+                return Parent.Equals(other.ConstCopy());
             else if (other is CustomInstance cInst)
                 return Parent.Equals(cInst.Parent);
 
@@ -132,7 +128,7 @@ namespace Whirlwind.Types
             Values = values;
         }
 
-        public override bool Equals(DataType other)
+        protected override bool _equals(DataType other)
         {
             if (other is CustomNewType cnType)
             {
@@ -159,7 +155,7 @@ namespace Whirlwind.Types
             Type = dt;
         }
 
-        public override bool Equals(DataType other)
+        protected override bool _equals(DataType other)
         {
             if (other is CustomAlias cAlias)
                 return Parent.Equals(cAlias.Parent) && Type.Equals(cAlias.Type);

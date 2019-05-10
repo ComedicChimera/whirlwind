@@ -27,7 +27,7 @@ namespace Whirlwind.Types
             return false;
         }
 
-        public override bool Equals(DataType other) => Coerce(other);
+        protected override bool _equals(DataType other) => Coerce(other);
 
         public override DataType ConstCopy()
             => new TupleType(Types); // implicit const

@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 
 using Whirlwind.Semantic;
 
@@ -14,14 +13,13 @@ namespace Whirlwind.Types
         public GenericPlaceholder(string name)
         {
             Name = name;
-            Constant = true;
         }
 
         // the actual type of placeholder is irrelevant
         public override bool Coerce(DataType other) => true;
         public override TypeClassifier Classify() => TypeClassifier.GENERIC_PLACEHOLDER;
 
-        public override bool Equals(DataType other)
+        protected override bool _equals(DataType other)
         {
             if (other.Classify() == TypeClassifier.GENERIC_PLACEHOLDER)
                 return Name == ((GenericPlaceholder)other).Name;
@@ -47,7 +45,7 @@ namespace Whirlwind.Types
         public override bool Coerce(DataType other) => false;
         public override TypeClassifier Classify() => TypeClassifier.GENERIC_ALIAS;
 
-        public override bool Equals(DataType other) => false;
+        protected override bool _equals(DataType other) => false;
 
         public override DataType ConstCopy()
             => new GenericAlias(ReplacementType); // implicit const
@@ -322,7 +320,7 @@ namespace Whirlwind.Types
 
         public override TypeClassifier Classify() => TypeClassifier.GENERIC;
 
-        public override bool Equals(DataType other)
+        protected override bool _equals(DataType other)
         {
             if (other.Classify() == TypeClassifier.GENERIC)
             {

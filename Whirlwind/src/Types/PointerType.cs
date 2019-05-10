@@ -17,18 +17,15 @@
         {
             if (Equals(other))
                 return true;
-            else if (other.Classify() == TypeClassifier.POINTER)
-            {
-                if (DataType.Classify() == TypeClassifier.SIMPLE && ((SimpleType)DataType).Type == SimpleType.SimpleClassifier.VOID)
-                    return true;
-            }
+            else if (other.Classify() == TypeClassifier.POINTER && DataType.Classify() == TypeClassifier.VOID)
+                return true;
 
             return false;
         }
 
         public override TypeClassifier Classify() => TypeClassifier.POINTER;
 
-        public override bool Equals(DataType other)
+        protected override bool _equals(DataType other)
         {
             if (other.Classify() == TypeClassifier.POINTER)
             {

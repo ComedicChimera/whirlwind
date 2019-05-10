@@ -16,7 +16,7 @@ namespace Whirlwind.Semantic.Visitor
             var namePosition = new TextPosition();
             if (root.Content.Count > 2 && root.Content[2].Name == "generic_tag")
             {
-                genericVars = _primeGeneric((ASTNode)root.Content[1]);
+                genericVars = _primeGeneric((ASTNode)root.Content[2]);
                 namePosition = root.Content[1].Position;
             }
 

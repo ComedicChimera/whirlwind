@@ -28,12 +28,12 @@ namespace Whirlwind.Semantic.Visitor
             // needs a default constructor
             bool needsDefaultConstr = true;
 
-            foreach (var subNode in ((ASTNode)node.Content[3]).Content)
+            foreach (var subNode in ((ASTNode)node.Content[node.Content.Count - 2]).Content)
             {
                 if (subNode.Name == "struct_var")
                 {
                     var processingStack = new List<TokenNode>();
-                    DataType type = new SimpleType();
+                    DataType type = new VoidType();
                     bool isVolatile = false;
 
                     foreach (var item in ((ASTNode)subNode).Content)
@@ -92,7 +92,7 @@ namespace Whirlwind.Semantic.Visitor
             }
 
             if (needsDefaultConstr)
-                structType.AddConstructor(new FunctionType(new List<Parameter>(), new SimpleType(), false));
+                structType.AddConstructor(new FunctionType(new List<Parameter>(), new VoidType(), false));
 
             _nodes.Add(new IdentifierNode(name.Tok.Value, structType));
             MergeBack();
@@ -123,7 +123,7 @@ namespace Whirlwind.Semantic.Visitor
                 }
             }
 
-            FunctionType ft = new FunctionType(args, new SimpleType(), false)
+            FunctionType ft = new FunctionType(args, new VoidType(), false)
             {
                 Constant = true
             };

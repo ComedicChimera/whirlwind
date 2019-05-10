@@ -13,18 +13,11 @@ namespace Whirlwind.Types
             CHAR,
             BYTE,
             LONG,
-            DOUBLE,
-            VOID
+            DOUBLE
         }
 
         public SimpleClassifier Type { get; private set; }
         public readonly bool Unsigned;
-
-        public SimpleType()
-        {
-            Type = SimpleClassifier.VOID;
-            Unsigned = false;
-        }
 
         public SimpleType(SimpleClassifier dt, bool unsigned = false)
         {
@@ -36,9 +29,6 @@ namespace Whirlwind.Types
 
         protected sealed override bool _coerce(DataType other)
         {
-            // null can coerce to anything
-            if (Type == SimpleClassifier.VOID)
-                return true;
             if (other.Classify() == TypeClassifier.SIMPLE)
             {
                 // make sure that you are not coercing signed to unsigned
@@ -67,7 +57,7 @@ namespace Whirlwind.Types
             return false; 
         }
 
-        public override bool Equals(DataType other)
+        protected override bool _equals(DataType other)
         {
             if (other.Classify() == TypeClassifier.SIMPLE)
             {

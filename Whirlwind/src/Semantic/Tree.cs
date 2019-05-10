@@ -122,14 +122,14 @@ namespace Whirlwind.Semantic
         public StatementNode(string name)
         {
             Name = name;
-            Type = new SimpleType();
+            Type = new VoidType();
             Nodes = new List<ITypeNode>();
         }
 
         public StatementNode(string name, List<ITypeNode> nodes)
         {
             Name = name;
-            Type = new SimpleType();
+            Type = new VoidType();
             Nodes = nodes;
         }
 
@@ -176,7 +176,7 @@ namespace Whirlwind.Semantic
 
         public DataType Type
         {
-            get { return new SimpleType(); }
+            get { return new VoidType(); }
             set { throw new NotImplementedException(); }
         }
     }

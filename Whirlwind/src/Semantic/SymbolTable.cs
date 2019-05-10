@@ -183,7 +183,7 @@ namespace Whirlwind.Semantic
             var visibleScopes = new List<Scope>() { _table };
             Scope currentScope = _table;
 
-            var capturedSymbol = new Symbol("$NOT_VALID", new SimpleType());
+            var capturedSymbol = new Symbol("$NOT_VALID", new VoidType());
 
             foreach(int scopePos in _scopePath)
             {

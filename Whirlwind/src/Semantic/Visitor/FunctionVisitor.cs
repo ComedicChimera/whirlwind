@@ -16,7 +16,7 @@ namespace Whirlwind.Semantic.Visitor
             bool isAsync = false;
             string name = "";
             var arguments = new List<Parameter>();
-            DataType dataType = new SimpleType();
+            DataType dataType = new VoidType();
 
             TextPosition namePosition = new TextPosition();
 
@@ -132,7 +132,7 @@ namespace Whirlwind.Semantic.Visitor
 
         private DataType _visitFuncBody(ASTNode node, List<Parameter> args)
         {
-            DataType rtType = new SimpleType();
+            DataType rtType = new VoidType();
 
             if (node.Content[0].Name == "capture")
             {
@@ -152,7 +152,7 @@ namespace Whirlwind.Semantic.Visitor
                 switch (item.Name)
                 {
                     case "func_guard":
-                        _nodes.Add(new ExprNode("FunctionGuard", new SimpleType()));
+                        _nodes.Add(new ExprNode("FunctionGuard", new VoidType()));
                         _visitExpr((ASTNode)((ASTNode)item).Content[2]);
                         MergeBack(2);
                         break;
@@ -197,7 +197,7 @@ namespace Whirlwind.Semantic.Visitor
 
         private Tuple<bool, DataType> _extractReturnType(BlockNode block, List<TextPosition> positions, ref int pos)
         {
-            DataType rtType = new SimpleType();
+            DataType rtType = new VoidType();
             bool returnsValue = false, setReturn = false, terminatingReturn = false;
 
             foreach (var node in block.Block)
@@ -328,7 +328,7 @@ namespace Whirlwind.Semantic.Visitor
                         hasExtension = false,
                         isVolatile = false;
                     var identifiers = new List<string>();
-                    DataType paramType = new SimpleType();
+                    DataType paramType = new VoidType();
 
                     foreach (var argPart in ((ASTNode)subNode).Content)
                     {
@@ -383,7 +383,7 @@ namespace Whirlwind.Semantic.Visitor
                 else if (subNode.Name == "ending_arg")
                 {
                     string name = "";
-                    DataType dt = new SimpleType();
+                    DataType dt = new VoidType();
 
                     foreach (var item in ((ASTNode)subNode).Content)
                     {

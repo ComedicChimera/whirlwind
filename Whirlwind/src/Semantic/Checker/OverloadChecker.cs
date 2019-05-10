@@ -49,7 +49,7 @@ namespace Whirlwind.Semantic.Checker
                 }
             }
 
-            returnType = new SimpleType();
+            returnType = new VoidType();
             return false;
         }
     }

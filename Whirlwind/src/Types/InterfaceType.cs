@@ -92,7 +92,7 @@ namespace Whirlwind.Types
 
         public InterfaceType GetInstance() => new InterfaceType(this);
 
-        public override bool Equals(DataType other)
+        protected override bool _equals(DataType other)
         {
             if (other.Classify() == TypeClassifier.INTERFACE || other.Classify() == TypeClassifier.INTERFACE_INSTANCE)
             {

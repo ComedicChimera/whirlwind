@@ -101,7 +101,7 @@ namespace Whirlwind.Types
             return !data.IsError;
         }
 
-        public override bool Equals(DataType other)
+        protected override bool _equals(DataType other)
         {
             if (other.Classify() == TypeClassifier.FUNCTION)
             {
@@ -161,7 +161,7 @@ namespace Whirlwind.Types
         public override TypeClassifier Classify()
             => TypeClassifier.FUNCTION_GROUP;
 
-        public override bool Equals(DataType other)
+        protected override bool _equals(DataType other)
         {
             if (other is FunctionGroup)
             {

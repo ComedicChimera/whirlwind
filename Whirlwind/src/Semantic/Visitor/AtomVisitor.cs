@@ -68,10 +68,10 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitComprehension(ASTNode node)
         {
-            DataType elementType = new SimpleType();
+            DataType elementType = new VoidType();
 
             // used in case of map comprehension
-            DataType valueType = new SimpleType();
+            DataType valueType = new VoidType();
 
             int sizeBack = 0;
             bool isKeyPair = false, isCondition = false, isList = ((TokenNode)node.Content[0]).Tok.Type == "[";
@@ -249,7 +249,7 @@ namespace Whirlwind.Semantic.Visitor
                                 if (((TokenNode)item).Tok.Type == "IDENTIFIER")
                                 {
                                     positions.Add(item.Position);
-                                    _nodes.Add(new IdentifierNode(((TokenNode)item).Tok.Value, new SimpleType()));
+                                    _nodes.Add(new IdentifierNode(((TokenNode)item).Tok.Value, new VoidType()));
                                 }
                                     
                             }
@@ -268,14 +268,14 @@ namespace Whirlwind.Semantic.Visitor
 
                             if (initCount != members.Count)
                                 throw new SemanticException("Struct initializer list must initialize all struct members", node.Content[0].Position);
-                            for (int i = 1; i < initCount + 1; i++)
+                            for (int i = 0; i < initCount; i++)
                             {
-                                var item = (ExprNode)_nodes[_nodes.Count - i];
+                                var item = (ExprNode)_nodes[_nodes.Count - initCount + i];
                                 string name = ((IdentifierNode)item.Nodes[0]).IdName;
                                 if (!members.ContainsKey(name))
-                                    throw new SemanticException($"Struct has no member {name}", positions[i - 1]);
+                                    throw new SemanticException($"Struct has no member {name}", positions[i]);
                                 if (!members[name].DataType.Coerce(item.Nodes[1].Type))
-                                    throw new SemanticException($"Unable to initialize member {name} with the given type", positions[i - 1]);
+                                    throw new SemanticException($"Unable to initialize member {name} with the given type", positions[i]);
                             }
                             _nodes.Add(new ExprNode("InitList", ((StructType)root.Type).GetInstance()));
                             // add in root
@@ -347,7 +347,7 @@ namespace Whirlwind.Semantic.Visitor
                         );
                 }
                 else if (!isFunction && !((StructType)root.Type).GetConstructor(args, out FunctionType constructor))
-                    throw new SemanticException($"Typeclass `{((StructType)root.Type).Name}` has no constructor the accepts the given parameters", node.Position);
+                    throw new SemanticException($"Struct `{((StructType)root.Type).Name}` has no constructor the accepts the given parameters", node.Position);
 
                 DataType returnType = isFunction ? ((FunctionType)root.Type).ReturnType : ((StructType)root.Type).GetInstance();
 
@@ -399,6 +399,36 @@ namespace Whirlwind.Semantic.Visitor
                 }
                 else
                     throw new SemanticException("No function in the function group matches the given arguments", node.Position);
+            }
+            else if (root.Type.Classify() == TypeClassifier.TYPE_CLASS_INSTANCE)
+            {
+                if (root.Type is CustomNewType cnt)
+                {
+                    if (cnt.Values.Count == 0)
+                        throw new SemanticException("Cannot explicitly construct enumerated type class value that contains no types",
+                            node.Content[1].Position);
+
+                    if (args.NamedArguments.Count > 0)
+                        throw new SemanticException("Unable to specify named values in type class value initialization",
+                            node.Content[1].Position);
+
+                    if (args.Count() == cnt.Values.Count)
+                    {
+                        for (int i = 0; i < args.Count(); i++)
+                        {
+                            if (!cnt.Values[i].Coerce(args.UnnamedArguments[i]))
+                                throw new SemanticException("Argument types do not match up with those of type class value constructor",
+                                    ((ASTNode)node.Content[1]).Content[i * 2].Position);
+                        }
+                    }
+
+                    _nodes.Add(new ExprNode("InitTCConstructor", root.Type));
+
+                    PushForward(cnt.Values.Count);
+                    PushForward();
+                }
+                else
+                    throw new SemanticException("Unable to call non-callable type", node.Content[0].Position);
             }
             else
                 throw new SemanticException("Unable to call non-callable type", node.Content[0].Position);
@@ -493,48 +523,6 @@ namespace Whirlwind.Semantic.Visitor
                 else
                     throw new SemanticException("The subscript type and the key type must match", textPositions[0]);
             }
-            // fix operator overload
-            /*else if (rootType.Classify() == TypeClassifier.OBJECT_INSTANCE)
-            {
-                var args = new List<DataType>();
-
-                switch (name)
-                {
-                    case "Subscript":
-                    case "SliceBegin":
-                        args.Add(types[0]);
-                        break;
-                    case "SliceEnd":
-                        args.AddRange(new List<DataType>() { new SimpleType(SimpleType.SimpleClassifier.INTEGER), types[0] });
-                        break;
-                    case "SliceEndStep":
-                        args.AddRange(new List<DataType>() { new SimpleType(SimpleType.SimpleClassifier.INTEGER), types[0], types[1] });
-                        break;
-                    case "SliceBeginStep":
-                        args.AddRange(new List<DataType>() { types[0], new SimpleType(SimpleType.SimpleClassifier.INTEGER), types[1] });
-                        break;
-                    case "SliceStep":
-                        args.AddRange(new List<DataType>() {
-                            new SimpleType(SimpleType.SimpleClassifier.INTEGER),
-                            new SimpleType(SimpleType.SimpleClassifier.INTEGER),
-                            types[0]
-                        });
-                        break;
-                    case "Slice":
-                        args.AddRange(types);
-                        break;
-                }
-
-                string methodName = string.Format("__%s%s", _isGetMode ? "get" : "set", name == "Subscript" ? "item__" : "region__");
-                if (HasOverload(rootType, methodName, new ArgumentList(args), out DataType returnType))
-                {
-                    _nodes.Add(new ExprNode(name, returnType));
-                    // capture root as well
-                    PushForward(args.Count + 1);
-                }
-                else
-                    throw new SemanticException("The given obj defines an invalid overload for the `[]` operator", node.Position);
-            }*/
             else
             {
                 var intType = new SimpleType(SimpleType.SimpleClassifier.INTEGER) { Constant = true };
@@ -563,8 +551,52 @@ namespace Whirlwind.Semantic.Visitor
                         // yeah, yeah, i know
                         goto default;
                     default:
-                        throw new SemanticException($"Unable to perform  {(expressionCount == 1 && hasStartingExpr ? "subscript" : "slice")} on the given type", 
-                            node.Position);
+                        {
+                            var args = new List<DataType>();
+
+                            switch (name)
+                            {
+                                case "Subscript":
+                                case "SliceBegin":
+                                    args.Add(types[0]);
+                                    break;
+                                case "SliceEnd":
+                                    args.AddRange(new List<DataType>() { new SimpleType(SimpleType.SimpleClassifier.INTEGER), types[0] });
+                                    break;
+                                case "SliceEndStep":
+                                    args.AddRange(new List<DataType>() { new SimpleType(SimpleType.SimpleClassifier.INTEGER), types[0], types[1] });
+                                    break;
+                                case "SliceBeginStep":
+                                    args.AddRange(new List<DataType>() { types[0], new SimpleType(SimpleType.SimpleClassifier.INTEGER), types[1] });
+                                    break;
+                                case "SliceStep":
+                                    args.AddRange(new List<DataType>() {
+                            new SimpleType(SimpleType.SimpleClassifier.INTEGER),
+                            new SimpleType(SimpleType.SimpleClassifier.INTEGER),
+                            types[0]
+                        });
+                                    break;
+                                case "Slice":
+                                    args.AddRange(types);
+                                    break;
+                            }
+
+                            string methodName = string.Format("__%s__", name == "Subscript" ? "[]" : "[:]");
+                            if (HasOverload(rootType, methodName, new ArgumentList(args), out DataType returnType))
+                            {
+                                _nodes.Add(new ExprNode(name, returnType));
+                                // capture root as well
+                                PushForward(args.Count + 1);
+
+                                return;
+                            }
+                            else
+                                throw new SemanticException(
+                                    $"Unable to perform  {(expressionCount == 1 && hasStartingExpr ? "subscript" : "slice")} on the given type",
+                                    node.Position
+                                 );
+                        }
+                        
                 }
 
                 _nodes.Add(new ExprNode(name, name == "Subscript" ? elementType : rootType));
@@ -578,7 +610,7 @@ namespace Whirlwind.Semantic.Visitor
             // make ( alloc_body ) -> types , expr
             var allocBody = (ASTNode)node.Content[1];
 
-            DataType dt = new SimpleType();
+            DataType dt = new VoidType();
             bool hasSizeExpr = false, isStructAlloc = false, isTypeAlloc = false;
 
             foreach (var item in allocBody.Content)
@@ -644,7 +676,7 @@ namespace Whirlwind.Semantic.Visitor
                 if (!new SimpleType(SimpleType.SimpleClassifier.INTEGER, true).Coerce(_nodes.Last().Type))
                     throw new SemanticException("Size of allocated space must be an unsigned integer", allocBody.Content[0].Position);
 
-                _nodes.Add(new ExprNode("HeapAllocSize", new PointerType(new SimpleType(), 1)));
+                _nodes.Add(new ExprNode("HeapAllocSize", new PointerType(new VoidType(), 1)));
                 PushForward();
             }
         }

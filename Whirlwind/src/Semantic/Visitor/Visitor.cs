@@ -113,8 +113,8 @@ namespace Whirlwind.Semantic.Visitor
 
         private bool _isVoid(DataType type)
         {
-            if (type.Classify() == TypeClassifier.SIMPLE)
-                return ((SimpleType)type).Type == SimpleType.SimpleClassifier.VOID;
+            if (type.Classify() == TypeClassifier.VOID)
+                return true;
             else if (type.Classify() == TypeClassifier.DICT)
             {
                 var dictType = (DictType)type;

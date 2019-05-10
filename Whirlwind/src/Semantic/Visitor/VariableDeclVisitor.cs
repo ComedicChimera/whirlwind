@@ -24,7 +24,7 @@ namespace Whirlwind.Semantic.Visitor
         private void _visitVarDecl(ASTNode stmt, List<Modifier> modifiers)
         {
             bool constant = false, constexpr = false, hasType = false, hasInitializer = false;
-            DataType mainType = new SimpleType();
+            DataType mainType = new VoidType();
 
             var variables = new Dictionary<string, Variable>();
             var initializers = new Dictionary<string, Tuple<bool, ITypeNode>>();
@@ -45,7 +45,7 @@ namespace Whirlwind.Semantic.Visitor
 
                             if (variableBlock.Content.Count == 1)
                                 variables[((TokenNode)variableBlock.Content[0]).Tok.Value]
-                                    = new Variable(new SimpleType(), variableBlock.Content[0].Position);
+                                    = new Variable(new VoidType(), variableBlock.Content[0].Position);
                             else
                             {
                                 string currentIdentifier = "";
@@ -63,7 +63,7 @@ namespace Whirlwind.Semantic.Visitor
                                                     {
                                                         currentIdentifier = ((TokenNode)elem).Tok.Value;
 
-                                                        variables[currentIdentifier] = new Variable(new SimpleType(), elem.Position);
+                                                        variables[currentIdentifier] = new Variable(new VoidType(), elem.Position);
                                                     }
                                                     break;
                                                 case "extension":
@@ -141,7 +141,7 @@ namespace Whirlwind.Semantic.Visitor
                         _nodes.Add(new ExprNode(constexpr ? "ConstExprInitializer" : "Initializer", _nodes.Last().Type));
                         PushForward();
 
-                        if (!hasType && !isVoidOrNull(_nodes.Last().Type))
+                        if (!hasType && !_isVoid(_nodes.Last().Type))
                         {
                             mainType = _nodes.Last().Type;
                             hasType = true;
@@ -153,8 +153,6 @@ namespace Whirlwind.Semantic.Visitor
                         break;
                 }
             }
-
-            bool isVoidOrNull(DataType dt) => dt.Classify() == TypeClassifier.NULL || _isVoid(dt);
 
             if (hasType && hasInitializer && mainType.Classify() == TypeClassifier.TUPLE && variables.Keys.Count > 1)
             {
@@ -173,7 +171,7 @@ namespace Whirlwind.Semantic.Visitor
 
                         if (initializers.ContainsKey(id))
                             throw new SemanticException("Unable to perform tuple based initialization on pre initialized values", variables[id].Position);
-                        else if (isVoidOrNull(variables.Values.ElementAt(i).Type))
+                        else if (_isVoid(variables.Values.ElementAt(i).Type))
                             variables[id] = new Variable(dt, variables[id].Position);
                         else if (!variables[id].Type.Coerce(dt))
                             throw new SemanticException("Tuple types and variable types must match", variables[id].Position);
@@ -190,7 +188,7 @@ namespace Whirlwind.Semantic.Visitor
                 for (int i = 0; i < variables.Count; i++)
                 {
                     var key = variables.Keys.ToList()[i];
-                    if (isVoidOrNull(variables[key].Type))
+                    if (_isVoid(variables[key].Type))
                     {
                         if (hasType)
                             variables[key] = new Variable(mainType, variables[key].Position);
@@ -235,11 +233,11 @@ namespace Whirlwind.Semantic.Visitor
                 else
                 {
                     _nodes.Add(new ExprNode("Var", variables[variable].Type));
-                    PushForward(hasInitializer ? 2 : 1);
+                    PushForward();
                 }
             }
 
-            _nodes.Add(new ExprNode("Variables", new SimpleType()));
+            _nodes.Add(new ExprNode("Variables", new VoidType()));
             PushForward(variables.Keys.Where(x => x != "_").Count());
 
             string statementName;
@@ -254,6 +252,9 @@ namespace Whirlwind.Semantic.Visitor
             _nodes.Add(new StatementNode(statementName));
             PushForward();
             ((StatementNode)_nodes[_nodes.Count - 1]).Nodes.Reverse();
+
+            if (hasInitializer && initializers.Count == 0)
+                PushForward();
         }
     }
 }

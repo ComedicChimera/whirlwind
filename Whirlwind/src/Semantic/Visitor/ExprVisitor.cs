@@ -10,7 +10,7 @@ namespace Whirlwind.Semantic.Visitor
 {
     partial class Visitor
     {
-        DataType _thenExprType = new SimpleType();
+        DataType _thenExprType = new VoidType();
 
         private void _visitExpr(ASTNode node, bool needsSubscope=true)
         {
@@ -48,7 +48,7 @@ namespace Whirlwind.Semantic.Visitor
                         throw new SemanticException("Unable to redeclare symbol in scope", exprVarDecl.Content[0].Position);
                     }
 
-                    _nodes.Add(new ExprNode("ExprVarDecl", new SimpleType()));
+                    _nodes.Add(new ExprNode("ExprVarDecl", new VoidType()));
                     PushForward(2);
 
                     _visitThen((ASTNode)exprVarDecl.Content[3], false);
@@ -65,7 +65,7 @@ namespace Whirlwind.Semantic.Visitor
                     {
                         if (item.Name == "TOKEN" && op == "")
                             op = ((TokenNode)item).Tok.Type;
-                        else if (item.Name == "expr")
+                        else if (op != ":>" && item.Name == "expr")
                             _visitExpr((ASTNode)item);
                         else if (item.Name == "case_extension")
                             _visitInlineCase((ASTNode)item);
@@ -129,7 +129,7 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitInlineCase(ASTNode node)
         {
-            DataType dt = new SimpleType();
+            DataType dt = new VoidType();
             DataType rootType = _nodes.Last().Type;
 
             int caseCount = 2;
@@ -290,7 +290,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             string op = "";
             bool hitFirst = false;
-            DataType rootType = new SimpleType();
+            DataType rootType = new VoidType();
 
             foreach (var subNode in node.Content)
             {
@@ -332,7 +332,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             string op = "";
             bool hitFirst = false;
-            DataType rootType = new SimpleType();
+            DataType rootType = new VoidType();
 
             foreach (var subNode in node.Content)
             {
@@ -400,7 +400,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             string op = "";
             bool hitFirst = false;
-            DataType rootType = new SimpleType();
+            DataType rootType = new VoidType();
 
             foreach (var subNode in node.Content)
             {
@@ -443,7 +443,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             string op = "";
             bool hitFirst = false;
-            DataType rootType = new SimpleType();
+            DataType rootType = new VoidType();
 
             foreach (var subNode in node.Content)
             {
