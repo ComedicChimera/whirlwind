@@ -412,14 +412,36 @@ namespace Whirlwind.Semantic.Visitor
                         throw new SemanticException("Unable to specify named values in type class value initialization",
                             node.Content[1].Position);
 
+                    var filledGenerics = new List<DataType>();
+
                     if (args.Count() == cnt.Values.Count)
                     {
                         for (int i = 0; i < args.Count(); i++)
                         {
-                            if (!cnt.Values[i].Coerce(args.UnnamedArguments[i]))
+                            if (cnt.Values[i].Classify() == TypeClassifier.GENERIC_PLACEHOLDER)
+                                filledGenerics.Add(args.UnnamedArguments[i]);
+                            else if (!cnt.Values[i].Coerce(args.UnnamedArguments[i]))
                                 throw new SemanticException("Argument types do not match up with those of type class value constructor",
                                     ((ASTNode)node.Content[1]).Content[i * 2].Position);
                         }
+                    }
+                    else
+                        throw new SemanticException("No more and no less than all of the values of the type class " +
+                            "instance must be initialized during explicit initialization", node.Position);
+
+                    if (filledGenerics.Count > 0)
+                    {
+                        _table.Lookup(cnt.Parent.Name, out Symbol sym);
+
+                        var genericType = ((GenericType)sym.DataType);
+
+                        if (!genericType.CreateGeneric(filledGenerics, out DataType newParent))
+                            throw new SemanticException("Unable to create a generic type class from the given types", node.Position);
+
+                        cnt = ((CustomType)newParent).Instances.Where(x => x is CustomNewType)
+                            .Select(x => (CustomNewType)x)
+                            .Where(x => x.Name == cnt.Name)
+                            .First();
                     }
 
                     _nodes.Add(new ExprNode("InitTCConstructor", root.Type));
@@ -685,7 +707,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             _visitExpr((ASTNode)node.Content[1]);
 
-            if (_nodes.Last().Type is CustomNewType cnt)
+            if (_nodes.Last().Type is CustomNewType cnt && cnt.Values.Count > 0)
             {
                 DataType dt = cnt.Values.Count > 1 ? new TupleType(cnt.Values) : cnt.Values.First();
 

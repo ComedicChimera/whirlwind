@@ -8,7 +8,7 @@ namespace Whirlwind.Semantic.Visitor
 {
     partial class Visitor
     {
-        private void _visitTypeClass(ASTNode node, List<Modifier> typeModifiers)
+        private void _visitTypeClass(ASTNode node, List<Modifier> typeModifiers, List<GenericVariable> genericVars)
         {
             _nodes.Add(new BlockNode("TypeClass"));
 
@@ -100,6 +100,9 @@ namespace Whirlwind.Semantic.Visitor
 
             if (!_table.AddSymbol(new Symbol(name, typeClass, typeModifiers)))
                 throw new SemanticException($"Unable to redeclare symbol by name `{name}`", node.Content[1].Position);
+
+            if (genericVars.Count > 0)
+                _makeGeneric(node, genericVars, typeModifiers, node.Content[1].Position);
 
             // declare new types
             for (int i = 0; i < typeClass.Instances.Count; i++)

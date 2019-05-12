@@ -16,7 +16,7 @@ subscope: '{' main '}' ;
 capture_block: capture subscope ;
 
 // include statement
-include_stmt: 'INCLUDE' ( pkg_name ['STRING_LITERAL'] | include_set 'FROM' pkg_name ) ;
+include_stmt: 'INCLUDE' ( pkg_name ['AS' 'IDENTIFIER'] | include_set 'FROM' pkg_name ) ;
 pkg_name: [pkg_back_move] 'IDENTIFIER' (':' ':' 'IDENTIFIER' | pkg_back_move 'IDENTIFIER')* ;
 pkg_back_move: '.' '.' ;
 include_set: '{' 'IDENTIFIER' (',' 'IDENTIFIER')* '}' ;
@@ -155,6 +155,7 @@ expr_extension: 'IF' expr 'ELSE' expr
 | ':>' expr
 | then_extension
 | '.' '.' expr
+| 'AS' ('IDENTIFIER' trailer* | types)
 ; 
 
 // then extension

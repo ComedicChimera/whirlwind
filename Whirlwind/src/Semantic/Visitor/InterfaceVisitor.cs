@@ -40,9 +40,6 @@ namespace Whirlwind.Semantic.Visitor
 
             _selfNeedsPointer = false;
 
-            _table.AddScope();
-            _table.DescendScope();
-
             var interfaceType = new InterfaceType();
             int genericOffset = 0;
 
@@ -68,6 +65,9 @@ namespace Whirlwind.Semantic.Visitor
             }
             else
             {
+                _table.AddScope();
+                _table.DescendScope();
+
                 genericVars = new List<GenericVariable>();
                 dt = _generateType((ASTNode)node.Content[2]);
             }

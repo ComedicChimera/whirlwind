@@ -23,8 +23,8 @@ namespace Whirlwind.Semantic.Visitor
             switch (root.Name)
             {
                 case "type_class_decl":
-                    _visitTypeClass(root, modifiers);
-                    break;
+                    _visitTypeClass(root, modifiers, genericVars);
+                    return;
                 case "func_decl":
                     _visitFunction(root, modifiers);
                     break;
@@ -45,7 +45,6 @@ namespace Whirlwind.Semantic.Visitor
                     break;
             }
 
-            // FIX POSITION DATA
             if (genericVars.Count > 0)
                 _makeGeneric(root, genericVars, modifiers, namePosition);
         }

@@ -1,14 +1,18 @@
 ﻿struct Point<T> {
 	x, y: T;
+}
 
-	constructor(x, y: T) {
-		this.x = x;
-		this.y = y;
+interf<T> for Point {
+	func test(other: Point<T>) T {
+		return (this.x + other.x) * (this.y + other.y);
 	}
 }
 
 func main() {
-	let p = new Point<int>(3, 4);
+	let p = new Point{x = 0, y = 10};
 
-	p = new Point<int>(6, 7);
+	let p2 = new Point{x = 4, y = -3};
+
+	let x: int;
+	x = p.test(p2);
 }

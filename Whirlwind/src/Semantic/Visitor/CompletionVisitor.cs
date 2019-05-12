@@ -32,11 +32,12 @@ namespace Whirlwind.Semantic.Visitor
                     scopePos++;
                     break;
                 case "Interface":
+                case "BindInterface":
                     _completeInterface((BlockNode)node);
                     _table.MoveScope(_table.GetScopeCount() - 1, scopePos);
 
-                    // complete all sub templates (avoid scope complications)
-                    _completeTemplates((BlockNode)node, scopePos);
+                    // complete all sub generics (avoid scope complications)
+                    _completeGenerics((BlockNode)node, scopePos);
 
                     scopePos++;
                     break;
@@ -103,10 +104,10 @@ namespace Whirlwind.Semantic.Visitor
                     case "AsyncFunction":
                         scopePos++;
                         break;
-                    case "Template":
+                    case "Generic":
                         {
                             // perform generate checking (clean up scope and nodes after done)
-                            // create working scope for clean template generate checking
+                            // create working scope for clean generic generate checking
                             _table.AddScope();
                             _table.DescendScope();
 
@@ -133,6 +134,7 @@ namespace Whirlwind.Semantic.Visitor
                         break;
                     case "TypeClass":
                     case "Interface":
+                    case "BindInterface":
                     case "Agent":
                         _table.GotoScope(scopePos);
 
@@ -186,17 +188,17 @@ namespace Whirlwind.Semantic.Visitor
             _table.AscendScope();
         }
 
-        // completes all sub templates (excluding generates) of a type class or interface
-        private void _completeTemplates(BlockNode block, int scopePos)
+        // completes all sub generics (excluding generates) of a type class or interface
+        private void _completeGenerics(BlockNode block, int scopePos)
         {
             _table.GotoScope(scopePos);
 
             int tPos = 0;
             foreach (var item in block.Block)
             {
-                if (item.Name == "Template")
+                if (item.Name == "Generic")
                 {
-                    // visit normal template body and generate necessary code
+                    // visit normal generic body and generate necessary code
                     _table.GotoScope(tPos);
 
                     int _ = 0;
@@ -235,7 +237,7 @@ namespace Whirlwind.Semantic.Visitor
                 }
                 else if (item.Name.EndsWith("Function"))
                     _completeFunction((BlockNode)item);
-                else if (item.Name == "Template")
+                else if (item.Name == "Generic")
                 {
                     _table.GotoScope(sPos);
 

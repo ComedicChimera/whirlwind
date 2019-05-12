@@ -88,7 +88,18 @@ namespace Whirlwind.Semantic.Visitor
                     }
                     else if (op == "IS")
                     {
-                        _nodes.Add(new ValueNode("Type", _generateType((ASTNode)((ASTNode)subNode).Content[1])));
+                        ASTNode typeNode = (ASTNode)((ASTNode)subNode).Content[1];
+                        DataType dt;
+
+                        if (typeNode.Content[0] is TokenNode tk && tk.Tok.Type == "IDENTIFIER"
+                            && _table.Lookup(tk.Tok.Value, out Symbol sym) && sym.DataType is CustomNewType)
+                        {
+                            dt = sym.DataType;
+                        }
+                        else
+                            dt = _generateType(typeNode);
+
+                        _nodes.Add(new ValueNode("Type", dt));
 
                         _nodes.Add(new ExprNode("Is", new SimpleType(SimpleType.SimpleClassifier.BOOL)));
 
@@ -122,6 +133,62 @@ namespace Whirlwind.Semantic.Visitor
 
                         _nodes.Add(new ExprNode("Range", new ArrayType(intType, -1)));
                         PushForward(2);
+                    }
+                    else if (op == "AS")
+                    {
+                        DataType dt = new VoidType();
+                        bool hasType = false;
+
+                        foreach (var item in ((ASTNode)subNode).Content)
+                        {
+                            if (item is TokenNode tk && tk.Tok.Type == "IDENTIFIER")
+                            {
+                                if (_table.Lookup(tk.Tok.Value, out Symbol sym))
+                                {
+                                    if (sym.Modifiers.Contains(Modifier.CONSTEXPR))
+                                        _nodes.Add(new ConstexprNode(sym.Name, sym.DataType, sym.Value));
+                                    else
+                                        _nodes.Add(new IdentifierNode(sym.Name, sym.DataType));
+
+                                    if (sym.DataType is CustomInstance cinst)
+                                    {
+                                        if (!_table.Lookup(cinst.Parent.Name, out Symbol _))
+                                            throw new SemanticException("Unable type class instances outside of type class's visible scope",
+                                                node.Content[0].Position);
+                                    }
+                                }
+                                else {
+                                    throw new SemanticException($"Undefined Symbol: `{tk.Tok.Value}`", node.Position);
+                                }
+                            }
+                            else if (item.Name == "trailer")
+                            {
+                                _visitTrailer((ASTNode)item);
+
+                                if (new[] { "GetTupleMember", "Subscript", "Slice", "InitList", "Call", "CallAsync", "CallConstructor",
+                                    "InitStruct", "InitTCConstructor" }.Contains(_nodes.Last().Name))
+                                {
+                                    throw new SemanticException("Operation not valid in right side of `as` operator", item.Position);
+                                }
+                            }
+                            else if (item.Name == "types")
+                            {
+                                dt = _generateType((ASTNode)item);
+                                hasType = true;
+                            }
+                                
+                        }
+
+                        if (!hasType)
+                            dt = _nodes.Last().Type;
+
+                        if (dt.Coerce(_nodes[_nodes.Count - 2].Type))
+                        {
+                            _nodes.Add(new ExprNode("As", dt));
+                            PushForward(2);
+                        }
+                        else
+                            throw new SemanticException("Unable to perform explicit coercion between the two types", subNode.Position);
                     }
                 }
             }

@@ -48,6 +48,14 @@ namespace Whirlwind.Semantic.Visitor
                                 _nodes.Add(new ConstexprNode(sym.Name, sym.DataType, sym.Value));
                             else
                                 _nodes.Add(new IdentifierNode(sym.Name, sym.DataType));
+
+                            if (sym.DataType is CustomInstance cinst)
+                            {
+                                if (!_table.Lookup(cinst.Parent.Name, out Symbol _))
+                                    throw new SemanticException("Unable type class instances outside of type class's visible scope", 
+                                        node.Content[0].Position);
+                            }
+
                             return;
                         }
                         {

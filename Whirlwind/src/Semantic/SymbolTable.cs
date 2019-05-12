@@ -16,6 +16,12 @@ namespace Whirlwind.Semantic
             Captured = new List<Symbol>();
             Blocked = new List<string>();
         }
+
+        public Capture(List<string> blocked)
+        {
+            Captured = new List<Symbol>();
+            Blocked = blocked;
+        }
     }
 
     class SymbolTable

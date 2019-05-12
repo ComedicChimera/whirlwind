@@ -62,6 +62,9 @@ namespace Whirlwind.Semantic.Visitor
                 case TypeClassifier.INTERFACE:
                     vfn = _visitInterface;
                     break;
+                case TypeClassifier.TYPE_CLASS:
+                    vfn = _visitGenerateTypeClass;
+                    break;
                 default:
                     vfn = _visitStruct;
                     break;
@@ -81,11 +84,34 @@ namespace Whirlwind.Semantic.Visitor
                 throw new SemanticException($"Unable to redeclare symbol by name `{sym.Name}`", position);
         }
 
+        private void _visitGenerateTypeClass(ASTNode node, List<Modifier> modifiers)
+        {
+            _table.AddScope();
+            _table.DescendScope();
+
+            _visitTypeClass(node, modifiers, new List<GenericVariable>());
+
+            Symbol sym = _table.GetScope().First();
+
+            _table.AscendScope();
+
+            _table.AddSymbol(sym);
+        }
+
         private GenericEvaluator _decorateEval(ASTNode node, Action<ASTNode, List<Modifier>> vfn)
         {
             return delegate (Dictionary<string, DataType> aliases, GenericType parent)
             {
-                _table.AddScope();
+                if (parent.DataType is CustomType ct)
+                {
+                    _table.AddScope(new Capture(ct.Instances
+                        .Where(x => x is CustomNewType)
+                        .Select(x => ((CustomNewType)x).Name)
+                        .ToList()));
+                }
+                else
+                    _table.AddScope();
+
                 _table.DescendScope();
 
                 // add variant parent symbol for use when necessary
