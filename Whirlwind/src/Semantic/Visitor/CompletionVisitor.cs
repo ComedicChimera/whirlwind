@@ -79,15 +79,6 @@ namespace Whirlwind.Semantic.Visitor
 
                     scopePos++;
                     break;
-                case "Agent":
-                    _table.GotoScope(scopePos);
-
-                    _completeAgent((BlockNode)node);
-
-                    _table.AscendScope();
-
-                    scopePos++;
-                    break;
             }
         }
 
@@ -116,7 +107,7 @@ namespace Whirlwind.Semantic.Visitor
                             foreach (var generate in ((GenericType)(((BlockNode)node).Nodes[0].Type)).Generates)
                             {
                                 // create artificial scope for all who need it
-                                if (new[] { "TypeClass", "Interface", "Decorator" }.Contains(generate.Block.Name))
+                                if (!generate.Block.Name.EndsWith("Function"))
                                     _table.AddScope();
 
                                 int refTemp = tPos;
@@ -135,7 +126,6 @@ namespace Whirlwind.Semantic.Visitor
                     case "TypeClass":
                     case "Interface":
                     case "BindInterface":
-                    case "Agent":
                         _table.GotoScope(scopePos);
 
                         _evaluateGenerates(((BlockNode)node).Block);
@@ -166,6 +156,8 @@ namespace Whirlwind.Semantic.Visitor
                     ErrorQueue.Add(se);
 
                     fn.Block = new List<ITypeNode>();
+
+                    _table.AscendScope();
                 }
                 
                 _nodes.RemoveAt(1);
@@ -177,7 +169,36 @@ namespace Whirlwind.Semantic.Visitor
             _table.AddScope();
             _table.DescendScope();
 
-            _table.AddSymbol(new Symbol("$THIS", ((InterfaceType)interf.Nodes[0].Type).GetInstance()));
+            if (interf.Name == "Interface")
+                _table.AddSymbol(new Symbol("$THIS", ((InterfaceType)interf.Nodes[0].Type).GetInstance()));
+            // make sure generics are defined as instance
+            else if (interf.Nodes[1].Type is GenericType gt)
+            {
+                DataType dt;
+
+                switch (gt.DataType.Classify())
+                {
+                    case TypeClassifier.STRUCT:
+                        dt = ((StructType)gt.DataType).GetInstance();
+                        break;
+                    case TypeClassifier.INTERFACE:
+                        dt = ((InterfaceType)gt.DataType).GetInstance();
+                        break;
+                    case TypeClassifier.TYPE_CLASS:
+                        dt = ((CustomType)gt.DataType).GetInstance();
+                        break;
+                    default:
+                        dt = gt.DataType;
+                        break;
+                }
+
+                _table.AddSymbol(new Symbol("$THIS", dt));
+            }            
+            else
+                // for all who need it, it is already declared as an instance
+                _table.AddSymbol(new Symbol("$THIS", interf.Nodes[1].Type));
+
+
 
             foreach (var item in interf.Block)
             {
@@ -213,44 +234,6 @@ namespace Whirlwind.Semantic.Visitor
             }
 
             _table.AscendScope();
-        }
-
-        private void _completeAgent(BlockNode block)
-        {
-            int sPos = 0;
-
-            foreach (var item in block.Block)
-            {
-                if (item.Name == "EventHandler")
-                {
-                    _table.GotoScope(sPos);
-
-                    BlockNode evNode = (BlockNode)item;
-
-                    _nodes.Add(new BlockNode("EventBlock"));
-                    _visitBlockNode(((IncompleteNode)evNode.Block[0]).AST, new StatementContext(true, false, false));
-
-                    evNode.Block = ((BlockNode)_nodes.Last()).Block;
-                    _nodes.RemoveAt(_nodes.Count - 1);
-
-                    _table.AscendScope();
-                }
-                else if (item.Name.EndsWith("Function"))
-                    _completeFunction((BlockNode)item);
-                else if (item.Name == "Generic")
-                {
-                    _table.GotoScope(sPos);
-
-                    int _ = 0;
-                    _completeBlock(((BlockNode)item).Block[0], ref _);
-
-                    _table.AscendScope();
-                }
-                else
-                    continue;
-
-                sPos++;
-            }
         }
     }
 }

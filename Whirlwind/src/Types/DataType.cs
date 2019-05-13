@@ -24,6 +24,9 @@ namespace Whirlwind.Types
             if (Classify() != TypeClassifier.REFERENCE && other.Classify() == TypeClassifier.REFERENCE)
                 return Coerce(((ReferenceType)other).DataType);
 
+            if (other is GenericAlias gp)
+                return Coerce(gp.ReplacementType);
+
             return _coerce(other);
         }
 
@@ -46,6 +49,9 @@ namespace Whirlwind.Types
         // check two data types for perfect equality
         public bool Equals(DataType other)
         {
+            if (other is GenericAlias gp)
+                return Equals(gp.ReplacementType);
+
             if (Constant == other.Constant)
                 return _equals(other);
 

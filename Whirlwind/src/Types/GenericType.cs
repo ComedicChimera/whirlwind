@@ -2,6 +2,7 @@
 using System.Linq;
 
 using Whirlwind.Semantic;
+using Whirlwind.Parser;
 
 namespace Whirlwind.Types
 {
@@ -87,6 +88,21 @@ namespace Whirlwind.Types
         }
     }
 
+    struct GenericInterface
+    {
+        public ASTNode Body;
+
+        public List<InterfaceType> StandardImplements;
+        public List<GenericType> GenericImplements;
+
+        public GenericInterface(ASTNode body)
+        {
+            Body = body;
+            StandardImplements = new List<InterfaceType>();
+            GenericImplements = new List<GenericType>();
+        }
+    }
+
     // represents the full generic object (entire generic method, obj, ect.)
     class GenericType : DataType
     {
@@ -96,6 +112,8 @@ namespace Whirlwind.Types
 
         public DataType DataType { get; private set; }
         public List<GenericGenerate> Generates { get; private set; }
+
+        public GenericInterface GenericInterface;
 
         public GenericType(List<GenericVariable> generics, DataType type, GenericEvaluator evaluator)
         {
@@ -109,6 +127,8 @@ namespace Whirlwind.Types
             Generates = new List<GenericGenerate>();
 
             Constant = true;
+
+            GenericInterface = new GenericInterface();
         }
 
         public bool CreateGeneric(List<DataType> dataTypes, out DataType genericType)

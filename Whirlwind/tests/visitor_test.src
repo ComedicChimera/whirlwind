@@ -1,18 +1,9 @@
-﻿struct Point<T> {
-	x, y: T;
-}
-
-interf<T> for Point {
-	func test(other: Point<T>) T {
-		return (this.x + other.x) * (this.y + other.y);
+﻿interf Test<T> {
+	func fn(x: T) T {
+		return x;
 	}
-}
 
-func main() {
-	let p = new Point{x = 0, y = 10};
-
-	let p2 = new Point{x = 4, y = -3};
-
-	let x: int;
-	x = p.test(p2);
+	variant<int> fn {
+		return x ~^ 2;
+	}
 }

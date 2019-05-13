@@ -23,7 +23,7 @@ namespace Whirlwind.Semantic.Visitor
             // declare self referential type (ok early b/c reference)
             _table.AddSymbol(new Symbol(name, new SelfType(interfaceType) { Constant = true }));
 
-            _collectInterfaceMethods(interfaceType, (ASTNode)node.Content[node.Content[2].Name == "generic_tag" ? 4 : 3]);
+            _collectInterfaceMethods(interfaceType, (ASTNode)node.Content[node.Content[2].Name == "generic_tag" ? 4 : 3], false);
 
             _nodes.Add(new IdentifierNode(name, interfaceType));
             MergeBack();
@@ -36,99 +36,118 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitInterfaceBind(ASTNode node)
         {
-            _nodes.Add(new BlockNode("BindInterface"));
-
             _selfNeedsPointer = false;
 
-            var interfaceType = new InterfaceType();
-            int genericOffset = 0;
-
             DataType dt;
-            List<GenericVariable> genericVars;
 
             if (node.Content[1].Name == "generic_tag")
-            {
-                genericVars = _primeGeneric((ASTNode)node.Content[1]);
-
-                dt = _generateType((ASTNode)node.Content[3]);
-
-                if (dt is GenericType gt)
-                {
-                    if (!gt.CompareGenerics(genericVars))
-                        throw new SemanticException("Generic variables of generic binding must match those of generic type",
-                            node.Content[1].Position);
-                }
-                else
-                    throw new SemanticException("Unable to create generic binding for non-generic type", node.Content[1].Position);
-
-                genericOffset = 1;
-            }
+                _visitGenericBind(node);
             else
             {
+                _nodes.Add(new BlockNode("BindInterface"));
+
+                var interfaceType = new InterfaceType();
+
                 _table.AddScope();
                 _table.DescendScope();
 
-                genericVars = new List<GenericVariable>();
                 dt = _generateType((ASTNode)node.Content[2]);
-            }
 
-            _collectInterfaceMethods(interfaceType, (ASTNode)node.Content[node.Content.Count - 2]);
+                _collectInterfaceMethods(interfaceType, (ASTNode)node.Content[node.Content.Count - 2], true);
 
-            if (!interfaceType.Derive(dt))
-                throw new SemanticException("All methods of type interface must define a body", node.Content[2].Position);    
+                interfaceType.Derive(dt);                    
 
-            _nodes.Add(new ValueNode("Interface", interfaceType));
-            _nodes.Add(new ValueNode("Type", dt));
+                _nodes.Add(new ValueNode("Interface", interfaceType));
+                _nodes.Add(new ValueNode("Type", dt));
 
-            MergeBack(2);
+                MergeBack(2);
 
-            if (node.Content.Count > 5 + genericOffset)
-            {
-                _nodes.Add(new ExprNode("Implements", new VoidType()));
-
-                foreach (var item in ((ASTNode)node.Content[4 + genericOffset]).Content)
+                if (node.Content.Count > 5)
                 {
-                    if (item.Name == "types")
+                    _nodes.Add(new ExprNode("Implements", new VoidType()));
+
+                    foreach (var item in ((ASTNode)node.Content[4]).Content)
                     {
-                        DataType impl = _generateType((ASTNode)item);
-
-                        if (impl is InterfaceType it)
+                        if (item.Name == "types")
                         {
-                            if (!it.Derive(dt))
-                                throw new SemanticException("The given data type does not implement all required methods of the interface",
+                            DataType impl = _generateType((ASTNode)item);
+
+                            if (impl is InterfaceType it)
+                            {
+                                if (!it.Derive(dt))
+                                    throw new SemanticException("The given data type does not implement all required methods of the interface",
+                                        item.Position);
+                            }
+                            else
+                                throw new SemanticException("Type interface can only implement interfaces", item.Position);
+
+                            _nodes.Add(new ValueNode("Implement", impl));
+                            MergeBack();
+                        }
+                    }
+
+                    MergeBack(); // merge to interface decl
+                }
+
+                _selfNeedsPointer = true;
+
+                _table.AscendScope();
+            }
+        }
+
+        private void _visitGenericBind(ASTNode node)
+        {
+            var genericVars = _primeGeneric((ASTNode)node.Content[1]);
+
+            var dt = _generateType((ASTNode)node.Content[3]);
+
+            if (dt is GenericType gt)
+            {
+                if (!gt.CompareGenerics(genericVars))
+                    throw new SemanticException("Generic variables of generic binding must match those of generic type",
+                        node.Content[1].Position);
+
+                var gei = new GenericInterface((ASTNode)node.Content[node.Content.Count - 2]);
+
+                _nodes.Add(new BlockNode("GenericInterfaceBind"));
+
+                _nodes.Add(new ValueNode("Type", dt));
+                MergeBack();
+
+                var interfaceType = new InterfaceType();
+
+                _collectInterfaceMethods(interfaceType, gei.Body, true);        
+
+                if (node.Content[5].Name == "Implements")
+                {
+                    foreach (var item in ((ASTNode)node.Content[5]).Content)
+                    {
+                        if (item.Name == "types")
+                        {
+                            var type = _generateType((ASTNode)item);
+
+                            if (type is InterfaceType impl)
+                                gei.StandardImplements.Add(impl);
+                            else if (type is GenericType gimpl && gimpl.DataType is InterfaceType)
+                                gei.GenericImplements.Add(gimpl);
+                            else
+                                throw new SemanticException("Generic type interface can only implement interfaces and generic interfaces",
                                     item.Position);
                         }
-                        else if (impl is GenericType gt)
-                        {
-                            // check generic case (make sure variables match up)
-                            if (!gt.CompareGenerics(genericVars))
-                                throw new SemanticException("Generic variables of implements must match the generic variables of the base type", 
-                                    item.Position);
-
-                            if (gt.DataType.Classify() != TypeClassifier.INTERFACE)
-                                throw new SemanticException("Generic implement must be an interface", item.Position);
-
-                            if (!((InterfaceType)gt.DataType).Derive(dt))
-                                throw new SemanticException("The given type does not implement all required methods of the interface",
-                                    item.Position);
-                        }
-                        else
-                            throw new SemanticException("Type interface can only implement interfaces", item.Position);                                                  
-
-                        _nodes.Add(new ValueNode("Implement", impl));
-                        MergeBack();
                     }
                 }
 
-                MergeBack(); // merge to interface decl
+                gt.GenericInterface = gei;
+
+                _selfNeedsPointer = true;
+
+                _table.AscendScope();
             }
-
-            _selfNeedsPointer = true;
-
-            _table.AscendScope();
+            else
+                throw new SemanticException("Unable to create generic binding for non-generic type", node.Content[1].Position);
         }
 
-        private void _collectInterfaceMethods(InterfaceType interfaceType, ASTNode block)
+        private void _collectInterfaceMethods(InterfaceType interfaceType, ASTNode block, bool typeInterface)
         {
             foreach (var method in block.Content)
             {
@@ -160,6 +179,9 @@ namespace Whirlwind.Semantic.Visitor
 
                     if (decl.Content.Last().Name == "func_body")
                         _nodes.Add(new IncompleteNode((ASTNode)decl.Content.Last()));
+                    else if (typeInterface)
+                        throw new SemanticException("All methods of type interface must define a body",
+                            decl.Content.Last().Position);
                     else
                     {
                         interfaceType.AddMethod(new Symbol($"__{op}__", ft), false);
@@ -177,6 +199,10 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     ASTNode func = (ASTNode)method;
 
+                    if (typeInterface && func.Content.Last().Name != "func_body")
+                        throw new SemanticException("All methods of type interface must define a body",
+                            func.Content[func.Content.Count - 2].Position);
+
                     if (func.Content[2].Name == "generic_tag")
                     {
                         var genericVars = _primeGeneric((ASTNode)func.Content[2]);
@@ -186,7 +212,7 @@ namespace Whirlwind.Semantic.Visitor
                         _makeGeneric(func, genericVars, memberModifiers, func.Content[1].Position);
 
                         var genNode = (IdentifierNode)((BlockNode)_nodes.Last()).Nodes[0];
-
+                       
                         if (!interfaceType.AddMethod(new Symbol(genNode.IdName, genNode.Type, memberModifiers),
                             func.Content.Last().Name == "func_body"))
                             throw new SemanticException("Interface cannot contain duplicate members", func.Content[1].Position);

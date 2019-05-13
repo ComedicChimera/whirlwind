@@ -120,12 +120,46 @@ namespace Whirlwind.Semantic.Visitor
                 foreach (var alias in aliases)
                     _table.AddSymbol(new Symbol(alias.Key, new GenericAlias(alias.Value)));
 
+                var newContent = node.Content.Where(x => x.Name != "generic_tag").ToList();
+                node = new ASTNode(node.Name);
+                node.Content = newContent;
+
                 vfn(node, new List<Modifier>());
                 BlockNode generateNode = (BlockNode)_nodes.Last();
 
                 _nodes.RemoveAt(_nodes.Count - 1);
 
                 DataType dt = _table.GetScope().Last().DataType;
+
+                if (parent.GenericInterface.Body != null)
+                {
+                    var interf = dt.GetInterface();
+                    _collectInterfaceMethods(interf, parent.GenericInterface.Body, true);
+
+                    if (parent.GenericInterface.StandardImplements != null)
+                    {
+                        foreach (var item in parent.GenericInterface.StandardImplements)
+                        {
+                            if (!item.Derive(dt))
+                                throw new SemanticException("This generic generate is not valid for the given interface", node.Content[1].Position);
+                        }
+                    }
+
+                    if (parent.GenericInterface.GenericImplements != null)
+                    {
+                        foreach (var item in parent.GenericInterface.GenericImplements)
+                        {
+                            if (item.CreateGeneric(aliases.Values.ToList(), out DataType impl))
+                            {
+                                if (((InterfaceType)impl).Derive(dt))
+                                    continue;
+                            }
+
+                            throw new SemanticException("This generic generate is not valid for the given interface", node.Content[1].Position);
+                        }
+                    }
+                    
+                }
 
                 _table.AscendScope();
                 _table.RemoveScope();
@@ -139,12 +173,14 @@ namespace Whirlwind.Semantic.Visitor
             TokenNode id = (TokenNode)node.Content[2];
 
             if (!_table.Lookup(id.Tok.Value, out Symbol symbol))
+                throw new SemanticException($"Undefined symbol `{id.Tok.Value}`", id.Position);
+
+            if (symbol.DataType.Classify() != TypeClassifier.GENERIC)
             {
                 // no guard necessary since sub-variance can only occur in objects and interfaces
                 if (!_table.Lookup("$VARIANT_PARENT", out symbol))
-                    throw new SemanticException($"Undefined symbol `{id.Tok.Value}`", id.Position);
+                    throw new SemanticException("Unable to add variant to non-generic", id.Position);
             }
-            
 
             if (symbol.DataType.Classify() == TypeClassifier.GENERIC)
             {

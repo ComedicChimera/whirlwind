@@ -1,10 +1,13 @@
 # TODO
 
 - change self referential types to work off a prefixed name system and remove self-type
+- add support for automatic generic initializer lists
 - add package linker
 - add 2 sanitizers (constexpr and memory) [Note: constexpr does in depth checking on all constant expressions]
 - remove MirrorType and declare builtins in SymbolTable as necessary
 - add prelude (later)
+- add support for generic binding
+- object level method variance
 
 # THOUGHTS
 
@@ -21,8 +24,7 @@
 # TESTING
 
 - static get
-- object level method variance
 - change include syntax to use `::` instead of `.`
   * include { Println, Scan } from io::std;
   * include ..a::b;
-- add support for generic binding
+

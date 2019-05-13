@@ -12,6 +12,10 @@ namespace Whirlwind.Semantic.Checker
         // takes in rootType by reference so it can handle overloads / type mutations
         public static void CheckOperand(ref DataType rootType, DataType operandType, string op, TextPosition position)
         {
+            // generic placeholders have no bearing on anything as they are just placeholders
+            if (rootType is GenericPlaceholder || operandType is GenericPlaceholder)
+                return;
+
             if (HasOverload(rootType, $"__{op}__", new ArgumentList(new List<DataType>() { operandType }),
                             out DataType returnType))
             {
