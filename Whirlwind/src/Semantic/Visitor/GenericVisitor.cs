@@ -114,9 +114,6 @@ namespace Whirlwind.Semantic.Visitor
 
                 _table.DescendScope();
 
-                // add variant parent symbol for use when necessary
-                _table.AddSymbol(new Symbol("$VARIANT_PARENT", parent));
-
                 foreach (var alias in aliases)
                     _table.AddSymbol(new Symbol(alias.Key, new GenericAlias(alias.Value)));
 
@@ -174,13 +171,6 @@ namespace Whirlwind.Semantic.Visitor
 
             if (!_table.Lookup(id.Tok.Value, out Symbol symbol))
                 throw new SemanticException($"Undefined symbol `{id.Tok.Value}`", id.Position);
-
-            if (symbol.DataType.Classify() != TypeClassifier.GENERIC)
-            {
-                // no guard necessary since sub-variance can only occur in objects and interfaces
-                if (!_table.Lookup("$VARIANT_PARENT", out symbol))
-                    throw new SemanticException("Unable to add variant to non-generic", id.Position);
-            }
 
             if (symbol.DataType.Classify() == TypeClassifier.GENERIC)
             {
