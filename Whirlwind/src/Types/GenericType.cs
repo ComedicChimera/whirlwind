@@ -192,7 +192,7 @@ namespace Whirlwind.Types
             {
                 while (e1.MoveNext() && e2.MoveNext())
                 {
-                    if (!_checkCompletedAliases(e1.Current.DataType, e2.Current, completedAliases))
+                    if (!_getCompletedAliases(e1.Current.DataType, e2.Current, completedAliases))
                     {
                         inferredTypes = new List<DataType>();
                         return false;
@@ -207,7 +207,7 @@ namespace Whirlwind.Types
                 // don't throw error, because invalid names will be caught later will be caught later
                 if (matches.Count() > 0)
                 {
-                    if (!_checkCompletedAliases(matches.First().DataType, nArg.Value, completedAliases))
+                    if (!_getCompletedAliases(matches.First().DataType, nArg.Value, completedAliases))
                     {
                         inferredTypes = new List<DataType>();
                         return false;
@@ -233,83 +233,102 @@ namespace Whirlwind.Types
             return false;
         }
 
-        private bool _checkCompletedAliases(DataType paramType, DataType argType, Dictionary<string, DataType> completedAliases)
+        private bool _getCompletedAliases(DataType ta, DataType tb, Dictionary<string, DataType> completedAliases)
         {
-            var aliases = _getCompletedAliases(paramType);
+            // if they can't even coerce each other, no need to check for aliases at all
+            // only need to check in one direction b/c if they are coercible ta will always have looser type definition
+            // for what we are looking at here
+            if (!ta.Coerce(tb))
+                return false;
 
-            foreach (var alias in aliases)
+            // no need to check for alignment when getting aliases since coercion already covers that
+
+            if (ta.Classify() == TypeClassifier.GENERIC_PLACEHOLDER)
             {
-                if (completedAliases.ContainsKey(alias))
+                string placeholderName = ((GenericPlaceholder)ta).Name;
+
+                if (completedAliases.ContainsKey(placeholderName))
                 {
-                    if (!completedAliases[alias].Coerce(argType))
+                    var ca = completedAliases[placeholderName];
+
+                    if (!ca.Coerce(tb))
                     {
-                        if (argType.Coerce(completedAliases[alias]))
-                            completedAliases[alias] = argType;
-                        else
-                            return false;
+                        if (tb.Coerce(ca))
+                        {
+                            completedAliases[placeholderName] = tb;
+                            return true;
+                        }
+
+                        return false;
                     }
                 }
                 else
-                    completedAliases[alias] = argType;
+                {
+                    completedAliases[placeholderName] = tb;
+                    return true;
+                }
             }
 
-            return true;
-        }
+            if (ta.Classify() == tb.Classify())
+                return false;
 
-        private List<string> _getCompletedAliases(DataType dt)
-        {
-            var aliasesCompleted = new List<string>();
-
-            switch (dt.Classify())
+            switch (ta.Classify())
             {
-                case TypeClassifier.GENERIC_PLACEHOLDER:
-                    aliasesCompleted.Add(((GenericPlaceholder)dt).Name);
-                    break;
                 case TypeClassifier.TUPLE:
-                    aliasesCompleted.AddRange(
-                        ((TupleType)dt).Types.SelectMany(x => _getCompletedAliases(x)).Distinct()
-                        );
-                    break;
+                    {
+                        TupleType tta = (TupleType)ta, ttb = (TupleType)tb;
+
+                        return Enumerable.Range(0, tta.Types.Count).All(i => _getCompletedAliases(tta.Types[i], ttb.Types[i], completedAliases));
+                    }
                 case TypeClassifier.ARRAY:
                 case TypeClassifier.LIST:
-                    aliasesCompleted.AddRange(_getCompletedAliases(((IIterable)dt).GetIterator()));
-                    break;
+                    return _getCompletedAliases(((IIterable)ta).GetIterator(), ((IIterable)tb).GetIterator(), completedAliases);
                 case TypeClassifier.DICT:
                     {
-                        DictType dictType = (DictType)dt;
+                        DictType dta = (DictType)ta, dtb = (DictType)tb;
 
-                        aliasesCompleted.AddRange(_getCompletedAliases(dictType.KeyType));
-                        aliasesCompleted.AddRange(_getCompletedAliases(dictType.ValueType));
+                        return _getCompletedAliases(dta.KeyType, dtb.KeyType, completedAliases) 
+                            && _getCompletedAliases(dta.ValueType, dtb.ValueType, completedAliases);
                     }
-                    break;
                 case TypeClassifier.FUNCTION:
                     {
-                        FunctionType ft = (FunctionType)dt;
+                        FunctionType fta = (FunctionType)ta, ftb = (FunctionType)tb;
 
-                        aliasesCompleted.AddRange(_getCompletedAliases(ft.ReturnType));
+                        if (!_getCompletedAliases(fta.ReturnType, ftb.ReturnType, completedAliases))
+                            return false;
 
-                        aliasesCompleted.AddRange(ft.Parameters.SelectMany(x => _getCompletedAliases(x.DataType)).Distinct().ToList());
+                        return Enumerable.Range(0, fta.Parameters.Count)
+                            .All(i => _getCompletedAliases(fta.Parameters[i].DataType, ftb.Parameters[i].DataType, completedAliases));
                     }
-                    break;
                 case TypeClassifier.POINTER:
-                    aliasesCompleted.AddRange(_getCompletedAliases(((PointerType)dt).DataType));
-                    break;
+                    return _getCompletedAliases(((PointerType)ta).DataType, ((PointerType)tb).DataType, completedAliases);
                 case TypeClassifier.REFERENCE:
-                    aliasesCompleted.AddRange(_getCompletedAliases(((ReferenceType)dt).DataType));
-                    break;
+                    return _getCompletedAliases(((ReferenceType)ta).DataType, ((ReferenceType)tb).DataType, completedAliases);
                 case TypeClassifier.STRUCT:
-                    aliasesCompleted.AddRange(((StructType)dt).Members.SelectMany(x => _getCompletedAliases(x.Value.DataType)));
-                    break;
+                    {
+                        StructType sta = (StructType)ta, stb = (StructType)tb;
+
+                        return sta.Members.All(x => _getCompletedAliases(x.Value.DataType, stb.Members[x.Key].DataType, completedAliases));
+                    }
                 case TypeClassifier.INTERFACE:
                     {
-                        var methods = (Dictionary<Symbol, bool>)typeof(InterfaceType).GetField("_methods").GetValue(dt);
+                        var methods = (Dictionary<Symbol, bool>)typeof(InterfaceType).GetField("_methods").GetValue(ta);
 
-                        aliasesCompleted.AddRange(methods.SelectMany(x => _getCompletedAliases(x.Key.DataType)));
+                        foreach (var method in methods)
+                        {
+                            // coercion checking means we know it exists
+                            ((InterfaceType)tb).GetFunction(method.Key.Name, out Symbol symbol);
+
+                            if (!_getCompletedAliases(method.Key.DataType, symbol.DataType, completedAliases))
+                                return false;
+                        }
+
+                        return true;
                     }
-                    break;
             }
 
-            return aliasesCompleted;
+            // low level type checking doesn't matter here (caught in coercion check above)
+            return true;
         }
 
         public bool AddVariant(List<DataType> dataTypes)

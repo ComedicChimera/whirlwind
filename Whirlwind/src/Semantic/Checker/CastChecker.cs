@@ -12,6 +12,10 @@ namespace Whirlwind.Semantic.Checker
             if (desired.Coerce(start))
                 return true;
 
+            // although alias possesses a type, for the purposes of casting, the alias is actually variadic
+            if (start.Classify() == TypeClassifier.GENERIC_ALIAS)
+                return true;
+
             switch (start.Classify())
             {
                 case TypeClassifier.SIMPLE:

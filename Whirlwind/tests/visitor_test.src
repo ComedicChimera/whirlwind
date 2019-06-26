@@ -1,9 +1,6 @@
-﻿interf Test<T> {
-	func fn(x: T) T {
-		return x;
-	}
+﻿func test<T>(l: [T], p: T)
+	=> l[p];
 
-	variant<int> fn {
-		return x ~^ 2;
-	}
+func main() {
+	test([1, 2, 3], 4);
 }

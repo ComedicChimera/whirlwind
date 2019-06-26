@@ -277,11 +277,13 @@ namespace Whirlwind.Semantic.Visitor
                                 if (!members[name].DataType.Coerce(item.Nodes[1].Type))
                                     throw new SemanticException($"Unable to initialize member {name} with the given type", positions[i]);
                             }
+
                             _nodes.Add(new ExprNode("InitList", ((StructType)root.Type).GetInstance()));
                             // add in root
                             PushForward(initCount + 1);
                             break;
                         }
+
                         throw new SemanticException("Unable to apply initializer list to the given type", node.Position);
                     case "(":
                         _visitFunctionCall(node, root);
