@@ -1,6 +1,5 @@
 # TODO
 
-- add support for automatic generic initializer lists
 - change self referential types to work off a prefixed name system and remove self-type
 - add package linker
 - add 2 sanitizers (constexpr and memory) [Note: constexpr does in depth checking on all constant expressions]
