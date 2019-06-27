@@ -183,6 +183,42 @@ namespace Whirlwind.Types
             return false;
         }
 
+        public bool Infer(Dictionary<string, DataType> members, out List<DataType> inferredTypes)
+        {
+            var completedAliases = new Dictionary<string, DataType>();
+
+            // impossible for instance struct generic to exist
+            if (DataType is StructType st)
+            {
+                foreach (var member in members)
+                {
+                    if (!st.Members.Keys.Contains(member.Key) 
+                        || !_getCompletedAliases(st.Members[member.Key].DataType, member.Value, completedAliases))
+                    {
+                        inferredTypes = new List<DataType>();
+                        return false;
+                    }
+                }
+
+                if (completedAliases.Count == _generics.Count)
+                {
+                    _generics.Where(y => y.Name == "T").First().Restrictors.Any(y => y.Coerce(completedAliases["T"]));
+
+                    if (completedAliases.All(x => {
+                        var res = _generics.Where(y => y.Name == x.Key).First().Restrictors;
+                        return res.Count == 0 || res.Any(y => y.Coerce(x.Value));
+                    }))
+                    {
+                        inferredTypes = _generics.Select(x => completedAliases[x.Name]).ToList();
+                        return true;
+                    }
+                }
+            }
+
+            inferredTypes = new List<DataType>();
+            return false;
+        }
+
         private bool _inferFromFunction(FunctionType fnType, ArgumentList arguments, out List<DataType> inferredTypes)
         {
             var completedAliases = new Dictionary<string, DataType>();
@@ -253,14 +289,13 @@ namespace Whirlwind.Types
 
                     if (!ca.Coerce(tb))
                     {
-                        if (tb.Coerce(ca))
-                        {
-                            completedAliases[placeholderName] = tb;
-                            return true;
-                        }
+                        if (!tb.Coerce(ca))
+                            return false;
 
-                        return false;
+                        completedAliases[placeholderName] = tb;
                     }
+
+                    return true;
                 }
                 else
                 {
@@ -269,8 +304,14 @@ namespace Whirlwind.Types
                 }
             }
 
-            if (ta.Classify() == tb.Classify())
-                return false;
+            if (ta.Classify() != tb.Classify())
+            {
+                if (ta is IIterable ita && tb is IIterable itb && !new[] { ta.Classify(), tb.Classify() }.Contains(TypeClassifier.DICT))
+                    return _getCompletedAliases(ita.GetIterator(), itb.GetIterator(), completedAliases);
+                else
+                    return false;
+            }
+                
 
             switch (ta.Classify())
             {

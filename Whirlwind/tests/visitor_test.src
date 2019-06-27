@@ -1,6 +1,12 @@
-﻿func test<T>(l: [T], p: T)
-	=> l[p];
+﻿struct Test<T> {
+	a, b, c: int;
+	d: [T];
+	e: T;
+	f: [T: str];
+}
 
 func main() {
-	test([1, 2, 3], 4);
+	let s: Test<float>;
+
+	s = new Test{a=0, b=4, c=-2, d=[0.5, 3.14], e=1.141, f={2.718: 'e'}};
 }

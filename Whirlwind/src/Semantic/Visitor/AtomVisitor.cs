@@ -283,6 +283,36 @@ namespace Whirlwind.Semantic.Visitor
                             PushForward(initCount + 1);
                             break;
                         }
+                        else if (root.Type is GenericType gt && gt.DataType.Classify() == TypeClassifier.STRUCT)
+                        {
+                            var baseStruct = (StructType)gt.DataType;
+
+                            if (initCount != baseStruct.Members.Count)
+                                throw new SemanticException("Struct initializer list must initialize all struct members", node.Content[0].Position);
+
+                            var initMembers = Enumerable.Range(0, initCount)
+                                .Select(i => (ExprNode)_nodes[_nodes.Count - initCount + i])
+                                .ToDictionary(x => ((IdentifierNode)x.Nodes[0]).IdName, x => x.Type);
+
+                            if (gt.Infer(initMembers, out List<DataType> inferredTypes))
+                            {
+                                gt.CreateGeneric(inferredTypes, out DataType result);
+
+                                _nodes.Add(new ExprNode("CreateGeneric", result));
+
+                                _nodes.RemoveAt(_nodes.Count - initCount - 1);
+                                _nodes.Add(root);
+                                MergeBack();
+
+                                // no need for additional checking if inference is successful
+                                _nodes.Add(new ExprNode("InitList", ((StructType)result).GetInstance()));
+                                // add in root
+                                PushForward();
+                                // add in args
+                                PushForward(initCount);
+                                break;
+                            }
+                        }
 
                         throw new SemanticException("Unable to apply initializer list to the given type", node.Position);
                     case "(":
