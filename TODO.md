@@ -10,6 +10,7 @@
 - rename closure to lambda (closure is a specific type of lambda and although your
 lambdas can act like closures, they aren't always technically)
 - clear up the behavior of null
+- make overloading based on parameter difference instead of coercion
 
 # THOUGHTS
 
@@ -18,6 +19,8 @@ lambdas can act like closures, they aren't always technically)
 - change integer literals to default to signed integers and make signed-unsigned coercion easier
 - add annotations to describe memory and program behavior (using `#` syntax)
 - add string interpolation
+- find a way to vary behavior based on type for interfaces (interface level method variance, a buffed is operator, etc.)
+  * although it is possible to do this via overloading
 
 # FUTURE
 
