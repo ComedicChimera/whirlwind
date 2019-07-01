@@ -7,8 +7,6 @@
 - add prelude (later)
 - add support for generic binding
 - allow for context-based inferencing (for lambdas and enumerated type classes)
-- rename closure to lambda (closure is a specific type of lambda and although your
-lambdas can act like closures, they aren't always technically)
 - clear up the behavior of null
 - make overloading based on parameter difference instead of coercion
 - update type class to use guards on the type constructor as opposed to having
