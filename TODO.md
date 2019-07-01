@@ -6,11 +6,19 @@
 - remove MirrorType and declare builtins in SymbolTable as necessary
 - add prelude (later)
 - add support for generic binding
-- allow for context-based inferencing (for lambdas)
+- allow for context-based inferencing (for lambdas and enumerated type classes)
 - rename closure to lambda (closure is a specific type of lambda and although your
 lambdas can act like closures, they aren't always technically)
 - clear up the behavior of null
 - make overloading based on parameter difference instead of coercion
+- update type class to use guards on the type constructor as opposed to having
+a separate (and illogical) value restrictor
+  * type Type Val(v: Int) when v < 3;
+- make sure type classes can only allow one alias (for logic purposes)
+and make sure that unpacking is functional in its more complex state (as in the
+following works as intended)
+  * from docs: `let num = Number::Int(3); let t: int = from (num as Int);`
+- allow decorators to work with function groups
 
 # THOUGHTS
 

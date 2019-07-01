@@ -254,7 +254,7 @@ base: 'INTEGER_LITERAL'
 | list
 | dict
 | tuple
-| closure
+| lambda
 | sub_expr
 | type_cast
 | partial_func
@@ -268,9 +268,9 @@ dict: '{' expr ':' expr (',' expr ':' expr)* '}' ;
 // tuple literal
 tuple: '(' expr (',' expr)+ ')' ;
 
-// inline functions (closures)
-closure: '|' args_decl_list '|' closure_body ;
-closure_body: '=>' expr
+// inline functions (lambdas)
+lambda: '|' args_decl_list '|' lambda_body ;
+lambda_body: '=>' expr
 | '{' [main] '}'
 ;
 

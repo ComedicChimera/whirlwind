@@ -62,7 +62,7 @@ A multi-value structure or some form of operation.
 | Dictionary | *KV Pairs* | An array of key value pairs |
 | KVPair | Key, Value | A single key value pair |
 | Tuple | *Tuple Elements* | A tuple |
-| Closure | *Parameters*, Function Body | A closure object |
+| Lambda | *Parameters*, Function Body | A lambda object |
 | TypeCast | Value | A type cast - return type is desired type | 
 | HeapAlloc | Size | Allocate a set amount of memory on the heap |
 | HeapAllocType | Type | Allocate enough memory to store a given type |
@@ -72,7 +72,7 @@ A multi-value structure or some form of operation.
 | ArrayComprehension | Iterator, Expression, \[Filter\] | Perform an array comprehension |
 | Filter | expr | A filter component for a comprehension |
 | Iterator | Root, *Identifiers* | Create an iterator over the some iterable |
-| CreateTemplate | Template | Converts a template to a value, return type is template type |
+| CreateGeneric | Generic | Converts a generic to a value, return type is generic type |
 | GetMember | Root, Identifier | Gets a member of a struct, object or other type |
 | InitList | *Initializers* | Create an instance from an initializer list |
 | Intializer | Identifier, expr | Initializer a given value in an initializer list |
@@ -147,8 +147,6 @@ ExprNodes made specifically for use in certain block statements and/or declarati
 | CForCondition | Expr | The end condition of a C-style for loop |
 | CForUpdateExpr | Expr | The expression to be called each cycle of a C-style for loop |
 | CForUpdateAssignment | Assignment | The assignment statement to evaluated after each cycle of a C-Style for loop |
-| ValueHandler | Expr, Identifier | A value handler within an agent event handler declaration |
-| ConditionHandler | Identifier, Expr | A conditional handler within an agent event handler declaration |
 
 ## Statement Node
 
@@ -214,6 +212,7 @@ Represents a single Whirlwind block statement or declaration.
 | FromStmt | Expr, Identifier, [FromExcept] | A from borrow statement |
 | FromExcept | `none` | A fail case for a from borrow statement |
 | FromBlock | VarDecl | A context manager |
+| LambdaBody | `none` | A body within a lambda expression |
 
 ### Block Values (Block Declarations)
 
@@ -228,8 +227,5 @@ All block declaration containing identifiers are using the identifier to represe
 | Decorator | *Expr* | A function declared with one or more decorators |
 | TypeClass | Identifier, *Implements* | A type class declaration |
 | Constructor | Identifier | A constructor within a type class |
-| Enum | Identifier | An enumerated type declaration |
-| Template | Identifier | A template declaration |
+| Generic | Identifier | A generic declaration |
 | Variant | VariantGenerate, Identifier | A variant declaration |
-| Agent | Identifier | An agent declaration |
-| EventHandler | Handler | An agent event handler declaration (containing either a value or condition handler) |

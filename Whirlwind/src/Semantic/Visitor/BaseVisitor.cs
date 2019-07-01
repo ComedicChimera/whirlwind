@@ -107,8 +107,8 @@ namespace Whirlwind.Semantic.Visitor
                         // will default to array if value is too small, so check not needed
                         PushForward(dict.Item3);
                         break;
-                    case "closure":
-                        _visitClosure((ASTNode)node.Content[0]);
+                    case "lambda":
+                        _visitLambda((ASTNode)node.Content[0]);
                         break;
                     case "sub_expr":
                         // base -> sub_expr -> ( expr ) 
@@ -271,7 +271,7 @@ namespace Whirlwind.Semantic.Visitor
             }
         }
 
-        private void _visitClosure(ASTNode node)
+        private void _visitLambda(ASTNode node)
         {
             var args = new List<Parameter>();
             DataType rtType = new VoidType();
@@ -284,8 +284,8 @@ namespace Whirlwind.Semantic.Visitor
                     case "args_decl_list":
                         args = _generateArgsDecl((ASTNode)item);
                         break;
-                    case "closure_body":
-                        _nodes.Add(new BlockNode("ClosureBody"));
+                    case "lambda_body":
+                        _nodes.Add(new BlockNode("LambdaBody"));
 
                         rtType = _visitFuncBody((ASTNode)item, args);
                         break;
@@ -294,7 +294,7 @@ namespace Whirlwind.Semantic.Visitor
 
             var fType = new FunctionType(args, rtType, async); 
 
-            _nodes.Add(new ExprNode("Closure", fType));
+            _nodes.Add(new ExprNode("Lambda", fType));
             PushForward();
         }
 
