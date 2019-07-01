@@ -17,6 +17,7 @@ and make sure that unpacking is functional in its more complex state (as in the
 following works as intended)
   * from docs: `let num = Number::Int(3); let t: int = from (num as Int);`
 - allow decorators to work with function groups
+- toughen up constancy a bit (allow it be casted away, but make it so that a const can't be made non-const by coercion)
 
 # THOUGHTS
 
