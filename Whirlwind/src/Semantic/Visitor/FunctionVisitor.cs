@@ -80,11 +80,11 @@ namespace Whirlwind.Semantic.Visitor
             {
                 _table.Lookup(name, out Symbol overload);
                 
-                if (overload.DataType is FunctionType)
+                if (overload.DataType is FunctionType oft)
                 {
-                    if (!overload.DataType.Coerce(fnType))
+                    if (FunctionGroup.CanDistinguish(oft, fnType))
                     {
-                        overload.DataType = new FunctionGroup(new List<FunctionType> { (FunctionType)overload.DataType, fnType }) { Constant = true };
+                        overload.DataType = new FunctionGroup(new List<FunctionType> { oft, fnType }) { Constant = true };
                         return;
                     }
                 }

@@ -38,13 +38,13 @@ namespace Whirlwind.Types
 
                 return true;
             }
-            else if (fn.DataType is FunctionType)
+            else if (fn.DataType is FunctionType fta)
             {
                 Symbol symbol = _methods.Where(x => x.Key.Name == fn.Name).First().Key;
 
-                if (symbol.DataType is FunctionType && !symbol.DataType.Coerce(fn.DataType))
+                if (symbol.DataType is FunctionType ftb && FunctionGroup.CanDistinguish(fta, ftb))
                 {
-                    symbol.DataType = new FunctionGroup(new List<FunctionType> { (FunctionType)symbol.DataType, (FunctionType)fn.DataType });
+                    symbol.DataType = new FunctionGroup(new List<FunctionType> { fta, ftb });
                     return true;
                 }
                 else if (symbol.DataType is FunctionGroup)

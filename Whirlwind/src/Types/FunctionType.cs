@@ -136,7 +136,7 @@ namespace Whirlwind.Types
         {
             foreach (var item in Functions)
             {
-                if (item.Coerce(ft))
+                if (!CanDistinguish(ft, item))
                     return false;
             }
 
@@ -155,6 +155,33 @@ namespace Whirlwind.Types
             }
 
             ft = null;
+            return false;
+        }
+
+        public static bool CanDistinguish(FunctionType a, FunctionType b)
+        {
+            using (var e1 = a.Parameters.GetEnumerator())
+            using (var e2 = b.Parameters.GetEnumerator())
+            {
+                while (e1.MoveNext() && e2.MoveNext())
+                {
+                    if ((e1.Current.Optional || e1.Current.Indefinite) && (e2.Current.Optional || e2.Current.Indefinite))
+                        return false;
+                    // no need for indefinite check since void type only occurs on indefinite arguments
+                    else if (e1.Current.DataType is VoidType || e2.Current.DataType is VoidType)
+                        return false;
+                    else if (!e1.Current.DataType.Equals(e2.Current.DataType))
+                        return true;
+                }
+            }
+
+            int aParamCount = a.Parameters.Count, bParamCount = b.Parameters.Count;
+
+            if (aParamCount < bParamCount)
+                return !b.Parameters[aParamCount].Optional && !b.Parameters[aParamCount].Indefinite;
+            else if (aParamCount > bParamCount)
+                return !a.Parameters[bParamCount].Optional && !a.Parameters[bParamCount].Indefinite;
+
             return false;
         }
 
