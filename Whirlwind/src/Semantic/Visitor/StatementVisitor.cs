@@ -127,7 +127,7 @@ namespace Whirlwind.Semantic.Visitor
             }
 
             if (exprCount == 0)
-                _nodes.Add(new StatementNode(stmtName, new List<ITypeNode>() { new ValueNode("Literal", new VoidType(), "null") }));
+                _nodes.Add(new StatementNode(stmtName));
             else if (exprCount == 1)
             {
                 _nodes.Add(new StatementNode(stmtName));

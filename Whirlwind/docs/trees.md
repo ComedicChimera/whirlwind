@@ -169,11 +169,10 @@ Represents a single Whirlwind statement.
 | DeclareConstexpr | *Constexpr Nodes* | Declare a constexpr or set of constexprs | **BLOCK** |
 | ThrowException | Exception | Throw a normal exception | **BLOCK** |
 | ThrowObject | Object | Wrap an object in an exception and throw it | **BLOCK** |
-| Delete | *Identifiers* | Delete a set of symbols | **BLOCK** (**STATEMENT** in bytecode stage) |
-| Return | Value | Return a value from a function | **BLOCK** |
+| Delete | *Identifiers* | Delete a set of symbols | **BLOCK** |
+| Return | *Value* | Return a value from a function | **BLOCK** |
+| Yield | *Value* | Yield-return a value from a function | **BLOCK** |
 | ExprStmt | Expr | Represents an expression being asserted to a statement | **STATEMENT** |
-| EnumConst | \[*EnumConstInitializer*\], *Identifiers* | Declare an enumerated set of constants | **BLOCK**|
-| EnumConstExpr | \[*EnumConstInitializer*\], *Identifiers* | Declare an enum const with a custom constexpr initializer | **BLOCK** |
 | Assignment | Variables, Initializers | Assign a set of variables to a new value | **STATEMENT** |
 
 ### The `None` Statement

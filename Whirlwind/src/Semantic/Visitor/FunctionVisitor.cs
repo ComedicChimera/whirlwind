@@ -204,19 +204,14 @@ namespace Whirlwind.Semantic.Visitor
             {
                 if (node.Name == "Return" || node.Name == "Yield")
                 {
-                    var typeList = new List<DataType>();
+                    var returnNode = (StatementNode)node;
 
-                    foreach (var expr in ((StatementNode)node).Nodes)
-                    {
-                        typeList.Add(expr.Type);
-                    }
-
-                    if (typeList.Count > 0)
+                    if (returnNode.Nodes.Count > 0)
                     {
                         if (!returnsValue && setReturn)
                             throw new SemanticException("Inconsistent return types", positions[pos]);
 
-                        DataType dt = typeList.Count == 1 ? typeList[0] : new TupleType(typeList);
+                        DataType dt = returnNode.Nodes[0].Type;
 
                         if (!returnsValue)
                             rtType = dt;
