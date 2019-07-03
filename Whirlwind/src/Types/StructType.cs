@@ -72,12 +72,8 @@ namespace Whirlwind.Types
 
         protected sealed override bool _coerce(DataType other)
         {
-            if (other.Classify() == TypeClassifier.STRUCT_INSTANCE)
-            {
-                StructType st = (StructType)other;
-
-                return Name == st.Name;
-            }
+            if (other is StructType st)
+                return Name == st.Name && _instance == st._instance;
 
             return false;
         }

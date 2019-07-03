@@ -12,6 +12,9 @@ namespace Whirlwind.Semantic.Checker
             if (desired.Coerce(start))
                 return true;
 
+            if (start.Constant != desired.Constant && desired.ConstCopy().Coerce(start.ConstCopy()))
+                return true;
+
             // although alias possesses a type, for the purposes of casting, the alias is actually variadic
             if (start.Classify() == TypeClassifier.GENERIC_ALIAS)
                 return true;

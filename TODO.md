@@ -8,16 +8,18 @@
 - add support for generic binding
 - allow for context-based inferencing (for lambdas and enumerated type classes)
 - clear up the behavior of null
-- make overloading based on parameter difference instead of coercion
 - update type class to use guards on the type constructor as opposed to having
-a separate (and illogical) value restrictor
+a separate (and illogical) value restrictors
   * type Type Val(v: Int) when v < 3;
 - make sure type classes can only allow one alias (for logic purposes)
 and make sure that unpacking is functional in its more complex state (as in the
 following works as intended)
   * from docs: `let num = Number::Int(3); let t: int = from (num as Int);`
 - allow decorators to work with function groups
-- toughen up constancy a bit (allow it be casted away, but make it so that a const can't be made non-const by coercion)
+- add range operator overload
+- add static as a life time specifier (to supplement the behavior lost by closures)
+- add pattern matching on variables after `is`
+  * `x is Type t`
 
 # THOUGHTS
 

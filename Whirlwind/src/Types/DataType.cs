@@ -8,6 +8,46 @@ namespace Whirlwind.Types
         // store the types interface
         public static readonly Dictionary<DataType, InterfaceType> Interfaces
             = new Dictionary<DataType, InterfaceType>();
+
+        public static bool GetTypeInterface(DataType dt, out InterfaceType typeInterf)
+        {
+            if (dt is StructType || dt is InterfaceType)
+            {
+                foreach (var item in Interfaces)
+                {
+                    if (dt.GetType().Equals(item.Key.GetType()) && (dt.Coerce(item.Key) || item.Key.Coerce(dt)))
+                    {
+                        typeInterf = item.Value;
+                        return true;
+                    }
+                }
+            }
+            else if (dt is CustomInstance cnt)
+            {
+                foreach (var item in Interfaces)
+                {
+                    if (item.Key is CustomType && item.Key.Equals(cnt.Parent))
+                    {
+                        typeInterf = item.Value;
+                        return true;
+                    }
+                }
+            }
+            else
+            {
+                foreach (var item in Interfaces)
+                {
+                    if (item.Key.Equals(dt))
+                    {
+                        typeInterf = item.Value;
+                        return true;
+                    }
+                }
+            }
+
+            typeInterf = null;
+            return false;
+        }
     }
 
     abstract class DataType
@@ -18,6 +58,9 @@ namespace Whirlwind.Types
         // check if another data type can be coerced to this type
         public virtual bool Coerce(DataType other)
         {
+            if (!Constant && other.Constant)
+                return false;
+
             if (other.Classify() == TypeClassifier.VOID || other.Classify() == TypeClassifier.GENERIC_PLACEHOLDER)
                 return true;
 
@@ -38,8 +81,8 @@ namespace Whirlwind.Types
         // returns the types interface
         public virtual InterfaceType GetInterface()
         {
-            if (InterfaceRegistry.Interfaces.Keys.Any(x => x.Coerce(this)))
-                return InterfaceRegistry.Interfaces.Where(x => x.Key.Coerce(this)).First().Value;
+            if (InterfaceRegistry.GetTypeInterface(this, out InterfaceType ift))
+                return ift;
 
             InterfaceRegistry.Interfaces[this] = new InterfaceType();
 

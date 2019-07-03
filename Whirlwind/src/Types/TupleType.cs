@@ -22,12 +22,22 @@ namespace Whirlwind.Types
                 TupleType tt = (TupleType)other;
 
                 if (Types.Count == tt.Types.Count)
-                    return Enumerable.Range(0, Types.Count).All(i => Types[i].Equals(tt.Types[i]));
+                    return Enumerable.Range(0, Types.Count).All(i => Types[i].Coerce(tt.Types[i]));
             }
             return false;
         }
 
-        protected override bool _equals(DataType other) => Coerce(other);
+        protected override bool _equals(DataType other)
+        {
+            if (other.Classify() == TypeClassifier.TUPLE)
+            {
+                TupleType tt = (TupleType)other;
+
+                if (Types.Count == tt.Types.Count)
+                    return Enumerable.Range(0, Types.Count).All(i => Types[i].Equals(tt.Types[i]));
+            }
+            return false;
+        }
 
         public override DataType ConstCopy()
             => new TupleType(Types); // implicit const

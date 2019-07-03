@@ -144,6 +144,8 @@ namespace Whirlwind.Semantic.Visitor
             {
                 _nodes.Add(fn);
 
+                int scopeDepth = _table.GetScopeDepth();
+
                 try
                 {
                     _visitFunctionBody(((IncompleteNode)fn.Block[0]).AST, (FunctionType)fn.Nodes[0].Type);
@@ -157,7 +159,8 @@ namespace Whirlwind.Semantic.Visitor
 
                     fn.Block = new List<ITypeNode>();
 
-                    _table.AscendScope();
+                    if (scopeDepth != _table.GetScopeDepth())
+                        _table.AscendScope();
                 }
                 
                 _nodes.RemoveAt(1);

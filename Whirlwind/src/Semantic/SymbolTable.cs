@@ -256,5 +256,10 @@ namespace Whirlwind.Semantic
 
             return scope.SubScopes.Count;
         }
+
+        public int GetScopeDepth()
+        {
+            return _scopePath.Length;
+        }
     }
 }

@@ -131,7 +131,12 @@ namespace Whirlwind.Semantic.Visitor
                 if (parent.GenericInterface.Body != null)
                 {
                     var interf = dt.GetInterface();
+
+                    // create block node to hold generate interface
+                    _nodes.Add(new BlockNode("GenerateInterfHolder"));
                     _collectInterfaceMethods(interf, parent.GenericInterface.Body, true);
+                    // remove holder
+                    _nodes.RemoveAt(_nodes.Count - 1);
 
                     if (parent.GenericInterface.StandardImplements != null)
                     {

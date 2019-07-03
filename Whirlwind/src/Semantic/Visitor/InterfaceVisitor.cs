@@ -72,9 +72,9 @@ namespace Whirlwind.Semantic.Visitor
                         {
                             DataType impl = _generateType((ASTNode)item);
 
-                            if (impl is InterfaceType it)
+                            if (impl.Classify() == TypeClassifier.INTERFACE)
                             {
-                                if (!it.Derive(dt))
+                                if (!((InterfaceType)impl).Derive(dt))
                                     throw new SemanticException("The given data type does not implement all required methods of the interface",
                                         item.Position);
                             }
@@ -118,7 +118,7 @@ namespace Whirlwind.Semantic.Visitor
 
                 _collectInterfaceMethods(interfaceType, gei.Body, true);        
 
-                if (node.Content[5].Name == "Implements")
+                if (node.Content[5].Name == "implements")
                 {
                     foreach (var item in ((ASTNode)node.Content[5]).Content)
                     {
@@ -126,8 +126,8 @@ namespace Whirlwind.Semantic.Visitor
                         {
                             var type = _generateType((ASTNode)item);
 
-                            if (type is InterfaceType impl)
-                                gei.StandardImplements.Add(impl);
+                            if (type.Classify() == TypeClassifier.INTERFACE)
+                                gei.StandardImplements.Add((InterfaceType)type);
                             else if (type is GenericType gimpl && gimpl.DataType is InterfaceType)
                                 gei.GenericImplements.Add(gimpl);
                             else
