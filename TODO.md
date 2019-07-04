@@ -32,6 +32,7 @@ and make sure constancy works
 - add string interpolation
 - find a way to vary behavior based on type for interfaces (interface level method variance, a buffed is operator, etc.)
   * although it is possible to do this via overloading
+- rework casting syntax to be more friendly
 
 # FUTURE
 
