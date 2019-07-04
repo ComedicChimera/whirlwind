@@ -137,7 +137,7 @@ namespace Whirlwind.Semantic.Visitor
             {
                 var tupleTypes = new List<DataType>();
 
-                for (int i = 0; i < exprCount; i++)
+                for (int i = exprCount - 1; i >= 0; i--)
                 {
                     tupleTypes.Add(_nodes[_nodes.Count - (i + 1)].Type);
                 }
@@ -202,8 +202,9 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     if (subOp != "")
                     {
-                        // b/c we are just checking what operators are valid constancy does not matter
                         DataType ot = varTypes[i].ConstCopy();
+                        // negate constancy from const copy
+                        ot.Constant = varTypes[i].Constant;
                         CheckOperand(ref ot, exprTypes[i], subOp, stmt.Position);
 
                         if (!varTypes[i].Coerce(ot))

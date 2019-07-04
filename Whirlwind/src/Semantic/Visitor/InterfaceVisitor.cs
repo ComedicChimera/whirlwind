@@ -127,7 +127,12 @@ namespace Whirlwind.Semantic.Visitor
                             var type = _generateType((ASTNode)item);
 
                             if (type.Classify() == TypeClassifier.INTERFACE)
-                                gei.StandardImplements.Add((InterfaceType)type);
+                            {
+                                var it = (InterfaceType)type;
+
+                                gei.StandardImplements.Add(it);
+                            }
+                                
                             else if (type is GenericType gimpl && gimpl.DataType is InterfaceType)
                                 gei.GenericImplements.Add(gimpl);
                             else

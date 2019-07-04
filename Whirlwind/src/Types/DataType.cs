@@ -11,11 +11,11 @@ namespace Whirlwind.Types
 
         public static bool GetTypeInterface(DataType dt, out InterfaceType typeInterf)
         {
-            if (dt is StructType || dt is InterfaceType)
+            if (dt is StructType st)
             {
                 foreach (var item in Interfaces)
                 {
-                    if (dt.GetType().Equals(item.Key.GetType()) && (dt.Coerce(item.Key) || item.Key.Coerce(dt)))
+                    if (item.Key is StructType ist && st.Name == ist.Name)
                     {
                         typeInterf = item.Value;
                         return true;

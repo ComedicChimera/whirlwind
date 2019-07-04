@@ -5,7 +5,6 @@
 - add 2 sanitizers (constexpr and memory) [Note: constexpr does in depth checking on all constant expressions]
 - remove MirrorType and declare builtins in SymbolTable as necessary
 - add prelude (later)
-- add support for generic binding
 - allow for context-based inferencing (for lambdas and enumerated type classes)
 - clear up the behavior of null
 - update type class to use guards on the type constructor as opposed to having
@@ -20,6 +19,9 @@ following works as intended)
 - add static as a life time specifier (to supplement the behavior lost by closures)
 - add pattern matching on variables after `is`
   * `x is Type t`
+- add context based inferencing to type classes instead of declaring in global scope
+and make sure constancy works
+  * see docs on Type Classes
 
 # THOUGHTS
 
@@ -34,6 +36,10 @@ following works as intended)
 # FUTURE
 
 - add operator overloading during generation
+- add strict group overload matching during compilation
+- make sure compiled code handles coercion properly (particularly on tuples)
+- make sure closures obey the behavior described in the docs
+  * they share their state, don't copy it
 
 # TESTING
 
