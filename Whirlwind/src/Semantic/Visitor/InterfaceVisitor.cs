@@ -171,11 +171,20 @@ namespace Whirlwind.Semantic.Visitor
                         .Aggregate((a, b) => a + b);
 
                     var args = decl.Content[3].Name == "args_decl_list" ? _generateArgsDecl((ASTNode)decl.Content[3]) : new List<Parameter>();
-                    int argsOffset = args.Count > 0 ? 1 : 0;
+
+                    if (args.Count == 0)
+                        throw new SemanticException("Operator overloads must take at least 1 argument", decl.Content[3].Position);
+                    else if (new[] { "!", "[]", ":>", "<-", "~" }.Contains(op) && args.Count != 1)
+                        throw new SemanticException("Unary operator overload must take exactly 1 argument", decl.Content[3].Position);
+                    else if (op == "[:]" && args.Count != 3)
+                        throw new SemanticException("Slice operator overload must take exactly 3 arguments", decl.Content[3].Position);
+                    else if ((op != "-" || args.Count != 1) && args.Count != 2)
+                        throw new SemanticException("Binary operator overload must take exactly 2 arguments", decl.Content[3].Position);
+
 
                     DataType rtType = new VoidType();
-                    if (decl.Content[4 + argsOffset].Name == "types")
-                        rtType = _generateType((ASTNode)decl.Content[4 + argsOffset]);
+                    if (decl.Content[5].Name == "types")
+                        rtType = _generateType((ASTNode)decl.Content[5]);
 
                     var ft = new FunctionType(args, rtType, false);
 

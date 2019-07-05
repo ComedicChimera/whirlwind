@@ -19,6 +19,12 @@ namespace Whirlwind.Semantic.Checker
             if (start.Classify() == TypeClassifier.GENERIC_ALIAS)
                 return true;
 
+            // void pointers can be cast to anything (b/c they are basically memory addresses)
+            // but, when casting a void pointer to a non-pointer, the pointer is implicitly dereferenced
+            // in almost all cases (excluding function types)
+            if (start is PointerType pt && pt.DataType.Classify() == TypeClassifier.VOID)
+                return true;
+
             switch (start.Classify())
             {
                 case TypeClassifier.SIMPLE:

@@ -102,6 +102,9 @@ namespace Whirlwind.Semantic.Visitor
 
             if (pointers != 0)
             {
+                if (new[] { TypeClassifier.FUNCTION, TypeClassifier.FUNCTION_GROUP }.Contains(dt.Classify()))
+                    throw new SemanticException("Unable to point to a function directly", node.Position);
+
                 dt = new PointerType(dt, pointers, owned);
             }
             else if (_isVoid(dt) || dt.Classify() == TypeClassifier.SELF && _selfNeedsPointer)
