@@ -22,6 +22,7 @@ following works as intended)
 - add context based inferencing to type classes instead of declaring in global scope
 and make sure constancy works
   * see docs on Type Classes
+- fix references to have a more logical behavior
 
 # THOUGHTS
 
