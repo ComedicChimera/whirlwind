@@ -23,6 +23,7 @@ following works as intended)
 and make sure constancy works
   * see docs on Type Classes
 - fix references to have a more logical behavior
+- add special binding syntax to allow for binding onto all types of pointers
 
 # THOUGHTS
 
