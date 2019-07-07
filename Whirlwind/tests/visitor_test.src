@@ -1,28 +1,10 @@
-﻿struct MyStruct<T> {
-	x, y: T;
-}
+﻿let x = f();
 
-interf MyInterf<T> {
-	func thing() T;
-
-	func thing2(x: T) (T, bool) {
-		let t = x ~^ 3;
-
-		return t, t % 2 == 0;
-	}
-}
-
-interf<T> for MyStruct is MyInterf {
-	func thing() T
-		=> this.x * this.y;
-}
+func f() int 
+	=> 3;
 
 func main() {
-	let s = new MyStruct{x = 4, y = -10};
-
-	let b = s.thing();
-
-	b *= 4;
-
-	b -= s.thing2(b).0;
+	y *= f();
 }
+
+let y: int = 5;

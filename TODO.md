@@ -24,6 +24,7 @@ and make sure constancy works
   * see docs on Type Classes
 - fix references to have a more logical behavior
 - add special binding syntax to allow for binding onto all types of pointers
+- make sure finalizers work as intended
 
 # THOUGHTS
 
@@ -43,6 +44,9 @@ and make sure constancy works
 - make sure compiled code handles coercion properly (particularly on tuples)
 - make sure closures obey the behavior described in the docs
   * they share their state, don't copy it
+- make sure that null initialization is pervasive
+  * this should work: `let x = f(); func f() int => x;`
+- make sure to account for out of order variable declaration if necessary
 
 # TESTING
 

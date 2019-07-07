@@ -3,6 +3,7 @@ using Whirlwind.Types;
 
 using System.Collections.Generic;
 using System.Linq;
+using System;
 
 namespace Whirlwind.Semantic.Visitor
 {
@@ -24,6 +25,9 @@ namespace Whirlwind.Semantic.Visitor
         {
             _nodes.Add(new BlockNode("Package"));
 
+            var variableDecls = new List<Tuple<ASTNode, List<Modifier>>>();
+
+            // visit block nodes first
             foreach (INode node in ast.Content)
             {
                 switch (node.Name)
@@ -32,8 +36,8 @@ namespace Whirlwind.Semantic.Visitor
                         _visitBlockDecl((ASTNode)node, new List<Modifier>());
                         break;
                     case "variable_decl":
-                        _visitVarDecl((ASTNode)node, new List<Modifier>());
-                        break;
+                        variableDecls.Add(new Tuple<ASTNode, List<Modifier>>((ASTNode)node, new List<Modifier>()));
+                        continue;
                     case "export_decl":
                         ASTNode decl = (ASTNode)((ASTNode)node).Content[1];
 
@@ -43,8 +47,8 @@ namespace Whirlwind.Semantic.Visitor
                                 _visitBlockDecl(decl, new List<Modifier>() { Modifier.EXPORTED });
                                 break;
                             case "variable_decl":
-                                _visitVarDecl(decl, new List<Modifier>() { Modifier.EXPORTED });
-                                break;
+                                variableDecls.Add(new Tuple<ASTNode, List<Modifier>>(decl, new List<Modifier>() { Modifier.EXPORTED }));
+                                continue;
                             case "include_stmt":
                                 // add include logic
                                 break;
@@ -58,6 +62,13 @@ namespace Whirlwind.Semantic.Visitor
                         continue;
                 }
 
+                MergeToBlock();
+            }
+
+            // visit variable declaration second
+            foreach (var varDecl in variableDecls)
+            {
+                _visitVarDecl(varDecl.Item1, varDecl.Item2);
                 MergeToBlock();
             }
 
