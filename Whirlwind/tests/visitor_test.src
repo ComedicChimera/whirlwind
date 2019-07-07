@@ -1,10 +1,30 @@
-﻿let x = f();
+﻿struct S {
+	a: int;
+	b: str;
 
-func f() int 
-	=> 3;
-
-func main() {
-	y *= f();
+	constructor(a: int, b: str) {
+		this.a, this.b = a, b;
+	}
 }
 
-let y: int = 5;
+interf for S {
+	operator ..(other: ref S) []S {
+		let arr: []S;
+
+		if (this.a < other.a) {
+			arr = cast<[]S>(make (S, cast<uint>(other.a - this.a)));
+
+			for (i = this.a; i < other.a; i++) {
+				arr[i - this.a] = new S(i, "uh");
+			}
+		}
+
+		return arr;
+	}
+}
+
+func main() {
+	let (s = new S(3, "as"), s2 = new S(5, "be"));
+
+	let a = s..ref s2;
+}

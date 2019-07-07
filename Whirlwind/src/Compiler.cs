@@ -46,9 +46,9 @@ namespace Whirlwind
                 }
                 return;
             }
-            // Console.WriteLine(ast.ToString() + "\n");
 
-            var visitor = new Visitor();
+            // during package linking, add name prefix
+            var visitor = new Visitor("");
 
             try
             {

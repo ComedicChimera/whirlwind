@@ -11,14 +11,17 @@ namespace Whirlwind.Semantic.Visitor
     {
         private List<ITypeNode> _nodes;
         private SymbolTable _table;
+        private string _namePrefix;
 
         public List<SemanticException> ErrorQueue;
 
-        public Visitor()
+        public Visitor(string namePrefix)
         {
             _nodes = new List<ITypeNode>();
-            ErrorQueue = new List<SemanticException>();
             _table = new SymbolTable();
+            _namePrefix = namePrefix;
+
+            ErrorQueue = new List<SemanticException>();
         }
 
         public void Visit(ASTNode ast)

@@ -335,6 +335,8 @@ namespace Whirlwind.Semantic.Visitor
                     if (!((InterfaceType)type).GetFunction(name, out symbol))
                         throw new SemanticException($"Interface has no function `{name}`", idPos);
                     break;
+                case TypeClassifier.REFERENCE:
+                    return _getMember(((ReferenceType)type).DataType, name, opPos, idPos);
                 default:
                     if (!type.GetInterface().GetFunction(name, out symbol))
                         throw new SemanticException($"Type has no interface member `{name}`", idPos);

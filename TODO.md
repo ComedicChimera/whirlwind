@@ -1,9 +1,8 @@
 # TODO
 
-- change self referential types to work off a prefixed name system and remove self-type
 - add package linker
 - add 2 sanitizers (constexpr and memory) [Note: constexpr does in depth checking on all constant expressions]
-- remove MirrorType and declare builtins in SymbolTable as necessary
+- remove MirrorType and declare builtins in SymbolTable as necessary (via prelude)
 - add prelude (later)
 - allow for context-based inferencing (for lambdas and enumerated type classes)
 - clear up the behavior of null
@@ -25,6 +24,7 @@ and make sure constancy works
 - fix references to have a more logical behavior
 - add special binding syntax to allow for binding onto all types of pointers
 - make sure finalizers work as intended
+- make sure generic operator overloading works
 
 # THOUGHTS
 
@@ -51,6 +51,7 @@ and make sure constancy works
   * fiber: lightweight, non-OS, concurrent executor
   * thread: heavier, OS-based, concurrent executor
   * process: heavy, OS-based, concurrent, non-Whirlwind owned executor
+- when implementing package linker, make sure to give prefix to visitor
 
 # TESTING
 

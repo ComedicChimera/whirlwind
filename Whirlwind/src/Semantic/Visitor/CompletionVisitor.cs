@@ -205,7 +205,8 @@ namespace Whirlwind.Semantic.Visitor
 
             foreach (var item in interf.Block)
             {
-                if (item.Name.EndsWith("Function"))
+                // all of these types are effectively the same
+                if (item.Name.EndsWith("Function") || item.Name == "OperatorOverload" || item.Name == "Variant")
                     _completeFunction((BlockNode)item);
             }
 

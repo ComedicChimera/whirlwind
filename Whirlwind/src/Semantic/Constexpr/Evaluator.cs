@@ -309,8 +309,8 @@ namespace Whirlwind.Semantic.Constexpr
 
         public static bool TryEval(ITypeNode node)
         {
-            if (node is ExprNode)
-                return _validNodes.Contains(node.Name) || node.Name.StartsWith("Slice");
+            if (node is ExprNode en && (_validNodes.Contains(node.Name) || node.Name.StartsWith("Slice")))
+                return en.Nodes.All(x => TryEval(x));
             else if (node is ValueNode || node is ConstexprNode)
                 return true;            
 

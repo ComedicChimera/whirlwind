@@ -126,7 +126,18 @@ namespace Whirlwind.Semantic.Visitor
                         var intType = new SimpleType(SimpleType.SimpleClassifier.INTEGER);
 
                         if (!intType.Coerce(_nodes[_nodes.Count - 2].Type))
+                        {
+                            if (HasOverload(_nodes[_nodes.Count - 2].Type, "__..__", 
+                                new ArgumentList(new List<DataType> { _nodes.Last().Type }), out DataType rtType))
+                            {
+                                _nodes.Add(new ExprNode("Range", rtType));
+                                PushForward(2);
+
+                                return;
+                            }
+
                             throw new SemanticException("Range must be bounded by two integers", node.Content[0].Position);
+                        }
 
                         if (!intType.Coerce(_nodes.Last().Type))
                             throw new SemanticException("Range must be bounded by two integers", ((ASTNode)subNode).Content[2].Position);

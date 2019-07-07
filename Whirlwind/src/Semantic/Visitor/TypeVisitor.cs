@@ -200,6 +200,8 @@ namespace Whirlwind.Semantic.Visitor
                             case "TOKEN":
                                 if (((TokenNode)component).Tok.Type == ":")
                                     collectionType = "dict";
+                                if (((TokenNode)component).Tok.Type == "]" && subTypes.Count == 0)
+                                    collectionType = "array";
                                 break;
                             case "types":
                                 subTypes.Add(_generateType((ASTNode)component));

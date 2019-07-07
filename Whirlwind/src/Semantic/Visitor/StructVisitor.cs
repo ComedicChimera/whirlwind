@@ -13,7 +13,7 @@ namespace Whirlwind.Semantic.Visitor
             _nodes.Add(new BlockNode("Struct"));
             TokenNode name = (TokenNode)node.Content[1];
 
-            var structType = new StructType(name.Tok.Value);
+            var structType = new StructType(_namePrefix + name.Tok.Value);
 
             // descent for self referential >:(
             _table.AddScope();
