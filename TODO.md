@@ -41,12 +41,16 @@ and make sure constancy works
 
 - add operator overloading during generation
 - add strict group overload matching during compilation
-- make sure compiled code handles coercion properly (particularly on tuples)
-- make sure closures obey the behavior described in the docs
+- ensure compiled code handles coercion properly (particularly on tuples)
+- closures must obey the behavior described in the docs
   * they share their state, don't copy it
-- make sure that null initialization is pervasive
+- ensure null initialization is pervasive
   * this should work: `let x = f(); func f() int => x;`
-- make sure to account for out of order variable declaration if necessary
+- account for out of order variable declaration if necessary
+- distinguish between fibers, threads, and processes.
+  * fiber: lightweight, non-OS, concurrent executor
+  * thread: heavier, OS-based, concurrent executor
+  * process: heavy, OS-based, concurrent, non-Whirlwind owned executor
 
 # TESTING
 
