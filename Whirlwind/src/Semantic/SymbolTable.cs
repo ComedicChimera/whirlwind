@@ -205,9 +205,11 @@ namespace Whirlwind.Semantic
                     {
                         visibleScopes = visibleScopes.Skip(visibleScopes.Count - 1).ToList();
                         continue;
-                    }                       
+                    }
+                    else if (capture.Blocked.Count > 0 && capture.Captured.Count == 0)
+                        continue;
 
-                    if (capture.Captured.Select(x => x.Name).Contains(name))
+                    if (capture.Captured.Count > 0 && capture.Captured.Select(x => x.Name).Contains(name))
                         capturedSymbol = capture.Captured.Where(x => x.Name == name).First();
                     else
                         visibleScopes = visibleScopes.Skip(visibleScopes.Count - 1).ToList();
