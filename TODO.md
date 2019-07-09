@@ -24,6 +24,8 @@ and make sure constancy works
 - add special binding syntax to allow for binding onto all types of pointers
 - make sure finalizers work as intended
 - make sure generic operator overloading works
+- allow for total import of package
+  * include { ... } from package;
 
 # THOUGHTS
 
