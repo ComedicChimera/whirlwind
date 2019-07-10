@@ -109,6 +109,8 @@ namespace Whirlwind.Semantic.Visitor
                     _nodes.RemoveAt(_nodes.Count - 1);
 
                 _nodes.Add(new StatementNode("None"));
+
+                _contextCouldExist = false;
             }
         }
 

@@ -271,7 +271,7 @@ namespace Whirlwind.Semantic.Visitor
             }
         }
 
-        private void _visitLambda(ASTNode node)
+        private void _visitLambda(ASTNode node, FunctionType ctx = null)
         {
             var args = new List<Parameter>();
             DataType rtType = new VoidType();
@@ -282,9 +282,15 @@ namespace Whirlwind.Semantic.Visitor
                 switch (item.Name)
                 {
                     case "args_decl_list":
-                        args = _generateArgsDecl((ASTNode)item);
+                        args = _generateArgsDecl((ASTNode)item, ctx?.Parameters);
                         break;
                     case "lambda_body":
+                        if (args.Any(x => x.DataType is IncompleteType))
+                        {
+                            _nodes.Add(new IncompleteNode(node));
+                            return;
+                        }
+
                         _nodes.Add(new BlockNode("LambdaBody"));
 
                         rtType = _visitFuncBody((ASTNode)item, args);

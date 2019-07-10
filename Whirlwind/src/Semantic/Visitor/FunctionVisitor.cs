@@ -312,9 +312,12 @@ namespace Whirlwind.Semantic.Visitor
             }
         }
 
-        public List<Parameter> _generateArgsDecl(ASTNode node)
+        public List<Parameter> _generateArgsDecl(ASTNode node, List<Parameter> ctxParams = null)
         {
-            var argsDeclList = new List<Parameter>(); 
+            var argsDeclList = new List<Parameter>();
+
+            var ctxNdx = 0;
+
             foreach (var subNode in node.Content)
             {
                 if (subNode.Name == "decl_arg")
@@ -357,7 +360,20 @@ namespace Whirlwind.Semantic.Visitor
                     }
 
                     if (!optional && !hasExtension)
-                        throw new SemanticException("Unable to create argument with no type", subNode.Position);
+                    {
+                        if (ctxParams != null && ctxNdx < ctxParams.Count && !ctxParams[ctxNdx].Optional && !ctxParams[ctxNdx].Indefinite)
+                        {
+                            hasExtension = true;
+                            paramType = ctxParams[ctxNdx].DataType;
+                        }                         
+                        else if (ctxParams == null && _contextCouldExist)
+                        {
+                            hasExtension = true;
+                            paramType = new IncompleteType();
+                        }
+                        else
+                            throw new SemanticException("Unable to create argument with no type", subNode.Position);
+                    }                        
 
                     if (hasExtension && optional && !paramType.Coerce(_nodes.Last().Type))
                         throw new SemanticException("Initializer type incompatable with type extension", subNode.Position);
@@ -374,6 +390,8 @@ namespace Whirlwind.Semantic.Visitor
                         foreach (var identifier in identifiers)
                             argsDeclList.Add(new Parameter(identifier, paramType, false, false, isVolatile));
                     }
+
+                    ctxNdx++;
                 }
                 else if (subNode.Name == "ending_arg")
                 {

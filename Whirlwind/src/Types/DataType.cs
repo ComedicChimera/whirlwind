@@ -58,6 +58,9 @@ namespace Whirlwind.Types
         // check if another data type can be coerced to this type
         public virtual bool Coerce(DataType other)
         {
+            if (other is IncompleteType)
+                return true;
+
             if (!Constant && other.Constant)
                 return false;
 
@@ -126,6 +129,18 @@ namespace Whirlwind.Types
             => new VoidType() { Constant = true };
     }
 
+    class IncompleteType : DataType
+    {
+        public override bool Coerce(DataType other) => true;
+
+        public override TypeClassifier Classify() => TypeClassifier.INCOMPLETE;
+
+        protected override bool _equals(DataType other) => false;
+
+        public override DataType ConstCopy()
+            => new IncompleteType() { Constant = true };
+    }
+
     enum TypeClassifier
     {
         SIMPLE,
@@ -148,7 +163,7 @@ namespace Whirlwind.Types
         PACKAGE,
         VOID,
         REFERENCE,
-        AGENT,
+        INCOMPLETE,
         SELF // self referential type
     }
 }

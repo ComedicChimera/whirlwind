@@ -365,22 +365,28 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitFunctionCall(ASTNode node, ITypeNode root)
         {
+            _contextCouldExist = true;
             var args = node.Content.Count == 2 ? new ArgumentList() : _generateArgsList((ASTNode)node.Content[1]);
+            _contextCouldExist = false;
+
+            bool incompletes = args.UnnamedArguments.Any(x => x is IncompleteType) || args.NamedArguments.Any(x => x.Value is IncompleteType);
 
             if (new[] { TypeClassifier.STRUCT, TypeClassifier.FUNCTION }.Contains(root.Type.Classify()))
             {
                 bool isFunction = root.Type.Classify() == TypeClassifier.FUNCTION;
+                FunctionType ft = null;
 
                 if (isFunction)
                 {
                     var paramData = CheckArguments((FunctionType)root.Type, args);
+                    ft = ((FunctionType)root.Type);
 
                     if (paramData.IsError)
                         throw new SemanticException(paramData.ErrorMessage, paramData.ParameterPosition == -1 ? node.Position : 
                             ((ASTNode)node.Content[1]).Content.Where(x => x.Name == "arg").ToArray()[paramData.ParameterPosition].Position
                         );
                 }
-                else if (!isFunction && !((StructType)root.Type).GetConstructor(args, out FunctionType constructor))
+                else if (!isFunction && !((StructType)root.Type).GetConstructor(args, out ft))
                     throw new SemanticException($"Struct `{((StructType)root.Type).Name}` has no constructor the accepts the given parameters", node.Position);
 
                 DataType returnType = isFunction ? ((FunctionType)root.Type).ReturnType : ((StructType)root.Type).GetInstance();
@@ -391,6 +397,10 @@ namespace Whirlwind.Semantic.Visitor
                     PushForward();
                 else
                 {
+                    if (incompletes)
+                        // we know ft exists so no need for more in depth checking
+                        _inferLambdaContext(args.Count(), ft);
+
                     PushForward(args.Count());
                     // add function to beginning of call
                     ((ExprNode)_nodes[_nodes.Count - 1]).Nodes.Insert(0, _nodes[_nodes.Count - 2]);
@@ -428,6 +438,9 @@ namespace Whirlwind.Semantic.Visitor
                 if (fg.GetFunction(args, out FunctionType ft))
                 {
                     _nodes.Add(new ExprNode("CallFunctionOverload", ft.ReturnType));
+
+                    if (incompletes)
+                        _inferLambdaContext(args.Count(), ft);
 
                     PushForward(args.Count() + 1);
                 }
@@ -488,6 +501,21 @@ namespace Whirlwind.Semantic.Visitor
             }
             else
                 throw new SemanticException("Unable to call non-callable type", node.Content[0].Position);
+        }
+
+        private void _inferLambdaContext(int argsCount, FunctionType ft)
+        {
+            for (int i = argsCount; i > 0; i--)
+            {
+                if (_nodes[_nodes.Count - i] is IncompleteNode inode)
+                {
+                    var ctx = (i < ft.Parameters.Count ? ft.Parameters[i] : ft.Parameters.Last()).DataType;
+                    _visitLambda(inode.AST, (FunctionType)ctx);
+
+                    _nodes[_nodes.Count - i - 1] = _nodes.Last();
+                    _nodes.RemoveAt(_nodes.Count - 1);
+                }
+            }
         }
 
         private void _visitSubscript(DataType rootType, ASTNode node)

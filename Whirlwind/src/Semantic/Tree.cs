@@ -176,7 +176,7 @@ namespace Whirlwind.Semantic
 
         public DataType Type
         {
-            get { return new VoidType(); }
+            get { return new IncompleteType(); }
             set { throw new NotImplementedException(); }
         }
     }

@@ -161,6 +161,8 @@ namespace Whirlwind.Semantic.Visitor
 
                     if (scopeDepth != _table.GetScopeDepth())
                         _table.AscendScope();
+
+                    _contextCouldExist = false;
                 }
                 
                 _nodes.RemoveAt(1);

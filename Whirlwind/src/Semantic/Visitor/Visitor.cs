@@ -12,6 +12,7 @@ namespace Whirlwind.Semantic.Visitor
         private List<ITypeNode> _nodes;
         private SymbolTable _table;
         private string _namePrefix;
+        private bool _contextCouldExist;
 
         public List<SemanticException> ErrorQueue;
 
@@ -20,6 +21,7 @@ namespace Whirlwind.Semantic.Visitor
             _nodes = new List<ITypeNode>();
             _table = new SymbolTable();
             _namePrefix = namePrefix;
+            _contextCouldExist = false;
 
             ErrorQueue = new List<SemanticException>();
         }

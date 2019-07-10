@@ -58,8 +58,9 @@ namespace Whirlwind.Types
     class FunctionType : DataType
     {
         public readonly DataType ReturnType;
-        public readonly List<Parameter> Parameters;
         public readonly bool Async;
+
+        public List<Parameter> Parameters;
 
         public FunctionType(List<Parameter> parameters, DataType returnType, bool async)
         {
