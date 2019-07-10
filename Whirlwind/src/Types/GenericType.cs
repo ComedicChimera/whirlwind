@@ -299,6 +299,9 @@ namespace Whirlwind.Types
                 }
                 else
                 {
+                    if (tb is IncompleteType)
+                        return false;
+
                     completedAliases[placeholderName] = tb;
                     return true;
                 }

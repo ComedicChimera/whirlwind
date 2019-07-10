@@ -5,7 +5,7 @@
 - remove MirrorType and declare builtins in SymbolTable as necessary (via prelude)
 - add prelude (later)
 - allow for context-based inferencing (for lambdas and enumerated type classes)
-  * for lambdas: add type class and generic case, add support for variables and args-decls, and test it
+  * for lambdas: test it
 - clear up the behavior of null
 - update type class to use guards on the type constructor as opposed to having
 a separate (and illogical) value restrictors

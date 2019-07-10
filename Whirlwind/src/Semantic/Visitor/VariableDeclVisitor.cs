@@ -72,10 +72,16 @@ namespace Whirlwind.Semantic.Visitor
                                                     break;
                                                 case "variable_initializer":
                                                     {
-                                                        _visitExpr((ASTNode)((ASTNode)elem).Content[1]);
+                                                        var initNode = (ASTNode)((ASTNode)elem).Content[1];
+                                                        _addContext(initNode);
+                                                        _visitExpr(initNode);
+                                                        _contextCouldExist = false;
 
                                                         if (((TokenNode)((ASTNode)elem).Content[0]).Tok.Type == ":=")
                                                         {
+                                                            if (_nodes.Last() is IncompleteNode)
+                                                                throw new SemanticException("Unable to perform constexpr evaluation on incomplete type", elem.Position);
+
                                                             if (!Constexpr.Evaluator.TryEval(_nodes.Last()))
                                                                 throw new SemanticException("Non constexpr value with constexpr initializer.", 
                                                                     item.Position);
@@ -101,6 +107,22 @@ namespace Whirlwind.Semantic.Visitor
                                                             throw new SemanticException("Initializer type doesn't match type extension", 
                                                                 variables[currentIdentifier].Position);
 
+                                                        if (initializer.Type is IncompleteType && 
+                                                            ((ExprNode)initializer).Nodes[0] is IncompleteNode inode2)
+                                                        {
+                                                            if (variables[currentIdentifier].Type is FunctionType fctx)
+                                                            {
+                                                                _visitLambda(inode2.AST, fctx);
+
+                                                                ((ExprNode)initializer).Nodes[0] = _nodes.Last();
+                                                                initializer.Type = _nodes.Last().Type;
+
+                                                                _nodes.RemoveAt(_nodes.Count - 1);
+                                                            }
+                                                            else
+                                                                throw new SemanticException("Unable to infer type(s) of lambda arguments", elem.Position);
+                                                        }
+
                                                         variables[currentIdentifier] = new Variable(initializer.Type, 
                                                             variables[currentIdentifier].Position);
 
@@ -121,10 +143,16 @@ namespace Whirlwind.Semantic.Visitor
                         hasType = true;
                         break;
                     case "variable_initializer":
-                        _visitExpr((ASTNode)((ASTNode)item).Content[1]);
+                        var mainInitNode = (ASTNode)((ASTNode)item).Content[1];
+                        _addContext(mainInitNode);
+                        _visitExpr(mainInitNode);
+                        _contextCouldExist = false;
 
                         if (((TokenNode)((ASTNode)item).Content[0]).Tok.Type == ":=")
                         {
+                            if (_nodes.Last() is IncompleteNode)
+                                throw new SemanticException("Unable to perform constexpr evaluation on an incomplete type", item.Position);
+
                             if (!Constexpr.Evaluator.TryEval(_nodes.Last()))
                                 throw new SemanticException("Non constexpr value with constexpr initializer.", item.Position);
                             else
@@ -141,13 +169,31 @@ namespace Whirlwind.Semantic.Visitor
                         _nodes.Add(new ExprNode(constexpr ? "ConstExprInitializer" : "Initializer", _nodes.Last().Type));
                         PushForward();
 
-                        if (!hasType && !_isVoid(_nodes.Last().Type))
+                        if (!hasType && (_isVoid(_nodes.Last().Type) || _nodes.Last().Type is IncompleteType))
+                            throw new SemanticException("Unable to infer type of a variable from initializer", item.Position);
+                        else if (!hasType)
                         {
                             mainType = _nodes.Last().Type;
                             hasType = true;
                         }
                         else if (!mainType.Coerce(_nodes.Last().Type))
                             throw new SemanticException("Initializer type doesn't match type extension", item.Position);
+
+                        // we know there is a type that exists to give context to i-node
+                        if (_nodes.Last().Type is IncompleteType && ((ExprNode)_nodes.Last()).Nodes[0] is IncompleteNode inode)
+                        {
+                            if (mainType is FunctionType fctx)
+                            {
+                                _visitLambda(inode.AST, fctx);
+
+                                ((ExprNode)_nodes[_nodes.Count - 2]).Nodes[0] = _nodes.Last();
+                                _nodes[_nodes.Count - 2].Type = _nodes.Last().Type;
+
+                                _nodes.RemoveAt(_nodes.Count - 1);
+                            }
+                            else
+                                throw new SemanticException("Unable to infer type(s) of lambda arguments", item.Position);
+                        }
 
                         hasInitializer = true;
                         break;

@@ -292,8 +292,10 @@ namespace Whirlwind.Semantic.Visitor
                         }
 
                         _nodes.Add(new BlockNode("LambdaBody"));
-
                         rtType = _visitFuncBody((ASTNode)item, args);
+
+                        if (ctx != null && !ctx.ReturnType.Coerce(rtType))
+                            throw new SemanticException("Invalid return type for the given the context", item.Position);
                         break;
                 }
             }

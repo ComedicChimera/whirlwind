@@ -349,10 +349,36 @@ namespace Whirlwind.Semantic.Visitor
                                 hasExtension = true;
                                 break;
                             case "initializer":
-                                _visitExpr((ASTNode)((ASTNode)argPart).Content[1]);
+                                var initNode = (ASTNode)((ASTNode)argPart).Content[1];
 
-                                if (!hasExtension)
+                                if (hasExtension)
+                                {
+                                    var ctxExistTemp = _contextCouldExist;
+
+                                    _addContext(initNode);
+                                    _visitExpr(initNode);
+                                    _contextCouldExist = ctxExistTemp;
+
+                                    if (_nodes.Last() is IncompleteNode inode)
+                                    {
+                                        if (paramType is FunctionType fctx)
+                                        {
+                                            _visitLambda(inode.AST, fctx);
+
+                                            _nodes[_nodes.Count - 2] = _nodes[_nodes.Count - 1];
+                                            _nodes.RemoveAt(_nodes.Count - 1);
+                                        }
+                                        else
+                                            throw new SemanticException("Unable to infer type(s) of lambda arguments", initNode.Position);
+                                    }
+                                    else if (!paramType.Coerce(_nodes.Last().Type))
+                                        throw new SemanticException("Optional initializer must be coercible to the specified type extension", initNode.Position);
+                                }
+                                else
+                                {
+                                    _visitExpr(initNode);
                                     paramType = _nodes.Last().Type;
+                                }   
 
                                 optional = true;
                                 break;

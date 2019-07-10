@@ -365,9 +365,15 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitFunctionCall(ASTNode node, ITypeNode root)
         {
-            _contextCouldExist = true;
-            var args = node.Content.Count == 2 ? new ArgumentList() : _generateArgsList((ASTNode)node.Content[1]);
-            _contextCouldExist = false;
+            ArgumentList args;
+            if (node.Content.Count == 2)
+                args = new ArgumentList();
+            else
+            {
+                _addContext((ASTNode)node.Content[1]);
+                args = _generateArgsList((ASTNode)node.Content[1]);
+                _contextCouldExist = false;
+            }            
 
             bool incompletes = args.UnnamedArguments.Any(x => x is IncompleteType) || args.NamedArguments.Any(x => x.Value is IncompleteType);
 
@@ -454,6 +460,27 @@ namespace Whirlwind.Semantic.Visitor
 
                     if (args.Count() == cnt.Values.Count)
                     {
+                        if (incompletes)
+                        {
+                            for (int i = args.Count(); i > 0; i--)
+                            {
+                                if (_nodes[_nodes.Count - i] is IncompleteNode inode)
+                                {
+                                    if (cnt.Values[i] is FunctionType fctx)
+                                    {
+                                        _visitLambda(inode.AST, fctx);
+
+                                        args.UnnamedArguments[args.Count() - i] = _nodes.Last().Type;
+
+                                        _nodes[_nodes.Count - i - 1] = _nodes.Last();
+                                        _nodes.RemoveAt(_nodes.Count - 1);
+                                    }
+                                    else
+                                        throw new SemanticException("Unable to infer type(s) of lambda arguments", inode.AST.Position);
+                                }
+                            }
+                        }
+
                         for (int i = 0; i < args.Count(); i++)
                         {
                             if (cnt.Values[i].Classify() == TypeClassifier.GENERIC_PLACEHOLDER)
@@ -501,10 +528,16 @@ namespace Whirlwind.Semantic.Visitor
                 if (_nodes[_nodes.Count - i] is IncompleteNode inode)
                 {
                     var ctx = (i < ft.Parameters.Count ? ft.Parameters[i] : ft.Parameters.Last()).DataType;
-                    _visitLambda(inode.AST, (FunctionType)ctx);
 
-                    _nodes[_nodes.Count - i - 1] = _nodes.Last();
-                    _nodes.RemoveAt(_nodes.Count - 1);
+                    if (ctx is FunctionType fctx)
+                    {
+                        _visitLambda(inode.AST, fctx);
+
+                        _nodes[_nodes.Count - i - 1] = _nodes.Last();
+                        _nodes.RemoveAt(_nodes.Count - 1);
+                    }
+                    else
+                        throw new SemanticException("Unable to infer type(s) of lambda arguments", inode.AST.Position);              
                 }
             }
         }

@@ -80,6 +80,13 @@ namespace Whirlwind.Semantic.Visitor
             _completeTree();
         }
 
+        public ITypeNode Result() => _nodes.First();
+
+        public SymbolTable Table()
+        {
+            return new SymbolTable(_table.Filter(s => s.Modifiers.Contains(Modifier.EXPORTED)));
+        }
+
         private void MergeBack(int depth = 1)
         {
             if (_nodes.Count <= depth)
@@ -143,11 +150,12 @@ namespace Whirlwind.Semantic.Visitor
                 return false;
         }
 
-        public ITypeNode Result() => _nodes.First();
-
-        public SymbolTable Table()
+        private void _addContext(ASTNode node)
         {
-            return new SymbolTable(_table.Filter(s => s.Modifiers.Contains(Modifier.EXPORTED)));
+            if (node.Name == "lambda")
+                _contextCouldExist = true;
+            else if (node.Content.Count == 1)
+                _addContext((ASTNode)node.Content[0]);
         }
     }
 }
