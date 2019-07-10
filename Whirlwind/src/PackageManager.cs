@@ -1,22 +1,23 @@
 ﻿using Whirlwind.Semantic;
-using Whirlwind.Semantic.Visitor;
 
 using Whirlwind.Parser;
 
 using System.IO;
 using System.Linq;
 
-namespace Whirlwind.Inclusion
+namespace Whirlwind
 {
     class PackageManager
     {
         private PackageGraph _pg;
+        private Compiler _compiler;
 
         private static readonly string extension = ".wrl";
 
         public PackageManager()
         {
             _pg = new PackageGraph();
+            _compiler = new Compiler("config/tokens.json", "config/grammar.ebnf");
         }
 
         public SymbolTable Import(string name, TextPosition position)
@@ -24,7 +25,7 @@ namespace Whirlwind.Inclusion
             if (OpenPackage(name.Replace("..", "../").Replace(".", "/") + extension, out string text))
             {
                 var st = new SymbolTable();
-                Program.compiler.Build(text, ref st);
+                _compiler.Build(text, ref st);
 
                 _pg.AddPackage(new Package(st, name.Split('.').Last()));
 
@@ -42,7 +43,7 @@ namespace Whirlwind.Inclusion
             if (OpenPackage(name.Replace("..", "../").Replace(".", "/"), out string text))
             {
                 var st = new SymbolTable();
-                Program.compiler.Build(text, ref st);
+                _compiler.Build(text, ref st);
 
                 _pg.AddPackage(parent, new Package(st, name.Split('.').Last()));
 
@@ -57,7 +58,7 @@ namespace Whirlwind.Inclusion
             if (OpenPackage(path, out string text))
             {
                 var st = new SymbolTable();
-                Program.compiler.Build(text, ref st);
+                _compiler.Build(text, ref st);
 
                 _pg.AddPackage(new Package(st, path.Split('/').Last().Split('.').First()));
 

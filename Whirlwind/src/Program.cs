@@ -1,13 +1,9 @@
 ﻿using System;
 
-using Whirlwind.Inclusion;
-
 namespace Whirlwind
 {
     class Program
     {
-        public static Compiler compiler;
-
         public static PackageManager packageManager;
 
         // TODO - reconfigure to use command line args for the final build
@@ -16,7 +12,6 @@ namespace Whirlwind
         {
             string fileName = Console.ReadLine();
 
-            compiler = new Compiler("config/tokens.json", "config/grammar.ebnf");
             packageManager = new PackageManager();
 
             if (!packageManager.ImportRaw(fileName))

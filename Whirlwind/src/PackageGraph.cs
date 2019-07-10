@@ -2,7 +2,7 @@
 
 using Whirlwind.Semantic;
 
-namespace Whirlwind.Inclusion
+namespace Whirlwind
 {
     class PackageGraph
     {
