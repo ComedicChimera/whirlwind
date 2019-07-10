@@ -422,15 +422,6 @@ namespace Whirlwind.Semantic.Visitor
                 else
                     throw new SemanticException("Unable to infer type of generic arguments", node.Position);
             }
-            else if (root.Type.Classify() == TypeClassifier.STRUCT)
-            {
-                if (args.Count() > 0)
-                    throw new SemanticException("Struct constructor cannot accept arguments", node.Position);
-
-                _nodes.Add(new ExprNode("InitStruct", ((StructType)root.Type).GetInstance()));
-
-                PushForward();
-            }
             else if (root.Type.Classify() == TypeClassifier.FUNCTION_GROUP)
             {
                 FunctionGroup fg = (FunctionGroup)root.Type;
