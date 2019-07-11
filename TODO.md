@@ -4,8 +4,7 @@
 - add 2 sanitizers (constexpr and memory) [Note: constexpr does in depth checking on all constant expressions]
 - remove MirrorType and declare builtins in SymbolTable as necessary (via prelude)
 - add prelude (later)
-- allow for context-based inferencing (for lambdas and enumerated type classes)
-  * for lambdas: test it
+- allow for context-based inferencing (for enumerated type classes)
 - clear up the behavior of null
 - update type class to use guards on the type constructor as opposed to having
 a separate (and illogical) value restrictors
@@ -18,7 +17,6 @@ following works as intended)
 - add static as a life time specifier (to supplement the behavior lost by closures)
 - add pattern matching on variables after `is`
   * `x is Type t`
-- add context based inferencing to type classes instead of declaring in global scope
 and make sure constancy works
   * see docs on Type Classes
 - fix references to have a more logical behavior
