@@ -1,30 +1,15 @@
-﻿struct S {
-	a: int;
-	b: str;
-
-	constructor(a: int, b: str) {
-		this.a, this.b = a, b;
-	}
-}
-
-interf for S {
-	operator ..(other: ref S) []S {
-		let arr: []S;
-
-		if (this.a < other.a) {
-			arr = cast<[]S>(make (S, cast<uint>(other.a - this.a)));
-
-			for (i = this.a; i < other.a; i++) {
-				arr[i - this.a] = new S(i, "uh");
-			}
-		}
-
-		return arr;
-	}
-}
+﻿type Color
+	| RED
+	| BLUE
+	| GREEN
+	;
 
 func main() {
-	let (s = new S(3, "as"), s2 = new S(5, "be"));
+	let compr = [x ~^ 2 | x <- 0..10];
 
-	let a = s..ref s2;
+	let lst = [1, 2, 3, 4];
+
+	let tp: Color;
+
+	tp = Color::RED;
 }

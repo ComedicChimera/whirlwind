@@ -81,6 +81,22 @@ namespace Whirlwind.Semantic.Visitor
                         throw new SemanticException("Unable to apply generic specifier to non-generic type", subNode.Position);
                     dt = _generateGeneric((GenericType)dt, (ASTNode)subNode);
                 }
+                else if (subNode.Name == "static_get")
+                {
+                    if (dt is Package pkg)
+                    {
+                        var idNode = (TokenNode)((ASTNode)subNode).Content[1];
+
+                        if (pkg.ExternalTable.Lookup(idNode.Tok.Value, out Symbol symbol))
+                            dt = symbol.DataType;
+                        else
+                            throw new SemanticException($"The given package has no exported member `{idNode.Tok.Value}", idNode.Position);
+                    }
+                    else if (dt is CustomType)
+                        throw new SemanticException("Unable to use type class value as type", subNode.Position);
+                    else
+                        throw new SemanticException("Unable to get static value from the given type", subNode.Position);
+                }
                 else
                 {
                     dt = _generateBaseType((ASTNode)subNode);

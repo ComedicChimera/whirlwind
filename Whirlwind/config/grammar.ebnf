@@ -155,7 +155,7 @@ expr_extension: 'IF' expr 'ELSE' expr
 | ':>' expr
 | then_extension
 | '.' '.' expr
-| 'AS' ('IDENTIFIER' trailer* | types)
+| 'AS' types
 ; 
 
 // then extension
@@ -199,7 +199,6 @@ unary_atom: ('REF' | '&' | '-' | '~' | '++' | '--' | '*'+) atom
 
 // ATOMS - basic unit of expressions
 atom: [ 'NEW' ] [ 'AWAIT' ] base trailer*
-| comprehension trailer*
 | heap_alloc
 | from_expr
 ;
@@ -221,8 +220,6 @@ arg: named_arg | expr ;
 named_arg: 'IDENTIFIER' '=' expr ;
 
 init_list: 'IDENTIFIER' initializer (',' 'IDENTIFIER' initializer)* ;
-static_get: get_op 'IDENTIFIER' ;
-get_op: ':' ':' ;
 
 // comprehension
 comprehension: '{' comp_body '}' | '[' comp_body ']' ;
@@ -253,6 +250,7 @@ base: 'INTEGER_LITERAL'
 | array
 | list
 | dict
+| comprehension
 | tuple
 | lambda
 | sub_expr
@@ -288,7 +286,7 @@ partial_arg: '_'
 
 // DATA TYPES - data type literals
 types: ['CONST'] ['OWN'] ['REF'] '*'* ( base_types
-| 'IDENTIFIER' [generic_spec]
+| 'IDENTIFIER' [generic_spec] static_get*
 )
 ;
 
@@ -343,13 +341,10 @@ iter_var: 'IDENTIFIER' | '_' ;
 extension: [':' types] ;
 
 // function body
-func_body: [capture] [func_guard] ('{' [main] '}'
+func_body: [capture] ('{' [main] '}'
 | '=>' expr (',' expr)* ';'
 )
 ;
-
-// function guard
-func_guard: 'WHEN' '(' expr ')' ;
 
 // standard block
 block: '{' [main] '}'
@@ -374,3 +369,7 @@ generic: 'IDENTIFIER' [':' type_list] ;
 
 // generic specifier
 generic_spec: '<' type_list '>' ;
+
+// static get call
+static_get: get_op 'IDENTIFIER' ;
+get_op: ':' ':' ;

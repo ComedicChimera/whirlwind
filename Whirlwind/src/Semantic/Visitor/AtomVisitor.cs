@@ -22,9 +22,6 @@ namespace Whirlwind.Semantic.Visitor
                     case "base":
                         _visitBase((ASTNode)subNode);
                         break;
-                    case "comprehension":
-                        _visitComprehension((ASTNode)subNode);
-                        break;
                     case "trailer":
                         _visitTrailer((ASTNode)subNode);
                         break;
@@ -64,85 +61,6 @@ namespace Whirlwind.Semantic.Visitor
             else if (hasAwait)
                 // await always first element
                 throw new SemanticException("The given expression is not awaitable", node.Content[0].Position);
-        }
-
-        private void _visitComprehension(ASTNode node)
-        {
-            DataType elementType = new VoidType();
-
-            // used in case of map comprehension
-            DataType valueType = new VoidType();
-
-            int sizeBack = 0;
-            bool isKeyPair = false, isCondition = false, isList = ((TokenNode)node.Content[0]).Tok.Type == "[";
-
-            var body = new List<ASTNode>();
-
-            foreach (var item in ((ASTNode)node.Content[1]).Content)
-            {
-                if (item.Name == "expr")
-                {
-                    if (isCondition)
-                    {
-                        _visitExpr((ASTNode)item);
-
-                        if (!new SimpleType(SimpleType.SimpleClassifier.BOOL).Coerce(_nodes.Last().Type))
-                            throw new SemanticException("The condition of the comprehension must evaluate to a boolean", item.Position);
-
-                        _nodes.Add(new ExprNode("Filter", new SimpleType(SimpleType.SimpleClassifier.BOOL)));
-                        MergeBack();
-
-                        sizeBack++;
-                    }
-                    else
-                        body.Add((ASTNode)item);
-                }
-                else if (item.Name == "iterator")
-                {
-                    _table.AddScope();
-                    _table.DescendScope();
-
-                    _visitIterator((ASTNode)item, false);
-
-                    sizeBack++;
-
-                    foreach (var expr in body)
-                    {
-                        _visitExpr(expr);
-
-                        // first expression
-                        if (sizeBack == 1)
-                            elementType = _nodes.Last().Type;
-                        else if (isKeyPair && sizeBack == 2)
-                            valueType = _nodes.Last().Type;
-
-                        sizeBack++;
-                    }
-                }
-                else if (item.Name == "TOKEN")
-                {
-                    if (((TokenNode)item).Tok.Type == ":")
-                    {
-                        if (isList)
-                            throw new SemanticException("Unable to have key-value pairs in a list comprehension", item.Position);
-
-                        isKeyPair = true;
-                    }     
-                    else if (((TokenNode)item).Tok.Type == "WHEN")
-                        isCondition = true;
-                }
-            }
-
-            _table.AscendScope();
-
-            if (isKeyPair)
-                _nodes.Add(new ExprNode("DictComprehension", new DictType(elementType, valueType)));
-            else if (isList)
-                _nodes.Add(new ExprNode("ListComprehension", new ListType(elementType)));
-            else
-                throw new SemanticException("Unable to create an array comprehension", node.Position);
-
-            PushForward(sizeBack);
         }
 
         private void _visitTrailer(ASTNode node)
@@ -355,6 +273,22 @@ namespace Whirlwind.Semantic.Visitor
                 case TypeClassifier.PACKAGE:
                     if (!((Package)type).ExternalTable.Lookup(name, out symbol))
                         throw new SemanticException($"Package has no member `{name}`", idPos);
+                    break;
+                case TypeClassifier.TYPE_CLASS:
+                    {
+                        var matches = ((CustomType)type).Instances.Where(x => x is CustomNewType)
+                            .Select(x => (CustomNewType)x)
+                            .Where(x => x.Name == name);
+
+                        if (matches.Count() > 0)
+                        {
+                            var firstMatch = matches.First();
+
+                            symbol = new Symbol(firstMatch.Name, firstMatch);
+                        }
+                        else
+                            throw new SemanticException($"Type class has no enumerated/value member `{name}`", idPos);
+                    }
                     break;
                 default:
                     throw new SemanticException("The `::` operator is not valid on the given type", opPos);

@@ -151,11 +151,6 @@ namespace Whirlwind.Semantic.Visitor
             {
                 switch (item.Name)
                 {
-                    case "func_guard":
-                        _nodes.Add(new ExprNode("FunctionGuard", new VoidType()));
-                        _visitExpr((ASTNode)((ASTNode)item).Content[2]);
-                        MergeBack(2);
-                        break;
                     case "main":
                         _visitBlock((ASTNode)item, new StatementContext(true, false, false));
                         rtType = _extractReturnType((ASTNode)item);

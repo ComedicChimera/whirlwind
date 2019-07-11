@@ -104,18 +104,8 @@ namespace Whirlwind.Semantic.Visitor
             if (genericVars.Count > 0)
                 _makeGeneric(node, genericVars, typeModifiers, node.Content[1].Position);
 
-            // declare new types
-            for (int i = 0; i < typeClass.Instances.Count; i++)
-            {
-                if (typeClass.Instances[i] is CustomNewType cnType)
-                {
-                    if (!_table.AddSymbol(new Symbol(cnType.Name, cnType)))
-                        throw new SemanticException("All new type members of a type class must be declarable within the enclosing scope",
-                            node.Content.Where(x => x.Name == "type_class_main").ElementAt(i).Position);
-                }
-
-                MergeBack();
-            }
+            // merge in all instances
+            MergeBack(typeClass.Instances.Count);
         }
     }
 }
