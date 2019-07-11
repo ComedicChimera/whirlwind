@@ -339,7 +339,7 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     if (incompletes)
                         // we know ft exists so no need for more in depth checking
-                        _inferLambdaContext(args.Count(), ft);
+                        _inferLambdaCallContext(args.Count(), ft);
 
                     PushForward(args.Count());
                     // add function to beginning of call
@@ -371,7 +371,7 @@ namespace Whirlwind.Semantic.Visitor
                     _nodes.Add(new ExprNode("CallFunctionOverload", ft.ReturnType));
 
                     if (incompletes)
-                        _inferLambdaContext(args.Count(), ft);
+                        _inferLambdaCallContext(args.Count(), ft);
 
                     PushForward(args.Count() + 1);
                 }
@@ -455,9 +455,9 @@ namespace Whirlwind.Semantic.Visitor
                 throw new SemanticException("Unable to call non-callable type", node.Content[0].Position);
         }
 
-        private void _inferLambdaContext(int argsCount, FunctionType ft)
+        private void _inferLambdaCallContext(int argsCount, FunctionType ft)
         {
-            for (int i = argsCount; i > 0; i--)
+            for (int i = argsCount + 1; i > 1; i--)
             {
                 if (_nodes[_nodes.Count - i] is IncompleteNode inode)
                 {

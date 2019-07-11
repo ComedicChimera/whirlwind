@@ -144,9 +144,15 @@ namespace Whirlwind.Semantic.Visitor
                         break;
                     case "variable_initializer":
                         var mainInitNode = (ASTNode)((ASTNode)item).Content[1];
-                        _addContext(mainInitNode);
-                        _visitExpr(mainInitNode);
-                        _contextCouldExist = false;
+
+                        if (hasType)
+                        {
+                            _addContext(mainInitNode);
+                            _visitExpr(mainInitNode);
+                            _contextCouldExist = false;
+                        }
+                        else
+                            _visitExpr(mainInitNode);                     
 
                         if (((TokenNode)((ASTNode)item).Content[0]).Tok.Type == ":=")
                         {
@@ -169,7 +175,7 @@ namespace Whirlwind.Semantic.Visitor
                         _nodes.Add(new ExprNode(constexpr ? "ConstExprInitializer" : "Initializer", _nodes.Last().Type));
                         PushForward();
 
-                        if (!hasType && (_isVoid(_nodes.Last().Type) || _nodes.Last().Type is IncompleteType))
+                        if (!hasType && _isVoid(_nodes.Last().Type))
                             throw new SemanticException("Unable to infer type of a variable from initializer", item.Position);
                         else if (!hasType)
                         {

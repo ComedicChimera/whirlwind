@@ -188,7 +188,14 @@ namespace Whirlwind.Semantic.Visitor
                         if (exprTypes.Count == 0)
                             _nodes.Add(new ExprNode("AssignExprs", new VoidType()));
 
-                        _visitExpr((ASTNode)node);
+                        {
+                            var exprNode = (ASTNode)node;
+
+                            _addContext(exprNode);
+                            _visitExpr(exprNode);
+                            _contextCouldExist = false;
+                        }
+                        
                         exprTypes.Add(_nodes.Last().Type);
 
                         MergeBack();
@@ -202,6 +209,9 @@ namespace Whirlwind.Semantic.Visitor
             {
                 for (int i = 0; i < varTypes.Count; i++)
                 {
+                    if (exprTypes[i] is IncompleteType)
+                        _inferLambdaAssignContext(varTypes[i], exprTypes, i);
+
                     if (subOp != "")
                     {
                         DataType ot = varTypes[i].ConstCopy();
@@ -216,53 +226,69 @@ namespace Whirlwind.Semantic.Visitor
                         throw new SemanticException("Unable to assign to dissimilar types", stmt.Position);
                 }
             }
-            else if (varTypes.Count < exprTypes.Count)
+            else if (varTypes.Count > exprTypes.Count)
             {
-                int metValues = 0;
+                int i = 0, j = 0;
+                DataType varType, exprType;
 
-                using (var e1 = varTypes.GetEnumerator())
-                using (var e2 = exprTypes.GetEnumerator())
+                while (i < varTypes.Count && j < exprTypes.Count)
                 {
-                    while (e1.MoveNext() && e2.MoveNext())
+                    varType = varTypes[i];
+                    exprType = exprTypes[j];
+
+                    if (exprType is IncompleteType)
+                        _inferLambdaAssignContext(varType, exprTypes, j);
+
+                    if (exprType.Classify() == TypeClassifier.TUPLE)
                     {
-                        if (e2.Current.Classify() == TypeClassifier.TUPLE)
+                        var tupleTypes = ((TupleType)exprType).Types;
+
+                        for (int k = 0; k < tupleTypes.Count; k++)
                         {
-                            foreach (var type in ((TupleType)e2.Current).Types)
+                            var type = tupleTypes[k];
+
+                            if (type is IncompleteType)
+                                _inferLambdaAssignContext(varType, exprTypes, k);
+
+                            if (subOp != "")
                             {
-                                if (subOp != "")
-                                {
-                                    // b/c we are just checking what operators are valid constancy does not matter
-                                    DataType ot = e1.Current.ConstCopy();
-                                    CheckOperand(ref ot, type, subOp, stmt.Position);
+                                // b/c we are just checking what operators are valid constancy does not matter
+                                DataType ot = varType.ConstCopy();
+                                CheckOperand(ref ot, type, subOp, stmt.Position);
 
-                                    if (!e1.Current.Coerce(ot))
-                                        throw new SemanticException("Unable to apply operator which would result in type change", stmt.Position);
-                                }
-                                else if (e1.Current.Coerce(type))
-                                {
-                                    if (!e1.MoveNext()) break;
-                                } 
-                                else
-                                    throw new SemanticException("Unable to assign to dissimilar types", stmt.Position);
+                                if (!varType.Coerce(ot))
+                                    throw new SemanticException("Unable to apply operator which would result in type change", stmt.Position);
                             }
-                        }
-                        else if (subOp != "")
-                        {
-                            // b/c we are just checking what operators are valid constancy does not matter
-                            DataType ot = e1.Current.ConstCopy();
-                            CheckOperand(ref ot, e2.Current, subOp, stmt.Position);
+                            else if (varType.Coerce(type))
+                            {
+                                i++;
 
-                            if (!e1.Current.Coerce(ot))
-                                throw new SemanticException("Unable to apply operator which would result in type change", stmt.Position);
+                                if (i < varTypes.Count)
+                                    varType = varTypes[i];
+                                else
+                                    break;
+                            }
+                            else
+                                throw new SemanticException("Unable to assign to dissimilar types", stmt.Position);
                         }
-                        else if (!e1.Current.Coerce(e2.Current))
-                            throw new SemanticException("Unable to assign to dissimilar types", stmt.Position);
-
-                        metValues++;
                     }
+                    else if (subOp != "")
+                    {
+                        // b/c we are just checking what operators are valid constancy does not matter
+                        DataType ot = varType.ConstCopy();
+                        CheckOperand(ref ot, exprType, subOp, stmt.Position);
+
+                        if (!varType.Coerce(ot))
+                            throw new SemanticException("Unable to apply operator which would result in type change", stmt.Position);
+                    }
+                    else if (!varType.Coerce(exprType))
+                        throw new SemanticException("Unable to assign to dissimilar types", stmt.Position);
+
+                    i++;
+                    j++;
                 }
 
-                if (metValues < exprTypes.Count)
+                if (j < exprTypes.Count)
                     throw new SemanticException("Too many expressions for the given assignment", stmt.Position);
             }
             else
@@ -337,6 +363,23 @@ namespace Whirlwind.Semantic.Visitor
                 else
                     throw new SemanticException("Unable to dereference non-pointer", assignVar.Position);
             }
+        }
+
+        private void _inferLambdaAssignContext(DataType pctx, List<DataType> exprTypes, int pos)
+        {
+            var inode = (IncompleteNode)(((ExprNode)_nodes.Last()).Nodes[pos]);
+
+            if (pctx is FunctionType ctx)
+            {
+                _visitLambda(inode.AST, ctx);
+
+                ((ExprNode)_nodes[_nodes.Count - 2]).Nodes[pos] = _nodes.Last();
+                exprTypes[pos] = _nodes.Last().Type;
+
+                _nodes.RemoveAt(_nodes.Count - 1);
+            }
+            else
+                throw new SemanticException("Unable to infer type(s) for lambda arguments", inode.AST.Position);
         }
     }
 }

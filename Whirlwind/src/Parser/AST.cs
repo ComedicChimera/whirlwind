@@ -60,6 +60,9 @@ namespace Whirlwind.Parser
         {
             get
             {
+                if (Content.Count == 1)
+                    return Content[0].Position;
+
                 int start = Content.First().Position.Start;
                 var end = Content.Last().Position;
                 return new TextPosition(start, (end.Start + end.Length) - start);

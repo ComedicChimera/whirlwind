@@ -154,8 +154,9 @@ namespace Whirlwind.Semantic.Visitor
         {
             if (node.Name == "lambda")
                 _contextCouldExist = true;
-            else if (node.Content.Count == 1)
-                _addContext((ASTNode)node.Content[0]);
+            else if (node.Content.Count == 1 && node.Content[0] is ASTNode anode)
+                _addContext(anode);
+
         }
     }
 }

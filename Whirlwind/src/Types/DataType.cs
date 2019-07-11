@@ -95,6 +95,9 @@ namespace Whirlwind.Types
         // check two data types for perfect equality
         public bool Equals(DataType other)
         {
+            if (other == null)
+                return false;
+
             if (other is GenericAlias gp)
                 return Equals(gp.ReplacementType);
 
@@ -105,10 +108,10 @@ namespace Whirlwind.Types
         }
 
         public static bool operator ==(DataType a, DataType b)
-            => a.Equals(b);
+            => a?.Equals(b) ?? (object)b == null;
 
         public static bool operator !=(DataType a, DataType b)
-            => !a.Equals(b);
+            => (!a?.Equals(b)) ?? (object)b != null;
 
         // get a given data type classifier as a string
         public abstract TypeClassifier Classify();

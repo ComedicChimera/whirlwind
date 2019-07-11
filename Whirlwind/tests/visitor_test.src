@@ -1,15 +1,6 @@
-﻿type Color
-	| RED
-	| BLUE
-	| GREEN
-	;
+﻿func test(f: func(int, int)(int)) int
+	=> f(3, 4);
 
 func main() {
-	let compr = [x ~^ 2 | x <- 0..10];
-
-	let lst = [1, 2, 3, 4];
-
-	let tp: Color;
-
-	tp = Color::RED;
+	
 }
