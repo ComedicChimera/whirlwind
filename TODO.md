@@ -54,6 +54,7 @@ and make sure constancy works
   * thread: heavier, OS-based, concurrent executor
   * process: heavy, OS-based, concurrent, non-Whirlwind owned executor
 - when implementing package linker, make sure to give prefix to visitor
+- during compilation, make sure to acknowledge the effects of captures
 
 # TESTING
 
