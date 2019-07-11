@@ -29,15 +29,3 @@ S-Expressions. However, they are strongly typed, type annotated and thoroughly
 checked.
 
 ***NOTE*** *The _ character should never be declared, merely ignored*.
-
-## Bytecode
-
-Whirlwind uses a specialized bytecode to represent its internal IR.  The bytecode is designed to
-be more similar to LLVM, then it is to Whirlwind. It is extremely verbose and represented by numerous
-enumerated values. This bytecode is compiled from the Action Tree and is also expressed as ordered
-bytecode objects to save on parsing time.  Each bytecode instructions corresponds directly with some
-form of an LLVM instruction (or instruction set) with zero redundancy or ambiguity.
-
- - [Bytecode Reference](https://github.com/ComedicChimera/Whirlwind/blob/master/Whirlwind/docs/bytecode.md)
- 
- ***Note*** *Ignore the _ character in assignment, it will be ignored in declaration*.
