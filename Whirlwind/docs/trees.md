@@ -20,6 +20,7 @@ connote any operation or computation.
 | Null | Represents a use of the null keyword | *empty* |
 | VariantGenerate | Represents the type generated for a specific variant instance | *empty* |
 | Type | Represents the data type used in is type testing | *empty* |
+| Val | Represents the chained data value | *empty* |
 
 ## Identifier Node
 
@@ -63,6 +64,7 @@ A multi-value structure or some form of operation.
 | KVPair | Key, Value | A single key value pair |
 | Tuple | *Tuple Elements* | A tuple |
 | Lambda | *Parameters*, Function Body | A lambda object |
+| PartialFunction | Expr, *Removed Arguments* | Create a partially-completed function from the expression |
 | TypeCast | Value | A type cast - return type is desired type | 
 | HeapAlloc | Size | Allocate a set amount of memory on the heap |
 | HeapAllocType | Type | Allocate enough memory to store a given type |
@@ -73,12 +75,13 @@ A multi-value structure or some form of operation.
 | Filter | expr | A filter component for a comprehension |
 | Iterator | Root, *Identifiers* | Create an iterator over the some iterable |
 | CreateGeneric | Generic | Converts a generic to a value, return type is generic type |
-| GetMember | Root, Identifier | Gets a member of a struct, object or other type |
+| GetMember | Root, Identifier | Gets a member of a struct or other type |
+| StaticGet | Root, Identifier | Gets a static member of the given type | 
 | InitList | *Initializers* | Create an instance from an initializer list |
 | Intializer | Identifier, expr | Initializer a given value in an initializer list |
 | Call | Function, *Arguments* | Call a normal function with given arguments |
 | CallAsync | AsyncFunction, *Arguments* | Call an async function with the given arguments |
-| CallConstructor | obj, *Arguments* | Call an object constructor |
+| CallConstructor | Struct, *Arguments* | Call a struct constructor |
 | Subscript | Collection, Index | Get the element at a given index |
 | Slice | Collection, Begin, End | Create a slice between two indices |
 | SliceBegin | Collection, Begin | Create a slice from the beginning onward |
@@ -88,18 +91,21 @@ A multi-value structure or some form of operation.
 | SliceEndStep | Collection, End, Step | Create a slice from index 0 to the given index with the given step |
 | SlicePureStep | Collection, Step | Create a slice with the given step |
 | ChangeSign | Numeric | Change the sign of a numeric type |
+| Complement | Value | Perform a bitwise complement operation |
 | Increment | Numeric | Increment a value |
 | PostfixIncrement | Numeric | Postfix increment a value |
 | Decrement | Numeric | Decrement a value |
 | PostfixDecrement | Numeric | Postfix decrement a value |
 | Reference | Value | Create a reference to the given value |
-| Dereference | Value | Dereference a value a certain number of times equivalent to the **pointer difference** |
+| Indirect | Value | Get a pointer to the given value |
+| Dereference | Value | Dereference a pointer a certain number of times equivalent to the **pointer difference** |
 | Pow | *Values* | Perform an exponent operation |
 | Add | *Values* | Perform an addition/concatination operation |
 | Sub | *Values* | Perforn a subtraction operation |
 | Mul | *Values* | Perform a multiplication operation |
 | Div | *Values* | Perform a division operation |
 | Mod | *Values* | Perform a modulo operation |
+| Floordiv | *Values* | Perform a floor division operation |
 | LShift | *Values* | Perform a left shift operation |
 | RShift | *Values* | Perform a right shift operation |
 | Not | Value | Perform a not/bitwise not operation |
@@ -112,11 +118,15 @@ A multi-value structure or some form of operation.
 | Or | *Values* | Perform an or/bitwise or logical operation |
 | Xor | *Values* | Perform a xor/bitwise xor logical operation |
 | And | *Values* | Perform an and/bitwise and logical operation |
-| Complement | Value | Perform a bitwise complement operation |
-| Floordiv | *Values* | Perform a floor division operation |
+| Bind | Value, *Functions* | Binds each expression to the one on its right |
+| Compose | *Functions* | Composes the functions sequentially |
 | InlineComparison |  Option1, Comparison Expr, Option2 | Perform an inline comparison |
-| NullCoalesce | NullableExpr, DefaultExpr | Perform a null coalescion operation |
 | Is | Expr, Type | Tests if an object is a given data type |
+| ExtractInto | Expr, Identifier | Extracts the value from the given expression if possible and stores it in a expr-local |
+| Range | Expr, Expr | Creates a range between the two expressions |
+| As | Expr, Type | Converts a type class value into a more specific form |
+| InlineCaseExpr | *Cases*, \[Default\] | An inline select-case expression |
+| Then | Expr, Expr | Chains one expr into another |
 
 ### Statement Components
 
@@ -124,22 +134,16 @@ ExprNodes made specifically for use in a certain statements as structural compon
 
 | Name | Parameters | Purpose |
 | ---- | ---------- | ------- |
-| EnumConstInitializer | Identifier, Expr | Initialize an enumerated constant with a custom start |
 | AssignVars | *Assignment Variables* | The list of variables being assigned to |
 | AssignExprs | *Exprs* | The list of corresponding variable assignment expressions |
 | ConstexprInitializer | Expr | A constexpr initializer for constexpr declarations |
 | Initializer | Expr | An initializer for variable / constant declarations |
 | Var | Identifier, \[*Initializer*\] | A single variable in variable declaration unit |
 | Variables | *Vars* | A list of all the individual variables in a single variable declaration |
-| CustomNewType | *none* | The new type value in a type class |
-| CustomAlias | \[Identifier, Expr\] | Indicates an alias value in a type class |
-| BindInterface | Interface, Type | Binds an interface to the given data type |
-| Implements | *Types* | A list of interfaces implemented by a given type interface |
-| Implement | *none* | Interface implemented by a type interface |
 
 ### Block Components
 
-ExprNodes made specifically for use in certain block statements and/or declarations (`for`, `agent`, etc.) as structural components.
+ExprNodes made specifically for use in certain block statements and/or declarations (`for`, `type`, etc.) as structural components.
 
 | Name | Parameters | Purpose |
 | ---- | ---------- | ------- |
@@ -147,6 +151,11 @@ ExprNodes made specifically for use in certain block statements and/or declarati
 | CForCondition | Expr | The end condition of a C-style for loop |
 | CForUpdateExpr | Expr | The expression to be called each cycle of a C-style for loop |
 | CForUpdateAssignment | Assignment | The assignment statement to evaluated after each cycle of a C-Style for loop |
+| CustomNewType | *none* | The new type value in a type class |
+| CustomAlias | \[Identifier, Expr\] | Indicates an alias value in a type class |
+| BindInterface | Interface, Type | Binds an interface to the given data type |
+| Implements | *Types* | A list of interfaces implemented by a given type interface |
+| Implement | *none* | Interface implemented by a type interface |
 
 ## Statement Node
 
@@ -167,8 +176,6 @@ Represents a single Whirlwind statement.
 | DeclareVariable | *Variable Nodes* | Declare a variable or set of variables | **BLOCK** |
 | DeclareConstant | *Constant Nodes* | Declare a constant or set of constants | **BLOCK** |
 | DeclareConstexpr | *Constexpr Nodes* | Declare a constexpr or set of constexprs | **BLOCK** |
-| ThrowException | Exception | Throw a normal exception | **BLOCK** |
-| ThrowObject | Object | Wrap an object in an exception and throw it | **BLOCK** |
 | Delete | *Identifiers* | Delete a set of symbols | **BLOCK** |
 | Return | *Value* | Return a value from a function | **BLOCK** |
 | Yield | *Value* | Yield-return a value from a function | **BLOCK** |
@@ -206,8 +213,6 @@ Represents a single Whirlwind block statement or declaration.
 | ForIter | Iterator | A foreach / for-iterator loop |
 | ForCondition | Expr | A conditional for loop (while loop) |
 | CFor | CForExpr | A C-style for loop |
-| Except | *Handle* | A block that contains a series of handles |
-| Handle | Expression, Identifier | A single handle expression |
 | FromStmt | Expr, Identifier, [FromExcept] | A from borrow statement |
 | FromExcept | `none` | A fail case for a from borrow statement |
 | FromBlock | VarDecl | A context manager |
@@ -225,6 +230,6 @@ All block declaration containing identifiers are using the identifier to represe
 | TypeInterface | BindInterface, [Implements] | A type interface declaration |
 | Decorator | *Expr* | A function declared with one or more decorators |
 | TypeClass | Identifier, *Implements* | A type class declaration |
-| Constructor | Identifier | A constructor within a type class |
+| Constructor | Identifier | A constructor within a struct |
 | Generic | Identifier | A generic declaration |
 | Variant | VariantGenerate, Identifier | A variant declaration |
