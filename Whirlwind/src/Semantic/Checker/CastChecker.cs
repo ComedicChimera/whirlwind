@@ -56,6 +56,31 @@ namespace Whirlwind.Semantic.Checker
                         return TypeCast((start as IIterable).GetIterator(), (desired as IIterable).GetIterator());
                     else if (desired.Classify() == TypeClassifier.POINTER)
                         return TypeCast((start as IIterable).GetIterator(), ((PointerType)desired).DataType);
+                    else if (start is ArrayType at && at.ElementType is SimpleType st && st.Type == SimpleType.SimpleClassifier.BYTE)
+                    {
+                        if (desired is SimpleType dst)
+                        {
+                            if (at.Size == -1)
+                                return true;
+
+                            switch (dst.Type)
+                            {
+                                case SimpleType.SimpleClassifier.BOOL:
+                                case SimpleType.SimpleClassifier.BYTE:
+                                    return at.Size == 1;
+                                case SimpleType.SimpleClassifier.CHAR:
+                                    return at.Size == 2;
+                                case SimpleType.SimpleClassifier.FLOAT:
+                                case SimpleType.SimpleClassifier.INTEGER:
+                                    return at.Size == 4;
+                                case SimpleType.SimpleClassifier.LONG:
+                                case SimpleType.SimpleClassifier.DOUBLE:
+                                    return at.Size == 8;
+                                default:
+                                    return true;
+                            }
+                        }
+                    }
                     break;
                 case TypeClassifier.DICT:
                     if (desired.Classify() == TypeClassifier.DICT)
