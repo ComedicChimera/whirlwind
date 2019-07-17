@@ -14,7 +14,6 @@ and make sure that unpacking is functional in its more complex state (as in the
 following works as intended)
   * from docs: `let num = Number::Int(3); let t: int = from (num as Int);`
 - allow decorators to work with function groups
-- add static as a life time specifier (to supplement the behavior lost by closures)
 - add pattern matching on variables after `is`
   * `x is Type t`
 and make sure constancy works
