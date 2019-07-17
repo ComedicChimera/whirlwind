@@ -121,7 +121,7 @@ stmt: ( variable_decl
 ;
 
 // variable declaration
-variable_decl: ('LET' | 'CONST') ['VOL'] var extension variable_initializer  ;
+variable_decl: ('LET' | 'CONST') ['STATIC'] ['VOL'] var extension variable_initializer  ;
 var: '(' var_id (',' var_id)* ')'
 | 'IDENTIFIER'
 ;

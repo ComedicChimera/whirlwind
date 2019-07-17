@@ -38,6 +38,8 @@ namespace Whirlwind.Semantic.Visitor
                             constant = true;
                         else if (((TokenNode)item).Tok.Type == "VOL")
                             modifiers.Add(Modifier.VOLATILE);
+                        else if (((TokenNode)item).Tok.Type == "STATIC")
+                            modifiers.Add(Modifier.STATIC);
                         break;
                     case "var":
                         {
