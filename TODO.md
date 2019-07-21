@@ -6,9 +6,6 @@
 - add prelude (later)
 - allow for context-based inferencing (for enumerated type classes)
 - clear up the behavior of null
-- update type class to use guards on the type constructor as opposed to having
-a separate (and illogical) value restrictors
-  * type Type Val(v: Int) when v < 3;
 - make sure type classes that have aliases can apply the `as` operator to unpack
 them
 and make sure that unpacking is functional in its more complex state (as in the
