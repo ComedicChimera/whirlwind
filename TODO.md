@@ -9,11 +9,11 @@
 - update type class to use guards on the type constructor as opposed to having
 a separate (and illogical) value restrictors
   * type Type Val(v: Int) when v < 3;
-- make sure type classes can only allow one alias (for logic purposes)
+- make sure type classes that have aliases can apply the `as` operator to unpack
+them
 and make sure that unpacking is functional in its more complex state (as in the
 following works as intended)
   * from docs: `let num = Number::Int(3); let t: int = from (num as Int);`
-- allow decorators to work with function groups
 - add pattern matching on variables after `is`
   * `x is Type t`
 and make sure constancy works
@@ -24,6 +24,12 @@ and make sure constancy works
 - make sure generic operator overloading works
 - allow for total import of package
   * include { ... } from package;
+- fix decorators to be up to snuff with the docs
+  * be able to take arguments with only one level of wrapping
+  * be able to omit `[]` for single decorator applications
+  * be able to work with overloading functions
+  * be able to apply to decorators from other packages (static get)
+  * see all in Chapter 16 of Whirlwind docs
 
 # THOUGHTS
 
