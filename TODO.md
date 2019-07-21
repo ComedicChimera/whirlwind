@@ -11,8 +11,9 @@ them
 and make sure that unpacking is functional in its more complex state (as in the
 following works as intended)
   * from docs: `let num = Number::Int(3); let t: int = from (num as Int);`
-- add pattern matching on variables after `is`
+- add pattern matching on variables after `is` and 'as'
   * `x is Type t`
+  * `x as Type t`
 and make sure constancy works
   * see docs on Type Classes
 - fix references to have a more logical behavior
