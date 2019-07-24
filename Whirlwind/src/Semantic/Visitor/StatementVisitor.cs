@@ -110,7 +110,7 @@ namespace Whirlwind.Semantic.Visitor
 
                 _nodes.Add(new StatementNode("None"));
 
-                _contextCouldExist = false;
+                _couldLambdaContextExist = false;
             }
         }
 
@@ -193,7 +193,7 @@ namespace Whirlwind.Semantic.Visitor
 
                             _addContext(exprNode);
                             _visitExpr(exprNode);
-                            _contextCouldExist = false;
+                            _couldLambdaContextExist = false;
                         }
                         
                         exprTypes.Add(_nodes.Last().Type);

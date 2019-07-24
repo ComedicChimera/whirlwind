@@ -348,23 +348,29 @@ namespace Whirlwind.Semantic.Visitor
 
                                 if (hasExtension)
                                 {
-                                    var ctxExistTemp = _contextCouldExist;
+                                    var ctxExistTemp = _couldLambdaContextExist;
 
                                     _addContext(initNode);
                                     _visitExpr(initNode);
-                                    _contextCouldExist = ctxExistTemp;
+                                    _couldLambdaContextExist = ctxExistTemp;
 
                                     if (_nodes.Last() is IncompleteNode inode)
                                     {
                                         if (paramType is FunctionType fctx)
-                                        {
                                             _visitLambda(inode.AST, fctx);
+                                        else if (paramType is CustomType tctx)
+                                        {
+                                            _typeClassContext = tctx;
 
-                                            _nodes[_nodes.Count - 2] = _nodes[_nodes.Count - 1];
-                                            _nodes.RemoveAt(_nodes.Count - 1);
+                                            _visitExpr(initNode);
+
+                                            _typeClassContext = null;
                                         }
                                         else
                                             throw new SemanticException("Unable to infer type(s) of lambda arguments", initNode.Position);
+
+                                        _nodes[_nodes.Count - 2] = _nodes[_nodes.Count - 1];
+                                        _nodes.RemoveAt(_nodes.Count - 1);
                                     }
                                     else if (!paramType.Coerce(_nodes.Last().Type))
                                         throw new SemanticException("Optional initializer must be coercible to the specified type extension", initNode.Position);
@@ -387,7 +393,7 @@ namespace Whirlwind.Semantic.Visitor
                             hasExtension = true;
                             paramType = ctxParams[ctxNdx].DataType;
                         }                         
-                        else if (ctxParams == null && _contextCouldExist)
+                        else if (ctxParams == null && _couldLambdaContextExist)
                         {
                             hasExtension = true;
                             paramType = new IncompleteType();

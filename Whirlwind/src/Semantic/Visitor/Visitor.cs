@@ -12,7 +12,8 @@ namespace Whirlwind.Semantic.Visitor
         private List<ITypeNode> _nodes;
         private SymbolTable _table;
         private string _namePrefix;
-        private bool _contextCouldExist;
+        private bool _couldLambdaContextExist, _couldTypeClassContextExist;
+        private CustomType _typeClassContext;
 
         public List<SemanticException> ErrorQueue;
 
@@ -21,7 +22,8 @@ namespace Whirlwind.Semantic.Visitor
             _nodes = new List<ITypeNode>();
             _table = new SymbolTable();
             _namePrefix = namePrefix;
-            _contextCouldExist = false;
+            _couldLambdaContextExist = false;
+            _couldTypeClassContextExist = false;
 
             ErrorQueue = new List<SemanticException>();
         }
@@ -152,11 +154,17 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _addContext(ASTNode node)
         {
-            if (node.Name == "lambda")
-                _contextCouldExist = true;
-            else if (node.Content.Count == 1 && node.Content[0] is ASTNode anode)
-                _addContext(anode);
+            _couldTypeClassContextExist = true;
 
+            _addLambdaContext(node);
+        }
+
+        private void _addLambdaContext(ASTNode node)
+        {
+            if (node.Name == "lambda")
+                _couldLambdaContextExist = true;
+            else if (node.Content.Count == 1 && node.Content[0] is ASTNode anode)
+                _addLambdaContext(anode);
         }
     }
 }

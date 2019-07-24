@@ -14,195 +14,203 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitExpr(ASTNode node, bool needsSubscope=true)
         {
-            foreach (var subNode in node.Content)
+            try
             {
-                if (subNode.Name == "func_op")
-                    _visitFuncOp((ASTNode)subNode);
-                else if (subNode.Name == "expr_var")
+                foreach (var subNode in node.Content)
                 {
-                    ASTNode exprVarDecl = (ASTNode)subNode;
-
-                    string name = ((TokenNode)exprVarDecl.Content[0]).Tok.Value;
-                    _visitFuncOp((ASTNode)exprVarDecl.Content[2]);
-
-                    if (_isVoid(_nodes.Last().Type))
-                        throw new SemanticException("Unable to determine type of variable", exprVarDecl.Content[0].Position);
-
-                    var copyType = _nodes.Last().Type.ConstCopy();
-                    // clear out constancy
-                    copyType.Constant = false;
-
-                    _nodes.Add(new IdentifierNode(name, copyType));
-
-                    if (needsSubscope)
+                    if (subNode.Name == "func_op")
+                        _visitFuncOp((ASTNode)subNode);
+                    else if (subNode.Name == "expr_var")
                     {
-                        _table.AddScope();
-                        _table.DescendScope();
-                    }
+                        ASTNode exprVarDecl = (ASTNode)subNode;
 
-                    if (!_table.AddSymbol(new Symbol(name, copyType)))
-                    {
+                        string name = ((TokenNode)exprVarDecl.Content[0]).Tok.Value;
+                        _visitFuncOp((ASTNode)exprVarDecl.Content[2]);
+
+                        if (_isVoid(_nodes.Last().Type))
+                            throw new SemanticException("Unable to determine type of variable", exprVarDecl.Content[0].Position);
+
+                        var copyType = _nodes.Last().Type.ConstCopy();
+                        // clear out constancy
+                        copyType.Constant = false;
+
+                        _nodes.Add(new IdentifierNode(name, copyType));
+
+                        if (needsSubscope)
+                        {
+                            _table.AddScope();
+                            _table.DescendScope();
+                        }
+
+                        if (!_table.AddSymbol(new Symbol(name, copyType)))
+                        {
+                            if (needsSubscope)
+                                _table.AscendScope();
+
+                            throw new SemanticException("Unable to redeclare symbol in scope", exprVarDecl.Content[0].Position);
+                        }
+
+                        _nodes.Add(new ExprNode("ExprVarDecl", new VoidType()));
+                        PushForward(2);
+
+                        _visitThen((ASTNode)exprVarDecl.Content[3], false);
+
                         if (needsSubscope)
                             _table.AscendScope();
 
-                        throw new SemanticException("Unable to redeclare symbol in scope", exprVarDecl.Content[0].Position);
                     }
-
-                    _nodes.Add(new ExprNode("ExprVarDecl", new VoidType()));
-                    PushForward(2);
-
-                    _visitThen((ASTNode)exprVarDecl.Content[3], false);
-
-                    if (needsSubscope)
-                        _table.AscendScope();
-                        
-                }
-                else if (subNode.Name == "expr_extension")
-                {
-                    string op = "";
-
-                    foreach (var item in ((ASTNode)subNode).Content)
+                    else if (subNode.Name == "expr_extension")
                     {
-                        if (item.Name == "TOKEN" && op == "")
-                            op = ((TokenNode)item).Tok.Type;
-                        else if (op != ":>" && item.Name == "expr")
-                            _visitExpr((ASTNode)item);
-                        else if (item.Name == "case_extension")
-                            _visitInlineCase((ASTNode)item);
-                        else if (item.Name == "then_extension")
-                            _visitThen((ASTNode)item, needsSubscope);
-                    }
-
-                    if (op == "IF")
-                    {
-                        _nodes.Add(new ExprNode("InlineCompare", _nodes.Last().Type));
-                        PushForward(3);
-
-                        var content = ((ExprNode)_nodes.Last()).Nodes;
-
-                        if (!new SimpleType(SimpleType.SimpleClassifier.BOOL).Coerce(content[1].Type))
-                            throw new SemanticException("Comparison expression of inline comparison must evaluate to a boolean", node.Content[0].Position);
-
-                        if (!content[0].Type.Coerce(content[2].Type) || !content[2].Type.Coerce(content[0].Type))
-                            throw new SemanticException("Possible results of inline comparison must be the same type", ((ASTNode)subNode).Content.Last().Position);
-                    }
-                    else if (op == "IS")
-                    {
-                        ASTNode typeNode = (ASTNode)((ASTNode)subNode).Content[1];
-                        DataType dt;
-
-                        if (typeNode.Content[0] is TokenNode tk && tk.Tok.Type == "IDENTIFIER"
-                            && _table.Lookup(tk.Tok.Value, out Symbol sym) && sym.DataType is CustomNewType)
-                        {
-                            dt = sym.DataType;
-                        }
-                        else
-                            dt = _generateType(typeNode);
-
-                        _nodes.Add(new ValueNode("Type", dt));
-
-                        _nodes.Add(new ExprNode("Is", new SimpleType(SimpleType.SimpleClassifier.BOOL)));
-
-                        PushForward(2);
-                    }
-                    else if (op == ":>")
-                    {
-                        var extractExpr = (ASTNode)subNode;
-
-                        if (HasOverload(_nodes.Last().Type, "__:>__", out DataType rtType))
-                        {
-                            _thenExprType = rtType;
-
-                            _visitExpr((ASTNode)extractExpr.Content[1]);
-
-                            _nodes.Add(new ExprNode("ExtractInto", _nodes.Last().Type));
-                            PushForward(2);
-                        }
-                        else
-                            throw new SemanticException("The `:>` operator is not defined on the given type", extractExpr.Content[0].Position);
-                    }
-                    else if (op == ".")
-                    {
-                        var intType = new SimpleType(SimpleType.SimpleClassifier.INTEGER);
-
-                        if (!intType.Coerce(_nodes[_nodes.Count - 2].Type))
-                        {
-                            if (HasOverload(_nodes[_nodes.Count - 2].Type, "__..__", 
-                                new ArgumentList(new List<DataType> { _nodes.Last().Type }), out DataType rtType))
-                            {
-                                _nodes.Add(new ExprNode("Range", rtType));
-                                PushForward(2);
-
-                                return;
-                            }
-
-                            throw new SemanticException("Range must be bounded by two integers", node.Content[0].Position);
-                        }
-
-                        if (!intType.Coerce(_nodes.Last().Type))
-                            throw new SemanticException("Range must be bounded by two integers", ((ASTNode)subNode).Content[2].Position);
-
-                        _nodes.Add(new ExprNode("Range", new ArrayType(intType, -1)));
-                        PushForward(2);
-                    }
-                    else if (op == "AS")
-                    {
-                        DataType dt = new VoidType();
-                        bool hasType = false;
+                        string op = "";
 
                         foreach (var item in ((ASTNode)subNode).Content)
                         {
-                            if (item is TokenNode tk && tk.Tok.Type == "IDENTIFIER")
-                            {
-                                if (_table.Lookup(tk.Tok.Value, out Symbol sym))
-                                {
-                                    if (sym.Modifiers.Contains(Modifier.CONSTEXPR))
-                                        _nodes.Add(new ConstexprNode(sym.Name, sym.DataType, sym.Value));
-                                    else
-                                        _nodes.Add(new IdentifierNode(sym.Name, sym.DataType));
-
-                                    if (sym.DataType is CustomInstance cinst)
-                                    {
-                                        if (!_table.Lookup(cinst.Parent.Name, out Symbol _))
-                                            throw new SemanticException("Unable type class instances outside of type class's visible scope",
-                                                node.Content[0].Position);
-                                    }
-                                }
-                                else {
-                                    throw new SemanticException($"Undefined Symbol: `{tk.Tok.Value}`", node.Position);
-                                }
-                            }
-                            else if (item.Name == "trailer")
-                            {
-                                _visitTrailer((ASTNode)item);
-
-                                if (new[] { "GetTupleMember", "Subscript", "Slice", "InitList", "Call", "CallAsync", "CallConstructor",
-                                    "InitStruct", "InitTCConstructor" }.Contains(_nodes.Last().Name))
-                                {
-                                    throw new SemanticException("Operation not valid in right side of `as` operator", item.Position);
-                                }
-                            }
-                            else if (item.Name == "types")
-                            {
-                                dt = _generateType((ASTNode)item);
-                                hasType = true;
-                            }
-                                
+                            if (item.Name == "TOKEN" && op == "")
+                                op = ((TokenNode)item).Tok.Type;
+                            else if (op != ":>" && item.Name == "expr")
+                                _visitExpr((ASTNode)item);
+                            else if (item.Name == "case_extension")
+                                _visitInlineCase((ASTNode)item);
+                            else if (item.Name == "then_extension")
+                                _visitThen((ASTNode)item, needsSubscope);
                         }
 
-                        if (!hasType)
-                            dt = _nodes.Last().Type;
-
-                        if (dt.Coerce(_nodes[_nodes.Count - 2].Type))
+                        if (op == "IF")
                         {
-                            _nodes.Add(new ExprNode("As", dt));
+                            _nodes.Add(new ExprNode("InlineCompare", _nodes.Last().Type));
+                            PushForward(3);
+
+                            var content = ((ExprNode)_nodes.Last()).Nodes;
+
+                            if (!new SimpleType(SimpleType.SimpleClassifier.BOOL).Coerce(content[1].Type))
+                                throw new SemanticException("Comparison expression of inline comparison must evaluate to a boolean", node.Content[0].Position);
+
+                            if (!content[0].Type.Coerce(content[2].Type) || !content[2].Type.Coerce(content[0].Type))
+                                throw new SemanticException("Possible results of inline comparison must be the same type", ((ASTNode)subNode).Content.Last().Position);
+                        }
+                        else if (op == "IS")
+                        {
+                            ASTNode typeNode = (ASTNode)((ASTNode)subNode).Content[1];
+                            DataType dt;
+
+                            if (typeNode.Content[0] is TokenNode tk && tk.Tok.Type == "IDENTIFIER"
+                                && _table.Lookup(tk.Tok.Value, out Symbol sym) && sym.DataType is CustomNewType)
+                            {
+                                dt = sym.DataType;
+                            }
+                            else
+                                dt = _generateType(typeNode);
+
+                            _nodes.Add(new ValueNode("Type", dt));
+
+                            _nodes.Add(new ExprNode("Is", new SimpleType(SimpleType.SimpleClassifier.BOOL)));
+
                             PushForward(2);
                         }
-                        else
-                            throw new SemanticException("Unable to perform explicit coercion between the two types", subNode.Position);
+                        else if (op == ":>")
+                        {
+                            var extractExpr = (ASTNode)subNode;
+
+                            if (HasOverload(_nodes.Last().Type, "__:>__", out DataType rtType))
+                            {
+                                _thenExprType = rtType;
+
+                                _visitExpr((ASTNode)extractExpr.Content[1]);
+
+                                _nodes.Add(new ExprNode("ExtractInto", _nodes.Last().Type));
+                                PushForward(2);
+                            }
+                            else
+                                throw new SemanticException("The `:>` operator is not defined on the given type", extractExpr.Content[0].Position);
+                        }
+                        else if (op == ".")
+                        {
+                            var intType = new SimpleType(SimpleType.SimpleClassifier.INTEGER);
+
+                            if (!intType.Coerce(_nodes[_nodes.Count - 2].Type))
+                            {
+                                if (HasOverload(_nodes[_nodes.Count - 2].Type, "__..__",
+                                    new ArgumentList(new List<DataType> { _nodes.Last().Type }), out DataType rtType))
+                                {
+                                    _nodes.Add(new ExprNode("Range", rtType));
+                                    PushForward(2);
+
+                                    return;
+                                }
+
+                                throw new SemanticException("Range must be bounded by two integers", node.Content[0].Position);
+                            }
+
+                            if (!intType.Coerce(_nodes.Last().Type))
+                                throw new SemanticException("Range must be bounded by two integers", ((ASTNode)subNode).Content[2].Position);
+
+                            _nodes.Add(new ExprNode("Range", new ArrayType(intType, -1)));
+                            PushForward(2);
+                        }
+                        else if (op == "AS")
+                        {
+                            DataType dt = new VoidType();
+                            bool hasType = false;
+
+                            foreach (var item in ((ASTNode)subNode).Content)
+                            {
+                                if (item is TokenNode tk && tk.Tok.Type == "IDENTIFIER")
+                                {
+                                    if (_table.Lookup(tk.Tok.Value, out Symbol sym))
+                                    {
+                                        if (sym.Modifiers.Contains(Modifier.CONSTEXPR))
+                                            _nodes.Add(new ConstexprNode(sym.Name, sym.DataType, sym.Value));
+                                        else
+                                            _nodes.Add(new IdentifierNode(sym.Name, sym.DataType));
+
+                                        if (sym.DataType is CustomInstance cinst)
+                                        {
+                                            if (!_table.Lookup(cinst.Parent.Name, out Symbol _))
+                                                throw new SemanticException("Unable type class instances outside of type class's visible scope",
+                                                    node.Content[0].Position);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        throw new SemanticException($"Undefined Symbol: `{tk.Tok.Value}`", node.Position);
+                                    }
+                                }
+                                else if (item.Name == "trailer")
+                                {
+                                    _visitTrailer((ASTNode)item);
+
+                                    if (new[] { "GetTupleMember", "Subscript", "Slice", "InitList", "Call", "CallAsync", "CallConstructor",
+                                    "InitStruct", "InitTCConstructor" }.Contains(_nodes.Last().Name))
+                                    {
+                                        throw new SemanticException("Operation not valid in right side of `as` operator", item.Position);
+                                    }
+                                }
+                                else if (item.Name == "types")
+                                {
+                                    dt = _generateType((ASTNode)item);
+                                    hasType = true;
+                                }
+
+                            }
+
+                            if (!hasType)
+                                dt = _nodes.Last().Type;
+
+                            if (dt.Coerce(_nodes[_nodes.Count - 2].Type))
+                            {
+                                _nodes.Add(new ExprNode("As", dt));
+                                PushForward(2);
+                            }
+                            else
+                                throw new SemanticException("Unable to perform explicit coercion between the two types", subNode.Position);
+                        }
                     }
                 }
             }
+            catch (SemanticContextException)
+            {
+                _nodes.Add(new IncompleteNode(node));
+            }            
         }
 
         private void _visitInlineCase(ASTNode node)

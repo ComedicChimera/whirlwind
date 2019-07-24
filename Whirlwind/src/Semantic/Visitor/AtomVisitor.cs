@@ -306,7 +306,7 @@ namespace Whirlwind.Semantic.Visitor
             {
                 _addContext((ASTNode)node.Content[1]);
                 args = _generateArgsList((ASTNode)node.Content[1]);
-                _contextCouldExist = false;
+                _couldLambdaContextExist = false;
             }            
 
             bool incompletes = args.UnnamedArguments.Any(x => x is IncompleteType) || args.NamedArguments.Any(x => x.Value is IncompleteType);

@@ -52,15 +52,35 @@ namespace Whirlwind.Semantic.Visitor
                             if (sym.DataType is CustomInstance cinst)
                             {
                                 if (!_table.Lookup(cinst.Parent.Name, out Symbol _))
-                                    throw new SemanticException("Unable type class instances outside of type class's visible scope", 
+                                    throw new SemanticException("Unable type class instances outside of type class's visible scope",
                                         node.Content[0].Position);
                             }
 
                             return;
                         }
+                        else if (_couldTypeClassContextExist)
+                            throw new SemanticContextException();
+                        // when the context is evaluated the failed look up is checked prior
+                        // no need to check here
+                        else if (_typeClassContext != null)
                         {
-                            throw new SemanticException($"Undefined Symbol: `{((TokenNode)node.Content[0]).Tok.Value}`", node.Position);
+                            var name = ((TokenNode)node.Content[0]).Tok.Value;
+
+                            var customMatches = _typeClassContext.Instances.Where(x => x is CustomNewType)
+                                .Select(x => (CustomNewType)x)
+                                .Where(c => c.Name == name);
+
+                            if (customMatches.Count() == 0)
+                                throw new SemanticException($"Undefined Symbol: `{name}`", node.Position);
+
+                            _nodes.Add(new IdentifierNode(_typeClassContext.Name, _typeClassContext));
+                            _nodes.Add(new IdentifierNode(name, customMatches.First()));
+
+                            _nodes.Add(new ExprNode("StaticGet", _nodes.Last().Type));
+                            PushForward(2);
                         }
+                        else
+                            throw new SemanticException($"Undefined Symbol: `{((TokenNode)node.Content[0]).Tok.Value}`", node.Position);
                     case "THIS":
                         if (_table.Lookup("$THIS", out Symbol instance))
                         {

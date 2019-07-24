@@ -77,7 +77,7 @@ namespace Whirlwind.Semantic.Visitor
                                                         var initNode = (ASTNode)((ASTNode)elem).Content[1];
                                                         _addContext(initNode);
                                                         _visitExpr(initNode);
-                                                        _contextCouldExist = false;
+                                                        _couldLambdaContextExist = false;
 
                                                         if (((TokenNode)((ASTNode)elem).Content[0]).Tok.Type == ":=")
                                                         {
@@ -151,7 +151,7 @@ namespace Whirlwind.Semantic.Visitor
                         {
                             _addContext(mainInitNode);
                             _visitExpr(mainInitNode);
-                            _contextCouldExist = false;
+                            _couldLambdaContextExist = false;
                         }
                         else
                             _visitExpr(mainInitNode);                     
