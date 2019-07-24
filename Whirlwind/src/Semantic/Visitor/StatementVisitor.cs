@@ -110,7 +110,7 @@ namespace Whirlwind.Semantic.Visitor
 
                 _nodes.Add(new StatementNode("None"));
 
-                _couldLambdaContextExist = false;
+                _clearPossibleContext();
             }
         }
 
@@ -193,7 +193,7 @@ namespace Whirlwind.Semantic.Visitor
 
                             _addContext(exprNode);
                             _visitExpr(exprNode);
-                            _couldLambdaContextExist = false;
+                            _clearPossibleContext();
                         }
                         
                         exprTypes.Add(_nodes.Last().Type);
@@ -367,19 +367,12 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _inferLambdaAssignContext(DataType pctx, List<DataType> exprTypes, int pos)
         {
-            var inode = (IncompleteNode)(((ExprNode)_nodes.Last()).Nodes[pos]);
+            _giveContext((IncompleteNode)(((ExprNode)_nodes.Last()).Nodes[pos]), pctx);
 
-            if (pctx is FunctionType ctx)
-            {
-                _visitLambda(inode.AST, ctx);
+            ((ExprNode)_nodes[_nodes.Count - 2]).Nodes[pos] = _nodes.Last();
+            exprTypes[pos] = _nodes.Last().Type;
 
-                ((ExprNode)_nodes[_nodes.Count - 2]).Nodes[pos] = _nodes.Last();
-                exprTypes[pos] = _nodes.Last().Type;
-
-                _nodes.RemoveAt(_nodes.Count - 1);
-            }
-            else
-                throw new SemanticException("Unable to infer type(s) for lambda arguments", inode.AST.Position);
+            _nodes.RemoveAt(_nodes.Count - 1);
         }
     }
 }

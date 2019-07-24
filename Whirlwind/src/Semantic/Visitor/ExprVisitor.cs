@@ -210,6 +210,7 @@ namespace Whirlwind.Semantic.Visitor
             catch (SemanticContextException)
             {
                 _nodes.Add(new IncompleteNode(node));
+                _didTypeClassCtxInferFail = true;
             }            
         }
 

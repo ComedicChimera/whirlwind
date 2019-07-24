@@ -22,11 +22,9 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     case "INTEGER_LITERAL":
                         dt = SimpleType.SimpleClassifier.INTEGER;
-                        unsigned = true;
                         break;
                     case "FLOAT_LITERAL":
                         dt = SimpleType.SimpleClassifier.FLOAT;
-                        unsigned = true;
                         break;
                     case "BOOL_LITERAL":
                         dt = SimpleType.SimpleClassifier.BOOL;
@@ -78,6 +76,8 @@ namespace Whirlwind.Semantic.Visitor
 
                             _nodes.Add(new ExprNode("StaticGet", _nodes.Last().Type));
                             PushForward(2);
+
+                            return;
                         }
                         else
                             throw new SemanticException($"Undefined Symbol: `{((TokenNode)node.Content[0]).Tok.Value}`", node.Position);

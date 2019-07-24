@@ -31,9 +31,8 @@ namespace Whirlwind.Types
         {
             if (other.Classify() == TypeClassifier.SIMPLE)
             {
-                // make sure that you are not coercing signed to unsigned
-                if (!((SimpleType)other).Unsigned && Unsigned)
-                    return false;
+                // ok to coerce signed to unsigned and vice-versa because it almost
+                // never fails and if I don't, we get tons of issues
 
                 if (((SimpleType)other).Type == Type)
                     return true;

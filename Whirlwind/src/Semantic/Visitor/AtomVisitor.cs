@@ -306,7 +306,7 @@ namespace Whirlwind.Semantic.Visitor
             {
                 _addContext((ASTNode)node.Content[1]);
                 args = _generateArgsList((ASTNode)node.Content[1]);
-                _couldLambdaContextExist = false;
+                _clearPossibleContext();
             }            
 
             bool incompletes = args.UnnamedArguments.Any(x => x is IncompleteType) || args.NamedArguments.Any(x => x.Value is IncompleteType);
@@ -400,17 +400,12 @@ namespace Whirlwind.Semantic.Visitor
                             {
                                 if (_nodes[_nodes.Count - i] is IncompleteNode inode)
                                 {
-                                    if (cnt.Values[i] is FunctionType fctx)
-                                    {
-                                        _visitLambda(inode.AST, fctx);
+                                    _giveContext(inode, cnt.Values[i]);
 
-                                        args.UnnamedArguments[args.Count() - i] = _nodes.Last().Type;
+                                    args.UnnamedArguments[args.Count() - i] = _nodes.Last().Type;
 
-                                        _nodes[_nodes.Count - i - 1] = _nodes.Last();
-                                        _nodes.RemoveAt(_nodes.Count - 1);
-                                    }
-                                    else
-                                        throw new SemanticException("Unable to infer type(s) of lambda arguments", inode.AST.Position);
+                                    _nodes[_nodes.Count - i - 1] = _nodes.Last();
+                                    _nodes.RemoveAt(_nodes.Count - 1);
                                 }
                             }
                         }
@@ -463,15 +458,10 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     var ctx = (i < ft.Parameters.Count ? ft.Parameters[i] : ft.Parameters.Last()).DataType;
 
-                    if (ctx is FunctionType fctx)
-                    {
-                        _visitLambda(inode.AST, fctx);
+                    _giveContext(inode, ctx);
 
-                        _nodes[_nodes.Count - i - 1] = _nodes.Last();
-                        _nodes.RemoveAt(_nodes.Count - 1);
-                    }
-                    else
-                        throw new SemanticException("Unable to infer type(s) of lambda arguments", inode.AST.Position);              
+                    _nodes[_nodes.Count - i - 1] = _nodes.Last();
+                    _nodes.RemoveAt(_nodes.Count - 1);
                 }
             }
         }

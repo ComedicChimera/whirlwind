@@ -319,7 +319,8 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     bool optional = false,
                         hasExtension = false,
-                        isVolatile = false;
+                        isVolatile = false,
+                        inferredType = false;
                     var identifiers = new List<string>();
                     DataType paramType = new VoidType();
 
@@ -348,26 +349,18 @@ namespace Whirlwind.Semantic.Visitor
 
                                 if (hasExtension)
                                 {
-                                    var ctxExistTemp = _couldLambdaContextExist;
+                                    bool lambdaCtxExistTemp = _couldLambdaContextExist,
+                                        typeClassCtxExistTemp = _couldTypeClassContextExist;
 
                                     _addContext(initNode);
                                     _visitExpr(initNode);
-                                    _couldLambdaContextExist = ctxExistTemp;
+
+                                    _couldLambdaContextExist = lambdaCtxExistTemp;
+                                    _couldTypeClassContextExist = typeClassCtxExistTemp;
 
                                     if (_nodes.Last() is IncompleteNode inode)
                                     {
-                                        if (paramType is FunctionType fctx)
-                                            _visitLambda(inode.AST, fctx);
-                                        else if (paramType is CustomType tctx)
-                                        {
-                                            _typeClassContext = tctx;
-
-                                            _visitExpr(initNode);
-
-                                            _typeClassContext = null;
-                                        }
-                                        else
-                                            throw new SemanticException("Unable to infer type(s) of lambda arguments", initNode.Position);
+                                        _giveContext(inode, paramType);  
 
                                         _nodes[_nodes.Count - 2] = _nodes[_nodes.Count - 1];
                                         _nodes.RemoveAt(_nodes.Count - 1);
@@ -392,6 +385,7 @@ namespace Whirlwind.Semantic.Visitor
                         {
                             hasExtension = true;
                             paramType = ctxParams[ctxNdx].DataType;
+                            inferredType = true;
                         }                         
                         else if (ctxParams == null && _couldLambdaContextExist)
                         {
@@ -411,6 +405,30 @@ namespace Whirlwind.Semantic.Visitor
                             argsDeclList.Add(new Parameter(identifier, paramType, true, false, isVolatile, _nodes.Last()));
 
                         _nodes.RemoveAt(_nodes.Count - 1); // remove argument from node stack
+                    }
+                    else if (inferredType)
+                    {
+                        inferredType = false;
+
+                        argsDeclList.Add(new Parameter(identifiers[0], paramType, false, false, isVolatile));
+
+                        if (identifiers.Count > 1)
+                        {
+                            foreach (var identifier in identifiers.Skip(1))
+                            {
+                                ctxNdx++;
+
+                                if (ctxNdx >= ctxParams.Count)
+                                    throw new SemanticException("Unable to create argument with no type", subNode.Position);
+
+                                var ctxParam = ctxParams[ctxNdx];
+
+                                if (ctxParam.Optional || ctxParam.Indefinite)
+                                    throw new SemanticException("Unable to create argument with no type", subNode.Position);
+
+                                argsDeclList.Add(new Parameter(identifier, ctxParam.DataType, false, false, isVolatile));
+                            }
+                        } 
                     }
                     else
                     {

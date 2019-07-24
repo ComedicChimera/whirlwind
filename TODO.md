@@ -4,7 +4,6 @@
 - add 2 sanitizers (constexpr and memory) [Note: constexpr does in depth checking on all constant expressions]
 - remove MirrorType and declare builtins in SymbolTable as necessary (via prelude)
 - add prelude (later)
-- allow for context-based inferencing (for enumerated type classes)
 - clear up the behavior of null
 - make sure type classes that have aliases can apply the `as` operator to unpack
 them
@@ -33,7 +32,6 @@ and make sure constancy works
 
 - add positioning data to some or all of the action tree (maybe identifiers?)
 - make sure to properly name arg and parameter variables
-- change integer literals to default to signed integers and make signed-unsigned coercion easier
 - add annotations to describe memory and program behavior (using `#` syntax)
 - add string interpolation
 - find a way to vary behavior based on type for interfaces (interface level method variance, a buffed is operator, etc.)

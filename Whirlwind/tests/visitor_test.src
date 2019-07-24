@@ -1,3 +1,20 @@
-﻿type NonzeroPair
-	| Positive(int, float)
+﻿type Color
+	| RED
+	| BLUE
+	| GREEN
 	;
+
+func test(x: Color) {
+
+}
+
+func main() {
+	test(RED);
+	test(Color::GREEN);
+
+	let f: Color = BLUE;
+
+	f = GREEN;
+
+	f = Color::GREEN;
+}

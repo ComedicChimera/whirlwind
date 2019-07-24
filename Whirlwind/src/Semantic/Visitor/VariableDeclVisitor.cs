@@ -77,7 +77,7 @@ namespace Whirlwind.Semantic.Visitor
                                                         var initNode = (ASTNode)((ASTNode)elem).Content[1];
                                                         _addContext(initNode);
                                                         _visitExpr(initNode);
-                                                        _couldLambdaContextExist = false;
+                                                        _clearPossibleContext();
 
                                                         if (((TokenNode)((ASTNode)elem).Content[0]).Tok.Type == ":=")
                                                         {
@@ -112,17 +112,12 @@ namespace Whirlwind.Semantic.Visitor
                                                         if (initializer.Type is IncompleteType && 
                                                             ((ExprNode)initializer).Nodes[0] is IncompleteNode inode2)
                                                         {
-                                                            if (variables[currentIdentifier].Type is FunctionType fctx)
-                                                            {
-                                                                _visitLambda(inode2.AST, fctx);
+                                                            _giveContext(inode2, variables[currentIdentifier].Type);
 
-                                                                ((ExprNode)initializer).Nodes[0] = _nodes.Last();
-                                                                initializer.Type = _nodes.Last().Type;
+                                                            ((ExprNode)initializer).Nodes[0] = _nodes.Last();
+                                                            initializer.Type = _nodes.Last().Type;
 
-                                                                _nodes.RemoveAt(_nodes.Count - 1);
-                                                            }
-                                                            else
-                                                                throw new SemanticException("Unable to infer type(s) of lambda arguments", elem.Position);
+                                                            _nodes.RemoveAt(_nodes.Count - 1);
                                                         }
 
                                                         variables[currentIdentifier] = new Variable(initializer.Type, 
@@ -151,7 +146,7 @@ namespace Whirlwind.Semantic.Visitor
                         {
                             _addContext(mainInitNode);
                             _visitExpr(mainInitNode);
-                            _couldLambdaContextExist = false;
+                            _clearPossibleContext();
                         }
                         else
                             _visitExpr(mainInitNode);                     
@@ -190,17 +185,12 @@ namespace Whirlwind.Semantic.Visitor
                         // we know there is a type that exists to give context to i-node
                         if (_nodes.Last().Type is IncompleteType && ((ExprNode)_nodes.Last()).Nodes[0] is IncompleteNode inode)
                         {
-                            if (mainType is FunctionType fctx)
-                            {
-                                _visitLambda(inode.AST, fctx);
+                            _giveContext(inode, mainType);
 
-                                ((ExprNode)_nodes[_nodes.Count - 2]).Nodes[0] = _nodes.Last();
-                                _nodes[_nodes.Count - 2].Type = _nodes.Last().Type;
+                            ((ExprNode)_nodes[_nodes.Count - 2]).Nodes[0] = _nodes.Last();
+                            _nodes[_nodes.Count - 2].Type = _nodes.Last().Type;
 
-                                _nodes.RemoveAt(_nodes.Count - 1);
-                            }
-                            else
-                                throw new SemanticException("Unable to infer type(s) of lambda arguments", item.Position);
+                            _nodes.RemoveAt(_nodes.Count - 1);
                         }
 
                         hasInitializer = true;

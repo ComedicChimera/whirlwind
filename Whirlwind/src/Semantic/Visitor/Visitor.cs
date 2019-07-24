@@ -14,6 +14,7 @@ namespace Whirlwind.Semantic.Visitor
         private string _namePrefix;
         private bool _couldLambdaContextExist, _couldTypeClassContextExist;
         private CustomType _typeClassContext;
+        private bool _didTypeClassCtxInferFail;
 
         public List<SemanticException> ErrorQueue;
 
@@ -24,10 +25,16 @@ namespace Whirlwind.Semantic.Visitor
             _namePrefix = namePrefix;
             _couldLambdaContextExist = false;
             _couldTypeClassContextExist = false;
+            _didTypeClassCtxInferFail = false;
 
             ErrorQueue = new List<SemanticException>();
         }
 
+        // ----------------------
+        // Main Visitor Functions
+        // ----------------------
+
+        // main visit function
         public void Visit(ASTNode ast)
         {
             _nodes.Add(new BlockNode("Package"));
@@ -82,13 +89,21 @@ namespace Whirlwind.Semantic.Visitor
             _completeTree();
         }
 
+        // returns final, visited node
         public ITypeNode Result() => _nodes.First();
 
+        // returns export table
         public SymbolTable Table()
         {
             return new SymbolTable(_table.Filter(s => s.Modifiers.Contains(Modifier.EXPORTED)));
         }
 
+        // ------------------------------------
+        // Construction Stack Control Functions
+        // ------------------------------------
+
+        // moves all the ending nodes on the CS stack into
+        // the node at the specified depth in order
         private void MergeBack(int depth = 1)
         {
             if (_nodes.Count <= depth)
@@ -100,6 +115,9 @@ namespace Whirlwind.Semantic.Visitor
             }
         }
 
+        // moves all the nodes preceding the ending node
+        // as far back as the specified depth on the CS stack 
+        // into the ending node in order
         private void PushForward(int depth = 1)
         {
             if (_nodes.Count <= depth)
@@ -117,6 +135,8 @@ namespace Whirlwind.Semantic.Visitor
             _nodes.Add((ITypeNode)ending);
         }
 
+        // moves the node preceding the ending node
+        // into the ending node's block
         private void PushToBlock()
         {
             BlockNode parent = (BlockNode)_nodes.Last();
@@ -128,6 +148,8 @@ namespace Whirlwind.Semantic.Visitor
             _nodes.Add(parent);
         }
 
+        // moves the ending node into the preceding
+        // node's block
         private void MergeToBlock()
         {
             ITypeNode child = _nodes.Last();
@@ -136,6 +158,69 @@ namespace Whirlwind.Semantic.Visitor
             ((BlockNode)_nodes.Last()).Block.Add(child);
         }
 
+        // -------------------------------------------
+        // Context-Based/Inductive Inferencing Helpers
+        // -------------------------------------------
+
+        // sets type class context label and calls check for setting
+        // lambda context label
+        private void _addContext(ASTNode node)
+        {
+            _couldTypeClassContextExist = true;
+
+            _addLambdaContext(node);
+        }
+
+        // checks if lambda context could exist and sets appropriate label if it can
+        private void _addLambdaContext(ASTNode node)
+        {
+            if (node.Name == "lambda")
+                _couldLambdaContextExist = true;
+            else if (node.Content.Count == 1 && node.Content[0] is ASTNode anode)
+                _addLambdaContext(anode);
+        }
+
+        // applies context if possible, errors if not
+        private void _giveContext(IncompleteNode inode, DataType ctx)
+        {
+            if (ctx is FunctionType fctx)
+                _visitLambda(inode.AST, fctx);
+            else if (ctx is CustomType tctx)
+            {
+                _typeClassContext = tctx;
+
+                _visitExpr(inode.AST);
+
+                _typeClassContext = null;
+            }
+            else
+            {
+                string errorMsg;
+
+                if (_didTypeClassCtxInferFail)
+                {
+                    errorMsg = "Unable to infer type class context for expression";
+                    _didTypeClassCtxInferFail = false;
+                }
+                else
+                    errorMsg = "Unable to infer type(s) of lambda arguments";
+
+                throw new SemanticException(errorMsg, inode.AST.Position);
+            }
+        }
+
+        // sets both context-indefinence variables to false
+        private void _clearPossibleContext()
+        {
+            _couldLambdaContextExist = false;
+            _couldTypeClassContextExist = false;
+        }
+
+        // -------------------
+        // Utility Function(s)
+        // -------------------
+
+        // checks to see if a type is void
         private bool _isVoid(DataType type)
         {
             if (type.Classify() == TypeClassifier.VOID)
@@ -150,21 +235,6 @@ namespace Whirlwind.Semantic.Visitor
                 return _isVoid(((IIterable)type).GetIterator());
             else
                 return false;
-        }
-
-        private void _addContext(ASTNode node)
-        {
-            _couldTypeClassContextExist = true;
-
-            _addLambdaContext(node);
-        }
-
-        private void _addLambdaContext(ASTNode node)
-        {
-            if (node.Name == "lambda")
-                _couldLambdaContextExist = true;
-            else if (node.Content.Count == 1 && node.Content[0] is ASTNode anode)
-                _addLambdaContext(anode);
         }
     }
 }
