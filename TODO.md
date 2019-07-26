@@ -26,12 +26,15 @@ and make sure constancy works
   * be able to work with overloading functions
   * be able to apply to decorators from other packages (static get)
   * see all in Chapter 16 of Whirlwind docs
+- add annotations to describe memory and program behavior (using `#` syntax)
+  * File Level Annotations: `#unsafe` or `#res_name "test"`: effect file behavior generally
+  * Function Annotation: `#intrinsic` or `#extern:` to effect how function compiles
+  * Struct Annotation: `#joined`: effect how structs compile and initialize
 
 # THOUGHTS
 
 - add positioning data to some or all of the action tree (maybe identifiers?)
 - make sure to properly name arg and parameter variables
-- add annotations to describe memory and program behavior (using `#` syntax)
 - add string interpolation
 - find a way to vary behavior based on type for interfaces (interface level method variance, a buffed is operator, etc.)
   * although it is possible to do this via overloading
