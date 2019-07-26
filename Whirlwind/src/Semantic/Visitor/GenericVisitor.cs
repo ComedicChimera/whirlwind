@@ -43,11 +43,9 @@ namespace Whirlwind.Semantic.Visitor
             return genericVars.Select(x => new GenericVariable(x.Key, x.Value)).ToList();   
         }
 
-        private void _makeGeneric(ASTNode root, List<GenericVariable> genericVars, List<Modifier> modifiers, TextPosition position)
+        private void _makeGeneric(ASTNode root, List<GenericVariable> genericVars, List<Modifier> modifiers, Symbol sym, TextPosition position)
         {
             _nodes.Add(new BlockNode("Generic"));
-
-            Symbol sym = _table.GetScope().Last();
 
             // exit generic scope
             _table.AscendScope();

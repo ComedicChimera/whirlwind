@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 
 namespace Whirlwind.Types
 {
@@ -15,7 +14,7 @@ namespace Whirlwind.Types
             {
                 foreach (var item in Interfaces)
                 {
-                    if (item.Key is StructType ist && st.Name == ist.Name)
+                    if (item.Key is StructType ist && st.Coerce(ist))
                     {
                         typeInterf = item.Value;
                         return true;

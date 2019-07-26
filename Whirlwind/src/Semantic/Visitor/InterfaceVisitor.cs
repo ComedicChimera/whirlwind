@@ -161,52 +161,7 @@ namespace Whirlwind.Semantic.Visitor
                 if (method.Name == "variant_decl")
                     _visitVariant((ASTNode)method);
                 else if (method.Name == "operator_decl")
-                {
-                    _nodes.Add(new BlockNode("OperatorOverload"));
-
-                    ASTNode decl = (ASTNode)method;
-
-                    string op = ((ASTNode)decl.Content[1]).Content
-                        .Select(x => ((TokenNode)x).Tok.Type)
-                        .Aggregate((a, b) => a + b);
-
-                    var args = decl.Content[3].Name == "args_decl_list" ? _generateArgsDecl((ASTNode)decl.Content[3]) : new List<Parameter>();
-
-                    if (new[] { "!", "[]", ":>", "<-", "~" }.Contains(op) && args.Count != 0)
-                        throw new SemanticException("Unary operator overload must not take arguments", decl.Content[3].Position);
-                    else if (op == "[:]" && args.Count != 3)
-                        throw new SemanticException("Slice operator overload must take exactly 3 arguments", decl.Content[3].Position);
-                    else if ((op != "-" || args.Count != 0) && args.Count != 1)
-                        throw new SemanticException("Binary operator overload must take exactly 1 argument", decl.Content[3].Position);
-
-
-                    DataType rtType = new VoidType();
-                    if (decl.Content[5].Name == "types")
-                        rtType = _generateType((ASTNode)decl.Content[5]);
-
-                    var ft = new FunctionType(args, rtType, false);
-
-                    _nodes.Add(new ValueNode("Operator", ft, op));
-                    MergeBack();
-
-                    if (decl.Content.Last().Name == "func_body")
-                        _nodes.Add(new IncompleteNode((ASTNode)decl.Content.Last()));
-                    else if (typeInterface)
-                        throw new SemanticException("All methods of type interface must define a body",
-                            decl.Content.Last().Position);
-                    else
-                    {
-                        interfaceType.AddMethod(new Symbol($"__{op}__", ft), false);
-
-                        // merge operator overload
-                        MergeToBlock();
-                        continue;
-                    }
-
-                    interfaceType.AddMethod(new Symbol($"__{op}__", ft), true);
-
-                    MergeToBlock();
-                }
+                    _visitOperatorOverload(interfaceType, (ASTNode)method, typeInterface);
                 else
                 {
                     ASTNode func = (ASTNode)method;
@@ -221,10 +176,10 @@ namespace Whirlwind.Semantic.Visitor
 
                         _visitFunction(func, memberModifiers);
 
-                        _makeGeneric(func, genericVars, memberModifiers, func.Content[1].Position);
+                        _makeGeneric(func, genericVars, memberModifiers, _table.GetScope().Last(), func.Content[1].Position);
 
                         var genNode = (IdentifierNode)((BlockNode)_nodes.Last()).Nodes[0];
-                       
+
                         if (!interfaceType.AddMethod(new Symbol(genNode.IdName, genNode.Type, memberModifiers),
                             func.Content.Last().Name == "func_body"))
                             throw new SemanticException("Interface cannot contain duplicate members", func.Content[1].Position);
@@ -243,6 +198,74 @@ namespace Whirlwind.Semantic.Visitor
                 // add function to interface block
                 MergeToBlock();
             }
+        }
+
+        private void _visitOperatorOverload(InterfaceType interfType, ASTNode node, bool typeInterface)
+        {
+            _nodes.Add(new BlockNode("OperatorOverload"));
+
+            string op = "";
+            var args = new List<Parameter>();
+            DataType rtType = new VoidType();
+            var genericVars = new List<GenericVariable>();
+
+            foreach (var subNode in node.Content)
+            {
+                switch (subNode.Name)
+                {
+                    case "operator":
+                    case "ext_op":
+                        op = ((ASTNode)subNode).Content
+                        .Select(x => ((TokenNode)x).Tok.Type)
+                        .Aggregate((a, b) => a + b);
+                        break;
+                    case "generic_tag":
+                        genericVars = _primeGeneric((ASTNode)subNode);
+                        break;
+                    case "args_decl_list":
+                        args = _generateArgsDecl((ASTNode)subNode);
+                        break;
+                    case "types":
+                        rtType = _generateType((ASTNode)subNode);
+                        break;
+                }
+            }
+
+            if (new[] { "!", ":>", "<-", "~" }.Contains(op) && args.Count != 0)
+                throw new SemanticException("Unary operator overload must not take arguments", node.Content[3].Position);
+            else if (op == "[:]" && args.Count != 3)
+                throw new SemanticException("Slice operator overload must take exactly 3 arguments", node.Content[3].Position);
+            else if ((op != "-" || args.Count != 0) && args.Count != 1)
+                throw new SemanticException("Binary operator overload must take exactly 1 argument", node.Content[3].Position);
+
+            var ft = new FunctionType(args, rtType, false);
+
+            _nodes.Add(new ValueNode("Operator", ft, op));
+            MergeBack();
+
+            bool hasBody = false;
+
+            if (node.Content.Last().Name == "func_body")
+            {
+                _nodes.Add(new IncompleteNode((ASTNode)node.Content.Last()));
+                hasBody = true;
+                MergeToBlock();
+            }           
+            else if (typeInterface)
+                throw new SemanticException("All methods of type interface must define a body",
+                    node.Content.Last().Position);
+
+            var sym = new Symbol($"__{op}__", ft);
+
+            if (genericVars.Count > 0)
+            {
+                _makeGeneric(node, genericVars, new List<Modifier>(), sym, node.Content[1].Position);
+                var genType = ((BlockNode)_nodes.Last()).Nodes[0].Type;
+
+                interfType.AddMethod(new Symbol($"__{op}__", genType), hasBody);
+            }
+            else
+                interfType.AddMethod(new Symbol($"__{op}__", ft), hasBody);
         }
     }
 }

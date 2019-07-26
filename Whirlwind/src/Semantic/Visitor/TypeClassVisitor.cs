@@ -145,7 +145,7 @@ namespace Whirlwind.Semantic.Visitor
                 throw new SemanticException($"Unable to redeclare symbol by name `{name}`", node.Content[1].Position);
 
             if (genericVars.Count > 0)
-                _makeGeneric(node, genericVars, typeModifiers, node.Content[1].Position);
+                _makeGeneric(node, genericVars, typeModifiers, _table.GetScope().Last(), node.Content[1].Position);
 
             // merge in all instances
             MergeBack(typeClass.Instances.Count);

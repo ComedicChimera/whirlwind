@@ -46,7 +46,7 @@ namespace Whirlwind.Semantic.Visitor
             }
 
             if (genericVars.Count > 0)
-                _makeGeneric(root, genericVars, modifiers, namePosition);
+                _makeGeneric(root, genericVars, modifiers, _table.GetScope().Last(), namePosition);
         }
 
         private void _visitDecorator(ASTNode node, List<Modifier> modifiers)

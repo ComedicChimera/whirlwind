@@ -557,13 +557,6 @@ namespace Whirlwind.Semantic.Visitor
             }
             else
             {
-                var intType = new SimpleType(SimpleType.SimpleClassifier.INTEGER) { Constant = true };
-                if (!types.All(x => intType.Coerce(x))) {
-                    throw new SemanticException($"Invalid index type for {(expressionCount == 1 && hasStartingExpr ? "subscript" : "slice")}", 
-                        textPositions[Enumerable.Range(0, expressionCount).Where(x => !intType.Coerce(types[x])).First()]
-                        );
-                }
-
                 DataType elementType;
                 switch (rootType.Classify())
                 {
@@ -613,7 +606,7 @@ namespace Whirlwind.Semantic.Visitor
                                     break;
                             }
 
-                            string methodName = string.Format("__%s__", name == "Subscript" ? "[]" : "[:]");
+                            string methodName = $"__{(name == "Subscript" ? "[]" : "[:]")}__";
                             if (HasOverload(rootType, methodName, new ArgumentList(args), out DataType returnType))
                             {
                                 _nodes.Add(new ExprNode(name, returnType));
@@ -624,11 +617,19 @@ namespace Whirlwind.Semantic.Visitor
                             }
                             else
                                 throw new SemanticException(
-                                    $"Unable to perform  {(expressionCount == 1 && hasStartingExpr ? "subscript" : "slice")} on the given type",
+                                    $"Unable to perform {(expressionCount == 1 && hasStartingExpr ? "subscript" : "slice")} on the given type",
                                     node.Position
                                  );
                         }
                         
+                }
+
+                var intType = new SimpleType(SimpleType.SimpleClassifier.INTEGER) { Constant = true };
+                if (!types.All(x => intType.Coerce(x)))
+                {
+                    throw new SemanticException($"Invalid index type for {(expressionCount == 1 && hasStartingExpr ? "subscript" : "slice")}",
+                        textPositions[Enumerable.Range(0, expressionCount).Where(x => !intType.Coerce(types[x])).First()]
+                        );
                 }
 
                 _nodes.Add(new ExprNode(name, name == "Subscript" ? elementType : rootType));

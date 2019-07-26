@@ -1,20 +1,26 @@
-﻿type Color
-	| RED
-	| BLUE
-	| GREEN
-	;
+﻿struct Test {
+	a, b: int;
+}
 
-func test(x: Color) {
+interf for Test {
+	operator+ (x: int) {
+		this.a += x;
+		this.b += x;
+	}
 
+	operator[] <T>(ndx: T) T {
+		let t = ndx;
+
+		return this.a * t;
+	}
 }
 
 func main() {
-	test(RED);
-	test(Color::GREEN);
+	let t = new Test();
 
-	let f: Color = BLUE;
+	t += 4;
 
-	f = GREEN;
+	let res = t[4.5];
 
-	f = Color::GREEN;
+	res = t[5];
 }

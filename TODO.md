@@ -18,7 +18,6 @@ and make sure constancy works
 - fix references to have a more logical behavior
 - add special binding syntax to allow for binding onto all types of pointers
 - make sure finalizers work as intended
-- make sure generic operator overloading works
 - allow for total import of package
   * include { ... } from package;
 - fix decorators to be up to snuff with the docs
