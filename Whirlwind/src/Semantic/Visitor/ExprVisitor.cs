@@ -149,60 +149,39 @@ namespace Whirlwind.Semantic.Visitor
                         }
                         else if (op == "AS")
                         {
-                            DataType dt = new VoidType();
-                            bool hasType = false;
+                            DataType dt = _nodes.Last().Type;
+                            var typesNode = (ASTNode)((ASTNode)subNode).Content[1];
 
-                            foreach (var item in ((ASTNode)subNode).Content)
+                            if (dt is CustomInstance cin && typesNode.Content.Count == 1
+                                && typesNode.Content[0] is TokenNode tkn
+                                && tkn.Tok.Type == "IDENTIFIER")
                             {
-                                if (item is TokenNode tk && tk.Tok.Type == "IDENTIFIER")
+                                if (cin.Parent.GetInstanceByName(tkn.Tok.Value, out CustomNewType cnt))
                                 {
-                                    if (_table.Lookup(tk.Tok.Value, out Symbol sym))
-                                    {
-                                        if (sym.Modifiers.Contains(Modifier.CONSTEXPR))
-                                            _nodes.Add(new ConstexprNode(sym.Name, sym.DataType, sym.Value));
-                                        else
-                                            _nodes.Add(new IdentifierNode(sym.Name, sym.DataType));
-
-                                        if (sym.DataType is CustomInstance cinst)
-                                        {
-                                            if (!_table.Lookup(cinst.Parent.Name, out Symbol _))
-                                                throw new SemanticException("Unable type class instances outside of type class's visible scope",
-                                                    node.Content[0].Position);
-                                        }
-                                    }
-                                    else
-                                    {
-                                        throw new SemanticException($"Undefined Symbol: `{tk.Tok.Value}`", node.Position);
-                                    }
+                                    _nodes.Add(new ExprNode("TypeCast", cnt));
+                                    PushForward();
+                                    continue;
                                 }
-                                else if (item.Name == "trailer")
-                                {
-                                    _visitTrailer((ASTNode)item);
-
-                                    if (new[] { "GetTupleMember", "Subscript", "Slice", "InitList", "Call", "CallAsync", "CallConstructor",
-                                    "InitStruct", "InitTCConstructor" }.Contains(_nodes.Last().Name))
-                                    {
-                                        throw new SemanticException("Operation not valid in right side of `as` operator", item.Position);
-                                    }
-                                }
-                                else if (item.Name == "types")
-                                {
-                                    dt = _generateType((ASTNode)item);
-                                    hasType = true;
-                                }
-
                             }
 
-                            if (!hasType)
-                                dt = _nodes.Last().Type;
+                            _isTypeCast = true;
+                            DataType desired;
 
-                            if (dt.Coerce(_nodes[_nodes.Count - 2].Type))
+                            try
                             {
-                                _nodes.Add(new ExprNode("As", dt));
-                                PushForward(2);
+                                desired = _generateType(typesNode);
                             }
-                            else
-                                throw new SemanticException("Unable to perform explicit coercion between the two types", subNode.Position);
+                            finally
+                            {
+                                _isTypeCast = false;
+                            }
+                            
+
+                            if (!TypeCast(dt, desired))
+                                throw new SemanticException("Invalid type cast", subNode.Position);
+
+                            _nodes.Add(new ExprNode("TypeCast", desired));
+                            PushForward();
                         }
                     }
                 }

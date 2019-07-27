@@ -15,6 +15,7 @@ namespace Whirlwind.Semantic.Visitor
         private bool _couldLambdaContextExist, _couldTypeClassContextExist;
         private CustomType _typeClassContext;
         private bool _didTypeClassCtxInferFail;
+        private bool _isTypeCast;
 
         public List<SemanticException> ErrorQueue;
 
@@ -26,6 +27,7 @@ namespace Whirlwind.Semantic.Visitor
             _couldLambdaContextExist = false;
             _couldTypeClassContextExist = false;
             _didTypeClassCtxInferFail = false;
+            _isTypeCast = false;
 
             ErrorQueue = new List<SemanticException>();
         }

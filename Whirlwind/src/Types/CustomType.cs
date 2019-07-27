@@ -71,6 +71,18 @@ namespace Whirlwind.Types
             return false;
         }
 
+        public bool GetInstanceByName(string name, out CustomNewType result)
+        {
+            var matches = Instances.Where(x => x is CustomNewType)
+                .Select(x => (CustomNewType)x)
+                .Where(x => x.Name == name)
+                .ToList();
+
+            result = matches.FirstOrDefault();
+
+            return result != null;
+        }
+
         public override TypeClassifier Classify() => TypeClassifier.TYPE_CLASS;
 
         protected override bool _equals(DataType other)
@@ -105,12 +117,18 @@ namespace Whirlwind.Types
 
         public override TypeClassifier Classify() => TypeClassifier.TYPE_CLASS_INSTANCE;
 
-        public override bool Coerce(DataType other)
+        protected override bool _coerce(DataType other)
         {
             if (other is CustomType)
                 return Parent.Equals(other.ConstCopy());
             else if (other is CustomInstance cInst)
                 return Parent.Equals(cInst.Parent);
+
+            var aliases = Parent.Instances.Where(x => x is CustomAlias)
+                .Select(x => (CustomAlias)x);
+
+            if (aliases.Count() > 0 && aliases.Any(x => x.Type.Coerce(other)))
+                return true;
 
             return false;
         }
@@ -135,7 +153,7 @@ namespace Whirlwind.Types
                 if (!Parent.Equals(cnType.Parent) || Name != cnType.Name)
                     return false;
 
-                return Values.Zip(cnType.Values, (a, b) => a.Equals(b)).All(x => x);
+                return true;
             }
 
             return false;

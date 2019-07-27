@@ -100,16 +100,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             return delegate (Dictionary<string, DataType> aliases, GenericType parent)
             {
-                if (parent.DataType is CustomType ct)
-                {
-                    _table.AddScope(new Capture(ct.Instances
-                        .Where(x => x is CustomNewType)
-                        .Select(x => ((CustomNewType)x).Name)
-                        .ToList()));
-                }
-                else
-                    _table.AddScope();
-
+                _table.AddScope();
                 _table.DescendScope();
 
                 foreach (var alias in aliases)

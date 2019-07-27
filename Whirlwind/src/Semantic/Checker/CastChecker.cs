@@ -151,6 +151,19 @@ namespace Whirlwind.Semantic.Checker
                             return true;
                     }
                     break;
+                case TypeClassifier.TYPE_CLASS_INSTANCE:
+                    {
+                        var startInstance = (CustomInstance)start;
+
+                        if (desired is CustomNewType)
+                            return startInstance.Parent.Instances.Any(x => x.Equals(startInstance));
+                        else
+                        {
+                            return startInstance.Parent.Instances.Where(x => x is CustomAlias)
+                                .Select(x => (CustomAlias)x)
+                                .Any(x => x.Type.Coerce(desired));
+                        }
+                    }
             }
 
             if (start.Classify() == TypeClassifier.TUPLE && desired.Classify() == TypeClassifier.TUPLE)

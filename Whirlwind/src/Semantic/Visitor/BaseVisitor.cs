@@ -138,9 +138,6 @@ namespace Whirlwind.Semantic.Visitor
                         // select expr
                         _visitExpr(((ASTNode)((ASTNode)node.Content[0]).Content[1]));
                         break;
-                    case "type_cast":
-                        _visitTypeCast((ASTNode)node.Content[0]);
-                        break;
                     case "tuple":
                         _visitTuple((ASTNode)node.Content[0]);
                         break;
@@ -405,25 +402,6 @@ namespace Whirlwind.Semantic.Visitor
             var fType = new FunctionType(args, rtType, async); 
 
             _nodes.Add(new ExprNode("Lambda", fType));
-            PushForward();
-        }
-
-        private void _visitTypeCast(ASTNode node)
-        {
-            DataType dt = new VoidType();
-
-            foreach (var item in node.Content)
-            {
-                if (item.Name == "types")
-                    dt = _generateType((ASTNode)item);
-                else if (item.Name == "expr")
-                    _visitExpr((ASTNode)item);
-            }
-
-            if (!TypeCast(_nodes.Last().Type, dt))
-                throw new SemanticException("Invalid type cast", node.Position);
-
-            _nodes.Add(new ExprNode("TypeCast", dt));
             PushForward();
         }
 

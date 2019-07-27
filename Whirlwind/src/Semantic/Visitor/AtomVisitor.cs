@@ -276,16 +276,8 @@ namespace Whirlwind.Semantic.Visitor
                     break;
                 case TypeClassifier.TYPE_CLASS:
                     {
-                        var matches = ((CustomType)type).Instances.Where(x => x is CustomNewType)
-                            .Select(x => (CustomNewType)x)
-                            .Where(x => x.Name == name);
-
-                        if (matches.Count() > 0)
-                        {
-                            var firstMatch = matches.First();
-
-                            symbol = new Symbol(firstMatch.Name, firstMatch);
-                        }
+                        if (((CustomType)type).GetInstanceByName(name, out CustomNewType match))
+                            symbol = new Symbol(match.Name, match);
                         else
                             throw new SemanticException($"Type class has no enumerated/value member `{name}`", idPos);
                     }
@@ -432,10 +424,7 @@ namespace Whirlwind.Semantic.Visitor
                         if (!genericType.CreateGeneric(filledGenerics, out DataType newParent))
                             throw new SemanticException("Unable to create a generic type class from the given types", node.Position);
 
-                        cnt = ((CustomType)newParent).Instances.Where(x => x is CustomNewType)
-                            .Select(x => (CustomNewType)x)
-                            .Where(x => x.Name == cnt.Name)
-                            .First();
+                        ((CustomType)newParent).GetInstanceByName(cnt.Name, out cnt);
                     }
 
                     _nodes.Add(new ExprNode("InitTCConstructor", root.Type));

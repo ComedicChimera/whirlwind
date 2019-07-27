@@ -5,17 +5,9 @@
 - remove MirrorType and declare builtins in SymbolTable as necessary (via prelude)
 - add prelude (later)
 - clear up the behavior of null
-- make sure type classes that have aliases can apply the `as` operator to unpack
-them
-and make sure that unpacking is functional in its more complex state (as in the
-following works as intended)
-  * from docs: `let num = Number::Int(3); let t: int = from (num as Int);`
 - add pattern matching on variables after `is` and 'as'
   * `x is Type t`
   * `x as Type t`
-and make sure constancy works
-  * see docs on Type Classes
-- fix references to have a more logical behavior
 - add special binding syntax to allow for binding onto all types of pointers
 - make sure finalizers work as intended
 - allow for total import of package

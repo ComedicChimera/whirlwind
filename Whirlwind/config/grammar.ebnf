@@ -254,7 +254,6 @@ base: 'INTEGER_LITERAL'
 | tuple
 | lambda
 | sub_expr
-| type_cast
 | partial_func
 ;
 
@@ -274,9 +273,6 @@ lambda_body: '=>' expr
 
 // sub expr declared so that it could be easier to parse
 sub_expr: '(' expr ')' ;
-
-// casting syntax includes call
-type_cast: 'CAST' '<' types '>' '(' expr ')' ;
 
 // convert function to partial function
 partial_func: '|' expr partial_arg (',' partial_arg)* ')' ;

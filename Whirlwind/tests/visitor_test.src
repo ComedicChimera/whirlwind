@@ -1,26 +1,21 @@
-﻿struct Test {
-	a, b: int;
-}
+﻿type Number
+	| Int(int)
+	| Float(float)
+	;
 
-interf for Test {
-	operator+ (x: int) {
-		this.a += x;
-		this.b += x;
-	}
-
-	operator[] <T>(ndx: T) T {
-		let t = ndx;
-
-		return this.a * t;
-	}
+func test(x: Number) {
+	x = Int(1);
 }
 
 func main() {
-	let t = new Test();
+	let num = Number::Int(3);
 
-	t += 4;
+	let value = from (num as Int);
 
-	let res = t[4.5];
+	let boolean = (true as int);
 
-	res = t[5];
+	// fix this boi right here
+	value = from (num as Number::Int);
+
+	num = Number::Float(3.14);
 }

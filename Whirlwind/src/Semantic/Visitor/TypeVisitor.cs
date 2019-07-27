@@ -53,21 +53,7 @@ namespace Whirlwind.Semantic.Visitor
                             break;
                         case "IDENTIFIER":
                             if (_table.Lookup(tokenNode.Tok.Value, out Symbol symbol))
-                            {
-                                if (symbol.DataType.Classify() == TypeClassifier.GENERIC_ALIAS)
-                                    dt = ((GenericAlias)symbol.DataType).ReplacementType;
-                                // identifier checking not needed for self types because self types are compiled declared
-                                else if (!new[] { TypeClassifier.GENERIC_PLACEHOLDER, TypeClassifier.STRUCT,
-                                    TypeClassifier.INTERFACE,  TypeClassifier.GENERIC, TypeClassifier.TYPE_CLASS,
-                                    TypeClassifier.SELF }
-                                    .Contains(symbol.DataType.Classify()))
-                                {
-                                    throw new SemanticException("Identifier data type must be a struct, type class, or interface",
-                                        tokenNode.Position);
-                                }
-                                else
-                                    dt = symbol.DataType;
-                            }
+                                dt = _getIdentifierType(symbol.DataType, tokenNode.Position);
                             else
                             {
                                 throw new SemanticException($"Undefined Identifier: '{tokenNode.Tok.Value}'", tokenNode.Position);
@@ -83,17 +69,28 @@ namespace Whirlwind.Semantic.Visitor
                 }
                 else if (subNode.Name == "static_get")
                 {
+                    var idNode = (TokenNode)((ASTNode)subNode).Content[1];
+
                     if (dt is Package pkg)
                     {
-                        var idNode = (TokenNode)((ASTNode)subNode).Content[1];
-
                         if (pkg.ExternalTable.Lookup(idNode.Tok.Value, out Symbol symbol))
-                            dt = symbol.DataType;
+                            dt = _getIdentifierType(symbol.DataType, idNode.Position);
                         else
                             throw new SemanticException($"The given package has no exported member `{idNode.Tok.Value}", idNode.Position);
                     }
-                    else if (dt is CustomType)
-                        throw new SemanticException("Unable to use type class value as type", subNode.Position);
+                    else if (dt is CustomType ct)
+                    {
+                        if (_isTypeCast)
+                        {
+                            if (ct.GetInstanceByName(idNode.Tok.Value, out CustomNewType cnt))
+                                dt = cnt;
+                            else
+                                throw new SemanticException($"Type class has no member by name `{idNode.Tok.Value}`", idNode.Position);
+                        }                          
+                        else
+                            throw new SemanticException("Unable to use type class value as type", subNode.Position);
+                    }
+                        
                     else
                         throw new SemanticException("Unable to get static value from the given type", subNode.Position);
                 }
@@ -306,6 +303,23 @@ namespace Whirlwind.Semantic.Visitor
 
             // cover all your bases ;)
             return new VoidType();
+        }
+
+        private DataType _getIdentifierType(DataType sdt, TextPosition symbolPos)
+        {
+            if (sdt.Classify() == TypeClassifier.GENERIC_ALIAS)
+                return ((GenericAlias)sdt).ReplacementType;
+            // identifier checking not needed for self types because self types are compiled declared
+            else if (!new[] { TypeClassifier.GENERIC_PLACEHOLDER, TypeClassifier.STRUCT,
+                                    TypeClassifier.INTERFACE,  TypeClassifier.GENERIC, TypeClassifier.TYPE_CLASS,
+                                    TypeClassifier.SELF }
+                .Contains(sdt.Classify()))
+            {
+                throw new SemanticException("Identifier data type must be a struct, type class, or interface",
+                    symbolPos);
+            }
+            else
+                return sdt;
         }
     }
 }
