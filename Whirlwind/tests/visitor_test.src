@@ -1,21 +1,25 @@
-﻿type Number
-	| Int(int)
-	| Float(float)
-	;
+﻿func myDecor<T>(f: func(T)()) func(T)() {
+	func wrapper(x: T) {
+		f(x);
 
-func test(x: Number) {
-	x = Int(1);
+		// do stuff
+	}
+
+	return wrapper;
+}
+
+@myDecor<int>
+func test(x: int) {
+
+}
+
+@myDecor<float>
+func test(x: float) {
+
 }
 
 func main() {
-	let num = Number::Int(3);
+	test(4);
 
-	let value = from (num as Int);
-
-	let boolean = (true as int);
-
-	// fix this boi right here
-	value = from (num as Number::Int);
-
-	num = Number::Float(3.14);
+	test(4.5);
 }

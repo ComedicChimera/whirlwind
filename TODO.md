@@ -10,18 +10,15 @@
   * `x as Type t`
 - add special binding syntax to allow for binding onto all types of pointers
 - make sure finalizers work as intended
-- allow for total import of package
-  * include { ... } from package;
 - fix decorators to be up to snuff with the docs
   * be able to take arguments with only one level of wrapping
-  * be able to omit `[]` for single decorator applications
-  * be able to work with overloading functions
   * be able to apply to decorators from other packages (static get)
   * see all in Chapter 16 of Whirlwind docs
 - add annotations to describe memory and program behavior (using `#` syntax)
   * File Level Annotations: `#unsafe` or `#res_name "test"`: effect file behavior generally
-  * Function Annotation: `#intrinsic` or `#extern:` to effect how function compiles
+  * Function Annotation: `#intrinsic` or `#extern`: to effect how function compiles
   * Struct Annotation: `#joined`: effect how structs compile and initialize
+- fix generic functions: they are mega-broken
 
 # THOUGHTS
 

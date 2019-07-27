@@ -19,7 +19,7 @@ capture_block: capture subscope ;
 include_stmt: 'INCLUDE' ( pkg_name ['AS' 'IDENTIFIER'] | include_set 'FROM' pkg_name ) ;
 pkg_name: [pkg_back_move] 'IDENTIFIER' (':' ':' 'IDENTIFIER' | pkg_back_move 'IDENTIFIER')* ;
 pkg_back_move: '.' '.' ;
-include_set: '{' 'IDENTIFIER' (',' 'IDENTIFIER')* '}' ;
+include_set: '{' ( 'IDENTIFIER' (',' 'IDENTIFIER')* | '...' ) '}' ;
 
 // export declaration
 export_decl: 'EXPORT' ( block_decl
@@ -73,7 +73,7 @@ variant: '<' type_list '>' ;
 
 // decorator declaration
 decor_decl: decor func_decl ;
-decor: '@' '[' expr (',' expr)* ']' ;
+decor: '@' ( '[' expr (',' expr)* ']' | expr ) ;
 
 
 // BLOCK STATEMENTS (control flow and context managers)

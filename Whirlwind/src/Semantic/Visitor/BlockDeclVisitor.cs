@@ -51,7 +51,12 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitDecorator(ASTNode node, List<Modifier> modifiers)
         {
-            _visitFunction((ASTNode)node.Content[1], modifiers);
+            var fnNode = (ASTNode)node.Content[1];
+
+            if (fnNode.Content[2].Name == "generic_tag")
+                throw new SemanticException("Unable to apply decorator to a generic function", fnNode.Content[2].Position);
+
+            _visitFunction(fnNode, modifiers);
 
             FunctionType fnType = (FunctionType)((TreeNode)_nodes.Last()).Nodes[0].Type;
 
@@ -67,18 +72,22 @@ namespace Whirlwind.Semantic.Visitor
                     {
                         FunctionType decorType = (FunctionType)_nodes.Last().Type;
 
-                        if (decorType.MatchArguments(new ArgumentList(new List<DataType>() { fnType })))
+                        if (decorType.MatchArguments(new ArgumentList(new List<DataType>() { fnType.MutableCopy() })))
                         {
                             // check for void decorators
-                            if (_isVoid(decorType.ReturnType))
-                                throw new SemanticException("A decorator must return a value", item.Position);
+                            if (!(decorType.ReturnType is FunctionType))
+                                throw new SemanticException("A decorator must return a function", item.Position);
 
                             // allows decorator to override function return type ;)
                             if (!fnType.Coerce(decorType.ReturnType))
                             {
                                 _table.Lookup(((TokenNode)((ASTNode)node.Content[1]).Content[1]).Tok.Value, out Symbol sym);
 
-                                sym.DataType = decorType.ReturnType;
+                                if (sym.DataType is FunctionGroup fg)
+                                    fg.Functions = fg.Functions.Select(x => x.Equals(fnType) ? decorType.ReturnType : x)
+                                        .Select(x => (FunctionType)x).ToList();
+                                else
+                                    sym.DataType = decorType.ReturnType;
                             }
 
                             MergeBack();
