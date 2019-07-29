@@ -1,25 +1,15 @@
-﻿func myDecor<T>(f: func(T)()) const func(T)() {	
-	func wrapper(x: T) {
-		f(x);
+﻿func decor(f: func(int)(int), f2: func(int)(int)) const func()(int) {
+	func wrapper() int {
+		let arg = f2(3);
 
-		// do stuff
+		return f2(f(arg));
 	}
-
-	return wrapper;
 }
 
-@myDecor<int>
-func test(x: int) {
-
-}
-
-@myDecor<float>
-func test(x: float) {
-
-}
+@decor(|x| => x ~^ 2)
+func test(a: int) int
+	=> a * 4 + 5;
 
 func main() {
-	test(4);
-
-	test(4.5);
+	test();
 }

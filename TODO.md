@@ -8,15 +8,24 @@
 - add pattern matching on variables after `is` and 'as'
   * `x is Type t`
   * `x as Type t`
-- add special binding syntax to allow for binding onto all types of pointers
+- add special binding syntax to allow for binding onto all types of pointers,
+arrays, lists, and dictionaries
+  * `for *` - pointers
+  * `for {}` - arrays
+  * `for []` - lists
+  * `for {:}` - dictionaries
+  * all of them use `T` as their generic placeholder
 - make sure finalizers work as intended
-- fix decorators to be up to snuff with the docs
-  * be able to take arguments with only one level of wrapping
-  * see all in Chapter 16 of Whirlwind docs
 - add annotations to describe memory and program behavior (using `#` syntax)
   * File Level Annotations: `#unsafe` or `#res_name "test"`: effect file behavior generally
   * Function Annotation: `#intrinsic` or `#extern`: to effect how function compiles
   * Struct Annotation: `#joined`: effect how structs compile and initialize
+- add generic function groups
+- fix *void casting
+- add context-based inferencing for lambdas in `case` and `if` expressions
+- add `#impl` to create structs for intrinsic types like strings or arrays
+  * `#impl "str"`
+- add `super(Parent)` syntax to get overidden methods of interface
 
 # THOUGHTS
 

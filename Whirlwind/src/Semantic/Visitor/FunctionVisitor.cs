@@ -480,14 +480,20 @@ namespace Whirlwind.Semantic.Visitor
                             throw new SemanticException("Named arguments must be declared after unnamed arguments",
                                 subNode.Position);
 
+                        _addContext((ASTNode)argNode);
                         _visitExpr(argNode);
+                        _clearPossibleContext();
+
                         uArgs.Add(_nodes.Last().Type);
                     }
                     else if (argNode.Name == "named_arg")
                     {
                         string name = ((TokenNode)argNode.Content[0]).Tok.Value;
 
+                        _addContext((ASTNode)argNode.Content[2]);
                         _visitExpr((ASTNode)argNode.Content[2]);
+                        _clearPossibleContext();
+
                         DataType dt = _nodes.Last().Type;
 
                         _nodes.Add(new ExprNode("NamedArgument", dt));

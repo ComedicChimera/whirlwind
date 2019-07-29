@@ -272,7 +272,7 @@ namespace Whirlwind.Semantic.Visitor
             {
                 case TypeClassifier.PACKAGE:
                     if (!((Package)type).ExternalTable.Lookup(name, out symbol))
-                        throw new SemanticException($"Package has no member `{name}`", idPos);
+                        throw new SemanticException($"Package has no exported symbol: `{name}`", idPos);
                     break;
                 case TypeClassifier.TYPE_CLASS:
                     {
@@ -295,11 +295,7 @@ namespace Whirlwind.Semantic.Visitor
             if (node.Content.Count == 2)
                 args = new ArgumentList();
             else
-            {
-                _addContext((ASTNode)node.Content[1]);
                 args = _generateArgsList((ASTNode)node.Content[1]);
-                _clearPossibleContext();
-            }            
 
             bool incompletes = args.UnnamedArguments.Any(x => x is IncompleteType) || args.NamedArguments.Any(x => x.Value is IncompleteType);
 
@@ -349,10 +345,13 @@ namespace Whirlwind.Semantic.Visitor
                     _nodes.Add(new ExprNode("CreateGeneric", genericType));
                     PushForward(args.Count() + 1);
 
+                    // remove redundant args
+                    ((TreeNode)_nodes.Last()).Nodes.RemoveRange(1, args.Count());
+
                     _visitFunctionCall(node, _nodes.Last());
                 }
                 else
-                    throw new SemanticException("Unable to infer type of generic arguments", node.Position);
+                    throw new SemanticException("Unable to infer types of generic arguments", node.Position);
             }
             else if (root.Type.Classify() == TypeClassifier.FUNCTION_GROUP)
             {

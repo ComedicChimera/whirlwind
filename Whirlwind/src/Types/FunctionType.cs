@@ -118,7 +118,7 @@ namespace Whirlwind.Types
         public override DataType ConstCopy()
             => new FunctionType(Parameters, ReturnType, Async) { Constant = true };
 
-        public DataType MutableCopy()
+        public FunctionType MutableCopy()
             => new FunctionType(Parameters, ReturnType, Async) { Constant = false };
     }
 

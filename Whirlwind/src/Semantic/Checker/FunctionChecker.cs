@@ -46,7 +46,14 @@ namespace Whirlwind.Semantic.Checker
                     }
                 }
                 else
+                {
+                    if (fnParameter.Name.StartsWith("$arg"))
+                        return new ArgumentCheckData($"Invalid type for unnamed argument at position {fnParameter.Name.Substring(4)}", 
+                            position);
+                    
                     return new ArgumentCheckData($"Invalid type for parameter `{fnParameter.Name}`", position);
+                }
+                    
             }
 
             foreach (var namedParam in args.NamedArguments)

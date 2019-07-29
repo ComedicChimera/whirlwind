@@ -470,7 +470,6 @@ namespace Whirlwind.Semantic.Visitor
 
             foreach (var subNode in node.Content)
             {
-
                 if (subNode.Name == "shift_op")
                 {
                     string tempOp = "";
@@ -563,7 +562,7 @@ namespace Whirlwind.Semantic.Visitor
                     return "Floordiv";
                 case "%":
                     return "Mod";
-                case "^":
+                case "~^":
                     return "Pow";
                 case ">":
                     return "Gt";

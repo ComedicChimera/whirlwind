@@ -262,7 +262,7 @@ namespace Whirlwind.Semantic.Visitor
                                     {
                                         ASTNode arg = (ASTNode)elem;
 
-                                        args.Add(new Parameter("Arg" + args.Count.ToString(), 
+                                        args.Add(new Parameter("$arg" + args.Count.ToString(), 
                                             _generateType((ASTNode)arg.Content[0]), 
                                             arg.Content.Count == 2, false, false
                                             ));
@@ -272,7 +272,7 @@ namespace Whirlwind.Semantic.Visitor
                                         ASTNode arg = (ASTNode)elem;
                                         DataType dt = arg.Content.Count == 2 ? _generateType((ASTNode)arg.Content[1]) : new VoidType();
 
-                                        args.Add(new Parameter("Arg" + args.Count.ToString(), dt, false, true, false));
+                                        args.Add(new Parameter("$arg" + args.Count.ToString(), dt, false, true, false));
                                     }
                                 }
                                 break;

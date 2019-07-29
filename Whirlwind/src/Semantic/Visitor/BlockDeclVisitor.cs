@@ -1,8 +1,6 @@
 ﻿using Whirlwind.Parser;
 using Whirlwind.Types;
 
-using static Whirlwind.Semantic.Checker.Checker;
-
 using System.Collections.Generic;
 using System.Linq;
 
@@ -49,63 +47,6 @@ namespace Whirlwind.Semantic.Visitor
 
             if (genericVars.Count > 0)
                 _makeGeneric(root, genericVars, modifiers, _table.GetScope().Last(), namePosition);
-        }
-
-        private void _visitDecorator(ASTNode node, List<Modifier> modifiers)
-        {
-            var fnNode = (ASTNode)node.Content[1];
-
-            if (fnNode.Content[2].Name == "generic_tag")
-                throw new SemanticException("Unable to apply decorator to a generic function", fnNode.Content[2].Position);
-
-            _visitFunction(fnNode, modifiers);
-
-            FunctionType fnType = (FunctionType)((TreeNode)_nodes.Last()).Nodes[0].Type;
-
-            _nodes.Add(new BlockNode("Decorator"));
-         
-            foreach (var item in ((ASTNode)node.Content[0]).Content)
-            {
-                if (item.Name == "expr")
-                {
-                    _visitExpr((ASTNode)item);
-
-                    if (_nodes.Last().Type.Classify() == TypeClassifier.FUNCTION)
-                    {
-                        FunctionType decorType = (FunctionType)_nodes.Last().Type;
-
-                        if (decorType.MatchArguments(new ArgumentList(new List<DataType>() { fnType.MutableCopy() })))
-                        {
-                            // check for non-function decorators
-                            if (!(decorType.ReturnType is FunctionType))
-                                throw new SemanticException("A decorator must return a function", item.Position);
-                            // check for non-constant decorator
-                            else if (!decorType.ReturnType.Constant)
-                                throw new SemanticException("Return type of decorator must be constant", item.Position);
-
-                            // allows decorator to override function return type ;)
-                            if (!fnType.Coerce(decorType.ReturnType))
-                            {
-                                _table.Lookup(((TokenNode)((ASTNode)node.Content[1]).Content[1]).Tok.Value, out Symbol sym);
-
-                                if (sym.DataType is FunctionGroup fg)
-                                    fg.Functions = fg.Functions.Select(x => x.Equals(fnType) ? decorType.ReturnType : x)
-                                        .Select(x => (FunctionType)x).ToList();
-                                else
-                                    sym.DataType = decorType.ReturnType;
-                            }
-
-                            MergeBack();
-                        }
-                        else
-                            throw new SemanticException("This decorator is not valid for the given function", item.Position);
-                    }
-                    else
-                        throw new SemanticException("Unable to use non-function as a decorator", item.Position);
-                }
-            }
-
-            PushToBlock();
         }
     }
 }

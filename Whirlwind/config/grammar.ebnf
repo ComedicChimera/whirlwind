@@ -73,8 +73,8 @@ variant: '<' type_list '>' ;
 
 // decorator declaration
 decor_decl: decor func_decl ;
-decor: '@' ( '[' expr (',' expr)* ']' | expr ) ;
-
+decor: '@' ( '[' decor_expr (',' decor_expr)* ']' | decor_expr ) ;
+decor_expr: 'IDENTIFIER' static_get* [ generic_spec ] [ '(' args_list ')' ];
 
 // BLOCK STATEMENTS (control flow and context managers)
 block_stmt: if_stmt
