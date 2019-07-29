@@ -5,9 +5,8 @@
 - remove MirrorType and declare builtins in SymbolTable as necessary (via prelude)
 - add prelude (later)
 - clear up the behavior of null
-- add pattern matching on variables after `is` and 'as'
-  * `x is Type t`
-  * `x as Type t`
+- add pattern matching on variables after `is`
+  * `x is t: Type`
 - add special binding syntax to allow for binding onto all types of pointers,
 arrays, lists, and dictionaries
   * `for *` - pointers
@@ -26,6 +25,8 @@ arrays, lists, and dictionaries
 - add `#impl` to create structs for intrinsic types like strings or arrays
   * `#impl "str"`
 - add `super(Parent)` syntax to get overidden methods of interface
+- add `raise x, y` to raise expression locals to upper scope
+- change context manager keyword to `with` instead of `from`
 
 # THOUGHTS
 
