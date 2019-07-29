@@ -112,6 +112,7 @@ namespace Whirlwind.Types
 
         public DataType DataType { get; private set; }
         public List<GenericGenerate> Generates { get; private set; }
+        public List<string> GenericNames { get { return _generics.Select(x => x.Name).ToList(); } }
 
         public GenericInterface GenericInterface;
 

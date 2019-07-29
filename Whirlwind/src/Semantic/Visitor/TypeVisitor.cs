@@ -56,7 +56,7 @@ namespace Whirlwind.Semantic.Visitor
                                 dt = _getIdentifierType(symbol.DataType, tokenNode.Position);
                             else
                             {
-                                throw new SemanticException($"Undefined Identifier: '{tokenNode.Tok.Value}'", tokenNode.Position);
+                                throw new SemanticException($"Undefined Symbol: `{tokenNode.Tok.Value}`", tokenNode.Position);
                             }
                             break;
                     }

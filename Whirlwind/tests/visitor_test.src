@@ -1,4 +1,4 @@
-﻿func myDecor<T>(f: func(T)()) func(T)() {
+﻿func myDecor<T>(f: func(T)()) const func(T)() {	
 	func wrapper(x: T) {
 		f(x);
 

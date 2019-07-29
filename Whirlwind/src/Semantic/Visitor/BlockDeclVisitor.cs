@@ -1,6 +1,8 @@
 ﻿using Whirlwind.Parser;
 using Whirlwind.Types;
 
+using static Whirlwind.Semantic.Checker.Checker;
+
 using System.Collections.Generic;
 using System.Linq;
 
@@ -74,9 +76,12 @@ namespace Whirlwind.Semantic.Visitor
 
                         if (decorType.MatchArguments(new ArgumentList(new List<DataType>() { fnType.MutableCopy() })))
                         {
-                            // check for void decorators
+                            // check for non-function decorators
                             if (!(decorType.ReturnType is FunctionType))
                                 throw new SemanticException("A decorator must return a function", item.Position);
+                            // check for non-constant decorator
+                            else if (!decorType.ReturnType.Constant)
+                                throw new SemanticException("Return type of decorator must be constant", item.Position);
 
                             // allows decorator to override function return type ;)
                             if (!fnType.Coerce(decorType.ReturnType))

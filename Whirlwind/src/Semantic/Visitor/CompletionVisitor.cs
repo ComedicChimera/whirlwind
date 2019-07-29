@@ -45,6 +45,9 @@ namespace Whirlwind.Semantic.Visitor
                     {
                         _table.GotoScope(scopePos);
 
+                        /*foreach (var name in ((GenericType)((TreeNode)node).Nodes[0].Type).GenericNames)
+                            _table.AddSymbol(new Symbol(name, new GenericPlaceholder(name)));*/
+
                         int _ = 0;
                         _completeBlock(((BlockNode)node).Block[0], ref _);
 
@@ -101,6 +104,9 @@ namespace Whirlwind.Semantic.Visitor
                             // create working scope for clean generic generate checking
                             _table.AddScope();
                             _table.DescendScope();
+
+                            foreach (var genericName in ((GenericType)((TreeNode)node).Nodes[0].Type).GenericNames)
+                                _table.AddSymbol(new Symbol(genericName, new GenericPlaceholder(genericName)));
 
                             int tPos = 0;
 
