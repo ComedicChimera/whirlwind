@@ -151,7 +151,7 @@ yield_stmt: 'YIELD' expr (',' expr)* ;
 expr: expr_var | func_op [expr_extension] ;
 expr_extension: 'IF' expr 'ELSE' expr 
 | case_extension+
-| 'IS' types
+| 'IS' type_id [then_extension]
 | ':>' expr
 | then_extension
 | '.' '.' expr

@@ -71,7 +71,7 @@ namespace Whirlwind.Semantic.Visitor
                                 _visitExpr((ASTNode)item);
                             else if (item.Name == "case_extension")
                                 _visitInlineCase((ASTNode)item);
-                            else if (item.Name == "then_extension")
+                            else if (item.Name == "then_extension" && op != "IS")
                                 _visitThen((ASTNode)item, needsSubscope);
                         }
 
@@ -90,9 +90,10 @@ namespace Whirlwind.Semantic.Visitor
                         }
                         else if (op == "IS")
                         {
-                            ASTNode typeNode = (ASTNode)((ASTNode)subNode).Content[1];
+                            ASTNode typeId = (ASTNode)((ASTNode)subNode).Content[1];
                             DataType dt;
 
+                            var typeNode = ((ASTNode)typeId.Content.Last());
                             if (typeNode.Content[0] is TokenNode tk && tk.Tok.Type == "IDENTIFIER"
                                 && _table.Lookup(tk.Tok.Value, out Symbol sym) && sym.DataType is CustomNewType)
                             {
@@ -101,11 +102,52 @@ namespace Whirlwind.Semantic.Visitor
                             else
                                 dt = _generateType(typeNode);
 
-                            _nodes.Add(new ValueNode("Type", dt));
+                            var boolType = new SimpleType(SimpleType.SimpleClassifier.BOOL);
+                            bool createdScope = false;
 
-                            _nodes.Add(new ExprNode("Is", new SimpleType(SimpleType.SimpleClassifier.BOOL)));
+                            if (typeId.Content.Count > 1)
+                            {
+                                var tkNode = ((TokenNode)typeId.Content[0]);
+
+                                if (needsSubscope)
+                                {
+                                    _table.AddScope();
+                                    _table.DescendScope();
+
+                                    createdScope = true;
+                                }
+
+                                if (!_table.AddSymbol(new Symbol(tkNode.Tok.Value, dt)))
+                                {
+                                    if (needsSubscope)
+                                        _table.AscendScope();
+
+                                    throw new SemanticException("Unable to redeclare symbol in scope", tkNode.Position);
+                                }
+
+                                _nodes.Add(new IdentifierNode(tkNode.Tok.Value, dt));
+                            }
+                            else
+                                _nodes.Add(new ValueNode("Type", dt));
+
+                            _nodes.Add(new ExprNode("Is", boolType));
 
                             PushForward(2);
+
+                            try
+                            {
+                                if (((ASTNode)subNode).Content.Last() is ASTNode anode && anode.Name == "then_extension")
+                                {
+                                    _thenExprType = boolType;
+
+                                    _visitThen(anode, false);
+                                }
+                            }
+                            finally
+                            {
+                                if (createdScope)
+                                    _table.AscendScope();
+                            }
                         }
                         else if (op == ":>")
                         {

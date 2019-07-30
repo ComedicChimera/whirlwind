@@ -27,15 +27,15 @@ arrays, lists, and dictionaries
 - add `super(Parent)` syntax to get overidden methods of interface
 - add `raise x, y` to raise expression locals to upper scope
 - change context manager keyword to `with` instead of `from`
+- add asynchronous lambdas
+  * looks like: `async |x| => x`
 
-# THOUGHTS
+# TESTING
 
-- add positioning data to some or all of the action tree (maybe identifiers?)
-- make sure to properly name arg and parameter variables
-- add string interpolation
-- find a way to vary behavior based on type for interfaces (interface level method variance, a buffed is operator, etc.)
-  * although it is possible to do this via overloading
-- rework casting syntax to be more friendly
+- static get
+- change include syntax to use `::` instead of `.`
+  * include { Println, Scan } from io::std;
+  * include ..a::b;
 
 # FUTURE
 
@@ -53,11 +53,18 @@ arrays, lists, and dictionaries
   * process: heavy, OS-based, concurrent, non-Whirlwind owned executor
 - when implementing package linker, make sure to give prefix to visitor
 - during compilation, make sure to acknowledge the effects of captures
+- sanitizers should be embedded in visitor
+- make sure to compile `this` as hidden pointer
+  * `&this` does nothing at a generated code level
+  * `this.property` compiles to `this->property`
+  * whenever `this` is used as a value type (non-reference) it is implicitly
+    dereferenced
 
-# TESTING
+# THOUGHTS
 
-- static get
-- change include syntax to use `::` instead of `.`
-  * include { Println, Scan } from io::std;
-  * include ..a::b;
+- add string interpolation
+  * $"Hello, my name is: {name}."
+- add multiline strings
+  * """hi my name jeff"""
+  * should they compile with newlines?
 

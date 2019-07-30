@@ -1,15 +1,13 @@
-﻿func decor(f: func(int)(int), f2: func(int)(int)) const func()(int) {
-	func wrapper() int {
-		let arg = f2(3);
+﻿func main() {
+	let x = 45;
+	let y = "test";
 
-		return f2(f(arg));
-	}
-}
+	x is int;
+	y is str then !val;
 
-@decor(|x| => x ~^ 2)
-func test(a: int) int
-	=> a * 4 + 5;
+	x is i: int then i++;
 
-func main() {
-	test();
+	y is s: str then s[0];
+
+	y is s: str then !val;
 }
