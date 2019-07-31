@@ -17,8 +17,6 @@
         {
             if (other is PointerType pt)
                 return DataType.Coerce(pt.DataType) && Pointers == pt.Pointers;
-            else if (other.Classify() == TypeClassifier.POINTER && DataType.Classify() == TypeClassifier.VOID)
-                return true;
 
             return false;
         }

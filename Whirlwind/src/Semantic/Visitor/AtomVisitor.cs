@@ -256,7 +256,9 @@ namespace Whirlwind.Semantic.Visitor
                 case TypeClassifier.REFERENCE:
                     return _getMember(((ReferenceType)type).DataType, name, opPos, idPos);
                 default:
-                    if (!type.GetInterface().GetFunction(name, out symbol))
+                    if (name == "__finalize__")
+                        throw new SemanticException("Unable to directly access finalizer outside of runtime core", idPos);
+                    else if (!type.GetInterface().GetFunction(name, out symbol))
                         throw new SemanticException($"Type has no interface member `{name}`", idPos);
                     break;
             }

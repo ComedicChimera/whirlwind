@@ -1,13 +1,25 @@
-﻿func main() {
-	let x = 45;
-	let y = "test";
+﻿interf Parent {
+	func test() int;
 
-	x is int;
-	y is str then !val;
+	func test2(x: int) str => "testtest"[this.test():this.test() + x];
+}
 
-	x is i: int then i++;
+interf Cool {
+	func test3() {}
+}
 
-	y is s: str then s[0];
+struct Base {
+	a: int;
+}
 
-	y is s: str then !val;
+interf for Base is Parent, Cool {
+	func test() int => this.a * 2;
+
+	func test2(x: int) str {
+		return super(Parent).test2(3) + "lol";
+	}
+}
+
+func main() {
+
 }

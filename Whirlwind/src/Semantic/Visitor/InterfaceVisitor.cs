@@ -72,9 +72,9 @@ namespace Whirlwind.Semantic.Visitor
                         {
                             DataType impl = _generateType((ASTNode)item);
 
-                            if (impl.Classify() == TypeClassifier.INTERFACE)
+                            if (impl is InterfaceType it && !it.SuperForm)
                             {
-                                if (!((InterfaceType)impl).Derive(dt))
+                                if (!it.Derive(dt))
                                     throw new SemanticException("The given data type does not implement all required methods of the interface",
                                         item.Position);
                             }
@@ -126,13 +126,9 @@ namespace Whirlwind.Semantic.Visitor
                         {
                             var type = _generateType((ASTNode)item);
 
-                            if (type.Classify() == TypeClassifier.INTERFACE)
-                            {
-                                var it = (InterfaceType)type;
-
+                            if (type is InterfaceType it && !it.SuperForm)
                                 gei.StandardImplements.Add(it);
-                            }
-                                
+
                             else if (type is GenericType gimpl && gimpl.DataType is InterfaceType)
                                 gei.GenericImplements.Add(gimpl);
                             else
@@ -180,6 +176,9 @@ namespace Whirlwind.Semantic.Visitor
 
                         var genNode = (IdentifierNode)((BlockNode)_nodes.Last()).Nodes[0];
 
+                        if (genNode.IdName == "__finalize__")
+                            throw new SemanticException("Finalizers cannot be generic", func.Content[2].Position);
+
                         if (!interfaceType.AddMethod(new Symbol(genNode.IdName, genNode.Type, memberModifiers),
                             func.Content.Last().Name == "func_body"))
                             throw new SemanticException("Interface cannot contain duplicate members", func.Content[1].Position);
@@ -188,6 +187,14 @@ namespace Whirlwind.Semantic.Visitor
                     {
                         _visitFunction(func, memberModifiers);
                         var fnNode = (IdentifierNode)((BlockNode)_nodes.Last()).Nodes[0];
+
+                        if (fnNode.IdName == "__finalize__")
+                        {
+                            var fn = ((FunctionType)fnNode.Type);
+
+                            if (fn.Async || fn.Parameters.Count > 0 || fn.ReturnType.Classify() != TypeClassifier.VOID)
+                                throw new SemanticException("Invalid definition for finalizer", func.Content[1].Position);
+                        }
 
                         if (!interfaceType.AddMethod(new Symbol(fnNode.IdName, fnNode.Type, memberModifiers),
                             func.Content.Last().Name == "func_body"))

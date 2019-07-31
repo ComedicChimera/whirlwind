@@ -63,6 +63,10 @@ namespace Whirlwind.Types
             if (!Constant && other.Constant)
                 return false;
 
+            // super form should never be used as a literal type
+            if (other is InterfaceType it && it.SuperForm)
+                return false;
+
             if (other.Classify() == TypeClassifier.VOID || other.Classify() == TypeClassifier.GENERIC_PLACEHOLDER)
                 return true;
 

@@ -88,7 +88,7 @@ namespace Whirlwind.Semantic.Visitor
                             return;
                         }
                         {
-                            throw new SemanticException("Use of `this` outside of object", node.Content[0].Position);
+                            throw new SemanticException("Unable to use `this` outside of type method or constructor", node.Content[0].Position);
                         }
                     case "VAL":
                         {
@@ -143,6 +143,9 @@ namespace Whirlwind.Semantic.Visitor
                         break;
                     case "partial_func":
                         _visitPartialFunc((ASTNode)node.Content[0]);
+                        break;
+                    case "super_call":
+                        _visitSuperCall((ASTNode)node.Content[0]);
                         break;
                 }
             }
@@ -380,6 +383,10 @@ namespace Whirlwind.Semantic.Visitor
             {
                 switch (item.Name)
                 {
+                    case "TOKEN":
+                        if (((TokenNode)item).Tok.Type == "ASYNC")
+                            async = true;
+                        break;
                     case "args_decl_list":
                         args = _generateArgsDecl((ASTNode)item, ctx?.Parameters);
                         break;
@@ -472,6 +479,93 @@ namespace Whirlwind.Semantic.Visitor
 
             // push forward root and args
             PushForward(removedArgs.Count + 1);
+        }
+
+        private void _visitSuperCall(ASTNode node)
+        {
+            if (_table.Lookup("$THIS", out Symbol thisPtr))
+            {
+                var typeInterf = thisPtr.DataType.GetInterface();
+
+                // 1 implement is bound type interface
+                if (typeInterf.Implements.Count == 1)
+                    throw new SemanticException("Unable to access parent where none exists", node.Position);
+                // 2 implements is bound and other interfaces
+                else if (typeInterf.Implements.Count == 2)
+                    _nodes.Add(new ValueNode("Super", typeInterf.Implements.First().GetSuperInstance(), "()"));
+                // 3+ implements is bound and multiple other interfaces
+                else
+                {
+                    if (node.Content.Count == 3)
+                        throw new SemanticException("Parent specification is required on types with more than one parent", node.Content[2].Position);
+
+                    foreach (var item in node.Content.Skip(2))
+                    {
+                        switch (item.Name)
+                        {
+                            case "TOKEN":
+                                if (((TokenNode)item).Tok.Type == "IDENTIFIER")
+                                {
+                                    var token = ((TokenNode)item).Tok;
+
+                                    if (_table.Lookup(token.Value, out Symbol sym))
+                                    {
+                                        _nodes.Add(new IdentifierNode(token.Value, sym.DataType));
+                                    }
+                                    else
+                                        throw new SemanticException($"Unable to find parent by name `{token.Value}`", item.Position);
+                                }
+                                break;
+                            case "static_get":
+                                if (_nodes.Last().Type is Package pkg)
+                                {
+                                    var idNode = (TokenNode)((ASTNode)item).Content[1];
+
+                                    if (pkg.ExternalTable.Lookup(idNode.Tok.Value, out Symbol sym))
+                                    {
+                                        _nodes.Add(new IdentifierNode(sym.Name, sym.DataType));
+
+                                        _nodes.Add(new ExprNode("StaticGet", sym.DataType));
+                                        PushForward(2);
+                                    }
+                                    else
+                                        throw new SemanticException($"The given package has no exported member `{idNode.Tok.Value}", idNode.Position);
+                                }
+                                else
+                                    throw new SemanticException("Static get can only be used on packages in a super argument", item.Position);
+                                break;
+                            case "generic_spec":
+                                if (_nodes.Last().Type.Classify() == TypeClassifier.GENERIC)
+                                {
+                                    var genericType = _generateGeneric((GenericType)_nodes.Last().Type, (ASTNode)item);
+
+                                    _nodes.Add(new ExprNode("CreateGeneric", genericType));
+                                    PushForward();
+                                }
+                                else
+                                    throw new SemanticException("Unable to apply generic specifier to non-generic type", item.Position);
+                                break;
+                        }
+                    }
+
+                    if (_nodes.Last().Type.Classify() == TypeClassifier.INTERFACE)
+                    {
+                        var parent = ((InterfaceType)_nodes.Last().Type).GetInstance();
+
+                        if (typeInterf.Implements.Any(x => x.Equals(parent)))
+                        {
+                            _nodes.Add(new ExprNode("Super", parent.GetSuperInstance()));
+                            PushForward();
+                        }
+                        else
+                            throw new SemanticException("The given interface is not a parent to the current type", node.Position);
+                    }
+                    else
+                        throw new SemanticException("Unable to use non-interface as a parent", node.Position);
+                }
+            }
+            else
+                throw new SemanticException("Unable to use `super` outside of type method or constructor", node.Position);
         }
     }
 }

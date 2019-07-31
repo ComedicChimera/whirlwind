@@ -43,7 +43,7 @@ namespace Whirlwind.Types
         }
 
         public StructType GetInstance()
-            => new StructType(this);
+            => new StructType(this) { Constant = false } ;
 
         public bool AddConstructor(FunctionType fnType)
         {

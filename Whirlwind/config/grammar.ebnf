@@ -80,7 +80,7 @@ decor_expr: 'IDENTIFIER' static_get* [ generic_spec ] [ '(' args_list ')' ];
 block_stmt: if_stmt
 | select_stmt
 | for_loop
-| from_block
+| context_block
 ;
 
 // if statement
@@ -99,9 +99,9 @@ for_loop: 'FOR' [for_body] block [after_clause] ;
 for_body: '(' (c_for | iterator | expr) ')' ;
 c_for: ['IDENTIFIER' '=' expr] ';' [expr] ';' [expr | assignment] ;
 
-// from block
-from_block: 'FROM' from_body [after_clause] ;
-from_body: '(' variable_decl ')' block ;
+// context manager
+context_block: 'WITH' context_body [after_clause] ;
+context_body: '(' variable_decl ')' block ;
 
 // after clause
 after_clause: 'AFTER' block ;
@@ -158,6 +158,9 @@ expr_extension: 'IF' expr 'ELSE' expr
 | 'AS' types
 ; 
 
+// expression local variable declaration
+expr_var: 'IDENTIFIER' '=' func_op then_extension ;
+
 // then extension
 then_extension: 'THEN' expr ;
 
@@ -165,9 +168,6 @@ then_extension: 'THEN' expr ;
 case_extension: 'CASE' '{' inline_case+ default_case '}' ;
 inline_case: expr (',' expr)* '=>' expr ',' ;
 default_case: '_' '=>' expr ;
-
-// expression local variable declaration
-expr_var: 'IDENTIFIER' '=' func_op then_extension ;
 
 // functional/monadic operators
 func_op: or (('>>=' | '~*') or)* ;
@@ -255,6 +255,7 @@ base: 'INTEGER_LITERAL'
 | lambda
 | sub_expr
 | partial_func
+| super_call
 ;
 
 // collection types
@@ -266,7 +267,7 @@ dict: '{' expr ':' expr (',' expr ':' expr)* '}' ;
 tuple: '(' expr (',' expr)+ ')' ;
 
 // inline functions (lambdas)
-lambda: '|' args_decl_list '|' lambda_body ;
+lambda: ['ASYNC'] '|' args_decl_list '|' lambda_body ;
 lambda_body: '=>' expr
 | '{' [main] '}'
 ;
@@ -280,9 +281,11 @@ partial_arg: '_'
 | expr
 ;
 
+super_call: 'SUPER' '(' [ 'IDENTIFIER' static_get* [ generic_spec ] ] ')' ;
+
 // DATA TYPES - data type literals
 types: ['CONST'] ['OWN'] ['REF'] '*'* ( base_types
-| 'IDENTIFIER' [generic_spec] static_get*
+| 'IDENTIFIER' static_get* [generic_spec]
 )
 ;
 

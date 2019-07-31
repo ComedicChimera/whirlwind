@@ -2,11 +2,14 @@
 
 - add package linker
 - add 2 sanitizers (constexpr and memory) [Note: constexpr does in depth checking on all constant expressions]
-- remove MirrorType and declare builtins in SymbolTable as necessary (via prelude)
 - add prelude (later)
-- clear up the behavior of null
-- add pattern matching on variables after `is`
-  * `x is t: Type`
+- clear up the behavior of null in memory sanitizer
+- add annotations to describe memory and program behavior (using `#` syntax)
+  * File Level Annotations: `#unsafe` or `#res_name "test"`: effect file behavior generally
+  * Function Annotation: `#intrinsic` or `#extern`: to effect how function compiles
+  * Struct Annotation: `#joined`: effect how structs compile and initialize
+- add `#impl` to create structs for intrinsic types like strings or arrays
+  * `#impl "str"`
 - add special binding syntax to allow for binding onto all types of pointers,
 arrays, lists, and dictionaries
   * `for *` - pointers
@@ -14,21 +17,8 @@ arrays, lists, and dictionaries
   * `for []` - lists
   * `for {:}` - dictionaries
   * all of them use `T` as their generic placeholder
-- make sure finalizers work as intended
-- add annotations to describe memory and program behavior (using `#` syntax)
-  * File Level Annotations: `#unsafe` or `#res_name "test"`: effect file behavior generally
-  * Function Annotation: `#intrinsic` or `#extern`: to effect how function compiles
-  * Struct Annotation: `#joined`: effect how structs compile and initialize
 - add generic function groups
-- fix *void casting
 - add context-based inferencing for lambdas in `case` and `if` expressions
-- add `#impl` to create structs for intrinsic types like strings or arrays
-  * `#impl "str"`
-- add `super(Parent)` syntax to get overidden methods of interface
-- add `raise x, y` to raise expression locals to upper scope
-- change context manager keyword to `with` instead of `from`
-- add asynchronous lambdas
-  * looks like: `async |x| => x`
 
 # TESTING
 
@@ -36,6 +26,7 @@ arrays, lists, and dictionaries
 - change include syntax to use `::` instead of `.`
   * include { Println, Scan } from io::std;
   * include ..a::b;
+- ALL DE NEW STUFF
 
 # FUTURE
 
@@ -59,6 +50,11 @@ arrays, lists, and dictionaries
   * `this.property` compiles to `this->property`
   * whenever `this` is used as a value type (non-reference) it is implicitly
     dereferenced
+- remove MirrorType and declare builtins in SymbolTable as necessary (via prelude)
+- make sure then functions as a CONDITIONAL CHAINING operator
+  * if the previous expression is a boolean, continue only if true
+  * if the previous expression is not a boolean, continue if there is no error
+  * if the chain is incomplete, it simply returns the null value of the last type
 
 # THOUGHTS
 

@@ -8,10 +8,10 @@ namespace Whirlwind.Types
     class InterfaceType : DataType
     {
         public readonly List<InterfaceType> Implements;
+        public bool SuperForm { get; private set; } = false;
 
         private readonly Dictionary<Symbol, bool> _methods;
-
-        bool initialized = false;
+        private bool _initialized = false;
 
         public InterfaceType()
         {
@@ -22,12 +22,25 @@ namespace Whirlwind.Types
             Constant = true;
         }
 
-        private InterfaceType(InterfaceType interf)
+        private InterfaceType(InterfaceType interf, bool superForm)
         {
-            Implements = new List<InterfaceType>();
+            Implements = interf.Implements;
 
-            _methods = interf._methods;
-            initialized = true;
+            if (superForm)
+            {
+                SuperForm = true;
+                _methods = new Dictionary<Symbol, bool>();
+
+                foreach (var method in interf._methods)
+                {
+                    if (method.Value)
+                        _methods.Add(method.Key, method.Value);
+                }
+            }
+            else
+                _methods = interf._methods;
+
+            _initialized = true;
         }
 
         public bool AddMethod(Symbol fn, bool hasBody)
@@ -66,7 +79,7 @@ namespace Whirlwind.Types
             return false;
         }
 
-        public override TypeClassifier Classify() => initialized ? TypeClassifier.INTERFACE_INSTANCE : TypeClassifier.INTERFACE;
+        public override TypeClassifier Classify() => _initialized ? TypeClassifier.INTERFACE_INSTANCE : TypeClassifier.INTERFACE;
 
         protected sealed override bool _coerce(DataType other)
         {
@@ -90,7 +103,9 @@ namespace Whirlwind.Types
             return _methods.All(x => it._methods.Any(y => x.Key.Equals(y.Key)));
         }
 
-        public InterfaceType GetInstance() => new InterfaceType(this);
+        public InterfaceType GetInstance() => new InterfaceType(this, false);
+
+        public InterfaceType GetSuperInstance() => new InterfaceType(this, true) { Constant = true } ;
 
         protected override bool _equals(DataType other)
         {
@@ -98,7 +113,7 @@ namespace Whirlwind.Types
             {
                 InterfaceType it = (InterfaceType)other;
 
-                if (initialized != it.initialized)
+                if (_initialized != it._initialized || SuperForm != it.SuperForm)
                     return false;
 
                 if (_methods.Count == it._methods.Count)
@@ -123,7 +138,7 @@ namespace Whirlwind.Types
         // tests if a type implements all necessary methods to be a child of this interface
         public bool Derive(DataType child)
         {
-            if (child is InterfaceType)
+            if (SuperForm || child is InterfaceType)
                 return false;
 
             var interf = child.GetInterface();
@@ -143,9 +158,9 @@ namespace Whirlwind.Types
         }
 
         public override DataType ConstCopy()
-            => new InterfaceType(this)
+            => new InterfaceType(this, SuperForm)
                 {
-                    initialized = initialized,
+                    _initialized = _initialized,
                     Constant = true
                 };
     }

@@ -36,8 +36,8 @@ namespace Whirlwind.Semantic.Visitor
                             case "for_loop":
                                 _visitForLoop(blockStatement, context);
                                 break;
-                            case "from_block":
-                                _visitFromBlock(blockStatement, context);
+                            case "context_block":
+                                _visitContextManager(blockStatement, context);
                                 break;
                         }
 
@@ -334,14 +334,14 @@ namespace Whirlwind.Semantic.Visitor
             }
         }
 
-        private void _visitFromBlock(ASTNode blockStmt, StatementContext context)
+        private void _visitContextManager(ASTNode blockStmt, StatementContext context)
         {
             foreach (var item in blockStmt.Content)
             {
                 switch (item.Name)
                 {
-                    case "from_body":
-                        _nodes.Add(new BlockNode("FromBlock"));
+                    case "context_body":
+                        _nodes.Add(new BlockNode("ContextManager"));
 
                         _table.AddScope();
                         _table.DescendScope();
@@ -352,14 +352,6 @@ namespace Whirlwind.Semantic.Visitor
                         _visitBlockNode((ASTNode)((ASTNode)item).Content[3], context);
 
                         _table.AscendScope();
-                        break;
-                    case "from_except_clause":
-                        _nodes.Add(new BlockNode("FromExcept"));
-
-                        context.ContinueValid = true;
-                        _visitBlockNode((ASTNode)((ASTNode)item).Content[1], context);
-
-                        MergeBack();
                         break;
                     case "after_clause":
                         _visitAfterClause((ASTNode)item, context);
