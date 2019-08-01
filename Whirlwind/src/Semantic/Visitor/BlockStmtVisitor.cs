@@ -92,12 +92,13 @@ namespace Whirlwind.Semantic.Visitor
         {
             bool compound = false;
 
+            _nodes.Add(new BlockNode("If"));
+
             foreach (var item in ifStmt.Content)
             {
                 switch (item.Name)
                 {
-                    case "expr":
-                        _nodes.Add(new BlockNode("If"));
+                    case "expr":                       
                         _visitExpr((ASTNode)item);
 
                         if (!new SimpleType(SimpleType.SimpleClassifier.BOOL).Coerce(_nodes.Last().Type))
@@ -105,32 +106,59 @@ namespace Whirlwind.Semantic.Visitor
 
                         MergeBack();
                         break;
+                    case "variable_decl":
+                        _visitVarDecl((ASTNode)item, new List<Modifier>());
+                        MergeBack();
+                        break;
                     case "block":
                         _visitBlockNode((ASTNode)item, context);
                         break;
                     case "elif_block":
-                        if (!compound)
                         {
-                            _nodes.Add(new BlockNode("CompoundIf"));
-                            PushToBlock();
+                            _table.AscendScope();
 
-                            compound = true;
+                            _table.AddScope();
+                            _table.DescendScope();
+
+                            if (!compound)
+                            {
+                                _nodes.Add(new BlockNode("CompoundIf"));
+                                PushToBlock();
+
+                                compound = true;
+                            }
+
+                            _nodes.Add(new BlockNode("Elif"));
+
+                            ASTNode decl = (ASTNode)item;
+
+                            int exprNdx = 2;
+                            if (decl.Content.Count > 5)
+                            {
+                                exprNdx = 4;
+
+                                _visitVarDecl((ASTNode)decl.Content[2], new List<Modifier>());
+                                MergeBack();
+                            }
+
+                            _visitExpr((ASTNode)((ASTNode)item).Content[exprNdx]);
+
+                            if (!new SimpleType(SimpleType.SimpleClassifier.BOOL).Coerce(_nodes.Last().Type))
+                                throw new SemanticException("Condition value of elif statement must be a boolean",
+                                    ((ASTNode)item).Content[exprNdx].Position);
+
+                            MergeBack();
+
+                            _visitBlockNode((ASTNode)((ASTNode)item).Content[exprNdx + 2], context);
+                            MergeToBlock();
                         }
-
-                        _nodes.Add(new BlockNode("Elif"));
-
-                        _visitExpr((ASTNode)((ASTNode)item).Content[2]);
-
-                        if (!new SimpleType(SimpleType.SimpleClassifier.BOOL).Coerce(_nodes.Last().Type))
-                            throw new SemanticException("Condition value of elif statement must be a boolean",
-                                ((ASTNode)item).Content[2].Position);
-
-                        MergeBack();
-
-                        _visitBlockNode((ASTNode)((ASTNode)item).Content[4], context);
-                        MergeToBlock();
                         break;
                     case "else_block":
+                        _table.AscendScope();
+
+                        _table.AddScope();
+                        _table.DescendScope();
+
                         if (!compound)
                         {
                             _nodes.Add(new BlockNode("CompoundIf"));

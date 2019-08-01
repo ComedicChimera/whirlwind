@@ -1,25 +1,18 @@
-﻿interf Parent {
-	func test() int;
+﻿func main() {
+	let x = 4;
+	let y = 4.5;
 
-	func test2(x: int) str => "testtest"[this.test():this.test() + x];
-}
-
-interf Cool {
-	func test3() {}
-}
-
-struct Base {
-	a: int;
-}
-
-interf for Base is Parent, Cool {
-	func test() int => this.a * 2;
-
-	func test2(x: int) str {
-		return super(Parent).test2(3) + "lol";
+	if (x == y) {
+	
 	}
-}
+	elif (x < y) {
+	
+	}
 
-func main() {
-
+	if (let a = 4; x == a) {
+	
+	}
+	elif (let a = 5; y < a) {
+	
+	}
 }

@@ -78,8 +78,26 @@ namespace Whirlwind.Semantic.Visitor
             PushToBlock();
 
             if (!_table.AddSymbol(new Symbol(sym.Name, gt, modifiers)))
+            {
+                if (sym.DataType is FunctionType ft)
+                {
+                    // we know it exists cause it caused an error
+                    _table.Lookup(sym.Name, out Symbol groupSymbol);
+
+                    if (groupSymbol.DataType is GenericType gt2 && gt2.DataType is FunctionType ft2 && FunctionGroup.CanDistinguish(ft, ft2))
+                    {
+                        var gg = new GenericGroup(gt, gt2);
+
+                        groupSymbol.DataType = gg;
+                        return;
+                    }
+                    else if (groupSymbol.DataType is GenericGroup gg && gg.AddGeneric(gt))
+                        return;
+                }
+
                 // pretty much all sub symbols have the same name position
                 throw new SemanticException($"Unable to redeclare symbol by name `{sym.Name}`", position);
+            }                
         }
 
         private void _visitGenerateTypeClass(ASTNode node, List<Modifier> modifiers)

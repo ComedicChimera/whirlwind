@@ -21,6 +21,7 @@ connote any operation or computation.
 | VariantGenerate | Represents the type generated for a specific variant instance | *empty* |
 | Type | Represents the data type used in is type testing | *empty* |
 | Val | Represents the chained data value | *empty* |
+| Super | Represents a reference to the single parent of a type interface | "()" |
 
 ## Identifier Node
 
@@ -65,7 +66,6 @@ A multi-value structure or some form of operation.
 | Tuple | *Tuple Elements* | A tuple |
 | Lambda | *Parameters*, Function Body | A lambda object |
 | PartialFunction | Expr, *Removed Arguments* | Create a partially-completed function from the expression |
-| TypeCast | Value | A type cast - return type is desired type | 
 | HeapAlloc | Size | Allocate a set amount of memory on the heap |
 | HeapAllocType | Type | Allocate enough memory to store a given type |
 | Await | Async Function | Set a function to run on the current thread |
@@ -124,9 +124,11 @@ A multi-value structure or some form of operation.
 | Is | Expr, Type | Tests if an object is a given data type |
 | ExtractInto | Expr, Identifier | Extracts the value from the given expression if possible and stores it in a expr-local |
 | Range | Expr, Expr | Creates a range between the two expressions |
-| As | Expr, Type | Converts a type class value into a more specific form |
+| TypeCast | Expr, Type | Converts a type class value into a more specific form |
 | InlineCaseExpr | *Cases*, \[Default\] | An inline select-case expression |
 | Then | Expr, Expr | Chains one expr into another |
+| Super | Expr | Gets the parent based on the given name |
+| From | Expr | Extract a value from an algebraic type |
 
 ### Statement Components
 
@@ -213,9 +215,7 @@ Represents a single Whirlwind block statement or declaration.
 | ForIter | Iterator | A foreach / for-iterator loop |
 | ForCondition | Expr | A conditional for loop (while loop) |
 | CFor | CForExpr | A C-style for loop |
-| FromStmt | Expr, Identifier, [FromExcept] | A from borrow statement |
-| FromExcept | `none` | A fail case for a from borrow statement |
-| FromBlock | VarDecl | A context manager |
+| ContextManager | VarDecl | A context manager |
 | LambdaBody | `none` | A body within a lambda expression |
 
 ### Block Values (Block Declarations)

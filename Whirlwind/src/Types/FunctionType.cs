@@ -174,8 +174,11 @@ namespace Whirlwind.Types
                     // no need for indefinite check since void type only occurs on indefinite arguments
                     else if (e1.Current.DataType is VoidType || e2.Current.DataType is VoidType)
                         return false;
-                    else if (!e1.Current.DataType.Equals(e2.Current.DataType))
+                    else if (!e1.Current.DataType.Equals(e2.Current.DataType) 
+                        && !(e1.Current.DataType is GenericPlaceholder || e2.Current.DataType is GenericPlaceholder))
+                    {
                         return true;
+                    }                     
                 }
             }
 

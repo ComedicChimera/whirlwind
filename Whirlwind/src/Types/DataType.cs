@@ -166,6 +166,7 @@ namespace Whirlwind.Types
         GENERIC,
         GENERIC_ALIAS,
         GENERIC_PLACEHOLDER,
+        GENERIC_GROUP,
         PACKAGE,
         VOID,
         REFERENCE,

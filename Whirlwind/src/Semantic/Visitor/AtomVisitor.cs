@@ -234,7 +234,7 @@ namespace Whirlwind.Semantic.Visitor
 
                         throw new SemanticException("Unable to apply initializer list to the given type", node.Position);
                     case "(":
-                        _visitFunctionCall(node, root);
+                        _visitFunctionCall(node, root.Type);
                         break;
                 }
             }
@@ -291,7 +291,7 @@ namespace Whirlwind.Semantic.Visitor
             return symbol;
         }
 
-        private void _visitFunctionCall(ASTNode node, ITypeNode root)
+        private void _visitFunctionCall(ASTNode node, DataType rootType)
         {
             ArgumentList args;
             if (node.Content.Count == 2)
@@ -301,27 +301,27 @@ namespace Whirlwind.Semantic.Visitor
 
             bool incompletes = args.UnnamedArguments.Any(x => x is IncompleteType) || args.NamedArguments.Any(x => x.Value is IncompleteType);
 
-            if (new[] { TypeClassifier.STRUCT, TypeClassifier.FUNCTION }.Contains(root.Type.Classify()))
+            if (new[] { TypeClassifier.STRUCT, TypeClassifier.FUNCTION }.Contains(rootType.Classify()))
             {
-                bool isFunction = root.Type.Classify() == TypeClassifier.FUNCTION;
+                bool isFunction = rootType.Classify() == TypeClassifier.FUNCTION;
                 FunctionType ft = null;
 
                 if (isFunction)
                 {
-                    var paramData = CheckArguments((FunctionType)root.Type, args);
-                    ft = ((FunctionType)root.Type);
+                    var paramData = CheckArguments((FunctionType)rootType, args);
+                    ft = ((FunctionType)rootType);
 
                     if (paramData.IsError)
                         throw new SemanticException(paramData.ErrorMessage, paramData.ParameterPosition == -1 ? node.Position : 
                             ((ASTNode)node.Content[1]).Content.Where(x => x.Name == "arg").ToArray()[paramData.ParameterPosition].Position
                         );
                 }
-                else if (!isFunction && !((StructType)root.Type).GetConstructor(args, out ft))
-                    throw new SemanticException($"Struct `{((StructType)root.Type).Name}` has no constructor the accepts the given parameters", node.Position);
+                else if (!isFunction && !((StructType)rootType).GetConstructor(args, out ft))
+                    throw new SemanticException($"Struct `{((StructType)rootType).Name}` has no constructor the accepts the given parameters", node.Position);
 
-                DataType returnType = isFunction ? ((FunctionType)root.Type).ReturnType : ((StructType)root.Type).GetInstance();
+                DataType returnType = isFunction ? ((FunctionType)rootType).ReturnType : ((StructType)rootType).GetInstance();
 
-                _nodes.Add(new ExprNode(isFunction ? (((FunctionType)root.Type).Async ? "CallAsync" : "Call") : "CallConstructor", returnType));
+                _nodes.Add(new ExprNode(isFunction ? (((FunctionType)rootType).Async ? "CallAsync" : "Call") : "CallConstructor", returnType));
 
                 if (args.Count() == 0)
                     PushForward();
@@ -337,28 +337,26 @@ namespace Whirlwind.Semantic.Visitor
                     _nodes.RemoveAt(_nodes.Count - 2);
                 }
             }
-            else if (root.Type.Classify() == TypeClassifier.GENERIC)
+            else if (rootType.Classify() == TypeClassifier.GENERIC)
             {
-                if (((GenericType)root.Type).Infer(args, out List<DataType> inferredTypes))
+                if (((GenericType)rootType).Infer(args, out List<DataType> inferredTypes))
                 {
                     // always works - try auto eval if possible
-                    ((GenericType)root.Type).CreateGeneric(inferredTypes, out DataType genericType);
+                    ((GenericType)rootType).CreateGeneric(inferredTypes, out DataType result);
 
-                    _nodes.Add(new ExprNode("CreateGeneric", genericType));
+                    _nodes.Add(new ExprNode("CreateGeneric", result));
                     PushForward(args.Count() + 1);
 
                     // remove redundant args
                     ((TreeNode)_nodes.Last()).Nodes.RemoveRange(1, args.Count());
 
-                    _visitFunctionCall(node, _nodes.Last());
+                    _visitFunctionCall(node, _nodes.Last().Type);
                 }
                 else
                     throw new SemanticException("Unable to infer types of generic arguments", node.Position);
             }
-            else if (root.Type.Classify() == TypeClassifier.FUNCTION_GROUP)
+            else if (rootType is FunctionGroup fg)
             {
-                FunctionGroup fg = (FunctionGroup)root.Type;
-
                 if (fg.GetFunction(args, out FunctionType ft))
                 {
                     _nodes.Add(new ExprNode("CallFunctionOverload", ft.ReturnType));
@@ -371,9 +369,26 @@ namespace Whirlwind.Semantic.Visitor
                 else
                     throw new SemanticException("No function in the function group matches the given arguments", node.Position);
             }
-            else if (root.Type.Classify() == TypeClassifier.TYPE_CLASS_INSTANCE)
+            else if (rootType is GenericGroup gg)
             {
-                if (root.Type is CustomNewType cnt)
+                if (gg.GetFunction(args, out FunctionType result))
+                {
+                    _nodes.Add(new ExprNode("CallGenericOverload", result.ReturnType));
+                    PushForward(args.Count());
+
+                    var root = _nodes[_nodes.Count - 2];
+                    _nodes.RemoveAt(_nodes.Count - 2);
+
+                    root = new ExprNode("CreateGeneric", result, new List<ITypeNode> { root });
+
+                    ((TreeNode)_nodes.Last()).Nodes.Insert(0, root);
+                }
+                else
+                    throw new SemanticException("No function in the function group matches the given arguments", node.Position);
+            }
+            else if (rootType.Classify() == TypeClassifier.TYPE_CLASS_INSTANCE)
+            {
+                if (rootType is CustomNewType cnt)
                 {
                     if (cnt.Values.Count == 0)
                         throw new SemanticException("Cannot explicitly construct enumerated type class value that contains no types",
@@ -428,7 +443,7 @@ namespace Whirlwind.Semantic.Visitor
                         ((CustomType)newParent).GetInstanceByName(cnt.Name, out cnt);
                     }
 
-                    _nodes.Add(new ExprNode("InitTCConstructor", root.Type));
+                    _nodes.Add(new ExprNode("InitTCConstructor", rootType));
 
                     PushForward(cnt.Values.Count);
                     PushForward();

@@ -17,7 +17,6 @@ arrays, lists, and dictionaries
   * `for []` - lists
   * `for {:}` - dictionaries
   * all of them use `T` as their generic placeholder
-- add generic function groups
 - add context-based inferencing for lambdas in `case` and `if` expressions
 
 # TESTING
@@ -63,4 +62,7 @@ arrays, lists, and dictionaries
 - add multiline strings
   * """hi my name jeff"""
   * should they compile with newlines?
+- consider adding privacy as something more tangible than just convention
+  * add a `priv` modifier
+- make the overloading for generic function groups account for restrictors
 

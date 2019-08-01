@@ -84,8 +84,8 @@ block_stmt: if_stmt
 ;
 
 // if statement
-if_stmt: 'IF' '(' expr ')' block elif_block* [else_block] ;
-elif_block: 'ELIF' '(' expr ')' block ;
+if_stmt: 'IF' '(' [ variable_decl ';' ] expr ')' block elif_block* [else_block] ;
+elif_block: 'ELIF' '(' [ variable_decl ';' ] expr ')' block ;
 else_block: 'ELSE' block ;
 
 // select statement

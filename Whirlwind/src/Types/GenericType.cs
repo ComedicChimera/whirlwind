@@ -457,4 +457,81 @@ namespace Whirlwind.Types
                 _generics.All(x => other.Where(y => y.Equals(x)).Count() > 0);
         }
     }
+
+    // represents a generic function group
+    class GenericGroup : DataType
+    {
+        public readonly List<GenericType> GenericFunctions;
+
+        public GenericGroup(GenericType type1, GenericType type2)
+        {
+            GenericFunctions = new List<GenericType> { type1, type2 };
+        }
+
+        private GenericGroup(List<GenericType> genericFunctions)
+        {
+            GenericFunctions = genericFunctions;
+        }
+
+        public override TypeClassifier Classify() => TypeClassifier.GENERIC_GROUP;
+
+        public override DataType ConstCopy() => new GenericGroup(GenericFunctions) { Constant = true } ;
+
+        public bool AddGeneric(GenericType gt)
+        {
+            if (gt.DataType is FunctionType ft)
+            {
+                foreach (var function in GenericFunctions.Select(x => (FunctionType)x.DataType))
+                {
+                    if (!FunctionGroup.CanDistinguish(ft, function))
+                        return false;
+                }
+
+                GenericFunctions.Add(gt);
+                return true;
+            }
+            else
+                return false;
+        }
+
+        public bool GetFunction(ArgumentList args, out FunctionType result)
+        {
+            foreach (var generic in GenericFunctions)
+            {
+                if (generic.Infer(args, out List<DataType> inferredTypes))
+                {
+                    generic.CreateGeneric(inferredTypes, out DataType dt);
+
+                    result = (FunctionType)dt;
+                    return true;
+                }
+            }
+
+            result = null;
+            return false;
+        }
+
+        protected override bool _coerce(DataType other)
+        {
+            if (other is GenericType gt)
+                return gt.DataType is FunctionType && GenericFunctions.Any(x => x.Equals(other));
+            else if (other is GenericGroup)
+                return _equals(other);
+            else
+                return false;
+        }
+
+        protected override bool _equals(DataType other)
+        {
+            if (other is GenericGroup gg)
+            {
+                if (GenericFunctions.Count != gg.GenericFunctions.Count)
+                    return false;
+
+                return GenericFunctions.All(x => gg.GenericFunctions.Any(y => y.Equals(x)));
+            }
+            else
+                return false;
+        }
+    }
 }
