@@ -81,7 +81,30 @@ namespace Whirlwind.Types
         public override TypeClassifier Classify() 
             => _instance ? TypeClassifier.STRUCT_INSTANCE : TypeClassifier.STRUCT;
 
-        protected override bool _equals(DataType other) => Coerce(other);
+        protected override bool _equals(DataType other)
+        {
+            if (other is StructType st)
+            {
+                if (Name != st.Name)
+                    return false;
+
+                if (_instance != st._instance)
+                    return false;
+
+                if (Members.Count != st.Members.Count)
+                    return false;
+
+                foreach (var member in Members)
+                {
+                    if (!st.Members.ContainsKey(member.Key) || !member.Value.Equals(st.Members[member.Key]))
+                        return false;
+                }
+
+                return true;
+            }
+
+            return false;
+        }
 
         public override DataType ConstCopy()
             => new StructType(this)

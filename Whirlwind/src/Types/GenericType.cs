@@ -2,7 +2,6 @@
 using System.Linq;
 
 using Whirlwind.Semantic;
-using Whirlwind.Parser;
 
 namespace Whirlwind.Types
 {
@@ -10,7 +9,7 @@ namespace Whirlwind.Types
     class GenericPlaceholder : DataType
     {
         public readonly string Name;
-        
+
         public GenericPlaceholder(string name)
         {
             Name = name;
@@ -29,7 +28,7 @@ namespace Whirlwind.Types
         }
 
         public override DataType ConstCopy()
-            => new GenericPlaceholder(Name); // implict const
+            => new GenericPlaceholder(Name); // implicit const
     }
 
     // represents the various aliases of the generics (ie. the T in id<T>)
@@ -78,28 +77,15 @@ namespace Whirlwind.Types
     // represents a single generic generate instance
     struct GenericGenerate
     {
-        public DataType DataType;
+        public DataType Type;
+        public Dictionary<string, DataType> GenericAliases;
         public BlockNode Block;
 
-        public GenericGenerate(DataType dt, BlockNode block)
+        public GenericGenerate(DataType dt, Dictionary<string, DataType> genAliases, BlockNode block)
         {
-            DataType = dt;
+            Type = dt;
+            GenericAliases = genAliases;
             Block = block;
-        }
-    }
-
-    struct GenericInterface
-    {
-        public ASTNode Body;
-
-        public List<InterfaceType> StandardImplements;
-        public List<GenericType> GenericImplements;
-
-        public GenericInterface(ASTNode body)
-        {
-            Body = body;
-            StandardImplements = new List<InterfaceType>();
-            GenericImplements = new List<GenericType>();
         }
     }
 
@@ -112,9 +98,6 @@ namespace Whirlwind.Types
 
         public DataType DataType { get; private set; }
         public List<GenericGenerate> Generates { get; private set; }
-        public List<string> GenericNames { get { return _generics.Select(x => x.Name).ToList(); } }
-
-        public GenericInterface GenericInterface;
 
         public GenericType(List<GenericVariable> generics, DataType type, GenericEvaluator evaluator)
         {
@@ -128,8 +111,6 @@ namespace Whirlwind.Types
             Generates = new List<GenericGenerate>();
 
             Constant = true;
-
-            GenericInterface = new GenericInterface();
         }
 
         public bool CreateGeneric(List<DataType> dataTypes, out DataType genericType)
@@ -143,7 +124,7 @@ namespace Whirlwind.Types
                 {
                     while (e1.MoveNext() && e2.MoveNext())
                     {
-                        if (e1.Current.Restrictors.Count > 0 /* check for empty restrictors */ 
+                        if (e1.Current.Restrictors.Count > 0 /* check for empty restrictors */
                             && !e1.Current.Restrictors.Any(y => y.Coerce(e2.Current)))
                         {
                             genericType = null;
@@ -158,11 +139,15 @@ namespace Whirlwind.Types
 
                 var generate = _evaluator(aliases, this);
 
-                Generates.Add(generate);
-                genericType = generate.DataType;
+                // prevent generic placeholders from creating unnecessary generates
+                // and prevent duplicate generates from being creates
+                if (!aliases.Any(x => x.Value is GenericPlaceholder) && !Generates.Any(x => x.Type.Equals(generate.Type)))
+                    Generates.Add(generate);
+
+                genericType = generate.Type;
                 return true;
             }
-            
+
 
             genericType = null;
             return false;
@@ -193,7 +178,7 @@ namespace Whirlwind.Types
             {
                 foreach (var member in members)
                 {
-                    if (!st.Members.Keys.Contains(member.Key) 
+                    if (!st.Members.Keys.Contains(member.Key)
                         || !_getCompletedAliases(st.Members[member.Key].DataType, member.Value, completedAliases))
                     {
                         inferredTypes = new List<DataType>();
@@ -203,8 +188,6 @@ namespace Whirlwind.Types
 
                 if (completedAliases.Count == _generics.Count)
                 {
-                    _generics.Where(y => y.Name == "T").First().Restrictors.Any(y => y.Coerce(completedAliases["T"]));
-
                     if (completedAliases.All(x => {
                         var res = _generics.Where(y => y.Name == x.Key).First().Restrictors;
                         return res.Count == 0 || res.Any(y => y.Coerce(x.Value));
@@ -216,8 +199,81 @@ namespace Whirlwind.Types
                 }
             }
 
-            inferredTypes = new List<DataType>();
+            inferredTypes = null;
             return false;
+        }
+
+        public bool InferFromType(DataType dt, out List<DataType> inferredTypes)
+        {
+            var completedAliases = new Dictionary<string, DataType>();
+
+            if (!_getCompletedAliases(DataType, dt, completedAliases))
+            {
+                inferredTypes = null;
+                return false;
+            }               
+
+            if (completedAliases.Count == _generics.Count)
+            {
+                if (completedAliases.All(x => {
+                    var res = _generics.Where(y => y.Name == x.Key).First().Restrictors;
+                    return res.Count == 0 || res.Any(y => y.Coerce(x.Value));
+                }))
+                {
+                    inferredTypes = _generics.Select(x => completedAliases[x.Name]).ToList();
+                    return true;
+                }
+            }
+
+            inferredTypes = null;
+            return false;
+        }
+
+        public bool AddVariant(List<DataType> dataTypes)
+        {
+            if (dataTypes.Count != _generics.Count)
+                return false;
+
+            if (_variants.Contains(dataTypes))
+                return false;
+
+            using (var e1 = _generics.Select(x => x.Restrictors).GetEnumerator())
+            using (var e2 = dataTypes.GetEnumerator())
+            {
+                while (e1.MoveNext() && e2.MoveNext())
+                {
+                    if (e1.Current.Count == 0)
+                        continue;
+                    if (!e1.Current.Contains(e2.Current))
+                        return false;
+                }
+            }
+
+            _variants.Add(dataTypes);
+            return true;
+        }
+
+        public override bool Coerce(DataType other) => Equals(other);
+
+        public override TypeClassifier Classify() => TypeClassifier.GENERIC;
+
+        public override DataType ConstCopy()
+        {
+            var tt = new GenericType(_generics, DataType, _evaluator)
+            {
+                Generates = Generates
+            }; // implicit const
+
+            foreach (var variant in _variants)
+                tt._variants.Add(variant);
+
+            return tt;
+        }
+
+        public bool CompareGenerics(List<GenericVariable> other)
+        {
+            return _generics.Count == other.Count &&
+                _generics.All(x => other.Where(y => y.Equals(x)).Count() > 0);
         }
 
         private bool _inferFromFunction(FunctionType fnType, ArgumentList arguments, out List<DataType> inferredTypes)
@@ -259,7 +315,7 @@ namespace Whirlwind.Types
                 if (completedAliases.All(x => {
                     var res = _generics.Where(y => y.Name == x.Key).First().Restrictors;
                     return res.Count == 0 || res.Any(y => y.Coerce(x.Value));
-                    }))
+                }))
                 {
                     inferredTypes = _generics.Select(x => completedAliases[x.Name]).ToList();
                     return true;
@@ -315,7 +371,7 @@ namespace Whirlwind.Types
                 else
                     return false;
             }
-                
+
 
             switch (ta.Classify())
             {
@@ -332,7 +388,7 @@ namespace Whirlwind.Types
                     {
                         DictType dta = (DictType)ta, dtb = (DictType)tb;
 
-                        return _getCompletedAliases(dta.KeyType, dtb.KeyType, completedAliases) 
+                        return _getCompletedAliases(dta.KeyType, dtb.KeyType, completedAliases)
                             && _getCompletedAliases(dta.ValueType, dtb.ValueType, completedAliases);
                     }
                 case TypeClassifier.FUNCTION:
@@ -349,13 +405,13 @@ namespace Whirlwind.Types
                     return _getCompletedAliases(((PointerType)ta).DataType, ((PointerType)tb).DataType, completedAliases);
                 case TypeClassifier.REFERENCE:
                     return _getCompletedAliases(((ReferenceType)ta).DataType, ((ReferenceType)tb).DataType, completedAliases);
-                case TypeClassifier.STRUCT:
+                case TypeClassifier.STRUCT_INSTANCE:
                     {
                         StructType sta = (StructType)ta, stb = (StructType)tb;
 
                         return sta.Members.All(x => _getCompletedAliases(x.Value.DataType, stb.Members[x.Key].DataType, completedAliases));
                     }
-                case TypeClassifier.INTERFACE:
+                case TypeClassifier.INTERFACE_INSTANCE:
                     {
                         var methods = (Dictionary<Symbol, bool>)typeof(InterfaceType).GetField("_methods").GetValue(ta);
 
@@ -374,35 +430,7 @@ namespace Whirlwind.Types
 
             // low level type checking doesn't matter here (caught in coercion check above)
             return true;
-        }
-
-        public bool AddVariant(List<DataType> dataTypes)
-        {
-            if (dataTypes.Count != _generics.Count)
-                return false;
-
-            if (_variants.Contains(dataTypes))
-                return false;
-
-            using (var e1 = _generics.Select(x => x.Restrictors).GetEnumerator())
-            using (var e2 = dataTypes.GetEnumerator())
-            {
-                while (e1.MoveNext() && e2.MoveNext())
-                {
-                    if (e1.Current.Count == 0)
-                        continue;
-                    if (!e1.Current.Contains(e2.Current))
-                        return false;
-                }
-            }
-
-            _variants.Add(dataTypes);
-            return true;
-        }
-
-        public override bool Coerce(DataType other) => Equals(other);
-
-        public override TypeClassifier Classify() => TypeClassifier.GENERIC;
+        }       
 
         protected override bool _equals(DataType other)
         {
@@ -420,7 +448,7 @@ namespace Whirlwind.Types
                     {
                         while (e1.MoveNext() && e2.MoveNext())
                         {
-                            if (e1.Current.Name != e2.Current.Name || 
+                            if (e1.Current.Name != e2.Current.Name ||
                                 e1.Current.Restrictors.Count != e2.Current.Restrictors.Count ||
                                 !Enumerable.Range(0, e1.Current.Restrictors.Count)
                                 .All(i => e1.Current.Restrictors[i].Equals(e2.Current.Restrictors[i]))
@@ -436,26 +464,7 @@ namespace Whirlwind.Types
             }
 
             return false;
-        }
-
-        public override DataType ConstCopy()
-        {
-            var tt = new GenericType(_generics, DataType, _evaluator)
-            {
-                Generates = Generates
-            }; // implicit const
-
-            foreach (var variant in _variants)
-                tt._variants.Add(variant);
-
-            return tt;
-        }
-
-        public bool CompareGenerics(List<GenericVariable> other)
-        {
-            return _generics.Count == other.Count &&
-                _generics.All(x => other.Where(y => y.Equals(x)).Count() > 0);
-        }
+        }       
     }
 
     // represents a generic function group
@@ -475,7 +484,7 @@ namespace Whirlwind.Types
 
         public override TypeClassifier Classify() => TypeClassifier.GENERIC_GROUP;
 
-        public override DataType ConstCopy() => new GenericGroup(GenericFunctions) { Constant = true } ;
+        public override DataType ConstCopy() => new GenericGroup(GenericFunctions) { Constant = true };
 
         public bool AddGeneric(GenericType gt)
         {
@@ -532,6 +541,59 @@ namespace Whirlwind.Types
             }
             else
                 return false;
+        }
+    }
+
+    // used in the generic interface registry to determine whether or not a construct
+    // is a match for the given type
+    struct GenericBindDiscriminator
+    {
+        public readonly List<GenericVariable> GenericVariables;
+        public readonly GenericType GenericBindType;
+
+        public GenericBindDiscriminator(List<GenericVariable> genVars, GenericType gbt)
+        {
+            GenericVariables = genVars;
+            GenericBindType = gbt;
+        }
+
+        public bool MatchType(DataType dt, out List<DataType> inferredTypes)
+        {
+            if (new[] { TypeClassifier.INCOMPLETE, TypeClassifier.GENERIC_GROUP, TypeClassifier.GENERIC,
+                TypeClassifier.FUNCTION_GROUP, TypeClassifier.PACKAGE }.Contains(dt.Classify()))
+            {
+                inferredTypes = null;
+                return false;
+            }
+
+            if (GenericBindType.InferFromType(dt, out inferredTypes))
+            {
+                // even tho we don't need the generic type, we still want to check the generate ;)
+                GenericBindType.CreateGeneric(inferredTypes, out DataType _);
+
+                return true;
+            }
+            else
+            {
+                inferredTypes = null;
+                return false;
+            }
+        }
+    }
+
+    // represents an interface used in generic binding
+    struct GenericBinding
+    {
+        public readonly GenericType Body;
+
+        public List<InterfaceType> StandardImplements;
+        public List<GenericType> GenericImplements;
+
+        public GenericBinding(GenericType body)
+        {
+            Body = body;
+            StandardImplements = new List<InterfaceType>();
+            GenericImplements = new List<GenericType>();
         }
     }
 }

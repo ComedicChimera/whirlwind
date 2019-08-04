@@ -1,18 +1,30 @@
-﻿func main() {
-	let x = 4;
-	let y = 4.5;
+﻿struct Test<T> {
+	x, y: T;
 
-	if (x == y) {
-	
+	constructor(x, y: T) {
+		this.x = x;
+		this.y = y;
 	}
-	elif (x < y) {
-	
-	}
+}
 
-	if (let a = 4; x == a) {
-	
+interf IAddable<T> {
+	func add(other: IAddable<T>) IAddable<T>;
+}
+
+interf<T> for Test<T> is IAddable<T> {
+	func add(other: Test<T>) Test<T> {
+		return new Test(this.x + other.x, this.y + other.y);
 	}
-	elif (let a = 5; y < a) {
-	
-	}
+}
+
+func main() {
+	let t = new Test(3, 4);
+	let t2 = new Test(4, 5);
+
+	t = t.add(t2);
+
+	let t3 = new Test("te", "te");
+	let t4 = new Test("st", "st");
+
+	t3 = t3.add(t4);
 }

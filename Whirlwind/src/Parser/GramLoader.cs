@@ -5,6 +5,9 @@ using System.Linq;
 
 namespace Whirlwind.Parser
 {
+    // The GrammarException Class
+    // This exception is thrown whenever
+    // the input grammar is malformed
     class GrammarException : Exception
     {
         public Token Tok;
@@ -23,6 +26,10 @@ namespace Whirlwind.Parser
         }
     }
 
+    // The GramLoader Class
+    // This class is responsible for converting the
+    // string grammar into a Grammar Object to be
+    // used by the WhirlParser
     class GramLoader
     {
         private Scanner _scanner = new Scanner("config/ebnf.json");
@@ -44,25 +51,17 @@ namespace Whirlwind.Parser
         private void Next(int amount = 1)
         {
             if (_tokenPos + amount < _tokens.Count)
-            {
                 _tokenPos += amount;
-            }
             else
-            {
                 _done = true;
-            }
         }
 
         private Token LookAhead(int amount = 0)
         {
             if (_tokenPos + amount < _tokens.Count && _tokenPos + amount > -1)
-            {
                 return _tokens[_tokenPos + amount];
-            }
             else
-            {
                 return new Token("EOF", "$", -1);
-            }
         }
 
         public Grammar Load(string path)
@@ -75,9 +74,7 @@ namespace Whirlwind.Parser
         private Grammar _parseGrammar()
         {      
             while (!_done)
-            {
                 _parseNextProduction();
-            }
             return grammar;
         }
 

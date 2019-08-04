@@ -7,27 +7,37 @@ using System;
 
 namespace Whirlwind.Semantic.Visitor
 {
+    // The Visitor Class
+    // Responsible for performing the
+    // bulk of semantic analysis and
+    // constructing the Semantic Action Tree
     partial class Visitor
     {
+        // ------------
+        // Visitor Data
+        // ------------
+
+        // exposed list of all semantic exceptions accumulated
+        // during visitation; processed outside of visitor
+        public List<SemanticException> ErrorQueue;
+
+        // visitor shared data
         private List<ITypeNode> _nodes;
         private SymbolTable _table;
-        private string _namePrefix;
-        private bool _couldLambdaContextExist, _couldTypeClassContextExist;
+        private string _namePrefix;      
         private CustomType _typeClassContext;
-        private bool _didTypeClassCtxInferFail;
-        private bool _isTypeCast;
 
-        public List<SemanticException> ErrorQueue;
+        // visitor state flags
+        private bool _couldLambdaContextExist = false, _couldTypeClassContextExist = false;
+        private bool _didTypeClassCtxInferFail = false;
+        private bool _isTypeCast = false;
+        private bool _isGenericContext = false;
 
         public Visitor(string namePrefix)
         {
             _nodes = new List<ITypeNode>();
             _table = new SymbolTable();
             _namePrefix = namePrefix;
-            _couldLambdaContextExist = false;
-            _couldTypeClassContextExist = false;
-            _didTypeClassCtxInferFail = false;
-            _isTypeCast = false;
 
             ErrorQueue = new List<SemanticException>();
         }

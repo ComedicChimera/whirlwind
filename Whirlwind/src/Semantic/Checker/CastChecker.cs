@@ -137,6 +137,10 @@ namespace Whirlwind.Semantic.Checker
                         return desiredFn.ReturnType.Coerce(startFn.ReturnType);
                     }
                     break;
+                case TypeClassifier.FUNCTION_GROUP:
+                    if (desired is FunctionType && ((FunctionGroup)start).Functions.Any(x => x.Equals(desired)))
+                            return true;
+                    break;
                 case TypeClassifier.STRUCT_INSTANCE:
                     if (desired.Classify() == TypeClassifier.STRUCT)
                     {

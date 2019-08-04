@@ -3,11 +3,16 @@ using System.Collections.Generic;
 
 namespace Whirlwind.Parser
 {
+    // The IGrammatical Interface
+    // Used for storing the grammatical
+    // elements of the Grammar Object
     interface IGrammatical
     {
         string Type();
     }
 
+    // The Terminal Class
+    // Represents a grammatical terminal
     sealed class Terminal : IGrammatical
     {
         public readonly string TokenType;
@@ -20,6 +25,8 @@ namespace Whirlwind.Parser
         public string Type() => "TERMINAL";
     }
 
+    // The Nonterminal Class
+    // Represents a grammatical nonterminal
     sealed class Nonterminal : IGrammatical
     {
         public readonly string Name;
@@ -32,6 +39,9 @@ namespace Whirlwind.Parser
         public string Type() => "NONTERMINAL";
     }
 
+    // The Production Class
+    // Represents a production of the grammar
+    // linked to by a nonterminal
     class Production : IGrammatical
     {
         private readonly string _type;
@@ -52,6 +62,9 @@ namespace Whirlwind.Parser
         public string Type() => _type;
     }
 
+    // The Grammar Class
+    // This class represents the objectified
+    // form of the grammar (serialized grammar)
     class Grammar
     {
         private Dictionary<string, Production> _productions;
@@ -67,9 +80,7 @@ namespace Whirlwind.Parser
         public bool AddProduction(string nonterminal, Production production)
         {
             if ( _productions.ContainsKey(nonterminal))
-            {
                 return false;
-            }
             else
             {
                 if (_productions.Keys.Count == 0)
@@ -80,9 +91,7 @@ namespace Whirlwind.Parser
         }
 
         public bool Lookup(string nonterminal)
-        {
-            return _productions.ContainsKey(nonterminal);
-        }
+            => _productions.ContainsKey(nonterminal);
 
         public Production GetProduction(string nonterminal)
         {

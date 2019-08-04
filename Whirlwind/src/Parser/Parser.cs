@@ -4,6 +4,9 @@ using System.Linq;
 
 namespace Whirlwind.Parser
 {
+    // The InvalidSyntaxException Class
+    // Thrown whenever the parser encounters
+    // a series of tokens it cannot parse
     class InvalidSyntaxException : Exception
     {
         public Token Tok;
@@ -14,6 +17,11 @@ namespace Whirlwind.Parser
         }
     }
 
+    // The WhirlParser Class
+    // The class responsible to taking the Grammar object
+    // and the list of Tokens from the Scanner
+    // and turning it into an AST while simultaneously
+    // checking it for valid syntax
     sealed class WhirlParser
     {
         private readonly Grammar _grammar;

@@ -1,48 +1,126 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace Whirlwind.Types
 {
     static class InterfaceRegistry
     {
-        // store the types interface
-        public static readonly Dictionary<DataType, InterfaceType> Interfaces
+        // store the type interfaces
+        public static readonly Dictionary<DataType, InterfaceType> StandardInterfaces
             = new Dictionary<DataType, InterfaceType>();
 
+        // store the generic bound type interfaces
+        public static readonly Dictionary<GenericBindDiscriminator, GenericBinding> GenericInterfaces
+            = new Dictionary<GenericBindDiscriminator, GenericBinding>();
+
+        // we check generic interface matches first
+        // if a generic match occurs but a derivation fails the
+        // type access is explicitly invalid regardless of any future matches
+        // if the generic match is successful, then we use that type interface to
+        // derive into any future matches and if none exist, still return true
+        // if there are no generic matches then use the regular pool
+        // we only return false if a generic derivation fails or if no matches
+        // in either category are found. 
         public static bool GetTypeInterface(DataType dt, out InterfaceType typeInterf)
         {
+            typeInterf = null;
+
+            foreach (var item in GenericInterfaces)
+            {
+                if (item.Key.MatchType(dt, out List<DataType> inferredTypes))
+                {
+                    item.Value.Body.CreateGeneric(inferredTypes, out DataType rawType);
+
+                    typeInterf = (InterfaceType)rawType;
+
+                    foreach (var elem in item.Value.StandardImplements)
+                    {
+                        if (!elem.Derive(typeInterf, true))
+                            return false;
+                    }
+
+                    var genericVars = Enumerable.Range(0, inferredTypes.Count)
+                        .ToDictionary(i => item.Key.GenericVariables[i].Name, i => inferredTypes[i]
+                        );
+
+                    foreach (var elem in item.Value.GenericImplements)
+                    {
+                        if (!elem.CreateGeneric(inferredTypes, out DataType res))
+                            return false;
+
+                        if (res is InterfaceType it)
+                        {
+                            if (!it.Derive(typeInterf, true))
+                                return false;
+                        }
+                        else
+                            return false;
+                    }
+
+                    break;
+                }
+            }
+
             if (dt is StructType st)
             {
-                foreach (var item in Interfaces)
+                foreach (var item in StandardInterfaces)
                 {
                     if (item.Key is StructType ist && st.Coerce(ist))
                     {
-                        typeInterf = item.Value;
+                        if (typeInterf != null)
+                        {
+                            var baseInterf = item.Value;
+
+                            typeInterf.Derive(baseInterf, true);
+                        }
+                        else
+                            typeInterf = item.Value;
+
                         return true;
                     }
                 }
             }
             else if (dt is CustomInstance cnt)
             {
-                foreach (var item in Interfaces)
+                foreach (var item in StandardInterfaces)
                 {
                     if (item.Key is CustomType && item.Key.Equals(cnt.Parent))
                     {
-                        typeInterf = item.Value;
+                        if (typeInterf != null)
+                        {
+                            var baseInterf = item.Value;
+
+                            typeInterf.Derive(baseInterf, true);
+                        }
+                        else
+                            typeInterf = item.Value;
+
                         return true;
                     }
                 }
             }
             else
             {
-                foreach (var item in Interfaces)
+                foreach (var item in StandardInterfaces)
                 {
                     if (item.Key.Equals(dt))
                     {
-                        typeInterf = item.Value;
+                        if (typeInterf != null)
+                        {
+                            var baseInterf = item.Value;
+
+                            typeInterf.Derive(baseInterf, true);
+                        }
+                        else
+                            typeInterf = item.Value;
+
                         return true;
                     }
                 }
             }
+
+            if (typeInterf != null)
+                return true;
 
             typeInterf = null;
             return false;
@@ -90,9 +168,13 @@ namespace Whirlwind.Types
             if (InterfaceRegistry.GetTypeInterface(this, out InterfaceType ift))
                 return ift;
 
-            InterfaceRegistry.Interfaces[this] = new InterfaceType();
+            if (new[] { TypeClassifier.GENERIC_ALIAS, TypeClassifier.GENERIC, TypeClassifier.GENERIC_PLACEHOLDER ,
+                TypeClassifier.GENERIC_GROUP, TypeClassifier.FUNCTION_GROUP }.Contains(Classify()))
+                return new InterfaceType();
 
-            return InterfaceRegistry.Interfaces[this];
+            InterfaceRegistry.StandardInterfaces[this] = new InterfaceType();
+
+            return InterfaceRegistry.StandardInterfaces[this];
         }
 
         // check two data types for perfect equality

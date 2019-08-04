@@ -135,45 +135,10 @@ namespace Whirlwind.Semantic.Visitor
 
                 DataType dt = _table.GetScope().Last().DataType;
 
-                if (parent.GenericInterface.Body != null)
-                {
-                    var interf = dt.GetInterface();
-
-                    // create block node to hold generate interface
-                    _nodes.Add(new BlockNode("GenerateInterfHolder"));
-                    _collectInterfaceMethods(interf, parent.GenericInterface.Body, true);
-                    // remove holder
-                    _nodes.RemoveAt(_nodes.Count - 1);
-
-                    if (parent.GenericInterface.StandardImplements != null)
-                    {
-                        foreach (var item in parent.GenericInterface.StandardImplements)
-                        {
-                            if (!item.Derive(dt))
-                                throw new SemanticException("This generic generate is not valid for the given interface", node.Content[1].Position);
-                        }
-                    }
-
-                    if (parent.GenericInterface.GenericImplements != null)
-                    {
-                        foreach (var item in parent.GenericInterface.GenericImplements)
-                        {
-                            if (item.CreateGeneric(aliases.Values.ToList(), out DataType impl))
-                            {
-                                if (((InterfaceType)impl).Derive(dt))
-                                    continue;
-                            }
-
-                            throw new SemanticException("This generic generate is not valid for the given interface", node.Content[1].Position);
-                        }
-                    }
-                    
-                }
-
                 _table.AscendScope();
                 _table.RemoveScope();
 
-                return new GenericGenerate(dt, generateNode);
+                return new GenericGenerate(dt, aliases, generateNode);
             };
         }
 

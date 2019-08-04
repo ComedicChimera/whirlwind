@@ -1,10 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 
 // remove to string methods, when they are no longer being used
 namespace Whirlwind.Parser
 {
+    // The TextPosition Struct
+    // The struct stores positioning
+    // data used backtracing
     struct TextPosition
     {
         public int Start, Length;
@@ -16,12 +18,17 @@ namespace Whirlwind.Parser
         }
     }
 
+    // The INode Interface
+    // Interface shared by TokenNodes
+    // and ASTNodes in the complete AST
     interface INode
     {
         string Name { get; }
         TextPosition Position { get; }
     }
 
+    // The TokenNode Class
+    // Represents a token (ending) of the AST
     class TokenNode : INode
     {
         public readonly Token Tok;
@@ -40,6 +47,10 @@ namespace Whirlwind.Parser
         public TextPosition Position => new TextPosition(Tok.Index, Tok.Value.Length);
     }
 
+    // The ASTNode Class
+    // Represents a structural node on the AST
+    // Can contain subnodes including other ASTNodes
+    // and TokenNodes
     class ASTNode : INode
     {
         public string Name { get; }

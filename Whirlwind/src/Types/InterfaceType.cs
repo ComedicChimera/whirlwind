@@ -136,12 +136,21 @@ namespace Whirlwind.Types
         }
 
         // tests if a type implements all necessary methods to be a child of this interface
-        public bool Derive(DataType child)
+        public bool Derive(DataType child, bool allowDirectDerivation=false)
         {
-            if (SuperForm || child is InterfaceType)
-                return false;
+            InterfaceType interf;
 
-            var interf = child.GetInterface();
+            if (SuperForm)
+                return false;
+            else if (child is InterfaceType it)
+            {
+                if (allowDirectDerivation)
+                    interf = it;
+                else
+                    return false;
+            }
+            else
+                interf = child.GetInterface();
 
             if (_methods.Where(x => !x.Value).All(x => interf._methods.Select(y => y.Key).Where(y => x.Key.Equals(y)).Count() > 0)) {
                 foreach (var method in _methods) {

@@ -1,5 +1,6 @@
 # TODO
 
+- FIX GENERIC INTERFACE BINDING ONCE AND FOR ALL
 - add package linker
 - add 2 sanitizers (constexpr and memory) [Note: constexpr does in depth checking on all constant expressions]
 - add prelude (later)
@@ -10,14 +11,6 @@
   * Struct Annotation: `#joined`: effect how structs compile and initialize
 - add `#impl` to create structs for intrinsic types like strings or arrays
   * `#impl "str"`
-- add special binding syntax to allow for binding onto all types of pointers,
-arrays, lists, and dictionaries
-  * `for *` - pointers
-  * `for {}` - arrays
-  * `for []` - lists
-  * `for {:}` - dictionaries
-  * all of them use `T` as their generic placeholder
-- add context-based inferencing for lambdas in `case` and `if` expressions
 
 # TESTING
 
@@ -54,6 +47,7 @@ arrays, lists, and dictionaries
   * if the previous expression is a boolean, continue only if true
   * if the previous expression is not a boolean, continue if there is no error
   * if the chain is incomplete, it simply returns the null value of the last type
+- make sure to process generic binding appropriately
 
 # THOUGHTS
 
@@ -65,4 +59,5 @@ arrays, lists, and dictionaries
 - consider adding privacy as something more tangible than just convention
   * add a `priv` modifier
 - make the overloading for generic function groups account for restrictors
+- add context-based inferencing for lambdas in `case` and `if` expressions
 

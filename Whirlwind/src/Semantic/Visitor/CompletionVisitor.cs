@@ -33,6 +33,8 @@ namespace Whirlwind.Semantic.Visitor
                     break;
                 case "Interface":
                 case "BindInterface":
+                case "BindGenericInterface":
+                case "BindGenerateInterface":
                     _completeInterface((BlockNode)node);
                     _table.MoveScope(_table.GetScopeCount() - 1, scopePos);
 
@@ -99,19 +101,20 @@ namespace Whirlwind.Semantic.Visitor
                         scopePos++;
                         break;
                     case "Generic":
+                    case "BindGenericInterface":
                         {
                             // perform generate checking (clean up scope and nodes after done)
                             // create working scope for clean generic generate checking
                             _table.AddScope();
                             _table.DescendScope();
 
-                            foreach (var genericName in ((GenericType)((TreeNode)node).Nodes[0].Type).GenericNames)
-                                _table.AddSymbol(new Symbol(genericName, new GenericPlaceholder(genericName)));
-
                             int tPos = 0;
 
                             foreach (var generate in ((GenericType)(((BlockNode)node).Nodes[0].Type)).Generates)
                             {
+                                foreach (var alias in generate.GenericAliases)
+                                    _table.AddSymbol(new Symbol(alias.Key, new GenericAlias(alias.Value)));
+
                                 // create artificial scope for all who need it
                                 if (!generate.Block.Name.EndsWith("Function"))
                                     _table.AddScope();
@@ -182,34 +185,12 @@ namespace Whirlwind.Semantic.Visitor
 
             if (interf.Name == "Interface")
                 _table.AddSymbol(new Symbol("$THIS", ((InterfaceType)interf.Nodes[0].Type).GetInstance()));
-            // make sure generics are defined as instance
-            else if (interf.Nodes[1].Type is GenericType gt)
-            {
-                DataType dt;
-
-                switch (gt.DataType.Classify())
-                {
-                    case TypeClassifier.STRUCT:
-                        dt = ((StructType)gt.DataType).GetInstance();
-                        break;
-                    case TypeClassifier.INTERFACE:
-                        dt = ((InterfaceType)gt.DataType).GetInstance();
-                        break;
-                    case TypeClassifier.TYPE_CLASS:
-                        dt = ((CustomType)gt.DataType).GetInstance();
-                        break;
-                    default:
-                        dt = gt.DataType;
-                        break;
-                }
-
-                _table.AddSymbol(new Symbol("$THIS", dt));
-            }            
+            else if (interf.Name == "BindGenerateInterface")
+                _table.AddSymbol(new Symbol("$THIS", interf.Nodes[0].Type));
+            // make sure generics are defined as instance         
             else
                 // for all who need it, it is already declared as an instance
                 _table.AddSymbol(new Symbol("$THIS", interf.Nodes[1].Type));
-
-
 
             foreach (var item in interf.Block)
             {

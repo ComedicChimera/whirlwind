@@ -8,6 +8,8 @@ using Newtonsoft.Json;
 
 namespace Whirlwind.Parser
 {
+    // The Token Struct
+    // Represents a single lexical element
     struct Token
     {
         public string Type;
@@ -23,6 +25,10 @@ namespace Whirlwind.Parser
 
     }
 
+    // The Scanner Class
+    // Responsible for taking in an input file and a token 
+    // list and converting the file into ordered tokens
+    // according to that list
     class Scanner
     {
         private Dictionary<string, string> _tokenSet;
@@ -43,9 +49,7 @@ namespace Whirlwind.Parser
                 var regex = new Regex(_tokenSet[item]);
 
                 foreach (Match match in regex.Matches(text))
-                {
                     tokens.Add(new Token(item, match.Value, match.Index));
-                }
 
                 text = regex.Replace(text, _replaceRepeater);
             }

@@ -57,8 +57,8 @@ namespace Whirlwind.Semantic.Visitor
 
                 interfaceType.Derive(dt);                    
 
-                _nodes.Add(new ValueNode("Interface", interfaceType));
-                _nodes.Add(new ValueNode("Type", dt));
+                _nodes.Add(new ValueNode("TypeInterface", interfaceType));
+                _nodes.Add(new ValueNode("BindType", dt));
 
                 MergeBack(2);
 
@@ -99,53 +99,78 @@ namespace Whirlwind.Semantic.Visitor
         {
             var genericVars = _primeGeneric((ASTNode)node.Content[1]);
 
-            var dt = _generateType((ASTNode)node.Content[3]);
+            _nodes.Add(new BlockNode("BindGenericInterface"));
 
-            if (dt is GenericType gt)
-            {
-                if (!gt.CompareGenerics(genericVars))
-                    throw new SemanticException("Generic variables of generic binding must match those of generic type",
-                        node.Content[1].Position);
+            var ifType = new InterfaceType();
+            _collectInterfaceMethods(ifType, (ASTNode)node.Content[node.Content.Count - 2], true);
 
-                var gei = new GenericInterface((ASTNode)node.Content[node.Content.Count - 2]);
-
-                _nodes.Add(new BlockNode("GenericInterfaceBind"));
-
-                _nodes.Add(new ValueNode("Type", dt));
-                MergeBack();
-
-                var interfaceType = new InterfaceType();
-
-                _collectInterfaceMethods(interfaceType, gei.Body, true);        
-
-                if (node.Content[5].Name == "implements")
+            var generic = new GenericType(genericVars, ifType, _decorateEval(node, 
+                delegate (ASTNode ifBind, List<Modifier> modifiers)
                 {
-                    foreach (var item in ((ASTNode)node.Content[5]).Content)
+                    var newType = new InterfaceType();
+
+                    _nodes.Add(new BlockNode("BindGenerateInterface"));
+                    _collectInterfaceMethods(newType, (ASTNode)ifBind.Content[4], true);
+
+                    _nodes.Add(new ValueNode("GenerateThis", _generateType((ASTNode)ifBind.Content[2])));
+                    MergeBack();
+
+                    // no need to add implements because processed later
+
+                    _table.AddSymbol(new Symbol("$GENERATE_BIND", newType));
+                }
+                ));
+
+            var bindTypeNode = (ASTNode)node.Content[3];
+            var bindDt = _generateType(bindTypeNode);
+
+            _nodes.Add(new ValueNode("GenericTypeInterface", generic));
+            _nodes.Add(new ValueNode("BindType", bindDt));
+            MergeBack(2);
+
+            var genericBinding = new GenericBinding(generic);
+
+            if (node.Content[node.Content.Count - 4] is ASTNode implNode && implNode.Name == "implements")
+            {
+                _nodes.Add(new ExprNode("Implements", new VoidType()));
+
+                foreach (var item in implNode.Content)
+                {
+                    if (item.Name == "types")
                     {
-                        if (item.Name == "types")
+                        var typeNode = (ASTNode)item;
+                        var dt = _generateType((ASTNode)item);
+
+                        if (_isGenericInterf(typeNode, genericVars.Select(x => x.Name).ToList()))
                         {
-                            var type = _generateType((ASTNode)item);
-
-                            if (type is InterfaceType it && !it.SuperForm)
-                                gei.StandardImplements.Add(it);
-
-                            else if (type is GenericType gimpl && gimpl.DataType is InterfaceType)
-                                gei.GenericImplements.Add(gimpl);
+                            genericBinding.GenericImplements.Add(new GenericType(genericVars, dt, _decorateEval(typeNode, _typeVFN)));
+                            _nodes.Add(new ValueNode("GenericInherit", dt));
+                        }                           
+                        else
+                        {
+                            if (dt is InterfaceType it)
+                                genericBinding.StandardImplements.Add(it);
                             else
-                                throw new SemanticException("Generic type interface can only implement interfaces and generic interfaces",
-                                    item.Position);
+                                throw new SemanticException("Unable to use non-interface as a classifying interface", item.Position);
+
+                            _nodes.Add(new ValueNode("StandardInherit", dt));                           
                         }
-                    }
+
+                        MergeBack();
+                    }  
                 }
 
-                gt.GenericInterface = gei;
-
-                _selfNeedsPointer = true;
-
-                _table.AscendScope();
+                MergeBack();
             }
-            else
-                throw new SemanticException("Unable to create generic binding for non-generic type", node.Content[1].Position);
+
+            InterfaceRegistry.GenericInterfaces.Add(
+                new GenericBindDiscriminator(genericVars, new GenericType(genericVars, bindDt, 
+                _decorateEval(bindTypeNode, _typeVFN))),
+                genericBinding
+                );
+
+            _selfNeedsPointer = true;
+            _table.AscendScope();
         }
 
         private void _collectInterfaceMethods(InterfaceType interfaceType, ASTNode block, bool typeInterface)
@@ -273,6 +298,31 @@ namespace Whirlwind.Semantic.Visitor
             }
             else
                 interfType.AddMethod(new Symbol($"__{op}__", ft), hasBody);
+        }
+
+        private bool _isGenericInterf(ASTNode node, List<string> varNames)
+        {
+            foreach (var item in node.Content)
+            {
+                if (item is TokenNode tk && tk.Tok.Type == "IDENTIFIER" && varNames.Contains(tk.Tok.Value))
+                    return true;
+                else if (item is ASTNode anode && _isGenericInterf(anode, varNames))
+                    return true;
+            }
+
+            return false;
+        }
+
+        private void _typeVFN(ASTNode typeNode, List<Modifier> modifiers)
+        {
+            var dt = _generateType(typeNode);
+            
+            // _decorateEval requires vfn to "produce" a block node
+            _nodes.Add(new BlockNode("TypeGenerateBlock"));
+            _nodes.Add(new ValueNode("Type", dt));
+            MergeBack();
+
+            _table.AddSymbol(new Symbol("$TYPE", dt));
         }
     }
 }
