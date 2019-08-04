@@ -1,6 +1,6 @@
 # TODO
 
-- FIX GENERIC INTERFACE BINDING ONCE AND FOR ALL
+- Fix generic self-types to work how they are supposed to
 - add package linker
 - add 2 sanitizers (constexpr and memory) [Note: constexpr does in depth checking on all constant expressions]
 - add prelude (later)
