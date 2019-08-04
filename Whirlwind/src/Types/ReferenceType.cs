@@ -36,16 +36,20 @@
     // self referential type
     class SelfType : DataType
     {
+        private static int _idCounter = 0;
+
         public readonly DataType DataType;
+        public readonly int Id;
 
         public SelfType(DataType dt)
         {
             DataType = dt;
+            Id = _idCounter++;
         }
 
         protected override bool _equals(DataType other)
         {
-            if (other.Classify() == TypeClassifier.SELF)
+            if (other is SelfType st && Id == st.Id)
                 return true;
 
             else if (DataType.Classify() == TypeClassifier.INTERFACE &&
@@ -60,7 +64,7 @@
 
         protected override bool _coerce(DataType other)
         {
-            if (other.Classify() == TypeClassifier.SELF)
+            if (other is SelfType st && Id == st.Id)
                 return true;
 
             else if (DataType.Classify() == TypeClassifier.INTERFACE &&
