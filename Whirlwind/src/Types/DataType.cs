@@ -253,6 +253,8 @@ namespace Whirlwind.Types
         VOID,
         REFERENCE,
         INCOMPLETE,
-        SELF // self referential type
+        SELF, // self-referential type
+        GENERIC_SELF, // generic self-referential type
+        GENERIC_SELF_INSTANCE // instance of a generic self type
     }
 }

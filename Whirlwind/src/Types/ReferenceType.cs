@@ -38,18 +38,21 @@
     {
         private static int _idCounter = 0;
 
-        public readonly DataType DataType;
-        public readonly int Id;
+        private readonly int _id;
+
+        // not readonly to allow late modification
+        public DataType DataType;
+        public bool Initialized = false;
 
         public SelfType(DataType dt)
         {
             DataType = dt;
-            Id = _idCounter++;
+            _id = _idCounter++;
         }
 
         protected override bool _equals(DataType other)
         {
-            if (other is SelfType st && Id == st.Id)
+            if (other is SelfType st && _id == st._id)
                 return true;
 
             else if (DataType.Classify() == TypeClassifier.INTERFACE &&
@@ -64,7 +67,7 @@
 
         protected override bool _coerce(DataType other)
         {
-            if (other is SelfType st && Id == st.Id)
+            if (other is SelfType st && _id == st._id)
                 return true;
 
             else if (DataType.Classify() == TypeClassifier.INTERFACE &&

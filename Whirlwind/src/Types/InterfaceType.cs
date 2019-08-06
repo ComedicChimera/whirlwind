@@ -109,27 +109,12 @@ namespace Whirlwind.Types
 
         protected override bool _equals(DataType other)
         {
-            if (other.Classify() == TypeClassifier.INTERFACE || other.Classify() == TypeClassifier.INTERFACE_INSTANCE)
+            if (other is InterfaceType it)
             {
-                InterfaceType it = (InterfaceType)other;
-
                 if (_initialized != it._initialized || SuperForm != it.SuperForm)
                     return false;
 
-                if (_methods.Count == it._methods.Count)
-                {
-                    using (var e1 = _methods.GetEnumerator())
-                    using (var e2 = it._methods.GetEnumerator())
-                    {
-                        while (e1.MoveNext() && e2.MoveNext())
-                        {
-                            if (!e1.Current.Key.Equals(e2.Current.Key) || e1.Current.Value != e2.Current.Value)
-                                return false;
-                        }
-                    }
-
-                    return true;
-                }
+                return _methods.SequenceEqual(it._methods);
             }
 
             return false;

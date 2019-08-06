@@ -91,16 +91,7 @@ namespace Whirlwind.Types
                 if (_instance != st._instance)
                     return false;
 
-                if (Members.Count != st.Members.Count)
-                    return false;
-
-                foreach (var member in Members)
-                {
-                    if (!st.Members.ContainsKey(member.Key) || !member.Value.Equals(st.Members[member.Key]))
-                        return false;
-                }
-
-                return true;
+                return Members.SequenceEqual(st.Members);
             }
 
             return false;

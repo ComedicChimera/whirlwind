@@ -29,13 +29,9 @@ namespace Whirlwind.Types
 
         protected override bool _equals(DataType other)
         {
-            if (other.Classify() == TypeClassifier.TUPLE)
-            {
-                TupleType tt = (TupleType)other;
+            if (other is TupleType tt)
+                return Types.SequenceEqual(tt.Types);
 
-                if (Types.Count == tt.Types.Count)
-                    return Enumerable.Range(0, Types.Count).All(i => Types[i].Equals(tt.Types[i]));
-            }
             return false;
         }
 

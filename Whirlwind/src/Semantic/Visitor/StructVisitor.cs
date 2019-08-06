@@ -20,7 +20,14 @@ namespace Whirlwind.Semantic.Visitor
             _table.DescendScope();
 
             // declare self referential type (ok early, b/c reference)
-            _table.AddSymbol(new Symbol(name.Tok.Value, new SelfType(structType)));
+            if (_isGenericSelfContext)
+            {
+                // if there's context, the symbol exists
+                _table.Lookup("$GENERIC_SELF", out Symbol genSelf);
+                _table.AddSymbol(new Symbol(name.Tok.Value, genSelf.DataType));
+            }
+            else
+                _table.AddSymbol(new Symbol(name.Tok.Value, new SelfType(structType)));
 
             // since struct members are all variables
             _selfNeedsPointer = true;
@@ -96,6 +103,10 @@ namespace Whirlwind.Semantic.Visitor
 
             _nodes.Add(new IdentifierNode(name.Tok.Value, structType));
             MergeBack();
+
+            // update self type if necessary
+            if (_table.Lookup(name.Tok.Value, out Symbol selfSym) && selfSym.DataType is SelfType)
+                ((SelfType)selfSym.DataType).Initialized = true;
 
             _table.AscendScope();
 

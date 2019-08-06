@@ -47,9 +47,6 @@ namespace Whirlwind.Semantic.Visitor
         {
             _nodes.Add(new BlockNode("Generic"));
 
-            // exit generic scope
-            _table.AscendScope();
-
             Action<ASTNode, List<Modifier>> vfn;
 
             switch (sym.DataType.Classify())
@@ -71,11 +68,28 @@ namespace Whirlwind.Semantic.Visitor
             var gt = new GenericType(genericVars, sym.DataType, 
                 _decorateEval(root, vfn));
 
+            // handle generic self contexts
+            if (_isGenericSelfContext)
+            {
+                _table.Lookup("$GENERIC_SELF", out Symbol selfSym); ;
+
+                _isGenericSelfContext = false;
+
+                // run after generic symbol has already been declared
+                ((GenericSelfType)selfSym.DataType).SetGeneric(gt);
+            }
+
+            // remove redundant symbol
+            _table.RemoveSymbol(sym.Name);
+
             _nodes.Add(new IdentifierNode(sym.Name, gt));
             MergeBack();
 
             // push in block declaration
             PushToBlock();
+
+            // exit generic scope
+            _table.AscendScope();
 
             if (!_table.AddSymbol(new Symbol(sym.Name, gt, modifiers)))
             {
@@ -97,7 +111,7 @@ namespace Whirlwind.Semantic.Visitor
 
                 // pretty much all sub symbols have the same name position
                 throw new SemanticException($"Unable to redeclare symbol by name `{sym.Name}`", position);
-            }                
+            }
         }
 
         private void _visitGenerateTypeClass(ASTNode node, List<Modifier> modifiers)
@@ -122,11 +136,20 @@ namespace Whirlwind.Semantic.Visitor
                 _table.DescendScope();
 
                 foreach (var alias in aliases)
-                    _table.AddSymbol(new Symbol(alias.Key, new GenericAlias(alias.Value)));
+                    _table.AddSymbol(new Symbol(alias.Key, new GenericAlias(alias.Value)));                    
 
                 var newContent = node.Content.Where(x => x.Name != "generic_tag").ToList();
                 node = new ASTNode(node.Name);
                 node.Content = newContent;
+
+                if (node.Name == "interface_decl" || node.Name == "struct_decl")
+                {
+                    _isGenericSelfContext = true;
+
+                    // add protective layer to prevent everything from DYING
+                    _table.AddSymbol(new Symbol("$GENERIC_SELF", new GenericSelfType(parent.GenericVariables)));
+                }
+                    
 
                 vfn(node, new List<Modifier>());
                 BlockNode generateNode = (BlockNode)_nodes.Last();
@@ -134,6 +157,9 @@ namespace Whirlwind.Semantic.Visitor
                 _nodes.RemoveAt(_nodes.Count - 1);
 
                 DataType dt = _table.GetScope().Last().DataType;
+
+                if (_isGenericSelfContext)
+                    _isGenericSelfContext = false;
 
                 _table.AscendScope();
                 _table.RemoveScope();

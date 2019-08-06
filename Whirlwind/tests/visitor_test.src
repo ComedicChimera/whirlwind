@@ -12,8 +12,14 @@ interf IAddable<T> {
 }
 
 interf<T> for Test<T> is IAddable<T> {
-	func add(other: Test<T>) Test<T> {
-		return new Test(this.x + other.x, this.y + other.y);
+	func add(other: IAddable<T>) IAddable<T> {
+		if (other is Test<T>) {
+			let otherTest = other as Test<T>;
+
+			return new Test(this.x + otherTest.x, this.y + otherTest.y);
+		}
+		
+		return null;
 	}
 }
 

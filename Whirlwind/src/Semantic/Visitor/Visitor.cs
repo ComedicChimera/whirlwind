@@ -31,7 +31,7 @@ namespace Whirlwind.Semantic.Visitor
         private bool _couldLambdaContextExist = false, _couldTypeClassContextExist = false;
         private bool _didTypeClassCtxInferFail = false;
         private bool _isTypeCast = false;
-        private bool _isGenericContext = false;
+        private bool _isGenericSelfContext = false;
 
         public Visitor(string namePrefix)
         {

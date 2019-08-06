@@ -14,10 +14,19 @@ namespace Whirlwind.Semantic.Visitor
 
             var genericVars = new List<GenericVariable>();
             var namePosition = new TextPosition();
+
             if (root.Content.Count > 2 && root.Content[2].Name == "generic_tag")
             {
                 genericVars = _primeGeneric((ASTNode)root.Content[2]);
                 namePosition = root.Content[1].Position;
+
+                if (root.Name == "interface_decl" || root.Name == "struct_decl")
+                {
+                    _isGenericSelfContext = true;
+
+                    // should always work
+                    _table.AddSymbol(new Symbol("$GENERIC_SELF", new GenericSelfType(genericVars)));
+                }                   
             }
 
             switch (root.Name)

@@ -263,5 +263,17 @@ namespace Whirlwind.Semantic
         {
             return _scopePath.Length;
         }
+
+        public void RemoveSymbol(string name)
+        {
+            Scope scope = _table;
+
+            foreach (int p in _scopePath)
+                scope = scope.SubScopes[p];
+
+            // fail silently
+            if (scope.Symbols.ContainsKey(name))
+                scope.Symbols.Remove(name);
+        }
     }
 }

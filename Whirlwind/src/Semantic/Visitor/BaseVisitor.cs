@@ -42,17 +42,42 @@ namespace Whirlwind.Semantic.Visitor
                     case "IDENTIFIER":
                         if (_table.Lookup(((TokenNode)node.Content[0]).Tok.Value, out Symbol sym))
                         {
-                            if (sym.Modifiers.Contains(Modifier.CONSTEXPR))
-                                _nodes.Add(new ConstexprNode(sym.Name, sym.DataType, sym.Value));
-                            else
-                                _nodes.Add(new IdentifierNode(sym.Name, sym.DataType));
+                            var symDt = sym.DataType;
 
-                            if (sym.DataType is CustomInstance cinst)
+                            if (symDt is GenericSelfType gst)
+                            {
+                                if (gst.GenericSelf == null)
+                                    throw new SemanticException("Unable to use incomplete type in expression", node.Content[0].Position);
+                                else
+                                    symDt = gst.GenericSelf;
+                            }
+                            else if (symDt is GenericSelfInstanceType gsit)
+                            {
+                                if (gsit.GenericSelf == null)
+                                    throw new SemanticException("Unable to use incomplete type in expression", node.Content[0].Position);
+                                else
+                                    symDt = gsit.GenericSelf;
+                            }
+                            else if (symDt is SelfType st)
+                            {
+                                if (st.Initialized)
+                                    symDt = st.DataType;
+                                else
+                                    throw new SemanticException("Unable to use incomplete type in expression", node.Content[0].Position);
+                            } 
+
+                            if (sym.Modifiers.Contains(Modifier.CONSTEXPR))
+                                _nodes.Add(new ConstexprNode(sym.Name, symDt, sym.Value));
+                            else
+                                _nodes.Add(new IdentifierNode(sym.Name, symDt));
+
+                            // not sure why this is here, might delete later
+                            /*if (sym.DataType is CustomInstance cinst)
                             {
                                 if (!_table.Lookup(cinst.Parent.Name, out Symbol _))
-                                    throw new SemanticException("Unable type class instances outside of type class's visible scope",
+                                    throw new SemanticException("Unable use type class instances outside of type class's visible scope",
                                         node.Content[0].Position);
-                            }
+                            }*/
 
                             return;
                         }

@@ -110,8 +110,12 @@ namespace Whirlwind.Semantic.Visitor
 
                             int tPos = 0;
 
-                            foreach (var generate in ((GenericType)(((BlockNode)node).Nodes[0].Type)).Generates)
+                            // no foreach b/c iteration guard
+                            var generates = ((GenericType)(((BlockNode)node).Nodes[0].Type)).Generates;
+                            for (int i = 0; i < generates.Count; i++)
                             {
+                                var generate = generates[i];
+
                                 foreach (var alias in generate.GenericAliases)
                                     _table.AddSymbol(new Symbol(alias.Key, new GenericAlias(alias.Value)));
 

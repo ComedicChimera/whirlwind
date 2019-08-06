@@ -11,6 +11,7 @@
   * Struct Annotation: `#joined`: effect how structs compile and initialize
 - add `#impl` to create structs for intrinsic types like strings or arrays
   * `#impl "str"`
+- make sure to check operator overloads where necessary
 
 # TESTING
 

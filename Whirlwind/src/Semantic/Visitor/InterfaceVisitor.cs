@@ -21,13 +21,24 @@ namespace Whirlwind.Semantic.Visitor
             string name = ((TokenNode)node.Content[1]).Tok.Value;
 
             // declare self referential type (ok early b/c reference)
-            _table.AddSymbol(new Symbol(name, new SelfType(interfaceType) { Constant = true }));
+            if (_isGenericSelfContext)
+            {
+                // if there's context, the symbol exists
+                _table.Lookup("$GENERIC_SELF", out Symbol genSelf);
+                _table.AddSymbol(new Symbol(name, genSelf.DataType));
+            }
+            else
+                _table.AddSymbol(new Symbol(name, new SelfType(interfaceType) { Constant = true }));
 
             _collectInterfaceMethods(interfaceType, (ASTNode)node.Content[node.Content[2].Name == "generic_tag" ? 4 : 3], false);
 
             _nodes.Add(new IdentifierNode(name, interfaceType));
             MergeBack();
 
+            // update self type if necessary
+            if (_table.Lookup(name, out Symbol selfSym) && selfSym.DataType is SelfType)
+                ((SelfType)selfSym.DataType).Initialized = true;
+            
             _table.AscendScope();
 
             if (!_table.AddSymbol(new Symbol(name, interfaceType, modifiers)))
@@ -110,7 +121,7 @@ namespace Whirlwind.Semantic.Visitor
                     var newType = new InterfaceType();
 
                     _nodes.Add(new BlockNode("BindGenerateInterface"));
-                    _collectInterfaceMethods(newType, (ASTNode)ifBind.Content[4], true);
+                    _collectInterfaceMethods(newType, (ASTNode)ifBind.Content[ifBind.Content.Count - 2], true);
 
                     _nodes.Add(new ValueNode("GenerateThis", _generateType((ASTNode)ifBind.Content[2])));
                     MergeBack();

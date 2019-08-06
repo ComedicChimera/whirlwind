@@ -104,13 +104,8 @@ namespace Whirlwind.Types
 
         protected override bool _equals(DataType other)
         {
-            if (other.Classify() == TypeClassifier.FUNCTION)
-            {
-                FunctionType otherFn = (FunctionType)other;
-
-                return Async == otherFn.Async && ReturnType.Equals(otherFn.ReturnType) && 
-                    Parameters.Count == otherFn.Parameters.Count && Enumerable.Range(0, Parameters.Count).All(i => Parameters[i].Equals(otherFn.Parameters[i]));
-            }
+            if (other is FunctionType otherFn)
+                return Async == otherFn.Async && ReturnType.Equals(otherFn.ReturnType) && Parameters.SequenceEqual(otherFn.Parameters);
 
             return false;
         }
@@ -197,13 +192,8 @@ namespace Whirlwind.Types
 
         protected override bool _equals(DataType other)
         {
-            if (other is FunctionGroup)
-            {
-                var ofg = (FunctionGroup)other;
-
-                if (Functions.Count == ofg.Functions.Count)
-                    return Functions.All(x => ofg.Functions.Contains(x));
-            }
+            if (other is FunctionGroup ofg)
+                return Functions.SequenceEqual(ofg.Functions);
 
             return false;
         }

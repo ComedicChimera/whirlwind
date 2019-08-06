@@ -92,16 +92,17 @@ namespace Whirlwind.Types
     // represents the full generic object (entire generic method, obj, ect.)
     class GenericType : DataType
     {
-        private readonly List<GenericVariable> _generics;
         private readonly GenericEvaluator _evaluator;
         private readonly List<List<DataType>> _variants;
 
         public DataType DataType { get; private set; }
         public List<GenericGenerate> Generates { get; private set; }
 
+        public readonly List<GenericVariable> GenericVariables;
+
         public GenericType(List<GenericVariable> generics, DataType type, GenericEvaluator evaluator)
         {
-            _generics = generics;
+            GenericVariables = generics;
             DataType = type;
 
             _evaluator = evaluator;
@@ -115,11 +116,11 @@ namespace Whirlwind.Types
 
         public bool CreateGeneric(List<DataType> dataTypes, out DataType genericType)
         {
-            if (dataTypes.Count == _generics.Count)
+            if (dataTypes.Count == GenericVariables.Count)
             {
                 var aliases = new Dictionary<string, DataType>();
 
-                using (var e1 = _generics.GetEnumerator())
+                using (var e1 = GenericVariables.GetEnumerator())
                 using (var e2 = dataTypes.GetEnumerator())
                 {
                     while (e1.MoveNext() && e2.MoveNext())
@@ -131,9 +132,7 @@ namespace Whirlwind.Types
                             return false;
                         }
                         else
-                        {
                             aliases.Add(e1.Current.Name, e2.Current);
-                        }
                     }
                 }
 
@@ -141,8 +140,11 @@ namespace Whirlwind.Types
 
                 // prevent generic placeholders from creating unnecessary generates
                 // and prevent duplicate generates from being creates
-                if (!aliases.Any(x => x.Value is GenericPlaceholder) && !Generates.Any(x => x.Type.Equals(generate.Type)))
+                if (!aliases.Any(x => x.Value is GenericPlaceholder) && 
+                    !Generates.Any(x => x.GenericAliases.SequenceEqual(generate.GenericAliases)))
+                {
                     Generates.Add(generate);
+                }                 
 
                 genericType = generate.Type;
                 return true;
@@ -186,14 +188,14 @@ namespace Whirlwind.Types
                     }
                 }
 
-                if (completedAliases.Count == _generics.Count)
+                if (completedAliases.Count == GenericVariables.Count)
                 {
                     if (completedAliases.All(x => {
-                        var res = _generics.Where(y => y.Name == x.Key).First().Restrictors;
+                        var res = GenericVariables.Where(y => y.Name == x.Key).First().Restrictors;
                         return res.Count == 0 || res.Any(y => y.Coerce(x.Value));
                     }))
                     {
-                        inferredTypes = _generics.Select(x => completedAliases[x.Name]).ToList();
+                        inferredTypes = GenericVariables.Select(x => completedAliases[x.Name]).ToList();
                         return true;
                     }
                 }
@@ -213,14 +215,14 @@ namespace Whirlwind.Types
                 return false;
             }               
 
-            if (completedAliases.Count == _generics.Count)
+            if (completedAliases.Count == GenericVariables.Count)
             {
                 if (completedAliases.All(x => {
-                    var res = _generics.Where(y => y.Name == x.Key).First().Restrictors;
+                    var res = GenericVariables.Where(y => y.Name == x.Key).First().Restrictors;
                     return res.Count == 0 || res.Any(y => y.Coerce(x.Value));
                 }))
                 {
-                    inferredTypes = _generics.Select(x => completedAliases[x.Name]).ToList();
+                    inferredTypes = GenericVariables.Select(x => completedAliases[x.Name]).ToList();
                     return true;
                 }
             }
@@ -231,13 +233,13 @@ namespace Whirlwind.Types
 
         public bool AddVariant(List<DataType> dataTypes)
         {
-            if (dataTypes.Count != _generics.Count)
+            if (dataTypes.Count != GenericVariables.Count)
                 return false;
 
             if (_variants.Contains(dataTypes))
                 return false;
 
-            using (var e1 = _generics.Select(x => x.Restrictors).GetEnumerator())
+            using (var e1 = GenericVariables.Select(x => x.Restrictors).GetEnumerator())
             using (var e2 = dataTypes.GetEnumerator())
             {
                 while (e1.MoveNext() && e2.MoveNext())
@@ -259,7 +261,7 @@ namespace Whirlwind.Types
 
         public override DataType ConstCopy()
         {
-            var tt = new GenericType(_generics, DataType, _evaluator)
+            var tt = new GenericType(GenericVariables, DataType, _evaluator)
             {
                 Generates = Generates
             }; // implicit const
@@ -272,8 +274,8 @@ namespace Whirlwind.Types
 
         public bool CompareGenerics(List<GenericVariable> other)
         {
-            return _generics.Count == other.Count &&
-                _generics.All(x => other.Where(y => y.Equals(x)).Count() > 0);
+            return GenericVariables.Count == other.Count &&
+                GenericVariables.All(x => other.Where(y => y.Equals(x)).Count() > 0);
         }
 
         private bool _inferFromFunction(FunctionType fnType, ArgumentList arguments, out List<DataType> inferredTypes)
@@ -308,16 +310,16 @@ namespace Whirlwind.Types
                 }
             }
 
-            if (completedAliases.Count == _generics.Count)
+            if (completedAliases.Count == GenericVariables.Count)
             {
-                _generics.Where(y => y.Name == "T").First().Restrictors.Any(y => y.Coerce(completedAliases["T"]));
+                GenericVariables.Where(y => y.Name == "T").First().Restrictors.Any(y => y.Coerce(completedAliases["T"]));
 
                 if (completedAliases.All(x => {
-                    var res = _generics.Where(y => y.Name == x.Key).First().Restrictors;
+                    var res = GenericVariables.Where(y => y.Name == x.Key).First().Restrictors;
                     return res.Count == 0 || res.Any(y => y.Coerce(x.Value));
                 }))
                 {
-                    inferredTypes = _generics.Select(x => completedAliases[x.Name]).ToList();
+                    inferredTypes = GenericVariables.Select(x => completedAliases[x.Name]).ToList();
                     return true;
                 }
             }
@@ -436,31 +438,12 @@ namespace Whirlwind.Types
         {
             if (other.Classify() == TypeClassifier.GENERIC)
             {
-                var tt = (GenericType)other;
+                var gt = (GenericType)other;
 
-                if (!DataType.Equals(tt.DataType))
+                if (!DataType.Equals(gt.DataType))
                     return false;
 
-                if (_generics.Count == tt._generics.Count)
-                {
-                    using (var e1 = _generics.GetEnumerator())
-                    using (var e2 = tt._generics.GetEnumerator())
-                    {
-                        while (e1.MoveNext() && e2.MoveNext())
-                        {
-                            if (e1.Current.Name != e2.Current.Name ||
-                                e1.Current.Restrictors.Count != e2.Current.Restrictors.Count ||
-                                !Enumerable.Range(0, e1.Current.Restrictors.Count)
-                                .All(i => e1.Current.Restrictors[i].Equals(e2.Current.Restrictors[i]))
-                            )
-                            {
-                                return false;
-                            }
-                        }
-                    }
-                }
-
-                return true;
+                return GenericVariables.SequenceEqual(gt.GenericVariables);
             }
 
             return false;
@@ -533,14 +516,140 @@ namespace Whirlwind.Types
         protected override bool _equals(DataType other)
         {
             if (other is GenericGroup gg)
-            {
-                if (GenericFunctions.Count != gg.GenericFunctions.Count)
-                    return false;
-
-                return GenericFunctions.All(x => gg.GenericFunctions.Any(y => y.Equals(x)));
-            }
+                return GenericFunctions.SequenceEqual(gg.GenericFunctions);
             else
                 return false;
+        }
+    }
+
+    // used as a self-referential type for generics
+    class GenericSelfType : DataType
+    {
+        private static int _idCounter = 0;
+
+        private int _id;
+        private List<GenericSelfInstanceType> _selfInstances;
+
+        public GenericType GenericSelf;
+
+        public readonly List<GenericVariable> GenericVariables;
+        
+        public GenericSelfType(List<GenericVariable> genVars)
+        {
+            GenericVariables = genVars;
+            _id = _idCounter++;
+            _selfInstances = new List<GenericSelfInstanceType>();
+        }
+
+        // possibly add check to see where failure occured specifically
+        public void SetGeneric(GenericType gt)
+        {
+            GenericSelf = gt;
+
+            foreach (var selfInstance in _selfInstances)
+                selfInstance.GenericSelf = gt;
+        }
+
+        public bool GetInstance(List<DataType> types, out DataType gsit)
+        {
+            gsit = null;
+
+            if (GenericVariables.Count != types.Count)
+                return false;
+
+            for (int i = 0; i < types.Count; i++)
+            {
+                if (GenericVariables[i].Restrictors.Count > 0 &&
+                    !GenericVariables[i].Restrictors.Any(x => x.Coerce(types[i])))
+                    return false;
+            }
+
+            if (_selfInstances.Any(x => x.TypeList.SequenceEqual(types)))
+                gsit = _selfInstances.Where(x => x.TypeList.SequenceEqual(types)).First();
+            else
+            {
+                _selfInstances.Add(new GenericSelfInstanceType(types, _id));
+                gsit = _selfInstances.Last();
+            }
+            
+            return true;
+        }
+
+        public override TypeClassifier Classify() => TypeClassifier.GENERIC_SELF;
+
+        public override DataType ConstCopy()
+        {
+            return new GenericSelfType(GenericVariables)
+            {
+                _id = _id,
+                GenericSelf = GenericSelf,
+
+                Constant = true
+            };
+        }
+
+        protected override bool _coerce(DataType other)
+        {
+            if (other is GenericSelfType gst)
+                return _id == gst._id;
+            else if (other is GenericType)
+                return GenericSelf != null && GenericSelf.Coerce(other);
+
+            return false;
+        }
+
+        protected override bool _equals(DataType other)
+        {
+            if (other is GenericSelfType gst)
+                return _id == gst._id;
+            else if (other is GenericType)
+                return GenericSelf != null && GenericSelf.Equals(other);
+
+            return false;
+        }
+    }
+
+    // used for handling instances of self-types (ie. when things get rough)
+    class GenericSelfInstanceType : DataType
+    {
+        private readonly int _id;
+
+        public readonly List<DataType> TypeList;
+
+        public GenericType GenericSelf;
+
+        public GenericSelfInstanceType(List<DataType> typeList, int id)
+        {
+            TypeList = typeList;
+            _id = id;
+        }
+
+        public override TypeClassifier Classify() => TypeClassifier.GENERIC_SELF_INSTANCE;
+
+        public override DataType ConstCopy() => new GenericSelfInstanceType(TypeList, _id) { Constant = true };
+
+        protected override bool _coerce(DataType other)
+        {
+            if (other is GenericSelfInstanceType gsit)
+                return _id == gsit._id;
+            else if (other is GenericType)
+                return GenericSelf != null && GenericSelf.Coerce(other);
+            else if (GenericSelf != null && GenericSelf.CreateGeneric(TypeList, out DataType result))
+                return result.Coerce(other);
+
+            return false;
+        }
+
+        protected override bool _equals(DataType other)
+        {
+            if (other is GenericSelfInstanceType gsit)
+                return _id == gsit._id;
+            else if (other is GenericType)
+                return GenericSelf != null && GenericSelf.Equals(other);
+            else if (GenericSelf != null && GenericSelf.CreateGeneric(TypeList, out DataType result))
+                return result.Equals(other);
+
+            return false;
         }
     }
 

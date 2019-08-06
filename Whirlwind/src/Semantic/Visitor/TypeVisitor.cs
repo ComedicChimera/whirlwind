@@ -63,9 +63,15 @@ namespace Whirlwind.Semantic.Visitor
                 }
                 else if (subNode.Name == "generic_spec")
                 {
-                    if (dt.Classify() != TypeClassifier.GENERIC)
+                    if (dt is GenericSelfType gst)
+                    {
+                        if (!gst.GetInstance(_generateTypeList((ASTNode)((ASTNode)subNode).Content[1]), out dt))
+                            throw new SemanticException("Invalid generic specifier for the given type", subNode.Position);
+                    }                        
+                    else if (dt.Classify() != TypeClassifier.GENERIC)
                         throw new SemanticException("Unable to apply generic specifier to non-generic type", subNode.Position);
-                    dt = _generateGeneric((GenericType)dt, (ASTNode)subNode);
+                    else
+                        dt = _generateGeneric((GenericType)dt, (ASTNode)subNode);
                 }
                 else if (subNode.Name == "static_get")
                 {
@@ -120,7 +126,8 @@ namespace Whirlwind.Semantic.Visitor
 
                 dt = new PointerType(dt, pointers, owned);
             }
-            else if (_isVoid(dt) || dt.Classify() == TypeClassifier.SELF && _selfNeedsPointer)
+            else if (_isVoid(dt) || new[] { TypeClassifier.SELF, TypeClassifier.GENERIC_SELF, TypeClassifier.GENERIC_SELF_INSTANCE }
+                    .Contains(dt.Classify()) && _selfNeedsPointer)
                 throw new SemanticException("Unable to declare incomplete type", node.Position);
 
             if (reference)
@@ -312,7 +319,7 @@ namespace Whirlwind.Semantic.Visitor
             // identifier checking not needed for self types because self types are compiled declared
             else if (!new[] { TypeClassifier.GENERIC_PLACEHOLDER, TypeClassifier.STRUCT,
                                     TypeClassifier.INTERFACE,  TypeClassifier.GENERIC, TypeClassifier.TYPE_CLASS,
-                                    TypeClassifier.SELF }
+                                    TypeClassifier.SELF, TypeClassifier.GENERIC_SELF }
                 .Contains(sdt.Classify()))
             {
                 throw new SemanticException("Identifier data type must be a struct, type class, or interface",
