@@ -12,6 +12,9 @@
 - add `#impl` to create structs for intrinsic types like strings or arrays
   * `#impl "str"`
 - make sure to check operator overloads where necessary
+- add exprnode guard to unpack GenericSelfTypes, SelfTypes, and GenericSelfInstanceTypes and
+if it fails, catch in _visitExpr and rethrow expression level exception (use custom exception
+in exprnode)
 
 # TESTING
 

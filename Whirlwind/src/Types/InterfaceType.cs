@@ -9,15 +9,15 @@ namespace Whirlwind.Types
     {
         public readonly List<InterfaceType> Implements;
         public bool SuperForm { get; private set; } = false;
+        public Dictionary<Symbol, bool> Methods { get; private set; }
 
-        private readonly Dictionary<Symbol, bool> _methods;
         private bool _initialized = false;
 
         public InterfaceType()
         {
             Implements = new List<InterfaceType>();
 
-            _methods = new Dictionary<Symbol, bool>();
+            Methods = new Dictionary<Symbol, bool>();
 
             Constant = true;
         }
@@ -29,31 +29,31 @@ namespace Whirlwind.Types
             if (superForm)
             {
                 SuperForm = true;
-                _methods = new Dictionary<Symbol, bool>();
+                Methods = new Dictionary<Symbol, bool>();
 
-                foreach (var method in interf._methods)
+                foreach (var method in interf.Methods)
                 {
                     if (method.Value)
-                        _methods.Add(method.Key, method.Value);
+                        Methods.Add(method.Key, method.Value);
                 }
             }
             else
-                _methods = interf._methods;
+                Methods = interf.Methods;
 
             _initialized = true;
         }
 
         public bool AddMethod(Symbol fn, bool hasBody)
         {
-            if (!_methods.Any(x => x.Key.Name == fn.Name))
+            if (!Methods.Any(x => x.Key.Name == fn.Name))
             {
-                _methods.Add(fn, hasBody);
+                Methods.Add(fn, hasBody);
 
                 return true;
             }
             else if (fn.DataType is FunctionType fta)
             {
-                Symbol symbol = _methods.Where(x => x.Key.Name == fn.Name).First().Key;
+                Symbol symbol = Methods.Where(x => x.Key.Name == fn.Name).First().Key;
 
                 if (symbol.DataType is FunctionType ftb && FunctionGroup.CanDistinguish(fta, ftb))
                 {
@@ -69,9 +69,9 @@ namespace Whirlwind.Types
 
         public bool GetFunction(string fnName, out Symbol symbol)
         {
-            if (_methods.Select(x => x.Key.Name).Contains(fnName))
+            if (Methods.Select(x => x.Key.Name).Contains(fnName))
             {
-                symbol = _methods.Keys.Where(x => x.Name == fnName).ToArray()[0];
+                symbol = Methods.Keys.Where(x => x.Name == fnName).ToArray()[0];
                 return true;
             }
 
@@ -97,10 +97,10 @@ namespace Whirlwind.Types
 
         private bool MatchInterface(InterfaceType it)
         {
-            if (_methods.Count != it._methods.Count)
+            if (Methods.Count != it.Methods.Count)
                 return false;
 
-            return _methods.All(x => it._methods.Any(y => x.Key.Equals(y.Key)));
+            return Methods.All(x => it.Methods.Any(y => x.Key.Equals(y.Key)));
         }
 
         public InterfaceType GetInstance() => new InterfaceType(this, false);
@@ -114,7 +114,7 @@ namespace Whirlwind.Types
                 if (_initialized != it._initialized || SuperForm != it.SuperForm)
                     return false;
 
-                return _methods.SequenceEqual(it._methods);
+                return Methods.DictionaryEquals(it.Methods);
             }
 
             return false;
@@ -137,9 +137,9 @@ namespace Whirlwind.Types
             else
                 interf = child.GetInterface();
 
-            if (_methods.Where(x => !x.Value).All(x => interf._methods.Select(y => y.Key).Where(y => x.Key.Equals(y)).Count() > 0)) {
-                foreach (var method in _methods) {
-                    if (method.Value && !interf._methods.Contains(method))
+            if (Methods.Where(x => !x.Value).All(x => interf.Methods.Select(y => y.Key).Where(y => x.Key.Equals(y)).Count() > 0)) {
+                foreach (var method in Methods) {
+                    if (method.Value && !interf.Methods.Contains(method))
                         interf.AddMethod(method.Key, method.Value);
                 }
 

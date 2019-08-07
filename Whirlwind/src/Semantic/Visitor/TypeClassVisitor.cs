@@ -17,10 +17,10 @@ namespace Whirlwind.Semantic.Visitor
             _table.AddScope();
             _table.DescendScope();
 
-            var typeClass = new CustomType(name);
+            var typeClass = new CustomType(_namePrefix + name);
 
             // self referential pointer declaration
-            _table.AddSymbol(new Symbol(name, new SelfType(typeClass) { Constant = true }));
+            _table.AddSymbol(new Symbol(name, new SelfType(_namePrefix + name, typeClass) { Constant = true }));
 
             foreach (var item in node.Content)
             {

@@ -141,7 +141,7 @@ namespace Whirlwind.Types
                 // prevent generic placeholders from creating unnecessary generates
                 // and prevent duplicate generates from being creates
                 if (!aliases.Any(x => x.Value is GenericPlaceholder) && 
-                    !Generates.Any(x => x.GenericAliases.SequenceEqual(generate.GenericAliases)))
+                    !Generates.Any(x => x.GenericAliases.DictionaryEquals(generate.GenericAliases)))
                 {
                     Generates.Add(generate);
                 }                 
@@ -415,7 +415,7 @@ namespace Whirlwind.Types
                     }
                 case TypeClassifier.INTERFACE_INSTANCE:
                     {
-                        var methods = (Dictionary<Symbol, bool>)typeof(InterfaceType).GetField("_methods").GetValue(ta);
+                        var methods = ((InterfaceType)ta).Methods;
 
                         foreach (var method in methods)
                         {
@@ -443,7 +443,7 @@ namespace Whirlwind.Types
                 if (!DataType.Equals(gt.DataType))
                     return false;
 
-                return GenericVariables.SequenceEqual(gt.GenericVariables);
+                return GenericVariables.EnumerableEquals(gt.GenericVariables);
             }
 
             return false;
@@ -516,7 +516,7 @@ namespace Whirlwind.Types
         protected override bool _equals(DataType other)
         {
             if (other is GenericGroup gg)
-                return GenericFunctions.SequenceEqual(gg.GenericFunctions);
+                return GenericFunctions.EnumerableEquals(gg.GenericFunctions);
             else
                 return false;
         }
@@ -525,19 +525,17 @@ namespace Whirlwind.Types
     // used as a self-referential type for generics
     class GenericSelfType : DataType
     {
-        private static int _idCounter = 0;
-
-        private int _id;
+        private readonly string _name;
         private List<GenericSelfInstanceType> _selfInstances;
 
         public GenericType GenericSelf;
 
         public readonly List<GenericVariable> GenericVariables;
         
-        public GenericSelfType(List<GenericVariable> genVars)
+        public GenericSelfType(string name, List<GenericVariable> genVars)
         {
+            _name = name;
             GenericVariables = genVars;
-            _id = _idCounter++;
             _selfInstances = new List<GenericSelfInstanceType>();
         }
 
@@ -564,11 +562,11 @@ namespace Whirlwind.Types
                     return false;
             }
 
-            if (_selfInstances.Any(x => x.TypeList.SequenceEqual(types)))
-                gsit = _selfInstances.Where(x => x.TypeList.SequenceEqual(types)).First();
+            if (_selfInstances.Any(x => x.TypeList.EnumerableEquals(types)))
+                gsit = _selfInstances.Where(x => x.TypeList.EnumerableEquals(types)).First();
             else
             {
-                _selfInstances.Add(new GenericSelfInstanceType(types, _id));
+                _selfInstances.Add(new GenericSelfInstanceType(types, _name));
                 gsit = _selfInstances.Last();
             }
             
@@ -579,9 +577,8 @@ namespace Whirlwind.Types
 
         public override DataType ConstCopy()
         {
-            return new GenericSelfType(GenericVariables)
+            return new GenericSelfType(_name, GenericVariables)
             {
-                _id = _id,
                 GenericSelf = GenericSelf,
 
                 Constant = true
@@ -591,7 +588,7 @@ namespace Whirlwind.Types
         protected override bool _coerce(DataType other)
         {
             if (other is GenericSelfType gst)
-                return _id == gst._id;
+                return _name == gst._name;
             else if (other is GenericType)
                 return GenericSelf != null && GenericSelf.Coerce(other);
 
@@ -601,7 +598,7 @@ namespace Whirlwind.Types
         protected override bool _equals(DataType other)
         {
             if (other is GenericSelfType gst)
-                return _id == gst._id;
+                return _name == gst._name;
             else if (other is GenericType)
                 return GenericSelf != null && GenericSelf.Equals(other);
 
@@ -612,26 +609,26 @@ namespace Whirlwind.Types
     // used for handling instances of self-types (ie. when things get rough)
     class GenericSelfInstanceType : DataType
     {
-        private readonly int _id;
+        private readonly string _name;
 
         public readonly List<DataType> TypeList;
 
         public GenericType GenericSelf;
 
-        public GenericSelfInstanceType(List<DataType> typeList, int id)
+        public GenericSelfInstanceType(List<DataType> typeList, string name)
         {
             TypeList = typeList;
-            _id = id;
+            _name = name;
         }
 
         public override TypeClassifier Classify() => TypeClassifier.GENERIC_SELF_INSTANCE;
 
-        public override DataType ConstCopy() => new GenericSelfInstanceType(TypeList, _id) { Constant = true };
+        public override DataType ConstCopy() => new GenericSelfInstanceType(TypeList, _name) { Constant = true };
 
         protected override bool _coerce(DataType other)
         {
             if (other is GenericSelfInstanceType gsit)
-                return _id == gsit._id;
+                return _name == gsit._name;
             else if (other is GenericType)
                 return GenericSelf != null && GenericSelf.Coerce(other);
             else if (GenericSelf != null && GenericSelf.CreateGeneric(TypeList, out DataType result))
@@ -643,11 +640,19 @@ namespace Whirlwind.Types
         protected override bool _equals(DataType other)
         {
             if (other is GenericSelfInstanceType gsit)
-                return _id == gsit._id;
+                return _name == gsit._name;
             else if (other is GenericType)
                 return GenericSelf != null && GenericSelf.Equals(other);
             else if (GenericSelf != null && GenericSelf.CreateGeneric(TypeList, out DataType result))
+            {
+                if (result is InterfaceType it)
+                    result = it.GetInstance();
+                else if (result is StructType st)
+                    result = st.GetInstance();
+
                 return result.Equals(other);
+            }
+                
 
             return false;
         }

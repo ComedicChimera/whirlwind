@@ -33,9 +33,8 @@ namespace Whirlwind.Semantic.Visitor
                     break;
                 case "Interface":
                 case "BindInterface":
-                case "BindGenericInterface":
                 case "BindGenerateInterface":
-                    _completeInterface((BlockNode)node);
+                    _completeInterface((BlockNode)node, true);
                     _table.MoveScope(_table.GetScopeCount() - 1, scopePos);
 
                     // complete all sub generics (avoid scope complications)
@@ -57,6 +56,23 @@ namespace Whirlwind.Semantic.Visitor
                     }
 
                     scopePos++;
+                    break;
+                case "BindGenericInterface":
+                    {
+                        _table.AddScope();
+                        _table.DescendScope();
+
+                        foreach (var name in ((GenericType)((TreeNode)node).Nodes[0].Type).GenericVariables.Select(x => x.Name))
+                            _table.AddSymbol(new Symbol(name, new GenericPlaceholder(name)));
+
+                        _completeInterface((BlockNode)node, false);
+                        _table.MoveScope(_table.GetScopeCount() - 1, scopePos);
+
+                        // complete all sub generics (avoid scope complications)
+                        _completeGenerics((BlockNode)node, scopePos);
+
+                        scopePos++;
+                    }
                     break;
                 case "Variant":
                     // variants are basically functions for this stage of compilation
@@ -182,11 +198,14 @@ namespace Whirlwind.Semantic.Visitor
             }
         }
 
-        private void _completeInterface(BlockNode interf)
+        private void _completeInterface(BlockNode interf, bool needsScope)
         {
-            _table.AddScope();
-            _table.DescendScope();
-
+            if (needsScope)
+            {
+                _table.AddScope();
+                _table.DescendScope();
+            }
+            
             if (interf.Name == "Interface")
                 _table.AddSymbol(new Symbol("$THIS", ((InterfaceType)interf.Nodes[0].Type).GetInstance()));
             else if (interf.Name == "BindGenerateInterface")

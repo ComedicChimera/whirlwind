@@ -36,23 +36,21 @@
     // self referential type
     class SelfType : DataType
     {
-        private static int _idCounter = 0;
-
-        private readonly int _id;
+        private readonly string _name;
 
         // not readonly to allow late modification
         public DataType DataType;
         public bool Initialized = false;
 
-        public SelfType(DataType dt)
+        public SelfType(string name, DataType dt)
         {
+            _name = name;
             DataType = dt;
-            _id = _idCounter++;
         }
 
         protected override bool _equals(DataType other)
         {
-            if (other is SelfType st && _id == st._id)
+            if (other is SelfType st && _name == st._name)
                 return true;
 
             else if (DataType.Classify() == TypeClassifier.INTERFACE &&
@@ -67,7 +65,7 @@
 
         protected override bool _coerce(DataType other)
         {
-            if (other is SelfType st && _id == st._id)
+            if (other is SelfType st && _name == st._name)
                 return true;
 
             else if (DataType.Classify() == TypeClassifier.INTERFACE &&
@@ -83,6 +81,6 @@
         public override TypeClassifier Classify() => TypeClassifier.SELF;
 
         public override DataType ConstCopy()
-            => new SelfType(DataType) { Constant = true };
+            => new SelfType(_name, DataType) { Constant = true };
     }
 }

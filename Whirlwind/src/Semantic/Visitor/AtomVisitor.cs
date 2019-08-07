@@ -413,7 +413,7 @@ namespace Whirlwind.Semantic.Visitor
                                     args.UnnamedArguments[args.Count() - i] = _nodes.Last().Type;
 
                                     _nodes[_nodes.Count - i - 1] = _nodes.Last();
-                                    _nodes.RemoveAt(_nodes.Count - 1);
+                                    _nodes.RemoveLast();
                                 }
                             }
                         }
@@ -466,7 +466,7 @@ namespace Whirlwind.Semantic.Visitor
                     _giveContext(inode, ctx);
 
                     _nodes[_nodes.Count - i - 1] = _nodes.Last();
-                    _nodes.RemoveAt(_nodes.Count - 1);
+                    _nodes.RemoveLast();
                 }
             }
         }

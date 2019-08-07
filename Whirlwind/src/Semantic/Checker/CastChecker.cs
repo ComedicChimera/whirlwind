@@ -2,6 +2,7 @@
 
 using System.Linq;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace Whirlwind.Semantic.Checker
 {
@@ -24,6 +25,18 @@ namespace Whirlwind.Semantic.Checker
             // in almost all cases (excluding function types)
             if (start is PointerType pt && pt.DataType.Classify() == TypeClassifier.VOID)
                 return true;
+
+            if (desired.Classify() == TypeClassifier.INTERFACE && !(start is InterfaceType))
+            {
+                InterfaceType startInterf = start.GetInterface(), desiredInterf = (InterfaceType)desired;
+
+                if (startInterf.Implements.Any(x => x.Equals(desired)))
+                    return true;
+                else if (desiredInterf.Coerce(startInterf))
+                    return true;
+                else if (desiredInterf.Methods.All(x => startInterf.Methods.Any(y => x.Key.Equals(y.Key))))
+                    return true;
+            }
 
             switch (start.Classify())
             {
@@ -142,16 +155,12 @@ namespace Whirlwind.Semantic.Checker
                             return true;
                     break;
                 case TypeClassifier.STRUCT_INSTANCE:
-                    if (desired.Classify() == TypeClassifier.STRUCT)
-                    {
-                        return ((StructType)start).Members == ((StructType)desired).Members;
-                    }
+                    if (desired.Classify() == TypeClassifier.STRUCT_INSTANCE)
+                        return ((StructType)start).Members.EnumerableEquals(((StructType)desired).Members);
                     break;
                 case TypeClassifier.INTERFACE_INSTANCE:
                     {
-                        var startInstance = (InterfaceType)start;
-
-                        if (startInstance.Coerce(desired.GetInterface()))
+                        if (desired.GetInterface().Implements.Any(x => x.Equals(start)))
                             return true;
                     }
                     break;

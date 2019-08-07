@@ -30,7 +30,7 @@ namespace Whirlwind.Types
         protected override bool _equals(DataType other)
         {
             if (other is TupleType tt)
-                return Types.SequenceEqual(tt.Types);
+                return Types.EnumerableEquals(tt.Types);
 
             return false;
         }

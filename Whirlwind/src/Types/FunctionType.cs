@@ -53,6 +53,14 @@ namespace Whirlwind.Types
                 Optional == other.Optional &&
                 Indefinite == other.Indefinite;
         }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is Parameter p && obj != null)
+                return Equals(p);
+
+            return base.Equals(obj);
+        }
     }
 
     class FunctionType : DataType
@@ -105,7 +113,7 @@ namespace Whirlwind.Types
         protected override bool _equals(DataType other)
         {
             if (other is FunctionType otherFn)
-                return Async == otherFn.Async && ReturnType.Equals(otherFn.ReturnType) && Parameters.SequenceEqual(otherFn.Parameters);
+                return Async == otherFn.Async && ReturnType.Equals(otherFn.ReturnType) && Parameters.EnumerableEquals(otherFn.Parameters);
 
             return false;
         }
@@ -193,7 +201,7 @@ namespace Whirlwind.Types
         protected override bool _equals(DataType other)
         {
             if (other is FunctionGroup ofg)
-                return Functions.SequenceEqual(ofg.Functions);
+                return Functions.EnumerableEquals(ofg.Functions);
 
             return false;
         }

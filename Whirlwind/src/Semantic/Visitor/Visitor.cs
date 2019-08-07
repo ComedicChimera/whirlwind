@@ -135,7 +135,7 @@ namespace Whirlwind.Semantic.Visitor
             if (_nodes.Count <= depth)
                 return;
             var ending = (TreeNode)_nodes.Last();
-            _nodes.RemoveAt(_nodes.Count - 1);
+            _nodes.RemoveLast();
 
             for (int i = 0; i < depth; i++)
             {
@@ -152,10 +152,10 @@ namespace Whirlwind.Semantic.Visitor
         private void PushToBlock()
         {
             BlockNode parent = (BlockNode)_nodes.Last();
-            _nodes.RemoveAt(_nodes.Count - 1);
+            _nodes.RemoveLast();
 
             parent.Block.Add(_nodes.Last());
-            _nodes.RemoveAt(_nodes.Count - 1);
+            _nodes.RemoveLast();
 
             _nodes.Add(parent);
         }
@@ -165,7 +165,7 @@ namespace Whirlwind.Semantic.Visitor
         private void MergeToBlock()
         {
             ITypeNode child = _nodes.Last();
-            _nodes.RemoveAt(_nodes.Count - 1);
+            _nodes.RemoveLast();
 
             ((BlockNode)_nodes.Last()).Block.Add(child);
         }

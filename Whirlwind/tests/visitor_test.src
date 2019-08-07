@@ -27,10 +27,10 @@ func main() {
 	let t = new Test(3, 4);
 	let t2 = new Test(4, 5);
 
-	t = t.add(t2);
+	t.add(t2);
 
 	let t3 = new Test("te", "te");
 	let t4 = new Test("st", "st");
 
-	t3 = t3.add(t4);
+	t3.add(t4);
 }

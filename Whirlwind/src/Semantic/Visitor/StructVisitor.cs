@@ -27,7 +27,7 @@ namespace Whirlwind.Semantic.Visitor
                 _table.AddSymbol(new Symbol(name.Tok.Value, genSelf.DataType));
             }
             else
-                _table.AddSymbol(new Symbol(name.Tok.Value, new SelfType(structType)));
+                _table.AddSymbol(new Symbol(name.Tok.Value, new SelfType(_namePrefix + name.Tok.Value, structType)));
 
             // since struct members are all variables
             _selfNeedsPointer = true;

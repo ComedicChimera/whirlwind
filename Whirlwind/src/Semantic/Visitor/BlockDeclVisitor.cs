@@ -25,7 +25,8 @@ namespace Whirlwind.Semantic.Visitor
                     _isGenericSelfContext = true;
 
                     // should always work
-                    _table.AddSymbol(new Symbol("$GENERIC_SELF", new GenericSelfType(genericVars)));
+                    _table.AddSymbol(new Symbol("$GENERIC_SELF", new GenericSelfType(_namePrefix +((TokenNode)root.Content[1]).Tok.Value, 
+                        genericVars)));
                 }                   
             }
 

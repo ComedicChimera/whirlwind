@@ -55,9 +55,7 @@ namespace Whirlwind.Semantic.Visitor
                             if (_table.Lookup(tokenNode.Tok.Value, out Symbol symbol))
                                 dt = _getIdentifierType(symbol.DataType, tokenNode.Position);
                             else
-                            {
                                 throw new SemanticException($"Undefined Symbol: `{tokenNode.Tok.Value}`", tokenNode.Position);
-                            }
                             break;
                     }
                 }
@@ -214,7 +212,7 @@ namespace Whirlwind.Semantic.Visitor
                                     }
 
                                     size = Int32.Parse(((ValueNode)val).Value);
-                                    _nodes.RemoveAt(_nodes.Count - 1);
+                                    _nodes.RemoveLast();
                                 }
                                 break;
                             case "TOKEN":

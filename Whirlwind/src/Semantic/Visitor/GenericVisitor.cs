@@ -147,7 +147,8 @@ namespace Whirlwind.Semantic.Visitor
                     _isGenericSelfContext = true;
 
                     // add protective layer to prevent everything from DYING
-                    _table.AddSymbol(new Symbol("$GENERIC_SELF", new GenericSelfType(parent.GenericVariables)));
+                    _table.AddSymbol(new Symbol("$GENERIC_SELF", new GenericSelfType(_namePrefix + ((TokenNode)node.Content[1]).Tok.Value, 
+                        parent.GenericVariables)));
                 }
                     
 
@@ -159,7 +160,15 @@ namespace Whirlwind.Semantic.Visitor
                 DataType dt = _table.GetScope().Last().DataType;
 
                 if (_isGenericSelfContext)
+                {
+                    _table.Lookup("$GENERIC_SELF", out Symbol selfSym); ;
+
                     _isGenericSelfContext = false;
+
+                    // run after generic symbol has already been declared
+                    ((GenericSelfType)selfSym.DataType).SetGeneric(parent);
+                }
+                    
 
                 _table.AscendScope();
                 _table.RemoveScope();

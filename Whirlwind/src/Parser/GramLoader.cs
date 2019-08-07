@@ -127,7 +127,7 @@ namespace Whirlwind.Parser
                     case "+":
                     case "*":
                         var lastProd = production.Content.Last();
-                        production.Content.RemoveAt(production.Content.Count - 1);
+                        production.Content.RemoveLast();
                         production.Content.Add(new Production(CurrentToken.Type, new List<IGrammatical>() { lastProd }));
                         Next();
                         break;

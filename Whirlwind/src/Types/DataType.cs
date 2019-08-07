@@ -48,6 +48,8 @@ namespace Whirlwind.Types
                         if (!elem.CreateGeneric(inferredTypes, out DataType res))
                             return false;
 
+                        res.Constant = false;
+
                         if (res is InterfaceType it)
                         {
                             if (!it.Derive(typeInterf, true))
@@ -192,11 +194,13 @@ namespace Whirlwind.Types
             return false;
         }
 
-        public static bool operator ==(DataType a, DataType b)
-            => a?.Equals(b) ?? (object)b == null;
+        public override bool Equals(object obj)
+        {
+            if (obj is DataType dt && obj != null)
+                return Equals(dt);
 
-        public static bool operator !=(DataType a, DataType b)
-            => (!a?.Equals(b)) ?? (object)b != null;
+            return base.Equals(obj);
+        }
 
         // get a given data type classifier as a string
         public abstract TypeClassifier Classify();

@@ -28,7 +28,7 @@ namespace Whirlwind.Semantic.Visitor
                 _table.AddSymbol(new Symbol(name, genSelf.DataType));
             }
             else
-                _table.AddSymbol(new Symbol(name, new SelfType(interfaceType) { Constant = true }));
+                _table.AddSymbol(new Symbol(name, new SelfType(_namePrefix + name, interfaceType) { Constant = true }));
 
             _collectInterfaceMethods(interfaceType, (ASTNode)node.Content[node.Content[2].Name == "generic_tag" ? 4 : 3], false);
 

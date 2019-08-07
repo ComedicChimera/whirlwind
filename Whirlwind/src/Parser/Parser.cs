@@ -72,14 +72,14 @@ namespace Whirlwind.Parser
 
             // clear empty or invalid trees
             if (ndx == -1 || ndx == offset)
-                _semanticStack.RemoveAt(_semanticStack.Count - 1);
+                _semanticStack.RemoveLast();
 
             return ndx;
         }
 
         private int _match(Production production, int offset)
         {
-            int localOffset = offset;
+            int localOffset = offset, cachedSize = _semanticStack.Last().Content.Count;
             foreach (var item in production.Content)
             {
                 switch (item.Type())
@@ -89,7 +89,7 @@ namespace Whirlwind.Parser
                         {
                             if (_errorPosition < localOffset)
                                 _errorPosition = localOffset;
-                            return -1;
+                            goto CLEANUP;
                         }
                         _semanticStack.Last().Content.Add(new TokenNode(GetToken(localOffset)));
                         localOffset++;
@@ -98,12 +98,12 @@ namespace Whirlwind.Parser
                         {
                             int newOffset = _parseProduction(((Nonterminal)item).Name, localOffset);
                             if (newOffset == -1)
-                                return -1;
+                                goto CLEANUP;
                             // tree was empty
                             if (localOffset != newOffset)
                             {
                                 _semanticStack[_semanticStack.Count - 2].Content.Add(_semanticStack.Last());
-                                _semanticStack.RemoveAt(_semanticStack.Count - 1);
+                                _semanticStack.RemoveLast();
 
                                 localOffset = newOffset;
                             }
@@ -143,41 +143,44 @@ namespace Whirlwind.Parser
                     case "GROUP":
                         localOffset = _match((Production)item, localOffset);
                         if (localOffset == -1)
-                            return -1;
+                            goto CLEANUP;
                         break;
                     case "ALTERNATOR":
                         localOffset = _matchAll(((Production)item).Content, localOffset);
                         if (localOffset == -1)
-                            return -1;
+                            goto CLEANUP;
                         break;
                 }
             }
+
             return localOffset;
+
+            // my one cardinal sin
+            // clean up the current ASTNode content
+            CLEANUP:
+            int sizeDiff = _semanticStack.Last().Content.Count - cachedSize;
+            if (sizeDiff > 0)
+            {
+                if (sizeDiff == 1)
+                    _semanticStack.Last().Content.RemoveLast();
+                else if (cachedSize == 0)
+                    _semanticStack.Last().Content.Clear();
+                else
+                    _semanticStack.Last().Content.RemoveRange(cachedSize - 1, sizeDiff);
+            }
+
+            return -1;
         }
 
         private int _matchAll(List<IGrammatical> productions, int offset)
         {
-            int localOffset, cachedSize, sizeDiff;
+            int localOffset;
             foreach (Production production in productions)
             {
-                cachedSize = _semanticStack.Last().Content.Count;
-
                 localOffset = _match(production, offset);
 
                 if (localOffset != -1)
                     return localOffset;
-
-                sizeDiff = _semanticStack.Last().Content.Count - cachedSize;
-
-                // clear out any residual trees from previous production
-                if (sizeDiff > 0)
-                {
-                    if (cachedSize == 0)
-                        _semanticStack.Last().Content.Clear();
-                    else
-                        _semanticStack.Last().Content.RemoveRange(cachedSize - 1, sizeDiff);
-                }
-                    
             }
             return -1;
         }

@@ -84,9 +84,17 @@ namespace Whirlwind.Semantic
         public bool Equals(Symbol other)
         {
             if (Name == other.Name && DataType.Equals(other.DataType) && Value == other.Value)
-                return Modifiers.SequenceEqual(other.Modifiers);
+                return Modifiers.EnumerableEquals(other.Modifiers);
 
             return false;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is Symbol sym && obj != null)
+                return Equals(sym);
+
+            return base.Equals(obj);
         }
     }
 }

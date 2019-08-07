@@ -91,7 +91,7 @@ namespace Whirlwind.Types
                 if (_instance != st._instance)
                     return false;
 
-                return Members.SequenceEqual(st.Members);
+                return Members.DictionaryEquals(st.Members);
             }
 
             return false;
