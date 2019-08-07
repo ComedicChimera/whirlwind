@@ -64,4 +64,8 @@ in exprnode)
   * add a `priv` modifier
 - make the overloading for generic function groups account for restrictors
 - add context-based inferencing for lambdas in `case` and `if` expressions
+- allow for type decomposition (infer one type from another as in generics)
+  * like `func toDict<T to (K, V)>() [K: V]`
+  * or maybe `func toDict<T as (K, V)>() [K: V]`
+  * or even without generics `func toDict() T to [K: V]` where to compiler infers the missing types
 
