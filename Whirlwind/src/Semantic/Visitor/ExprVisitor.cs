@@ -232,7 +232,11 @@ namespace Whirlwind.Semantic.Visitor
             {
                 _nodes.Add(new IncompleteNode(node));
                 _didTypeClassCtxInferFail = true;
-            }            
+            }
+            catch (SemanticSelfIncompleteException)
+            {
+                throw new SemanticException("Use of incomplete self-referential type in expression", node.Position);
+            }
         }
 
         private void _visitInlineCase(ASTNode node)

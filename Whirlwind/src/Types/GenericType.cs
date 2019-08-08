@@ -640,7 +640,7 @@ namespace Whirlwind.Types
         protected override bool _equals(DataType other)
         {
             if (other is GenericSelfInstanceType gsit)
-                return _name == gsit._name;
+                return _name == gsit._name && TypeList.EnumerableEquals(gsit.TypeList);
             else if (other is GenericType)
                 return GenericSelf != null && GenericSelf.Equals(other);
             else if (GenericSelf != null && GenericSelf.CreateGeneric(TypeList, out DataType result))

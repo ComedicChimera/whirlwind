@@ -1,6 +1,5 @@
 # TODO
 
-- Fix generic self-types to work how they are supposed to
 - add package linker
 - add 2 sanitizers (constexpr and memory) [Note: constexpr does in depth checking on all constant expressions]
 - add prelude (later)
@@ -12,9 +11,6 @@
 - add `#impl` to create structs for intrinsic types like strings or arrays
   * `#impl "str"`
 - make sure to check operator overloads where necessary
-- add exprnode guard to unpack GenericSelfTypes, SelfTypes, and GenericSelfInstanceTypes and
-if it fails, catch in _visitExpr and rethrow expression level exception (use custom exception
-in exprnode)
 
 # TESTING
 

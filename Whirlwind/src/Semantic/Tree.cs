@@ -27,20 +27,50 @@ namespace Whirlwind.Semantic
         public ExprNode(string name, DataType type)
         {
             Name = name;
-            Type = type;
+            Type = _sanitizeType(type);
             Nodes = new List<ITypeNode>();
         }
 
         public ExprNode(string name, DataType type, List<ITypeNode> nodes)
         {
             Name = name;
-            Type = type;
+            Type = _sanitizeType(type);
             Nodes = nodes;
         }
 
         public override string ToString()
         {
             return $"{Name}:[{string.Join(", ", Nodes.Select(x => x.ToString()))}]";
+        }
+
+        private DataType _sanitizeType(DataType dt)
+        {
+            if (dt is SelfType st)
+            {
+                if (st.Initialized)
+                    return st.DataType;
+                else
+                    throw new SemanticSelfIncompleteException();
+            }
+            else if (dt is GenericSelfType gst)
+            {
+                if (gst.GenericSelf == null)
+                    throw new SemanticSelfIncompleteException();
+                else
+                    return gst.GenericSelf;
+            }
+            else if (dt is GenericSelfInstanceType gsit)
+            {
+                if (gsit.GenericSelf == null)
+                    throw new SemanticSelfIncompleteException();
+                else
+                {
+                    gsit.GenericSelf.CreateGeneric(gsit.TypeList, out DataType result);
+                    return result;
+                }
+            }
+
+            return dt;
         }
     }
 

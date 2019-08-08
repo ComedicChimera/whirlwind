@@ -46,9 +46,6 @@ namespace Whirlwind.Semantic.Visitor
                     {
                         _table.GotoScope(scopePos);
 
-                        /*foreach (var name in ((GenericType)((TreeNode)node).Nodes[0].Type).GenericNames)
-                            _table.AddSymbol(new Symbol(name, new GenericPlaceholder(name)));*/
-
                         int _ = 0;
                         _completeBlock(((BlockNode)node).Block[0], ref _);
 
@@ -119,35 +116,30 @@ namespace Whirlwind.Semantic.Visitor
                     case "Generic":
                     case "BindGenericInterface":
                         {
-                            // perform generate checking (clean up scope and nodes after done)
-                            // create working scope for clean generic generate checking
-                            _table.AddScope();
-                            _table.DescendScope();
-
-                            int tPos = 0;
-
-                            // no foreach b/c iteration guard
-                            var generates = ((GenericType)(((BlockNode)node).Nodes[0].Type)).Generates;
-                            for (int i = 0; i < generates.Count; i++)
+                            // perform generate checking
+                            bool needsSubscope;
+                            foreach (var generate in ((GenericType)(((BlockNode)node).Nodes[0].Type)).Generates)
                             {
-                                var generate = generates[i];
+                                // create new working scope for each generate
+                                _table.AddScope();
+                                _table.DescendScope();
 
                                 foreach (var alias in generate.GenericAliases)
                                     _table.AddSymbol(new Symbol(alias.Key, new GenericAlias(alias.Value)));
 
+                                needsSubscope = !generate.Block.Name.EndsWith("Function");
+
                                 // create artificial scope for all who need it
-                                if (!generate.Block.Name.EndsWith("Function"))
+                                if (needsSubscope)
                                     _table.AddScope();
 
-                                int refTemp = tPos;
-                                _completeBlock(generate.Block, ref refTemp);
+                                int _ = 0;
+                                _completeBlock(generate.Block, ref _);
 
-                                tPos++;
-                            }
-
-                            // clean up scope
-                            _table.AscendScope();
-                            _table.RemoveScope();
+                                // remove generate scope
+                                _table.AscendScope();
+                                _table.RemoveScope();
+                            }                           
                         }
 
                         scopePos++;

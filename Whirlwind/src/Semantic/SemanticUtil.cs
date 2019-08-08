@@ -26,6 +26,13 @@ namespace Whirlwind.Semantic
         
     }
 
+    // exception thrown when a node containing an incomplete self-referential
+    // type is used in an expression (cause in _visitExpr)
+    class SemanticSelfIncompleteException : Exception
+    {
+
+    }
+
     // stores arguments that are passed in to a given function
     class ArgumentList
     {
