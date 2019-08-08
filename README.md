@@ -16,7 +16,7 @@ Whirlwind has several main goals all of which can be enscapsulated in the idea o
  * Speed of running.
  
 Whirlwind tries to achieve all of these goals, and admittedly falls short in some areas.  When using more high level constructs,
-there is often a trade off between ease of thought and writing, and speed of compilation and execution.  When designing this
+there is often a trade off between ease of thought and writing and speed of compilation and execution.  When designing this
 language I aimed for an "85% solution" which effectively means close enough, but not perfect: each construct fulfills the majority of our speed goals, but not all at once.  In essence, instead of trying to make each and every construct perfect, I provide a variety of constructs and approaches each of which is suited to one of the goals, this design allowing you to choose what you find most important.
 
 ### Syntax:
