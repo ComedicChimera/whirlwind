@@ -75,30 +75,7 @@ namespace Whirlwind.Semantic.Visitor
                             throw new SemanticException("Invalid context for a yield statement", stmt.Position);
                         break;
                     case "delete_stmt":
-                        var identifierList = new List<ITypeNode>();
-
-                        foreach (var subNode in stmt.Content)
-                        {
-                            if (subNode.Name == "TOKEN")
-                            {
-                                var token = ((TokenNode)subNode).Tok;
-
-                                if (token.Type == "IDENTIFIER")
-                                {
-                                    if (_table.Lookup(token.Value, out Symbol sym))
-                                    {
-                                        if (sym.DataType.Classify() == TypeClassifier.POINTER)
-                                            identifierList.Add(new IdentifierNode(sym.Name, sym.DataType));
-                                        else
-                                            throw new SemanticException("Delete statement must only contain pointers", subNode.Position);
-                                    }
-                                    else
-                                        throw new SemanticException($"Undefined identifier `{token.Value}`", subNode.Position);
-                                }
-                            }
-                        }
-
-                        _nodes.Add(new StatementNode("Delete", identifierList));
+                        _visitDelete(stmt);
                         break;
                 }
             }
@@ -149,6 +126,78 @@ namespace Whirlwind.Semantic.Visitor
                 _nodes.Add(new StatementNode(stmtName));
                 PushForward();
             }
+        }
+
+        private void _visitDelete(ASTNode stmt)
+        {
+            int deleteIdCount = 0;
+
+            foreach (var item in stmt.Content)
+            {
+                if (item.Name == "delete_id")
+                {
+                    var deleteId = (ASTNode)item;                   
+
+                    if (deleteId.Content.Count == 3)
+                    {
+                        if (!_isFinalizer)
+                            throw new SemanticException("Unable to delete member variables outside of finalizer", deleteId.Content[0].Position);
+
+                        // if we are in a finalizer a this pointer must exist
+                        _table.Lookup("$THIS", out Symbol thisPtr);                       
+
+                        if (thisPtr.DataType is StructType st)
+                        {
+                            var name = ((TokenNode)deleteId.Content[2]).Tok.Value;
+
+                            if (st.Members.ContainsKey(name))
+                            {
+                                if (st.Members[name].DataType is PointerType pt)
+                                {
+                                    if (!_registrar.DeleteResource(pt.Owner))
+                                        throw new SemanticException("Unable to delete resource from a non-owner", deleteId.Content[2].Position);
+
+                                    _nodes.Add(new ExprNode("GetMember", pt));
+
+                                    _nodes.Add(new IdentifierNode("$THIS", thisPtr.DataType));
+                                    _nodes.Add(new IdentifierNode(name, pt));
+                                    MergeBack();
+                                }
+                                else
+                                    throw new SemanticException("Unable to a delete from a non-pointer", deleteId.Content[2].Position);
+                            }
+                            else
+                                throw new SemanticException($"Struct contains no member by name `{name}`", deleteId.Content[2].Position);
+                        }
+                        else
+                            throw new SemanticException("Unable to delete member of a non-owning type", deleteId.Content[0].Position);
+                    }
+                    else
+                    {
+                        var name = ((TokenNode)deleteId.Content[0]).Tok.Value;
+                        var scope = _table.GetScope();
+
+                        if (!scope.Select(x => x.Name).Contains(name))
+                            throw new SemanticException("Unable to delete from owner that either does not exist or is not in the current scope",
+                                deleteId.Content[0].Position);
+
+                        if (scope.Where(x => name == x.Name).First().DataType is PointerType pt)
+                        {
+                            if (_registrar.DeleteResource(pt.Owner))
+                                _nodes.Add(new IdentifierNode(name, pt));
+                            else
+                                throw new SemanticException("Unable to delete resource from a non-owner", deleteId.Content[2].Position);
+                        }
+                        else
+                            throw new SemanticException("Unable to delete from a non-pointer", deleteId.Content[2].Position);                      
+                    }
+
+                    deleteIdCount++;
+                }
+            }
+
+            _nodes.Add(new StatementNode("Delete"));
+            PushForward(deleteIdCount);
         }
 
         private void _visitAssignment(ASTNode stmt)

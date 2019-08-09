@@ -211,6 +211,9 @@ namespace Whirlwind.Types
 
     class VoidType : DataType
     {
+        // set if type is null literal
+        public bool IsNull = false;
+
         public override bool Coerce(DataType other) => true;
 
         public override TypeClassifier Classify() => TypeClassifier.VOID;

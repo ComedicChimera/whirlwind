@@ -173,6 +173,8 @@ namespace Whirlwind.Semantic.Visitor
 
                     fn.Block = ((BlockNode)_nodes.Last()).Block;
                     fn.Block.RemoveAt(0); // remove incomplete node lol
+
+                    // maybe add check to make sure all resources were accounted for
                 }
                 catch (SemanticException se)
                 {
@@ -209,9 +211,18 @@ namespace Whirlwind.Semantic.Visitor
 
             foreach (var item in interf.Block)
             {
-                // all of these types are effectively the same
-                if (item.Name.EndsWith("Function") || item.Name == "OperatorOverload" || item.Name == "Variant")
+                // all of these types can use _completeFunction b/c they are basically the same
+                if (item.Name.EndsWith("Function"))
+                {
+                    _isFinalizer = ((IdentifierNode)((BlockNode)item).Nodes[0]).IdName == "__finalize__";
+
                     _completeFunction((BlockNode)item);
+
+                    _isFinalizer = false;
+                }
+                else if (item.Name == "OperatorOverload" || item.Name == "Variant")
+                    _completeFunction((BlockNode)item);
+
             }
 
             _table.AscendScope();

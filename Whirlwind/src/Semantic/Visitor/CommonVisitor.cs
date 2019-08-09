@@ -166,9 +166,9 @@ namespace Whirlwind.Semantic.Visitor
                         if (owned)
                         {
                             if (dt is PointerType pt)
-                                dt = new PointerType(pt.DataType, pt.Pointers, true);
-                            else if (dt is ReferenceType rt)
-                                dt = new ReferenceType(rt.DataType, true);
+                                dt = new PointerType(pt.DataType, pt.Pointers, _registrar.MakeOwner(-2));
+                            else
+                                throw new SemanticException("Cannot declare ownership over type that is not pointer", item.Position);
                         }
 
                         var symbol = new Symbol(name, dt, modifiers);

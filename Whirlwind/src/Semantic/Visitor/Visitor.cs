@@ -21,25 +21,32 @@ namespace Whirlwind.Semantic.Visitor
         // during visitation; processed outside of visitor
         public List<SemanticException> ErrorQueue;
 
-        // visitor shared data
+        // visitor shared constructs and data
         private List<ITypeNode> _nodes;
         private SymbolTable _table;
-        private string _namePrefix;      
+        private MemoryRegistrar _registrar;
+        private string _namePrefix; 
+        
+        // visitor state data
         private CustomType _typeClassContext;
+        private int _ownedTypeGenResId = -2;
 
         // visitor state flags
         private bool _couldLambdaContextExist = false, _couldTypeClassContextExist = false;
         private bool _didTypeClassCtxInferFail = false;
         private bool _isTypeCast = false;
         private bool _isGenericSelfContext = false;
+        private bool _couldOwnerExist = false, _isFinalizer = false;
 
         public Visitor(string namePrefix)
         {
+            ErrorQueue = new List<SemanticException>();
+
             _nodes = new List<ITypeNode>();
             _table = new SymbolTable();
-            _namePrefix = namePrefix;
+            _registrar = new MemoryRegistrar();
 
-            ErrorQueue = new List<SemanticException>();
+            _namePrefix = namePrefix;
         }
 
         // ----------------------

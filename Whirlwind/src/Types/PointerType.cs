@@ -4,13 +4,13 @@
     {
         public readonly DataType DataType;
         public int Pointers;
-        public readonly bool Owned;
+        public int Owner;
 
-        public PointerType(DataType dt, int pointers, bool owned = false)
+        public PointerType(DataType dt, int pointers, int owner = -1)
         {
             DataType = dt;
             Pointers = pointers;
-            Owned = owned;
+            Owner = owner;
         }
 
         protected sealed override bool _coerce(DataType other)
@@ -34,6 +34,6 @@
         }
 
         public override DataType ConstCopy()
-            => new PointerType(DataType, Pointers, Owned) { Constant = true };
+            => new PointerType(DataType, Pointers, Owner) { Constant = true };
     }
 }

@@ -122,17 +122,17 @@ namespace Whirlwind.Semantic.Visitor
                 if (new[] { TypeClassifier.FUNCTION, TypeClassifier.FUNCTION_GROUP }.Contains(dt.Classify()))
                     throw new SemanticException("Unable to point to a function directly", node.Position);
 
-                dt = new PointerType(dt, pointers, owned);
+                dt = new PointerType(dt, pointers, _ownedTypeGenResId);
             }
             else if (_isVoid(dt) || new[] { TypeClassifier.SELF, TypeClassifier.GENERIC_SELF, TypeClassifier.GENERIC_SELF_INSTANCE }
                     .Contains(dt.Classify()) && _selfNeedsPointer)
                 throw new SemanticException("Unable to declare incomplete type", node.Position);
 
             if (reference)
-                dt = new ReferenceType(dt, owned);
+                dt = new ReferenceType(dt);
 
-            if (!reference && pointers == 0 && owned)
-                throw new SemanticException("Cannot declare ownership over type that is not pointer or reference", node.Position);
+            if (pointers == 0 && owned)
+                throw new SemanticException("Cannot declare ownership over type that is not pointer", node.Position);
 
             if (constant)
                 dt.Constant = true;

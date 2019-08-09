@@ -645,6 +645,9 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitHeapAlloc(ASTNode node)
         {
+            if (!_couldOwnerExist)
+                throw new SemanticException("Unable to dynamically allocate memory without possiblity of an owner", node.Position);
+
             // make ( alloc_body ) -> types , expr
             var allocBody = (ASTNode)node.Content[1];
 
@@ -717,6 +720,8 @@ namespace Whirlwind.Semantic.Visitor
                 _nodes.Add(new ExprNode("HeapAllocSize", new PointerType(new VoidType(), 1)));
                 PushForward();
             }
+
+            _registrar.MakeResource();
         }
 
         private void _visitFromExpr(ASTNode node)

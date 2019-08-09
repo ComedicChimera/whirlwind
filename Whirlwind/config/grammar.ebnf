@@ -139,10 +139,13 @@ assign_var: '*'* ( 'IDENTIFIER' | 'THIS' | '_' ) trailer* ;
 
 assign_op: [ operator ] '=' ;
 
+// delete statement
+delete_stmt: 'DELETE' delete_id (',' delete_id)* ;
+delete_id: ['THIS' '.'] 'IDENTIFIER' ;
+
 // simple statements
 continue_stmt: 'CONTINUE' ;
 break_stmt: 'BREAK' ;
-delete_stmt: 'DELETE' 'IDENTIFIER' (',' 'IDENTIFIER')* ;
 return_stmt: 'RETURN' [expr (',' expr)*] ;
 yield_stmt: 'YIELD' expr (',' expr)* ;
 

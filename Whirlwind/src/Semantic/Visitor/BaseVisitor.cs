@@ -64,20 +64,14 @@ namespace Whirlwind.Semantic.Visitor
                                     symDt = st.DataType;
                                 else
                                     throw new SemanticException("Unable to use incomplete type in expression", node.Content[0].Position);
-                            } 
+                            }
+                            else if (symDt is PointerType pt && pt.Owner != -1 && _registrar.GetOwnedResource(pt.Owner) == -1)
+                                throw new SemanticException("Unable to access a definitive null pointer as an r-value", node.Position);
 
                             if (sym.Modifiers.Contains(Modifier.CONSTEXPR))
                                 _nodes.Add(new ConstexprNode(sym.Name, symDt, sym.Value));
                             else
                                 _nodes.Add(new IdentifierNode(sym.Name, symDt));
-
-                            // not sure why this is here, might delete later
-                            /*if (sym.DataType is CustomInstance cinst)
-                            {
-                                if (!_table.Lookup(cinst.Parent.Name, out Symbol _))
-                                    throw new SemanticException("Unable use type class instances outside of type class's visible scope",
-                                        node.Content[0].Position);
-                            }*/
 
                             return;
                         }

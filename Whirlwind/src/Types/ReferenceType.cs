@@ -3,12 +3,10 @@
     class ReferenceType : DataType
     {
         public readonly DataType DataType;
-        public readonly bool Owned;
 
-        public ReferenceType(DataType dt, bool owned = false)
+        public ReferenceType(DataType dt)
         {
             DataType = dt;
-            Owned = owned;
         }
 
         protected override bool _equals(DataType other)
@@ -30,7 +28,7 @@
         public override TypeClassifier Classify() => TypeClassifier.REFERENCE;
 
         public override DataType ConstCopy()
-            => new ReferenceType(DataType, Owned);
+            => new ReferenceType(DataType);
     }
 
     // self referential type
