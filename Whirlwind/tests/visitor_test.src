@@ -1,17 +1,32 @@
-﻿struct Point {
-	x, y: int;
+﻿struct Range {
+	mul: int;
+}
+
+interf for Range {
+	operator [](i: int) int
+		=> i * this.mul;
+
+	operator [](i: int, v: int) {
+		this.mul += v;
+
+		return i * this.mul;
+	}
 }
 
 func main() {
-	let p = make Point();
+	let arr = {4, 3, -1, 7};
 
-	p?->x;
+	arr[2] = 1;
 
-	p->x;
+	let x = arr[0];
 
-	let p2 = make int;
+	let r = new Range();
 
-	*p2;
+	r[2] = 4;
 
-	*?p2;
+	x = r[1];
+
+	let arr2 = {new Range()};
+
+	arr2[0][1] = 5;
 }

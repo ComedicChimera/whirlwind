@@ -624,8 +624,8 @@ namespace Whirlwind.Semantic.Visitor
                                     break;
                             }
 
-                            if (_isSetContext)
-                                args.Add(new VoidType());
+                            if (isSetContext)
+                                args.Add(new NullType());
 
                             string methodName = $"__{(name == "Subscript" ? "[]" : "[:]")}__";
                             if (GetOverload(rootType, methodName, new ArgumentList(args), out FunctionType fnType))
@@ -633,7 +633,7 @@ namespace Whirlwind.Semantic.Visitor
                                 if (isSetContext)
                                 {
                                     args.RemoveLast();
-                                    _setOperatorTypes.Add(fnType.Parameters.Last().DataType);                                  
+                                    _setOperatorTypes.Add(_setOperatorPosition, fnType.Parameters.Last().DataType);                                  
                                 }
 
                                 _nodes.Add(new ExprNode(name, fnType.ReturnType));

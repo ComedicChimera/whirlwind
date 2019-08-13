@@ -8,7 +8,6 @@
   * Struct Annotation: `#joined`: effect how structs compile and initialize
 - add `#impl` to create structs for intrinsic types like strings or arrays
   * `#impl "str"`
-- add get and set versions of the `[]` and `[:]` operators
 
 
 # TESTING

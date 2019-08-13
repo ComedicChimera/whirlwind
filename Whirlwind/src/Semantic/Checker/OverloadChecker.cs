@@ -48,7 +48,7 @@ namespace Whirlwind.Semantic.Checker
                         case TypeClassifier.FUNCTION_GROUP:
                             if (((FunctionGroup)symbol.DataType).GetFunction(arguments, out FunctionType ft))
                             {
-                                fnType = (FunctionType)ft.ReturnType;
+                                fnType = (FunctionType)ft;
                                 return true;
                             }
                             break;

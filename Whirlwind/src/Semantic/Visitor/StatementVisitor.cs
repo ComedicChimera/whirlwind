@@ -220,6 +220,8 @@ namespace Whirlwind.Semantic.Visitor
                         if (varTypes.Count == 0)
                             _nodes.Add(new ExprNode("AssignVars", new VoidType()));
 
+                        _setOperatorPosition = varTypes.Count;
+
                         _visitAssignVar((ASTNode)node);
                         varTypes.Add(_nodes.Last().Type);
 
@@ -259,8 +261,8 @@ namespace Whirlwind.Semantic.Visitor
             }
 
             string subOp = op.Length > 1 ? string.Join("", op.Take(op.Length - 1)) : "";
-            bool hasSetOperatorTypes = _setOperatorTypes.Count > 0;
-            int setOpPos = 0;
+
+            _setOperatorPosition = 0;
 
             if (varTypes.Count == exprTypes.Count)
             {
@@ -269,20 +271,29 @@ namespace Whirlwind.Semantic.Visitor
                     if (exprTypes[i] is IncompleteType)
                         _inferLambdaAssignContext(varTypes[i], exprTypes, i);
 
-                    /*if (hasSetOperatorTypes && !_setOperatorTypes[i].Coerce(exprTypes[i]))
-                        throw new SemanticException("The set operator overload for the given variable")*/
+                    DataType varType;
+
+                    if (_setOperatorTypes.ContainsKey(i))
+                    {
+                        if (!_setOperatorTypes[i].Coerce(exprTypes[i]))
+                            throw new SemanticException("Invalid type for set operator overload", stmt.Content[i * 2].Position);
+
+                        varType = _setOperatorTypes[i].ConstCopy();
+                    }
+                    else
+                        varType = varTypes[i].ConstCopy();
+
+                    // negate constancy from const copy
+                    varType.Constant = varTypes[i].Constant;
 
                     if (subOp != "")
-                    {
-                        DataType ot = varTypes[i].ConstCopy();
-                        // negate constancy from const copy
-                        ot.Constant = varTypes[i].Constant;
-                        CheckOperand(ref ot, exprTypes[i], subOp, stmt.Position);
+                    {                      
+                        CheckOperand(ref varType, exprTypes[i], subOp, stmt.Position);
 
-                        if (!varTypes[i].Coerce(ot))
+                        if (!varTypes[i].Coerce(varType))
                             throw new SemanticException("Unable to apply operator which would result in type change", stmt.Position);
                     }
-                    else if (!varTypes[i].Coerce(exprTypes[i]))
+                    else if (!varType.Coerce(exprTypes[i]))
                         throw new SemanticException("Unable to assign to dissimilar types", stmt.Position);
                 }
             }
@@ -293,7 +304,16 @@ namespace Whirlwind.Semantic.Visitor
 
                 while (i < varTypes.Count && j < exprTypes.Count)
                 {
-                    varType = varTypes[i];
+                    if (_setOperatorTypes.ContainsKey(i))
+                    {
+                        if (!_setOperatorTypes[i].Coerce(exprTypes[j]))
+                            throw new SemanticException("Invalid type for set operator overload", stmt.Content[i * 2].Position);
+
+                        varType = _setOperatorTypes[i];
+                    }
+                    else
+                        varType = varTypes[i];
+
                     exprType = exprTypes[j];
 
                     if (exprType is IncompleteType)
@@ -354,7 +374,7 @@ namespace Whirlwind.Semantic.Visitor
             else
                 throw new SemanticException("Too many expressions for the given assignment", stmt.Position);
 
-            _setOperatorTypes = new List<DataType>();
+            _setOperatorTypes = new Dictionary<int, DataType>();
 
             _nodes.Add(new StatementNode("Assignment"));
             PushForward(2);
