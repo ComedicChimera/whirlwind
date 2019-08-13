@@ -28,8 +28,7 @@ namespace Whirlwind.Semantic.Visitor
         public DataType _generateType(ASTNode node)
         {
             DataType dt = new VoidType();
-            int pointers = 0;
-            bool reference = false, owned = false, constant = false;
+            bool constant = false;
 
             foreach (var subNode in node.Content)
             {
@@ -39,15 +38,6 @@ namespace Whirlwind.Semantic.Visitor
 
                     switch (tokenNode.Tok.Type)
                     {
-                        case "*":
-                            pointers++;
-                            break;
-                        case "REF":
-                            reference = true;
-                            break;
-                        case "OWN":
-                            owned = true;
-                            break;
                         case "CONST":
                             constant = true;
                             break;
@@ -99,9 +89,7 @@ namespace Whirlwind.Semantic.Visitor
                         throw new SemanticException("Unable to get static value from the given type", subNode.Position);
                 }
                 else
-                {
                     dt = _generateBaseType((ASTNode)subNode);
-                }
             }
 
             switch (dt.Classify())
@@ -117,22 +105,9 @@ namespace Whirlwind.Semantic.Visitor
                     break;
             }
 
-            if (pointers != 0)
-            {
-                if (new[] { TypeClassifier.FUNCTION, TypeClassifier.FUNCTION_GROUP }.Contains(dt.Classify()))
-                    throw new SemanticException("Unable to point to a function directly", node.Position);
-
-                dt = new PointerType(dt, pointers, _ownedTypeGenResId);
-            }
-            else if (_isVoid(dt) || new[] { TypeClassifier.SELF, TypeClassifier.GENERIC_SELF, TypeClassifier.GENERIC_SELF_INSTANCE }
+            if (_isVoid(dt) || new[] { TypeClassifier.SELF, TypeClassifier.GENERIC_SELF, TypeClassifier.GENERIC_SELF_INSTANCE }
                     .Contains(dt.Classify()) && _selfNeedsPointer)
                 throw new SemanticException("Unable to declare incomplete type", node.Position);
-
-            if (reference)
-                dt = new ReferenceType(dt);
-
-            if (pointers == 0 && owned)
-                throw new SemanticException("Cannot declare ownership over type that is not pointer", node.Position);
 
             if (constant)
                 dt.Constant = true;
@@ -243,9 +218,8 @@ namespace Whirlwind.Semantic.Visitor
                     }
                 }
                 else if (subNode.Name == "tuple_type")
-                    return new TupleType(_generateTypeList((ASTNode)((ASTNode)subNode).Content[1]));
-                // assume function type
-                else
+                    return new TupleType(_generateTypeList((ASTNode)((ASTNode)subNode).Content[1]));                
+                else if (subNode.Name == "func_type")
                 {
                     bool async = false;
 
@@ -303,6 +277,18 @@ namespace Whirlwind.Semantic.Visitor
                     }
 
                     return new FunctionType(args, returnType, async);
+                }
+                // assume pointer type
+                else
+                {
+                    bool dynamicPointer = false;
+
+                    if (((ASTNode)subNode).Content.Count == 3)
+                        dynamicPointer = true;
+
+                    var baseDt = _generateType((ASTNode)((ASTNode)subNode).Content.Last());
+
+                    return new PointerType(baseDt, dynamicPointer);
                 }
             }
 

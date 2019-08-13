@@ -147,11 +147,8 @@ namespace Whirlwind.Types
             if (other is InterfaceType it && it.SuperForm)
                 return false;
 
-            if (other.Classify() == TypeClassifier.VOID || other.Classify() == TypeClassifier.GENERIC_PLACEHOLDER)
+            if (other.Classify() == TypeClassifier.NULL || other.Classify() == TypeClassifier.GENERIC_PLACEHOLDER)
                 return true;
-
-            if (Classify() != TypeClassifier.REFERENCE && other.Classify() == TypeClassifier.REFERENCE)
-                return Coerce(((ReferenceType)other).DataType);
 
             if (other is GenericAlias gp)
                 return Coerce(gp.ReplacementType);
@@ -172,6 +169,10 @@ namespace Whirlwind.Types
 
             if (new[] { TypeClassifier.GENERIC_ALIAS, TypeClassifier.GENERIC, TypeClassifier.GENERIC_PLACEHOLDER ,
                 TypeClassifier.GENERIC_GROUP, TypeClassifier.FUNCTION_GROUP }.Contains(Classify()))
+                return new InterfaceType();
+
+            // don't create entries for nulls and voids
+            if (this is VoidType || this is NullType)
                 return new InterfaceType();
 
             InterfaceRegistry.StandardInterfaces[this] = new InterfaceType();
@@ -209,11 +210,9 @@ namespace Whirlwind.Types
         public abstract DataType ConstCopy();
     }
 
+    // pure void type; means nothing (no value)
     class VoidType : DataType
     {
-        // set if type is null literal
-        public bool IsNull = false;
-
         public override bool Coerce(DataType other) => true;
 
         public override TypeClassifier Classify() => TypeClassifier.VOID;
@@ -222,6 +221,20 @@ namespace Whirlwind.Types
 
         public override DataType ConstCopy()
             => new VoidType() { Constant = true };
+    }
+
+    // type that means there is a value, but it has no type
+    // this is still considered a "void type", but it isn't really
+    class NullType : DataType
+    {
+        public override bool Coerce(DataType other) => true;
+
+        public override TypeClassifier Classify() => TypeClassifier.NULL;
+
+        protected override bool _equals(DataType other) => true;
+
+        public override DataType ConstCopy()
+           => new NullType() { Constant = true };
     }
 
     class IncompleteType : DataType
@@ -258,7 +271,7 @@ namespace Whirlwind.Types
         GENERIC_GROUP,
         PACKAGE,
         VOID,
-        REFERENCE,
+        NULL,
         INCOMPLETE,
         SELF, // self-referential type
         GENERIC_SELF, // generic self-referential type

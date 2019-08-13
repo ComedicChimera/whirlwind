@@ -65,8 +65,6 @@ namespace Whirlwind.Semantic.Visitor
                                 else
                                     throw new SemanticException("Unable to use incomplete type in expression", node.Content[0].Position);
                             }
-                            else if (symDt is PointerType pt && pt.Owner != -1 && _registrar.GetOwnedResource(pt.Owner) == -1)
-                                throw new SemanticException("Unable to access a definitive null pointer as an r-value", node.Position);
 
                             if (sym.Modifiers.Contains(Modifier.CONSTEXPR))
                                 _nodes.Add(new ConstexprNode(sym.Name, symDt, sym.Value));
@@ -118,7 +116,7 @@ namespace Whirlwind.Semantic.Visitor
                             return;
                         }
                     case "NULL":
-                        _nodes.Add(new ValueNode("Null", new VoidType()));
+                        _nodes.Add(new ValueNode("Null", new NullType()));
                         return;
                 }
 
@@ -417,7 +415,15 @@ namespace Whirlwind.Semantic.Visitor
                         }
 
                         _nodes.Add(new BlockNode("LambdaBody"));
+
+                        // save and clear context
+                        var vctx = _saveContext();
+                        _clearContext();
+
                         rtType = _visitFuncBody((ASTNode)item, args);
+
+                        // restore context after visiting (if fails, then context is irrelevant anyways :D)
+                        _restoreContext(vctx);
 
                         if (ctx != null && !ctx.ReturnType.Coerce(rtType))
                             throw new SemanticException("Invalid return type for the given the context", item.Position);

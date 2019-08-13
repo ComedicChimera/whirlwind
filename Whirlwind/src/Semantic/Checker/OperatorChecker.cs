@@ -39,7 +39,7 @@ namespace Whirlwind.Semantic.Checker
                         } 
                         else if (new[] { TypeClassifier.ARRAY, TypeClassifier.LIST }.Contains(operandType.Classify()))
                             valid = true;
-                        else if (rootType.Classify() == TypeClassifier.POINTER && new SimpleType(SimpleType.SimpleClassifier.INTEGER).Coerce(operandType))
+                        else if (rootType is PointerType pt && !pt.IsDynamicPointer && new SimpleType(SimpleType.SimpleClassifier.INTEGER).Coerce(operandType))
                             return;
                     }
                     break;
@@ -55,7 +55,7 @@ namespace Whirlwind.Semantic.Checker
                             valid = true;
                             break;
                         }
-                        if (rootType.Classify() == TypeClassifier.POINTER && new SimpleType(SimpleType.SimpleClassifier.INTEGER).Coerce(operandType))
+                        if (rootType is PointerType pt && !pt.IsDynamicPointer && new SimpleType(SimpleType.SimpleClassifier.INTEGER).Coerce(operandType))
                             return;
                     }
                     break;

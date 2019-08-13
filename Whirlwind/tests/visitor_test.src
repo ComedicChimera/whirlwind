@@ -1,36 +1,17 @@
-﻿struct Test<T> {
-	x, y: T;
-
-	constructor(x, y: T) {
-		this.x = x;
-		this.y = y;
-	}
-}
-
-interf IAddable<T> {
-	func add(other: IAddable<T>) IAddable<T>;
-}
-
-interf<T> for Test<T> is IAddable<T> {
-	func add(other: IAddable<T>) IAddable<T> {
-		if (other is Test<T>) {
-			let otherTest = other as Test<T>;
-
-			return new Test(this.x + otherTest.x, this.y + otherTest.y);
-		}
-		
-		return null;
-	}
+﻿struct Point {
+	x, y: int;
 }
 
 func main() {
-	let t = new Test(3, 4);
-	let t2 = new Test(4, 5);
+	let p = make Point();
 
-	t.add(t2);
+	p?->x;
 
-	let t3 = new Test("te", "te");
-	let t4 = new Test("st", "st");
+	p->x;
 
-	t3.add(t4);
+	let p2 = make int;
+
+	*p2;
+
+	*?p2;
 }

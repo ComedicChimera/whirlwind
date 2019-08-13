@@ -99,7 +99,7 @@ namespace Whirlwind.Semantic.Visitor
             var capture = new Capture();
 
             string name;
-            bool excluded, constant, owned;
+            bool excluded, constant;
             List<Modifier> modifiers;
             DataType dt;
 
@@ -110,7 +110,6 @@ namespace Whirlwind.Semantic.Visitor
                     name = "";
                     excluded = false;
                     constant = false;
-                    owned = false;
                     modifiers = new List<Modifier>();
                     dt = new VoidType();
 
@@ -149,9 +148,6 @@ namespace Whirlwind.Semantic.Visitor
                             case "VOL":
                                 modifiers.Add(Modifier.VOLATILE);
                                 break;
-                            case "OWN":
-                                owned = true;
-                                break;
                             
                         }
                     }
@@ -162,14 +158,6 @@ namespace Whirlwind.Semantic.Visitor
                     {
                         if (constant)
                             dt = dt.ConstCopy();
-
-                        if (owned)
-                        {
-                            if (dt is PointerType pt)
-                                dt = new PointerType(pt.DataType, pt.Pointers, _registrar.MakeOwner(-2));
-                            else
-                                throw new SemanticException("Cannot declare ownership over type that is not pointer", item.Position);
-                        }
 
                         var symbol = new Symbol(name, dt, modifiers);
 

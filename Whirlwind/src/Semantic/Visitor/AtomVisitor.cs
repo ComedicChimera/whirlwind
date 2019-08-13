@@ -1,11 +1,9 @@
-﻿using Whirlwind.Parser;
-using Whirlwind.Types;
-
-using static Whirlwind.Semantic.Checker.Checker;
-
-using System;
-using System.Linq;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using Whirlwind.Parser;
+using Whirlwind.Types;
+using static Whirlwind.Semantic.Checker.Checker;
 
 namespace Whirlwind.Semantic.Visitor
 {
@@ -86,7 +84,7 @@ namespace Whirlwind.Semantic.Visitor
                      );
 
                 if (symbol.Modifiers.Contains(Modifier.CONSTEXPR))
-                    _nodes.Add(new ConstexprNode(symbol.Name, symbol.DataType, symbol.Name));
+                    _nodes.Add(new ConstexprNode(symbol.Name, symbol.DataType, symbol.Value));
                 else
                     _nodes.Add(new IdentifierNode(symbol.Name, symbol.DataType));
                 _nodes.Add(new ExprNode("StaticGet", symbol.DataType));
@@ -139,13 +137,13 @@ namespace Whirlwind.Semantic.Visitor
                         }
                         
                         break;
-                    case "->":
+                    case "->":                   
                         if (root.Type.Classify() == TypeClassifier.POINTER)
                         {
                             string pointerIdentifier = ((TokenNode)node.Content[1]).Tok.Value;
 
                             var symbol = _getMember(((PointerType)root.Type).DataType, pointerIdentifier, node.Content[0].Position, node.Content[1].Position);
-                            _nodes.Add(new ExprNode("GetMember", symbol.DataType));
+                            _nodes.Add(new ExprNode("DerefGetMember", symbol.DataType));
 
                             PushForward();
                             _nodes.Add(new IdentifierNode(pointerIdentifier, symbol.DataType));
@@ -154,6 +152,21 @@ namespace Whirlwind.Semantic.Visitor
                         }
                         else
                             throw new SemanticException("The '->' operator is not valid the given type", node.Content[0].Position);
+                    case "?":
+                        if (root.Type is PointerType pt)
+                        {
+                            string pointerIdentifier = ((TokenNode)node.Content[2]).Tok.Value;
+
+                            var symbol = _getMember(pt.DataType, pointerIdentifier, node.Content[0].Position, node.Content[2].Position);
+                            _nodes.Add(new ExprNode("NullableDerefGetMember", symbol.DataType));
+
+                            PushForward();
+                            _nodes.Add(new IdentifierNode(pointerIdentifier, symbol.DataType));
+                            MergeBack();
+                            break;
+                        }
+                        else
+                            throw new SemanticException("The '?->' operator is not valid the given type", node.Content[0].Position);
                     case "[":
                         _visitSubscript(root.Type, node);
                         break;
@@ -253,8 +266,6 @@ namespace Whirlwind.Semantic.Visitor
                     if (!((InterfaceType)type).GetFunction(name, out symbol))
                         throw new SemanticException($"Interface has no function `{name}`", idPos);
                     break;
-                case TypeClassifier.REFERENCE:
-                    return _getMember(((ReferenceType)type).DataType, name, opPos, idPos);
                 default:
                     if (name == "__finalize__")
                         throw new SemanticException("Unable to directly access finalizer outside of runtime core", idPos);
@@ -473,10 +484,12 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitSubscript(DataType rootType, ASTNode node)
         {
-            bool hasStartingExpr = false;
+            bool hasStartingExpr = false, isSetContext = _isSetContext;
             int expressionCount = 0, colonCount = 0;
             var types = new List<DataType>();
             var textPositions = new List<TextPosition>();
+
+            _isSetContext = false;
 
             foreach (var item in node.Content)
             {
@@ -601,20 +614,29 @@ namespace Whirlwind.Semantic.Visitor
                                     break;
                                 case "SliceStep":
                                     args.AddRange(new List<DataType>() {
-                            new SimpleType(SimpleType.SimpleClassifier.INTEGER),
-                            new SimpleType(SimpleType.SimpleClassifier.INTEGER),
-                            types[0]
-                        });
+                                        new SimpleType(SimpleType.SimpleClassifier.INTEGER),
+                                        new SimpleType(SimpleType.SimpleClassifier.INTEGER),
+                                        types[0]
+                                    });
                                     break;
                                 case "Slice":
                                     args.AddRange(types);
                                     break;
                             }
 
+                            if (_isSetContext)
+                                args.Add(new VoidType());
+
                             string methodName = $"__{(name == "Subscript" ? "[]" : "[:]")}__";
-                            if (HasOverload(rootType, methodName, new ArgumentList(args), out DataType returnType))
+                            if (GetOverload(rootType, methodName, new ArgumentList(args), out FunctionType fnType))
                             {
-                                _nodes.Add(new ExprNode(name, returnType));
+                                if (isSetContext)
+                                {
+                                    args.RemoveLast();
+                                    _setOperatorTypes.Add(fnType.Parameters.Last().DataType);                                  
+                                }
+
+                                _nodes.Add(new ExprNode(name, fnType.ReturnType));
                                 // capture root as well
                                 PushForward(args.Count + 1);
 
@@ -696,7 +718,7 @@ namespace Whirlwind.Semantic.Visitor
                 if (dt.Classify() != TypeClassifier.STRUCT_INSTANCE)
                     throw new SemanticException("Invalid dynamic allocation call", node.Content.Last().Position);
 
-                _nodes.Add(new ExprNode("HeapAllocStruct", new PointerType(dt, 1)));
+                _nodes.Add(new ExprNode("HeapAllocStruct", new PointerType(dt, true)));
                 PushForward();
             }
             else if (isTypeAlloc)
@@ -709,7 +731,7 @@ namespace Whirlwind.Semantic.Visitor
                 else if (!new SimpleType(SimpleType.SimpleClassifier.INTEGER, true).Coerce(_nodes.Last().Type))
                     throw new SemanticException("Size of heap allocated type must be an unsigned integer", allocBody.Content[2].Position);
 
-                _nodes.Add(new ExprNode("HeapAllocType", new PointerType(dt, 1)));
+                _nodes.Add(new ExprNode("HeapAllocType", new PointerType(dt, true)));
                 PushForward(2);
             }
             else
@@ -717,11 +739,9 @@ namespace Whirlwind.Semantic.Visitor
                 if (!new SimpleType(SimpleType.SimpleClassifier.INTEGER, true).Coerce(_nodes.Last().Type))
                     throw new SemanticException("Size of allocated space must be an unsigned integer", allocBody.Content[0].Position);
 
-                _nodes.Add(new ExprNode("HeapAllocSize", new PointerType(new VoidType(), 1)));
+                _nodes.Add(new ExprNode("HeapAllocSize", new PointerType(new VoidType(), true)));
                 PushForward();
             }
-
-            _registrar.MakeResource();
         }
 
         private void _visitFromExpr(ASTNode node)

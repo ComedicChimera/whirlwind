@@ -7,9 +7,30 @@ namespace Whirlwind.Semantic.Checker
     partial class Checker
     {
         public static bool HasOverload(DataType type, string methodName, out DataType returnType)
-            => HasOverload(type, methodName, new ArgumentList(), out returnType);
+        {
+            if (GetOverload(type, methodName, new ArgumentList(), out FunctionType fnType))
+            {
+                returnType = fnType.ReturnType;
+                return true;
+            }
+
+            returnType = null;
+            return false;
+        }
 
         public static bool HasOverload(DataType type, string methodName, ArgumentList arguments, out DataType returnType)
+        {
+            if (GetOverload(type, methodName, arguments, out FunctionType fnType))
+            {
+                returnType = fnType.ReturnType;
+                return true;
+            }
+
+            returnType = null;
+            return false;
+        }
+
+        public static bool GetOverload(DataType type, string methodName, ArgumentList arguments, out FunctionType fnType)
         {
             if (type.Classify() != TypeClassifier.INTERFACE)
             {
@@ -20,14 +41,14 @@ namespace Whirlwind.Semantic.Checker
                         case TypeClassifier.FUNCTION:
                             if (((FunctionType)symbol.DataType).MatchArguments(arguments))
                             {
-                                returnType = ((FunctionType)symbol.DataType).ReturnType;
+                                fnType = (FunctionType)symbol.DataType;
                                 return true;
                             }
                             break;
                         case TypeClassifier.FUNCTION_GROUP:
                             if (((FunctionGroup)symbol.DataType).GetFunction(arguments, out FunctionType ft))
                             {
-                                returnType = ft.ReturnType;
+                                fnType = (FunctionType)ft.ReturnType;
                                 return true;
                             }
                             break;
@@ -39,17 +60,24 @@ namespace Whirlwind.Semantic.Checker
                                 {
                                     tt.CreateGeneric(inferredTypes, out DataType dt);
 
-                                    returnType = ((FunctionType)dt).ReturnType;
+                                    fnType = (FunctionType)dt;
                                     return true;
                                 }
-                            }                            
+                            }
+                            break;
+                        case TypeClassifier.GENERIC_GROUP:
+                            if (((GenericGroup)symbol.DataType).GetFunction(arguments, out FunctionType result))
+                            {
+                                fnType = result;
+                                return true;
+                            }
                             break;
                     }
-                    
+
                 }
             }
 
-            returnType = new VoidType();
+            fnType = null;
             return false;
         }
     }

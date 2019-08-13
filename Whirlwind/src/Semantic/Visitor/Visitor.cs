@@ -7,6 +7,33 @@ using System;
 
 namespace Whirlwind.Semantic.Visitor
 {
+    // The Visitor Context Struct
+    // used to preserve context when descending into
+    // a lambda body without corrupting the context
+    // of that expression and preventing the corruption
+    // of the above context
+    struct VisitorContext
+    {
+        public readonly bool 
+            CouldLambdaContextExist, 
+            CouldTypeClassContextExist,
+            CouldOwnerExist,
+            IsSetContext;
+
+        public readonly CustomType TypeClassContext;
+        public readonly List<DataType> SetOperatorTypes;
+
+        public VisitorContext(bool clc, bool ctcc, bool co, bool isc, CustomType tcc, List<DataType> sot)
+        {
+            CouldLambdaContextExist = clc;
+            CouldTypeClassContextExist = ctcc;
+            CouldOwnerExist = co;
+            IsSetContext = isc;
+            TypeClassContext = tcc;
+            SetOperatorTypes = sot;
+        }
+    }
+
     // The Visitor Class
     // Responsible for performing the
     // bulk of semantic analysis and
@@ -24,12 +51,12 @@ namespace Whirlwind.Semantic.Visitor
         // visitor shared constructs and data
         private List<ITypeNode> _nodes;
         private SymbolTable _table;
-        private MemoryRegistrar _registrar;
-        private string _namePrefix; 
+        private string _namePrefix;
+        private bool _constexprOptimizerEnabled;
         
         // visitor state data
         private CustomType _typeClassContext;
-        private int _ownedTypeGenResId = -2;
+        private List<DataType> _setOperatorTypes;
 
         // visitor state flags
         private bool _couldLambdaContextExist = false, _couldTypeClassContextExist = false;
@@ -37,16 +64,19 @@ namespace Whirlwind.Semantic.Visitor
         private bool _isTypeCast = false;
         private bool _isGenericSelfContext = false;
         private bool _couldOwnerExist = false, _isFinalizer = false;
+        private bool _isSetContext = false;
+        private bool _isExprStmt = false;
 
-        public Visitor(string namePrefix)
+        public Visitor(string namePrefix, bool constexprOptimizerEnabled)
         {
             ErrorQueue = new List<SemanticException>();
 
             _nodes = new List<ITypeNode>();
             _table = new SymbolTable();
-            _registrar = new MemoryRegistrar();
 
             _namePrefix = namePrefix;
+            _constexprOptimizerEnabled = constexprOptimizerEnabled;
+            _setOperatorTypes = new List<DataType>();
         }
 
         // ----------------------
@@ -186,6 +216,7 @@ namespace Whirlwind.Semantic.Visitor
         private void _addContext(ASTNode node)
         {
             _couldTypeClassContextExist = true;
+            _couldOwnerExist = true;
 
             _addLambdaContext(node);
         }
@@ -228,11 +259,43 @@ namespace Whirlwind.Semantic.Visitor
             }
         }
 
-        // sets both context-indefinence variables to false
-        private void _clearPossibleContext()
+        // sets all expression level visitor flags to false
+        private void _clearContext()
         {
             _couldLambdaContextExist = false;
             _couldTypeClassContextExist = false;
+            _couldOwnerExist = false;
+            _isSetContext = false;
+
+            _typeClassContext = null;
+            _setOperatorTypes = new List<DataType>();
+        }
+
+        // saves the visitor context into an object
+        // no need to copy here b/c references are 
+        // recreated by whatever state they are being
+        // transistioned to and cleared by clear context
+        // before hand
+        private VisitorContext _saveContext()
+            => new VisitorContext(
+                   _couldLambdaContextExist,
+                   _couldTypeClassContextExist,
+                   _couldOwnerExist,
+                   _isSetContext,
+                   _typeClassContext,
+                   _setOperatorTypes
+               );
+
+        // restores the current visitor context
+        // from an object
+        private void _restoreContext(VisitorContext vctx)
+        {
+            _couldLambdaContextExist = vctx.CouldLambdaContextExist;
+            _couldTypeClassContextExist = vctx.CouldTypeClassContextExist;
+            _couldOwnerExist = vctx.CouldOwnerExist;
+            _isSetContext = vctx.IsSetContext;
+            _typeClassContext = vctx.TypeClassContext;
+            _setOperatorTypes = vctx.SetOperatorTypes;
         }
 
         // -------------------
@@ -242,7 +305,7 @@ namespace Whirlwind.Semantic.Visitor
         // checks to see if a type is void
         private bool _isVoid(DataType type)
         {
-            if (type.Classify() == TypeClassifier.VOID)
+            if (type.Classify() == TypeClassifier.VOID || type.Classify() == TypeClassifier.NULL)
                 return true;
             else if (type.Classify() == TypeClassifier.DICT)
             {

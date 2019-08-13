@@ -128,9 +128,9 @@ namespace Whirlwind.Semantic
         public DataType Type { get; set; }
 
         public readonly string IdName;
-        public readonly string ConstValue;
+        public readonly ITypeNode ConstValue;
 
-        public ConstexprNode(string name, DataType type, string constVal)
+        public ConstexprNode(string name, DataType type, ITypeNode constVal)
         {
             IdName = name;
             Type = type;
@@ -139,7 +139,7 @@ namespace Whirlwind.Semantic
 
         public override string ToString()
         {
-            return $"ConstexprID({IdName}, {Type}, {ConstValue})";
+            return $"ConstexprID({IdName}, {Type}, {ConstValue.ToString()})";
         }
     }
 

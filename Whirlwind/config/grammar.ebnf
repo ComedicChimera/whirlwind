@@ -141,7 +141,7 @@ assign_op: [ operator ] '=' ;
 
 // delete statement
 delete_stmt: 'DELETE' delete_id (',' delete_id)* ;
-delete_id: ['THIS' '.'] 'IDENTIFIER' ;
+delete_id: ['THIS' '.'] 'IDENTIFIER' trailer*;
 
 // simple statements
 continue_stmt: 'CONTINUE' ;
@@ -195,7 +195,7 @@ term: factor (('*' | '/' | '%' | '~/') factor)* ;
 factor: unary_atom ('~^' unary_atom)*;
 
 // unary operators
-unary_atom: ('REF' | '&' | '-' | '~' | '++' | '--' | '*'+) atom
+unary_atom: ('&' | '-' | '~' | '++' | '--' | '*' ['?'] ) atom
 | atom ['++' | '--']
 ;
 
@@ -211,6 +211,7 @@ trailer: '[' (expr [slice] | slice) ']'
 | '{' init_list '}'
 | '.' ( 'IDENTIFIER' | 'INTEGER_LITERAL' )
 | '->' 'IDENTIFIER'
+| '?' '->' 'IDENTIFIER'
 | generic_spec
 | static_get
 ;
@@ -287,15 +288,16 @@ partial_arg: '_'
 super_call: 'SUPER' '(' [ 'IDENTIFIER' static_get* [ generic_spec ] ] ')' ;
 
 // DATA TYPES - data type literals
-types: ['CONST'] ['OWN'] ['REF'] '*'* ( base_types
+types: ['CONST'] ( base_types
 | 'IDENTIFIER' static_get* [generic_spec]
 )
 ;
 
 base_types: simple_types
 | collection_types
-| func_types
+| func_type
 | tuple_type
+| pointer_type
 ;
 
 simple_types: 'BOOL_TYPE'
@@ -314,13 +316,15 @@ collection_types: '[' [ expr ] ']' types
 | '[' types ':' types ']'
 ;
 
-func_types: ('FUNC' | 'ASYNC') '(' func_arg_types ')' '(' [ type_list ] ')' ;
+func_type: ('FUNC' | 'ASYNC') '(' func_arg_types ')' '(' [ type_list ] ')' ;
 func_arg_types: [ func_arg_type (',' func_arg_type)* ] [func_arg_indef] ;
 func_arg_type: types ['~'] ;
 func_arg_indef: '...' [types] ;
 
 tuple_type: '(' tuple_type_list ')' ;
 tuple_type_list: types (',' types)+ ;
+
+pointer_type: ['DYN'] '*' types ;
 
 
 // COMMON CONSTRUCTIONS - common structures used repeatedly in grammar

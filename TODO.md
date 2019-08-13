@@ -1,16 +1,15 @@
 # TODO
 
 - add package linker
-- add 2 sanitizers (constexpr and memory) [Note: constexpr does in depth checking on all constant expressions]
 - add prelude (later)
-- clear up the behavior of null in memory sanitizer
 - add annotations to describe memory and program behavior (using `#` syntax)
   * File Level Annotations: `#unsafe` or `#res_name "test"`: effect file behavior generally
   * Function Annotation: `#intrinsic` or `#extern`: to effect how function compiles
   * Struct Annotation: `#joined`: effect how structs compile and initialize
 - add `#impl` to create structs for intrinsic types like strings or arrays
   * `#impl "str"`
-- make sure to check operator overloads where necessary
+- add get and set versions of the `[]` and `[:]` operators
+
 
 # TESTING
 
@@ -36,7 +35,6 @@
   * process: heavy, OS-based, concurrent, non-Whirlwind owned executor
 - when implementing package linker, make sure to give prefix to visitor
 - during compilation, make sure to acknowledge the effects of captures
-- sanitizers should be embedded in visitor
 - make sure to compile `this` as hidden pointer
   * `&this` does nothing at a generated code level
   * `this.property` compiles to `this->property`
@@ -48,6 +46,7 @@
   * if the previous expression is not a boolean, continue if there is no error
   * if the chain is incomplete, it simply returns the null value of the last type
 - make sure to process generic binding appropriately
+- when generating code, make sure to add in deletes for dynamically allocated memory
 
 # THOUGHTS
 

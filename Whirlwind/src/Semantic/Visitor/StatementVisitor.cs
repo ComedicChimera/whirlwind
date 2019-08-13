@@ -45,6 +45,7 @@ namespace Whirlwind.Semantic.Visitor
                         _visitAssignment(stmt);
                         break;
                     case "expr":
+                        _isExprStmt = true;
                         _visitExpr(stmt);
                         _nodes.Add(new StatementNode("ExprStmt"));
                         PushForward();
@@ -87,7 +88,7 @@ namespace Whirlwind.Semantic.Visitor
 
                 _nodes.Add(new StatementNode("None"));
 
-                _clearPossibleContext();
+                _clearContext();
             }
         }
 
@@ -136,61 +137,66 @@ namespace Whirlwind.Semantic.Visitor
             {
                 if (item.Name == "delete_id")
                 {
-                    var deleteId = (ASTNode)item;                   
-
-                    if (deleteId.Content.Count == 3)
+                    bool hasThis = false;
+                    
+                    foreach (var elem in ((ASTNode)item).Content)
                     {
-                        if (!_isFinalizer)
-                            throw new SemanticException("Unable to delete member variables outside of finalizer", deleteId.Content[0].Position);
-
-                        // if we are in a finalizer a this pointer must exist
-                        _table.Lookup("$THIS", out Symbol thisPtr);                       
-
-                        if (thisPtr.DataType is StructType st)
+                        if (elem is TokenNode tkNode)
                         {
-                            var name = ((TokenNode)deleteId.Content[2]).Tok.Value;
-
-                            if (st.Members.ContainsKey(name))
+                            if (tkNode.Tok.Type == "THIS")
                             {
-                                if (st.Members[name].DataType is PointerType pt)
-                                {
-                                    if (!_registrar.DeleteResource(pt.Owner))
-                                        throw new SemanticException("Unable to delete resource from a non-owner", deleteId.Content[2].Position);
+                                if (!_isFinalizer)
+                                    throw new SemanticException("Unable to delete member variables outside of finalizer", elem.Position);
 
-                                    _nodes.Add(new ExprNode("GetMember", pt));
+                                // if we are in a finalizer a this pointer must exist
+                                _table.Lookup("$THIS", out Symbol thisPtr);
 
-                                    _nodes.Add(new IdentifierNode("$THIS", thisPtr.DataType));
-                                    _nodes.Add(new IdentifierNode(name, pt));
-                                    MergeBack();
-                                }
-                                else
-                                    throw new SemanticException("Unable to a delete from a non-pointer", deleteId.Content[2].Position);
+                                if (thisPtr.DataType.Classify() != TypeClassifier.STRUCT_INSTANCE)
+                                    throw new SemanticException("Unable to delete member of anything other than a struct", elem.Position);
+
+                                _nodes.Add(new IdentifierNode("$THIS", thisPtr.DataType));
+                                hasThis = true;
                             }
-                            else
-                                throw new SemanticException($"Struct contains no member by name `{name}`", deleteId.Content[2].Position);
+                            else if (tkNode.Tok.Type == "IDENTIFIER")
+                            {
+                                var name = tkNode.Tok.Value;
+
+                                if (hasThis)
+                                {
+                                    var st = (StructType)_nodes.Last().Type;
+
+                                    if (st.Members.ContainsKey(name))
+                                    {
+                                        var smdt = st.Members[name].DataType;
+
+                                        _nodes.Add(new IdentifierNode(name, smdt));
+
+                                        _nodes.Add(new ExprNode("GetMember", smdt));
+                                        PushForward(2);
+                                    }
+                                    else
+                                        throw new SemanticException($"Struct contains no member by name `{name}`", elem.Position);
+                                }
+                                else if (_table.Lookup(name, out Symbol symbol))
+                                    _nodes.Add(new IdentifierNode(name, symbol.DataType));
+                                else
+                                    throw new SemanticException($"Undefined symbol: `{name}`", elem.Position);
+                            }
                         }
+                        // can only be trailer
                         else
-                            throw new SemanticException("Unable to delete member of a non-owning type", deleteId.Content[0].Position);
-                    }
-                    else
-                    {
-                        var name = ((TokenNode)deleteId.Content[0]).Tok.Value;
-                        var scope = _table.GetScope();
-
-                        if (!scope.Select(x => x.Name).Contains(name))
-                            throw new SemanticException("Unable to delete from owner that either does not exist or is not in the current scope",
-                                deleteId.Content[0].Position);
-
-                        if (scope.Where(x => name == x.Name).First().DataType is PointerType pt)
                         {
-                            if (_registrar.DeleteResource(pt.Owner))
-                                _nodes.Add(new IdentifierNode(name, pt));
+                            var trailerNode = (ASTNode)elem;
+
+                            if (trailerNode.Content.First() is TokenNode trailerFirst && trailerFirst.Tok.Type == "[")
+                                _visitSubscript(_nodes.Last().Type, trailerNode);
                             else
-                                throw new SemanticException("Unable to delete resource from a non-owner", deleteId.Content[2].Position);
+                                throw new SemanticException("Unable to perform the given operation in a delete statement", trailerNode.Position);
                         }
-                        else
-                            throw new SemanticException("Unable to delete from a non-pointer", deleteId.Content[2].Position);                      
                     }
+
+                    if (!(_nodes.Last().Type is PointerType pt && pt.IsDynamicPointer))
+                        throw new SemanticException("Only able to delete dynamic pointers", item.Position);
 
                     deleteIdCount++;
                 }
@@ -242,7 +248,7 @@ namespace Whirlwind.Semantic.Visitor
 
                             _addContext(exprNode);
                             _visitExpr(exprNode);
-                            _clearPossibleContext();
+                            _clearContext();
                         }
                         
                         exprTypes.Add(_nodes.Last().Type);
@@ -253,6 +259,8 @@ namespace Whirlwind.Semantic.Visitor
             }
 
             string subOp = op.Length > 1 ? string.Join("", op.Take(op.Length - 1)) : "";
+            bool hasSetOperatorTypes = _setOperatorTypes.Count > 0;
+            int setOpPos = 0;
 
             if (varTypes.Count == exprTypes.Count)
             {
@@ -260,6 +268,9 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     if (exprTypes[i] is IncompleteType)
                         _inferLambdaAssignContext(varTypes[i], exprTypes, i);
+
+                    /*if (hasSetOperatorTypes && !_setOperatorTypes[i].Coerce(exprTypes[i]))
+                        throw new SemanticException("The set operator overload for the given variable")*/
 
                     if (subOp != "")
                     {
@@ -343,6 +354,8 @@ namespace Whirlwind.Semantic.Visitor
             else
                 throw new SemanticException("Too many expressions for the given assignment", stmt.Position);
 
+            _setOperatorTypes = new List<DataType>();
+
             _nodes.Add(new StatementNode("Assignment"));
             PushForward(2);
         }
@@ -351,6 +364,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             int derefCount = 0;
 
+            int pos = 0;
             foreach (var node in assignVar.Content)
             {
                 if (node.Name == "TOKEN")
@@ -383,7 +397,14 @@ namespace Whirlwind.Semantic.Visitor
                     }
                 }
                 else if (node.Name == "trailer")
+                {
+                    if (pos == assignVar.Content.Count - 1)
+                        _isSetContext = true;
+
                     _visitTrailer((ASTNode)node);
+                }
+
+                pos++;
             }
 
             if (!Modifiable(_nodes.Last()))
@@ -391,27 +412,30 @@ namespace Whirlwind.Semantic.Visitor
 
             if (derefCount > 0)
             {
-                if (_nodes.Last().Type.Classify() == TypeClassifier.POINTER)
+                if (_nodes.Last().Type is PointerType pType)
                 {
-                    PointerType pType = (PointerType)_nodes.Last().Type;
-
-                    if (pType.Pointers < derefCount)
-                        throw new SemanticException("Unable to dereference non-pointer", assignVar.Position);
-                    else if (pType.Pointers == derefCount)
-                    {
-                        if (_isVoid(pType.DataType))
-                            throw new SemanticException("Unable to dereference void pointer", assignVar.Position);
-
-                        _nodes.Add(new ExprNode("Dereference", pType.DataType));
-                    }
+                    if (_isVoid(pType.DataType))
+                        throw new SemanticException("Unable to dereference void pointer", assignVar.Position);
                     else
-                        _nodes.Add(new ExprNode("Dereference", new PointerType(pType.DataType, pType.Pointers - derefCount)));
+                    _nodes.Add(new ExprNode("Dereference", pType.DataType));
 
-                    PushForward();
+                PushForward();
                 }
                 else
                     throw new SemanticException("Unable to dereference non-pointer", assignVar.Position);
             }
+        }
+
+        private bool _isSetOperatorOverload(ITypeNode node)
+        {
+            if (node.Name == "Subscript" || node.Name.StartsWith("Slice"))
+            {
+                var setBaseType = ((TreeNode)node).Nodes[0].Type;
+
+                // if (setBaseType.GetInterface().)
+            }
+
+            return false;
         }
 
         private void _inferLambdaAssignContext(DataType pctx, List<DataType> exprTypes, int pos)

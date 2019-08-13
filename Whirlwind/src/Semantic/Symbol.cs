@@ -49,7 +49,7 @@ namespace Whirlwind.Semantic
         public DataType DataType;
         public List<Modifier> Modifiers;
 
-        public readonly string Value;
+        public readonly ITypeNode Value;
 
         public Symbol(string name, DataType dt)
         {
@@ -65,7 +65,7 @@ namespace Whirlwind.Semantic
             Modifiers = modifiers;
         }
 
-        public Symbol(string name, DataType dt, string value)
+        public Symbol(string name, DataType dt, ITypeNode value)
         {
             Name = name;
             DataType = dt;
@@ -73,7 +73,7 @@ namespace Whirlwind.Semantic
             Value = value;
         }
 
-        public Symbol(string name, DataType dt, List<Modifier> modifiers, string value)
+        public Symbol(string name, DataType dt, List<Modifier> modifiers, ITypeNode value)
         {
             Name = name;
             DataType = dt;
@@ -83,7 +83,7 @@ namespace Whirlwind.Semantic
 
         public bool Equals(Symbol other)
         {
-            if (Name == other.Name && DataType.Equals(other.DataType) && Value == other.Value)
+            if (Name == other.Name && DataType.Equals(other.DataType))
                 return Modifiers.EnumerableEquals(other.Modifiers);
 
             return false;

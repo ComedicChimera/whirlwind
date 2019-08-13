@@ -185,7 +185,7 @@ namespace Whirlwind.Semantic.Visitor
                     if (scopeDepth != _table.GetScopeDepth())
                         _table.AscendScope();
 
-                    _clearPossibleContext();
+                    _clearContext();
                 }
                 
                 _nodes.RemoveAt(1);
@@ -222,7 +222,6 @@ namespace Whirlwind.Semantic.Visitor
                 }
                 else if (item.Name == "OperatorOverload" || item.Name == "Variant")
                     _completeFunction((BlockNode)item);
-
             }
 
             _table.AscendScope();

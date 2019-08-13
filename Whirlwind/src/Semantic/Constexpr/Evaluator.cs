@@ -6,6 +6,7 @@ using System.Collections.Generic;
 
 namespace Whirlwind.Semantic.Constexpr
 {
+    // perhaps consider expanding what nodes are allowed
     static class Evaluator
     {
         private static readonly string[] _validNodes =
@@ -48,16 +49,14 @@ namespace Whirlwind.Semantic.Constexpr
             else if (node is ValueNode)
                 return (ValueNode)node;
             else if (node is ConstexprNode)
-                return new ValueNode("Value", node.Type, ((ConstexprNode)node).ConstValue);
+                return ((ConstexprNode)node).ConstValue;
             else
                 throw new ArgumentException("Unable to evaluate the given argument.");
         }
 
         private static ITypeNode _evaluateExpr(ExprNode node)
         {
-            if (node.Name == "expr")
-                return Evaluate(node.Nodes[0]);
-            else if (node.Name == "Array" || node.Name == "Tuple")
+            if (node.Name == "Array" || node.Name == "Tuple")
                 return new ExprNode(node.Name, node.Type,
                        node.Nodes.Select(x => Evaluate(x)).ToList()
                    );
@@ -122,35 +121,6 @@ namespace Whirlwind.Semantic.Constexpr
 
                 return Evaluate(node.Nodes[(int)condition + 1]);
             }
-            else if (node.Name == "NullCoalesce")
-            {
-                bool isNull = false;
-
-                if (node.Nodes[0] is ExprNode)
-                    isNull = ((ExprNode)node.Nodes[0]).Nodes.Count == 0;
-                else
-                {
-                    var val = _convertToCSharpType(node.Nodes[0].Type, ((ValueNode)Evaluate(node.Nodes[0])).Value);
-
-                    if (val is int)
-                        isNull = val == 0;
-                    else if (val is float)
-                        isNull = val == 0.0f;
-                    else if (val is long)
-                        isNull = val == 0L;
-                    else if (val is double)
-                        isNull = val == 0.0;
-                    else if (val is string)
-                        isNull = val == "";
-                    else if (val is char)
-                        isNull = val == '\0';
-                    else
-                        isNull = (bool)val;
-
-                }
-
-                return isNull ? Evaluate(node.Nodes[1]) : Evaluate(node.Nodes[2]);
-            }
             else if (node.Name == "Subscript")
             {
                 if (node.Nodes[0].Type.Classify() == TypeClassifier.ARRAY)
@@ -177,7 +147,7 @@ namespace Whirlwind.Semantic.Constexpr
                 throw new ArgumentException("Unable to evaluate a subscript on the given type");
             }
             else if (node.Name == "StaticGet")
-                return new ValueNode("Result", node.Nodes[1].Type, ((ConstexprNode)node.Nodes[1]).ConstValue);
+                return ((ConstexprNode)node.Nodes[1]).ConstValue;
             else if (node.Nodes.Count == 2)
             {
                 dynamic val1 = _convertToCSharpType(node.Type, ((ValueNode)Evaluate(node.Nodes[0])).Value),

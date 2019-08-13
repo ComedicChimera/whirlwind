@@ -245,8 +245,6 @@ namespace Whirlwind.Semantic.Visitor
 
                     pos++;
                 }
-                else if (node.Name == "Throw" || node.Name == "ThrowObject")
-                    terminatingReturn = true;
                 else if (node is BlockNode && !node.Name.EndsWith("Function"))
                 {
                     int savedPos = pos;
@@ -480,9 +478,9 @@ namespace Whirlwind.Semantic.Visitor
                             throw new SemanticException("Named arguments must be declared after unnamed arguments",
                                 subNode.Position);
 
-                        _addContext((ASTNode)argNode);
+                        _addContext(argNode);
                         _visitExpr(argNode);
-                        _clearPossibleContext();
+                        _clearContext();
 
                         uArgs.Add(_nodes.Last().Type);
                     }
@@ -490,9 +488,10 @@ namespace Whirlwind.Semantic.Visitor
                     {
                         string name = ((TokenNode)argNode.Content[0]).Tok.Value;
 
+
                         _addContext((ASTNode)argNode.Content[2]);
                         _visitExpr((ASTNode)argNode.Content[2]);
-                        _clearPossibleContext();
+                        _clearContext();
 
                         DataType dt = _nodes.Last().Type;
 

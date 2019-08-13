@@ -48,7 +48,7 @@ namespace Whirlwind
             }
 
             // during package linking, add name prefix
-            var visitor = new Visitor("");
+            var visitor = new Visitor("", false);
 
             try
             {

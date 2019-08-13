@@ -75,9 +75,19 @@ namespace Whirlwind.Semantic.Visitor
                                                 case "variable_initializer":
                                                     {
                                                         var initNode = (ASTNode)((ASTNode)elem).Content[1];
-                                                        _addContext(initNode);
-                                                        _visitExpr(initNode);
-                                                        _clearPossibleContext();
+
+                                                        if (variables[currentIdentifier].Type is VoidType)
+                                                        {
+                                                            _couldOwnerExist = true;
+                                                            _visitExpr(initNode);
+                                                            _couldOwnerExist = false;
+                                                        }
+                                                        else
+                                                        {
+                                                            _addContext(initNode);
+                                                            _visitExpr(initNode);
+                                                            _clearContext();
+                                                        }
 
                                                         if (((TokenNode)((ASTNode)elem).Content[0]).Tok.Type == ":=")
                                                         {
@@ -146,10 +156,14 @@ namespace Whirlwind.Semantic.Visitor
                         {
                             _addContext(mainInitNode);
                             _visitExpr(mainInitNode);
-                            _clearPossibleContext();
+                            _clearContext();
                         }
                         else
-                            _visitExpr(mainInitNode);                     
+                        {
+                            _couldOwnerExist = true;
+                            _visitExpr(mainInitNode);
+                            _couldOwnerExist = false;
+                        }                                               
 
                         if (((TokenNode)((ASTNode)item).Content[0]).Tok.Type == ":=")
                         {
@@ -250,10 +264,10 @@ namespace Whirlwind.Semantic.Visitor
                 Symbol symbol;
 
                 if (initializers.ContainsKey(variable) && initializers[variable].Item1)
-                    symbol = new Symbol(variable, variables[variable].Type, ((ValueNode)((ExprNode)initializers[variable].Item2).Nodes[0]).Value);
+                    symbol = new Symbol(variable, variables[variable].Type, ((ExprNode)initializers[variable].Item2).Nodes[0]);
                 else if (constexpr && !initializers.ContainsKey(variable))
                     // last item on stack will always be the main initializer if constexpr
-                    symbol = new Symbol(variable, variables[variable].Type, ((ValueNode)((ExprNode)_nodes.Last()).Nodes[0]).Value);
+                    symbol = new Symbol(variable, variables[variable].Type, ((ExprNode)_nodes.Last()).Nodes[0]);
                 else
                     symbol = new Symbol(variable, variables[variable].Type);
 

@@ -276,8 +276,10 @@ namespace Whirlwind.Semantic.Visitor
 
             if (new[] { "!", ":>", "<-", "~" }.Contains(op) && args.Count != 0)
                 throw new SemanticException("Unary operator overload must not take arguments", node.Content[3].Position);
-            else if (op == "[:]" && args.Count != 3)
-                throw new SemanticException("Slice operator overload must take exactly 3 arguments", node.Content[3].Position);
+            else if (op == "[:]" && (args.Count != 3 || args.Count != 4))
+                throw new SemanticException("Slice operator overload must take either 3 or 4 arguments", node.Content[3].Position);
+            else if (op == "[]" && (args.Count != 1 || args.Count != 2))
+                throw new SemanticException("Subscript operator overload must take either 1 or 2 arguments", node.Content[3].Position);
             else if ((op != "-" || args.Count != 0) && args.Count != 1)
                 throw new SemanticException("Binary operator overload must take exactly 1 argument", node.Content[3].Position);
 

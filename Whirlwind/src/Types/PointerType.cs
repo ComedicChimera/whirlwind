@@ -3,20 +3,18 @@
     class PointerType : DataType
     {
         public readonly DataType DataType;
-        public int Pointers;
-        public int Owner;
+        public bool IsDynamicPointer;
 
-        public PointerType(DataType dt, int pointers, int owner = -1)
+        public PointerType(DataType dt, bool heapPtr)
         {
             DataType = dt;
-            Pointers = pointers;
-            Owner = owner;
+            IsDynamicPointer = heapPtr;
         }
 
         protected sealed override bool _coerce(DataType other)
         {
             if (other is PointerType pt)
-                return DataType.Coerce(pt.DataType) && Pointers == pt.Pointers;
+                return DataType.Coerce(pt.DataType) && IsDynamicPointer == pt.IsDynamicPointer;
 
             return false;
         }
@@ -25,15 +23,13 @@
 
         protected override bool _equals(DataType other)
         {
-            if (other.Classify() == TypeClassifier.POINTER)
-            {
-                return DataType.Equals(((PointerType)other).DataType) && Pointers == ((PointerType)other).Pointers;
-            }
+            if (other is PointerType pt)
+                return DataType.Equals(pt.DataType) && IsDynamicPointer == pt.IsDynamicPointer;
 
             return false;
         }
 
         public override DataType ConstCopy()
-            => new PointerType(DataType, Pointers, Owner) { Constant = true };
+            => new PointerType(DataType, IsDynamicPointer) { Constant = true };
     }
 }

@@ -101,10 +101,7 @@ namespace Whirlwind.Semantic.Checker
                     break;
                 case TypeClassifier.POINTER:
                     if (desired.Classify() == TypeClassifier.POINTER)
-                    {
-                        PointerType startPointer = (PointerType)start, desiredPointer = (PointerType)desired;
-                        return TypeCast(startPointer.DataType, desiredPointer.DataType) && startPointer.Pointers == desiredPointer.Pointers;
-                    }
+                        return TypeCast(((PointerType)start).DataType, ((PointerType)desired).DataType);
                     else if (desired.Classify() == TypeClassifier.SIMPLE)
                         return ((SimpleType)desired).Type == SimpleType.SimpleClassifier.INTEGER && ((SimpleType)desired).Unsigned;
                     else if (desired.Classify() == TypeClassifier.ARRAY)

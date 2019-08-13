@@ -1,5 +1,6 @@
 ﻿using Whirlwind.Parser;
 using Whirlwind.Types;
+using Whirlwind.Semantic.Constexpr;
 
 using static Whirlwind.Semantic.Checker.Checker;
 
@@ -14,6 +15,9 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitExpr(ASTNode node, bool needsSubscope=true)
         {
+            bool isExprStmt = _isExprStmt;
+            _isExprStmt = false;
+
             try
             {
                 foreach (var subNode in node.Content)
@@ -237,6 +241,18 @@ namespace Whirlwind.Semantic.Visitor
             {
                 throw new SemanticException("Use of incomplete self-referential type in expression", node.Position);
             }
+
+            // don't worry with other stuff if incomplete
+            if (_nodes.Last() is IncompleteNode)
+                return;
+
+            // check for erroneous void types
+            if (_nodes.Last().Type is VoidType && !isExprStmt)
+                throw new SemanticException("Unable to use an expression that returns no value", node.Position);
+
+            // apply constexpr optimization
+            if (_constexprOptimizerEnabled && Evaluator.TryEval(_nodes.Last()))
+                _nodes[_nodes.Count - 1] = Evaluator.Evaluate(_nodes.Last());
         }
 
         private void _visitInlineCase(ASTNode node)
@@ -729,31 +745,14 @@ namespace Whirlwind.Semantic.Visitor
                     }.Contains(rootType.Classify()))
                         throw new SemanticException("The given object is not able to referenced", node.Content[0].Position);
                     treeName = "Indirect";
-                    if (rootType.Classify() == TypeClassifier.POINTER)
-                    {
-                        var pType = (PointerType)rootType;
-                        dt = new PointerType(pType.DataType, pType.Pointers + 1);
-                    }
-                    else
-                        dt = new PointerType(rootType, 1);             
-                    break;
-                case "REF":
-                    if (rootType.Classify() == TypeClassifier.REFERENCE)
-                        throw new SemanticException("Unable to create a double reference", node.Content[0].Position);
-
-                    treeName = "Reference";
-                    dt = new ReferenceType(rootType);
+                    dt = new PointerType(rootType, false);
                     break;
                 // dereference
                 default:
-                    if (rootType.Classify() == TypeClassifier.POINTER)
+                    if (rootType is PointerType pt)
                     {
-                        int pointerCount = ((PointerType)rootType).Pointers;
-                        if (op.Length > pointerCount)
-                            throw new SemanticException("Unable to dereference a non-pointer", node.Content[op.Length - pointerCount - 1].Position);
-
-                        treeName = "Dereference";
-                        dt = op.Length == pointerCount ? ((PointerType)rootType).DataType : new PointerType(((PointerType)rootType).DataType, pointerCount - op.Length);
+                        treeName = op == "*?" ? "NullableDereference" : "Dereference";
+                        dt = pt.DataType;
 
                         if (_isVoid(dt))
                             throw new SemanticException("Unable to dereference a void pointer", node.Content[node.Content.Count - 1].Position);
