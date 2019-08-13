@@ -21,18 +21,14 @@ namespace Whirlwind.Semantic.Visitor
             IsSetContext;
 
         public readonly CustomType TypeClassContext;
-        public readonly Dictionary<int, DataType> SetOperatorTypes;
-        public readonly int SetOperatorPosition;
 
-        public VisitorContext(bool clc, bool ctcc, bool co, bool isc, CustomType tcc, Dictionary<int, DataType> sot, int sop)
+        public VisitorContext(bool clc, bool ctcc, bool co, bool isc, CustomType tcc)
         {
             CouldLambdaContextExist = clc;
             CouldTypeClassContextExist = ctcc;
             CouldOwnerExist = co;
             IsSetContext = isc;
             TypeClassContext = tcc;
-            SetOperatorTypes = sot;
-            SetOperatorPosition = sop;
         }
     }
 
@@ -58,8 +54,6 @@ namespace Whirlwind.Semantic.Visitor
         
         // visitor state data
         private CustomType _typeClassContext;
-        private Dictionary<int, DataType> _setOperatorTypes;
-        private int _setOperatorPosition;
 
         // visitor state flags
         private bool _couldLambdaContextExist = false, _couldTypeClassContextExist = false;
@@ -79,7 +73,6 @@ namespace Whirlwind.Semantic.Visitor
 
             _namePrefix = namePrefix;
             _constexprOptimizerEnabled = constexprOptimizerEnabled;
-            _setOperatorTypes = new Dictionary<int, DataType>();
         }
 
         // ----------------------
@@ -271,7 +264,6 @@ namespace Whirlwind.Semantic.Visitor
             _isSetContext = false;
 
             _typeClassContext = null;
-            _setOperatorTypes = new Dictionary<int, DataType>();
         }
 
         // saves the visitor context into an object
@@ -285,9 +277,7 @@ namespace Whirlwind.Semantic.Visitor
                    _couldTypeClassContextExist,
                    _couldOwnerExist,
                    _isSetContext,
-                   _typeClassContext,
-                   _setOperatorTypes,
-                   _setOperatorPosition
+                   _typeClassContext
                );
 
         // restores the current visitor context
@@ -299,8 +289,6 @@ namespace Whirlwind.Semantic.Visitor
             _couldOwnerExist = vctx.CouldOwnerExist;
             _isSetContext = vctx.IsSetContext;
             _typeClassContext = vctx.TypeClassContext;
-            _setOperatorTypes = vctx.SetOperatorTypes;
-            _setOperatorPosition = vctx.SetOperatorPosition;
         }
 
         // -------------------

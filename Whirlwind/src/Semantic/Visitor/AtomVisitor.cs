@@ -633,10 +633,15 @@ namespace Whirlwind.Semantic.Visitor
                                 if (isSetContext)
                                 {
                                     args.RemoveLast();
-                                    _setOperatorTypes.Add(_setOperatorPosition, fnType.Parameters.Last().DataType);                                  
-                                }
 
-                                _nodes.Add(new ExprNode(name, fnType.ReturnType));
+                                    // restore context
+                                    _isSetContext = true;
+
+                                    _nodes.Add(new ExprNode(name + "SetOverload", fnType.Parameters.Last().DataType));
+                                }
+                                else
+                                    _nodes.Add(new ExprNode(name, fnType.ReturnType));
+
                                 // capture root as well
                                 PushForward(args.Count + 1);
 

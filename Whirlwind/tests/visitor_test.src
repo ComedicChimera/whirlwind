@@ -13,20 +13,32 @@ interf for Range {
 	}
 }
 
+struct RangeList {
+	lst: [Range];
+}
+
+interf for RangeList {
+	func push(x: Range) {
+		this.lst += [x];
+	}
+
+	operator[](i: int) Range
+		=> this.lst[i];
+
+	operator[](i: int, v: Range) {
+		this.lst[i] = v;
+	}
+}
+
 func main() {
-	let arr = {4, 3, -1, 7};
+	let (r1 = new Range(),
+		r2 = new Range());
 
-	arr[2] = 1;
+	let rl = new RangeList();
 
-	let x = arr[0];
+	rl.push(r1);
 
-	let r = new Range();
+	rl[0][0] = 2;
 
-	r[2] = 4;
-
-	x = r[1];
-
-	let arr2 = {new Range()};
-
-	arr2[0][1] = 5;
+	rl[0] = r2;
 }

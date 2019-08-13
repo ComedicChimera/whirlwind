@@ -56,7 +56,7 @@ namespace Whirlwind.Semantic.Checker
             if (node.Name == "Identifier")
                 return !((IdentifierNode)node).Type.Constant;
 
-            if (_modifiableNodes.Contains(node.Name))
+            if (node.Name.EndsWith("SetOverload") || _modifiableNodes.Contains(node.Name))
             {
                 if (node.Name == "GetMember" && ((IdentifierNode)((ExprNode)node).Nodes[1]).Type.Constant)
                     return false;

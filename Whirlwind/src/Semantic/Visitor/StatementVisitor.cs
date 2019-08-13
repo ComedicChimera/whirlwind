@@ -220,8 +220,6 @@ namespace Whirlwind.Semantic.Visitor
                         if (varTypes.Count == 0)
                             _nodes.Add(new ExprNode("AssignVars", new VoidType()));
 
-                        _setOperatorPosition = varTypes.Count;
-
                         _visitAssignVar((ASTNode)node);
                         varTypes.Add(_nodes.Last().Type);
 
@@ -262,8 +260,6 @@ namespace Whirlwind.Semantic.Visitor
 
             string subOp = op.Length > 1 ? string.Join("", op.Take(op.Length - 1)) : "";
 
-            _setOperatorPosition = 0;
-
             if (varTypes.Count == exprTypes.Count)
             {
                 for (int i = 0; i < varTypes.Count; i++)
@@ -271,18 +267,7 @@ namespace Whirlwind.Semantic.Visitor
                     if (exprTypes[i] is IncompleteType)
                         _inferLambdaAssignContext(varTypes[i], exprTypes, i);
 
-                    DataType varType;
-
-                    if (_setOperatorTypes.ContainsKey(i))
-                    {
-                        if (!_setOperatorTypes[i].Coerce(exprTypes[i]))
-                            throw new SemanticException("Invalid type for set operator overload", stmt.Content[i * 2].Position);
-
-                        varType = _setOperatorTypes[i].ConstCopy();
-                    }
-                    else
-                        varType = varTypes[i].ConstCopy();
-
+                    var varType = varTypes[i].ConstCopy();
                     // negate constancy from const copy
                     varType.Constant = varTypes[i].Constant;
 
@@ -304,16 +289,7 @@ namespace Whirlwind.Semantic.Visitor
 
                 while (i < varTypes.Count && j < exprTypes.Count)
                 {
-                    if (_setOperatorTypes.ContainsKey(i))
-                    {
-                        if (!_setOperatorTypes[i].Coerce(exprTypes[j]))
-                            throw new SemanticException("Invalid type for set operator overload", stmt.Content[i * 2].Position);
-
-                        varType = _setOperatorTypes[i];
-                    }
-                    else
-                        varType = varTypes[i];
-
+                    varType = varTypes[i];
                     exprType = exprTypes[j];
 
                     if (exprType is IncompleteType)
@@ -374,19 +350,38 @@ namespace Whirlwind.Semantic.Visitor
             else
                 throw new SemanticException("Too many expressions for the given assignment", stmt.Position);
 
-            _setOperatorTypes = new Dictionary<int, DataType>();
-
             _nodes.Add(new StatementNode("Assignment"));
             PushForward(2);
         }
 
         private void _visitAssignVar(ASTNode assignVar)
         {
+            _isSetContext = true;
             int derefCount = 0;
 
-            int pos = 0;
             foreach (var node in assignVar.Content)
             {
+                // check the get operator overload for all of the nodes
+                // the use set overload where it is not the terminating
+                // operation to as to ensure that when we need pass a
+                // compiler generated instance to the set operator accessed
+                // from the get operator, nothing goes down in flames
+                if (_nodes.Last().Name.EndsWith("SetOverload"))
+                {
+                    var setNode = (ExprNode)_nodes.Last();
+                    var baseType = setNode.Nodes.First().Type;
+
+                    if (HasOverload(baseType, setNode.Name.StartsWith("Subscript") ? "__[]__" : "__[:]__",
+                        new ArgumentList(setNode.Nodes.Skip(1).Select(x => x.Type).ToList()), out DataType returnType))
+                    {
+                        if (!setNode.Type.Coerce(returnType))
+                            throw new SemanticException("Unable to use set overload with an incompatable get overload", assignVar.Position);
+                    }
+                    else
+                        throw new SemanticException("In order to utilize set overload in this context, a get overload must also be defined", 
+                            assignVar.Position);
+                }
+
                 if (node.Name == "TOKEN")
                 {
                     var token = ((TokenNode)node).Tok;
@@ -417,14 +412,7 @@ namespace Whirlwind.Semantic.Visitor
                     }
                 }
                 else if (node.Name == "trailer")
-                {
-                    if (pos == assignVar.Content.Count - 1)
-                        _isSetContext = true;
-
                     _visitTrailer((ASTNode)node);
-                }
-
-                pos++;
             }
 
             if (!Modifiable(_nodes.Last()))
@@ -444,18 +432,8 @@ namespace Whirlwind.Semantic.Visitor
                 else
                     throw new SemanticException("Unable to dereference non-pointer", assignVar.Position);
             }
-        }
 
-        private bool _isSetOperatorOverload(ITypeNode node)
-        {
-            if (node.Name == "Subscript" || node.Name.StartsWith("Slice"))
-            {
-                var setBaseType = ((TreeNode)node).Nodes[0].Type;
-
-                // if (setBaseType.GetInterface().)
-            }
-
-            return false;
+            _isSetContext = false;
         }
 
         private void _inferLambdaAssignContext(DataType pctx, List<DataType> exprTypes, int pos)
