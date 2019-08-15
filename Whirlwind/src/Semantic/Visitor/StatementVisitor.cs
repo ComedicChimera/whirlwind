@@ -267,9 +267,7 @@ namespace Whirlwind.Semantic.Visitor
                     if (exprTypes[i] is IncompleteType)
                         _inferLambdaAssignContext(varTypes[i], exprTypes, i);
 
-                    var varType = varTypes[i].ConstCopy();
-                    // negate constancy from const copy
-                    varType.Constant = varTypes[i].Constant;
+                    var varType = varTypes[i].Copy();
 
                     if (subOp != "")
                     {                      

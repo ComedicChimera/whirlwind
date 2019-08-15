@@ -1,0 +1,24 @@
+﻿struct Node {
+	value: int;
+	left, right: dyn* Node;
+}
+
+func insert(root: dyn* Node, value: int) {
+	if (root == null)
+		root = make Node { value = value, left = null, right = null };
+
+	if (root->value > value)
+		insert(root->left, value);
+	else
+		insert(root->right, value);
+}
+
+export func main() {
+	let arr = [2, 3, 0, 1, 5, 4, 7, 6, 8];
+
+	let root = make Node { value = arr[0], left = null, right = null };
+
+	for (i = 1; i < 9; i++) {
+		insert(root, arr[i]);
+	}
+}

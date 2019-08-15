@@ -284,7 +284,7 @@ namespace Whirlwind.Semantic.Visitor
             switch (type.Classify())
             {
                 case TypeClassifier.PACKAGE:
-                    if (!((Package)type).ExternalTable.Lookup(name, out symbol))
+                    if (!((Package)type).Lookup(name, out symbol))
                         throw new SemanticException($"Package has no exported symbol: `{name}`", idPos);
                     break;
                 case TypeClassifier.TYPE_CLASS:

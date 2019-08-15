@@ -109,12 +109,13 @@ namespace Whirlwind.Semantic.Visitor
                                 variableDecls.Add(new Tuple<ASTNode, List<Modifier>>(decl, new List<Modifier>() { Modifier.EXPORTED }));
                                 continue;
                             case "include_stmt":
-                                // add include logic
+                                _visitInclude(decl, true);
                                 break;
                         }
                         break;
                     // add any logic surrounding inclusion
                     case "include_stmt":
+                        _visitInclude((ASTNode)node, true);
                         break;
                     // catches rogue tokens and things of the like
                     default:
@@ -137,11 +138,8 @@ namespace Whirlwind.Semantic.Visitor
         // returns final, visited node
         public ITypeNode Result() => _nodes.First();
 
-        // returns export table
-        public SymbolTable Table()
-        {
-            return new SymbolTable(_table.Filter(s => s.Modifiers.Contains(Modifier.EXPORTED)));
-        }
+        // returns exported list of symbols
+        public Dictionary<string, Symbol> Table() => _table.Filter(s => s.Modifiers.Contains(Modifier.EXPORTED));
 
         // ------------------------------------
         // Construction Stack Control Functions

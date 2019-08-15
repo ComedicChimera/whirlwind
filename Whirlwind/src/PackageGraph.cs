@@ -8,19 +8,19 @@ namespace Whirlwind
     {
         private struct PackageNode
         {
-            public Package package;
-            public List<string> references;
+            public Package Pkg;
+            public List<string> References;
 
-            public PackageNode(Package pkg)
+            public PackageNode(Package package)
             {
-                package = pkg;
-                references = new List<string>();
+                Pkg = package;
+                References = new List<string>();
             }
 
             public void AddReference(string name)
             {
-                if (!references.Contains(name))
-                    references.Add(name);
+                if (!References.Contains(name))
+                    References.Add(name);
             }
         }
 
@@ -31,24 +31,39 @@ namespace Whirlwind
             _packages = new Dictionary<string, PackageNode>();
         }
 
-        public void AddPackage(Package pkg)
+        public bool AddPackage(string path, Package pkg)
         {
-            if (!_packages.ContainsKey(pkg.Name))
-                _packages.Add(pkg.Name, new PackageNode(pkg));
-        }
-
-        public void AddPackage(string parent, Package pkg)
-        {
-            if (!_packages.ContainsKey(pkg.Name))
+            if (!_packages.ContainsKey(path))
             {
-                _packages.Add(pkg.Name, new PackageNode(pkg));
-                _packages[parent].AddReference(pkg.Name);
-            }
+                _packages.Add(path, new PackageNode(pkg));
+                return true;
+            }               
+
+            return false;
         }
 
-        public bool ContainsPackage(string name)
+        public bool AddPackage(string path, Package pkg, string parent)
         {
-            return _packages.ContainsKey(name);
+            if (!_packages.ContainsKey(path))
+            {
+                _packages.Add(path, new PackageNode(pkg));
+                _packages[parent].AddReference(path);
+                return true;
+            }
+
+            return false;
+        }
+
+        public bool GetPackage(string path, out Package pkg)
+        {
+            if (_packages.ContainsKey(path))
+            {
+                pkg = _packages[path].Pkg;
+                return true;
+            }
+
+            pkg = null;
+            return false;
         }
     }
 }

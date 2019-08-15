@@ -203,6 +203,15 @@ namespace Whirlwind.Types
             return base.Equals(obj);
         }
 
+        public DataType Copy()
+        {
+            var newDt = ConstCopy();
+            newDt.Constant = Constant;
+
+            return newDt;
+        }
+
+
         // get a given data type classifier as a string
         public abstract TypeClassifier Classify();
 

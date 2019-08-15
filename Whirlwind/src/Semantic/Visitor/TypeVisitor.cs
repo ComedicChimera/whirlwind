@@ -67,7 +67,7 @@ namespace Whirlwind.Semantic.Visitor
 
                     if (dt is Package pkg)
                     {
-                        if (pkg.ExternalTable.Lookup(idNode.Tok.Value, out Symbol symbol))
+                        if (pkg.Lookup(idNode.Tok.Value, out Symbol symbol))
                             dt = _getIdentifierType(symbol.DataType, idNode.Position);
                         else
                             throw new SemanticException($"The given package has no exported member `{idNode.Tok.Value}", idNode.Position);
@@ -111,6 +111,9 @@ namespace Whirlwind.Semantic.Visitor
 
             if (constant)
                 dt.Constant = true;
+
+            if (dt is Package)
+                throw new SemanticException("Unable to package as data type", node.Position);
 
             return dt;
         }
@@ -286,7 +289,13 @@ namespace Whirlwind.Semantic.Visitor
                     if (((ASTNode)subNode).Content.Count == 3)
                         dynamicPointer = true;
 
+                    // preserve self pointer context
+                    var selfNeedsPtr = _selfNeedsPointer;
+                    _selfNeedsPointer = false;
+
                     var baseDt = _generateType((ASTNode)((ASTNode)subNode).Content.Last());
+
+                    _selfNeedsPointer = selfNeedsPtr;
 
                     return new PointerType(baseDt, dynamicPointer);
                 }

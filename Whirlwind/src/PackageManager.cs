@@ -1,18 +1,20 @@
 ﻿using Whirlwind.Semantic;
 
-using Whirlwind.Parser;
-
+using System;
 using System.IO;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace Whirlwind
 {
+    // ADD STD AND GLOBAL IMPORT CAPABILITIES
     class PackageManager
     {
         private PackageGraph _pg;
         private Compiler _compiler;
+        private string _importContext = "";
 
-        private static readonly string extension = ".wrl";
+        private static readonly string _extension = ".wrl";
 
         public PackageManager()
         {
@@ -20,66 +22,82 @@ namespace Whirlwind
             _compiler = new Compiler("config/tokens.json", "config/grammar.ebnf");
         }
 
-        public SymbolTable Import(string name, TextPosition position)
+        public bool Import(string path, out Package pkg)
         {
-            if (OpenPackage(name.Replace("..", "../").Replace(".", "/") + extension, out string text))
+            // preserve context
+            var currentContext = _importContext;
+
+            // convert to absolute path after applying context
+            // this makes package lookups (to avoid recompilation)
+            // work properly since abs path is used as key
+            path = Path.GetFullPath(currentContext + path);
+
+            // try preemptive lookup before creating new package
+            if (_pg.GetPackage(path, out pkg))
+                return true;
+
+            if (OpenPackage(path, out string text))
             {
-                var st = new SymbolTable();
-                _compiler.Build(text, ref st);
+                var sl = new Dictionary<string, Symbol>();
+                _compiler.Build(text, _importContext, ref sl);
 
-                _pg.AddPackage(new Package(st, name.Split('.').Last()));
+                pkg = new Package(sl);
 
-                return st;
+                _pg.AddPackage(path, pkg);
+
+                _importContext = currentContext;
+
+                return true;
             }
             else
-                throw new SemanticException("Unable to include package", position);
-        }
-
-        public SymbolTable ImportFrom(string name, string parent, TextPosition position)
-        {
-            if (_pg.ContainsPackage(parent))
-                throw new SemanticException("Unable to recursively import package", position);
-
-            if (OpenPackage(name.Replace("..", "../").Replace(".", "/"), out string text))
             {
-                var st = new SymbolTable();
-                _compiler.Build(text, ref st);
-
-                _pg.AddPackage(parent, new Package(st, name.Split('.').Last()));
-
-                return st;
-            }
-            else
-                throw new SemanticException("Unable to include package", position);
+                pkg = null;
+                return false;
+            }               
         }
 
         public bool ImportRaw(string path)
         {
-            if (OpenPackage(path, out string text))
-            {
-                var st = new SymbolTable();
-                _compiler.Build(text, ref st);
-
-                _pg.AddPackage(new Package(st, path.Split('/').Last().Split('.').First()));
-
-                return true;
-            }
-            else
-                return false;
+            return Import(path, out Package _);
         }
 
         public bool OpenPackage(string path, out string text)
         {
-            try
+            // must be a directory since it has not had extension appended yet
+            if (File.Exists(path))
             {
-                text = File.ReadAllText(path);
-                return true;
+                path += "/__api__" + _extension;
+
+                if (File.Exists(path))
+                {
+                    _setImportContext(path.Remove(path.Length - 8 - _extension.Length - 1));
+
+                    text = File.ReadAllText(path);
+                    return true;
+                }
             }
-            catch (FileNotFoundException)
+            else
             {
-                text = "";
-                return false;
+                path += _extension;
+
+                if (File.Exists(path))
+                {
+                    if (path.Contains("/"))
+                        _setImportContext(path.Split('/').SkipLast(1).Aggregate((a, b) => a + "/" + b) + "/");
+
+                    text = File.ReadAllText(path);
+                    return true;
+                }
             }
+
+            text = "";
+            return false;
+        }
+
+        private void _setImportContext(string newContext)
+        {
+            if (newContext != _importContext)
+                _importContext = newContext;
         }
     }
 }

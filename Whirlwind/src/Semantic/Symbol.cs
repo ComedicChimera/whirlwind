@@ -15,31 +15,35 @@ namespace Whirlwind.Semantic
 
     class Package : DataType
     {
-        public readonly SymbolTable ExternalTable;
-        public readonly string Name;
+        public readonly Dictionary<string, Symbol> ExternalTable;
 
-        public Package(SymbolTable eTable, string name)
+        public Package(Dictionary<string, Symbol> eTable)
         {
             ExternalTable = eTable;
-            Name = name;
 
             // WATCH CLOSELY
             Constant = true;
         }
 
-        public override bool Coerce(DataType _) => false;
-        public override TypeClassifier Classify() => TypeClassifier.PACKAGE;
-
-        protected override bool _equals(DataType other)
+        public bool Lookup(string name, out Symbol symbol)
         {
-            if (other.Classify() == TypeClassifier.PACKAGE)
-                return Name == ((Package)other).Name;
+            if (ExternalTable.ContainsKey(name))
+            {
+                symbol = ExternalTable[name];
+                return true;
+            }
 
+            symbol = null;
             return false;
         }
 
+        public override bool Coerce(DataType _) => false;
+        public override TypeClassifier Classify() => TypeClassifier.PACKAGE;
+
         public override DataType ConstCopy()
-            => new Package(ExternalTable, Name); // implicit const
+    => new Package(ExternalTable); // implicit const
+
+        protected override bool _equals(DataType other) => false;
     }
 
     class Symbol
@@ -96,5 +100,9 @@ namespace Whirlwind.Semantic
 
             return base.Equals(obj);
         }
+
+        // forcibly create a new modifier list
+        public Symbol Copy()
+            => new Symbol(Name, DataType.Copy(), Modifiers.Select(x => x).ToList(), Value);
     }
 }

@@ -1,0 +1,5 @@
+﻿include tests::block_test;
+
+func main() {
+	block_test::main();
+}

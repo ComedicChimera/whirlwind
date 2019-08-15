@@ -546,7 +546,7 @@ namespace Whirlwind.Semantic.Visitor
                                 {
                                     var idNode = (TokenNode)((ASTNode)item).Content[1];
 
-                                    if (pkg.ExternalTable.Lookup(idNode.Tok.Value, out Symbol sym))
+                                    if (pkg.Lookup(idNode.Tok.Value, out Symbol sym))
                                     {
                                         _nodes.Add(new IdentifierNode(sym.Name, sym.DataType));
 
