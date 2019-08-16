@@ -1,9 +1,8 @@
-﻿using Whirlwind.Types;
-using Whirlwind.Syntax;
-using Whirlwind.Semantic.Visitor;
-
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
+
+using Whirlwind.Types;
+using Whirlwind.Syntax;
 
 namespace Whirlwind.Semantic.Checker
 {

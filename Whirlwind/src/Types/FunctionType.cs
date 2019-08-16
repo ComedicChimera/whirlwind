@@ -2,6 +2,7 @@
 using System.Linq;
 
 using Whirlwind.Semantic;
+
 using static Whirlwind.Semantic.Checker.Checker;
 
 namespace Whirlwind.Types

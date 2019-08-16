@@ -1,8 +1,8 @@
-﻿using Whirlwind.Types;
-
-using System;
+﻿using System;
 using System.Linq;
 using System.Collections.Generic;
+
+using Whirlwind.Types;
 
 namespace Whirlwind.Semantic.Constexpr
 {

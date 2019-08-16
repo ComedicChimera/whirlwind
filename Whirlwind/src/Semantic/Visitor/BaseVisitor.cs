@@ -1,11 +1,11 @@
-﻿using Whirlwind.Syntax;
+﻿using System;
+using System.Linq;
+using System.Collections.Generic;
+
+using Whirlwind.Syntax;
 using Whirlwind.Types;
 
 using static Whirlwind.Semantic.Checker.Checker;
-
-using System;
-using System.Linq;
-using System.Collections.Generic;
 
 namespace Whirlwind.Semantic.Visitor
 {

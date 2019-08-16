@@ -1,7 +1,7 @@
-﻿#res_name "test.llvm"
-
-#intrinsic
-func test();
+﻿#impl "str"
+struct __str__ {
+	char_list: [char];
+}
 
 func main() {
 

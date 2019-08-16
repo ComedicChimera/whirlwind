@@ -1,6 +1,4 @@
 ﻿using System.Linq;
-using System.Collections.Generic;
-using System.Text;
 
 using Whirlwind.Syntax;
 using Whirlwind.Types;

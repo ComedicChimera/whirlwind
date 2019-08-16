@@ -17,7 +17,7 @@ namespace Whirlwind.Syntax
         }
     }
 
-    // The WhirlParser Class
+    // The Parser Class
     // The class responsible to taking the Grammar object
     // and the list of Tokens from the Scanner
     // and turning it into an AST while simultaneously

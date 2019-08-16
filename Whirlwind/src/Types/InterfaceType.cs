@@ -1,7 +1,7 @@
-﻿using Whirlwind.Semantic;
-
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
+
+using Whirlwind.Semantic;
 
 namespace Whirlwind.Types
 {

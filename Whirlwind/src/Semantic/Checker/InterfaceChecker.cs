@@ -1,6 +1,6 @@
-﻿using Whirlwind.Types;
+﻿using System.Linq;
 
-using System.Linq;
+using Whirlwind.Types;
 
 namespace Whirlwind.Semantic.Checker
 {

@@ -1,9 +1,8 @@
-﻿using Whirlwind.Semantic;
-
-using System;
-using System.IO;
+﻿using System.IO;
 using System.Linq;
 using System.Collections.Generic;
+
+using Whirlwind.Semantic;
 
 namespace Whirlwind
 {

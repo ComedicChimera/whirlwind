@@ -1,10 +1,6 @@
 # TODO
 
-- add package linker
-- add prelude (later)
-- add `#impl` to create structs for intrinsic types like strings or arrays
-  * `#impl "str"`
-
+- Testing
 
 # TESTING
 
@@ -43,6 +39,10 @@
 - make sure to process generic binding appropriately
 - when generating code, make sure to add in deletes for dynamically allocated memory
 - make sure to check and apply externals and intrinsics where necessary
+- make sure package linker works on generative side
+- add prelude 
+- make sure `#impl` is used in generating intrinsics (and in visiting type interfaces
+for those intrinsics under certain conditions?)
 
 # THOUGHTS
 

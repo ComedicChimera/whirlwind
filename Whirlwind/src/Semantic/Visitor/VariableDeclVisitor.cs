@@ -1,9 +1,9 @@
-﻿using Whirlwind.Types;
-using Whirlwind.Syntax;
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
+using Whirlwind.Types;
+using Whirlwind.Syntax;
 
 namespace Whirlwind.Semantic.Visitor
 {
