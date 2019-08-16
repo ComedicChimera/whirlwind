@@ -1,4 +1,4 @@
-﻿using Whirlwind.Parser;
+﻿using Whirlwind.Syntax;
 using Whirlwind.Types;
 
 using System.Collections.Generic;
@@ -46,9 +46,12 @@ namespace Whirlwind.Semantic.Visitor
         // during visitation; processed outside of visitor
         public List<SemanticException> ErrorQueue;
 
-        // visitor shared constructs and data
+        // visitor shared constructs
         private List<ITypeNode> _nodes;
         private SymbolTable _table;
+        private Dictionary<string, string> _annotatedSettings;
+
+        // compiler-provided shared data
         private string _namePrefix;
         private bool _constexprOptimizerEnabled;
         
@@ -63,6 +66,8 @@ namespace Whirlwind.Semantic.Visitor
         private bool _couldOwnerExist = false, _isFinalizer = false;
         private bool _isSetContext = false;
         private bool _isExprStmt = false;
+        private bool _wrapsNextAnnotBlock = false;
+        private bool _functionCanHaveNoBody = false;
 
         public Visitor(string namePrefix, bool constexprOptimizerEnabled)
         {
@@ -70,6 +75,7 @@ namespace Whirlwind.Semantic.Visitor
 
             _nodes = new List<ITypeNode>();
             _table = new SymbolTable();
+            _annotatedSettings = new Dictionary<string, string>();
 
             _namePrefix = namePrefix;
             _constexprOptimizerEnabled = constexprOptimizerEnabled;
@@ -117,13 +123,36 @@ namespace Whirlwind.Semantic.Visitor
                     case "include_stmt":
                         _visitInclude((ASTNode)node, true);
                         break;
+                    case "annotation":
+                        // if no block was found, perform check here (make sure it isn't ignored
+                        if (_wrapsNextAnnotBlock)
+                            throw new SemanticException("Unable to stack annotations", node.Position);
+
+                        _visitAnnotation((ASTNode)node);
+                        
+                        // only merge if it is not expecting a block
+                        if (!_wrapsNextAnnotBlock)
+                            MergeToBlock();
+
+                        // prevent state from being cleared/checked
+                        continue;
                     // catches rogue tokens and things of the like
                     default:
                         continue;
                 }
 
+                // both cases only reached after non-annotation block
+                if (_wrapsNextAnnotBlock)
+                    throw new SemanticException("Invalid application of annotation to block", node.Position);
+                if (_functionCanHaveNoBody)
+                    _functionCanHaveNoBody = false;
+
                 MergeToBlock();
             }
+
+            // if annotation block never satisfied, error
+            if (_wrapsNextAnnotBlock)
+                throw new SemanticException("Annotation missing block", ast.Content.Last().Position);
 
             // visit variable declaration second
             foreach (var varDecl in variableDecls)

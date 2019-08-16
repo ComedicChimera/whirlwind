@@ -87,12 +87,25 @@ namespace Whirlwind.Types
                 return Equals(other);
             else if (other.Classify() == TypeClassifier.INTERFACE_INSTANCE)
                 return MatchInterface((InterfaceType)other);
-            else
+            else if (other is SelfType selfDt && selfDt.Initialized && selfDt.DataType is InterfaceType sit)
+                return MatchInterface(sit);
+            else if (other is GenericSelfInstanceType gsit)
             {
-                var interf = other.GetInterface();
+                // interface coerce NEEDS to fail if generic self instance does not exist
+                // because that means this type is being used as an incomplete type (somehow)
+                if (gsit.GenericSelf == null)
+                    return false;
 
-                return MatchInterface(interf);
+                // should always work but who knows
+                gsit.GenericSelf.CreateGeneric(gsit.TypeList, out DataType gt);
+
+                if (gt is InterfaceType it)
+                    return MatchInterface(it);
             }
+
+            var interf = other.GetInterface();
+
+            return MatchInterface(interf);
         }
 
         private bool MatchInterface(InterfaceType it)

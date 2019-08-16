@@ -1,7 +1,7 @@
 ﻿using System.Linq;
 using System.Collections.Generic;
 
-using Whirlwind.Parser;
+using Whirlwind.Syntax;
 using Whirlwind.Types;
 
 namespace Whirlwind.Semantic.Visitor
@@ -186,6 +186,8 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _collectInterfaceMethods(InterfaceType interfaceType, ASTNode block, bool typeInterface)
         {
+            _functionCanHaveNoBody = true;
+
             foreach (var method in block.Content)
             {
                 var memberModifiers = new List<Modifier>();
@@ -240,6 +242,8 @@ namespace Whirlwind.Semantic.Visitor
 
                 // add function to interface block
                 MergeToBlock();
+
+                _functionCanHaveNoBody = false;
             }
         }
 

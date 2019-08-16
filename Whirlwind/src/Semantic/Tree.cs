@@ -3,7 +3,7 @@ using System.Linq;
 using System;
 
 using Whirlwind.Types;
-using Whirlwind.Parser;
+using Whirlwind.Syntax;
 
 namespace Whirlwind.Semantic
 {

@@ -1,5 +1,5 @@
 ﻿using Whirlwind.Types;
-using Whirlwind.Parser;
+using Whirlwind.Syntax;
 
 using System.Collections.Generic;
 using System.Linq;
@@ -40,7 +40,9 @@ namespace Whirlwind.Semantic.Visitor
                                 case ";":
                                     {
                                         _createFunction(arguments, dataType, name, namePosition, isAsync, modifiers);
-                                        // try to complete body
+
+                                        if (!_functionCanHaveNoBody)
+                                            throw new SemanticException("Unable to declare function without body", item.Position);
                                     }
                                     break;
                             }

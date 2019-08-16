@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-using Whirlwind.Parser;
+using Whirlwind.Syntax;
 using Whirlwind.Types;
 
 namespace Whirlwind.Semantic

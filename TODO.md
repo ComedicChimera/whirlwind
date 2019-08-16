@@ -2,10 +2,6 @@
 
 - add package linker
 - add prelude (later)
-- add annotations to describe memory and program behavior (using `#` syntax)
-  * File Level Annotations: `#unsafe` or `#res_name "test"`: effect file behavior generally
-  * Function Annotation: `#intrinsic` or `#extern`: to effect how function compiles
-  * Struct Annotation: `#joined`: effect how structs compile and initialize
 - add `#impl` to create structs for intrinsic types like strings or arrays
   * `#impl "str"`
 
@@ -46,6 +42,7 @@
   * if the chain is incomplete, it simply returns the null value of the last type
 - make sure to process generic binding appropriately
 - when generating code, make sure to add in deletes for dynamically allocated memory
+- make sure to check and apply externals and intrinsics where necessary
 
 # THOUGHTS
 

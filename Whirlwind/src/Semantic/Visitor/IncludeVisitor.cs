@@ -1,4 +1,4 @@
-﻿using Whirlwind.Parser;
+﻿using Whirlwind.Syntax;
 using Whirlwind.Types;
 
 using System.Collections.Generic;

@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Collections.Generic;
 
-using Whirlwind.Parser;
+using Whirlwind.Syntax;
 using Whirlwind.Semantic.Visitor;
 using Whirlwind.Semantic;
 
@@ -11,14 +11,14 @@ namespace Whirlwind
     class Compiler
     {
         private Scanner _scanner;
-        private WhirlParser _parser;
+        private Syntax.Parser _parser;
 
         public Compiler(string tokenPath, string grammarPath)
         {
             _scanner = new Scanner(tokenPath);
 
             var gramloader = new GramLoader();
-            _parser = new WhirlParser(gramloader.Load(grammarPath));
+            _parser = new Syntax.Parser(gramloader.Load(grammarPath));
 
         }
 

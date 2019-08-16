@@ -74,6 +74,18 @@ namespace Whirlwind.Types
         {
             if (other is StructType st)
                 return Name == st.Name && _instance == st._instance;
+            // no need to check self type instance b/c if it is self type getting checked it would be made
+            // into an instance automatically anyway
+            else if (other is SelfType selfDt && selfDt.Initialized && selfDt.DataType is StructType sst)
+                return Name == sst.Name;
+            else if (other is GenericSelfInstanceType gsit && gsit.GenericSelf != null)
+            {
+                // should always work but who knows
+                gsit.GenericSelf.CreateGeneric(gsit.TypeList, out DataType gt);
+
+                if (gt is StructType gst)
+                    return Name == gst.Name && _instance == gst._instance;
+            }
 
             return false;
         }

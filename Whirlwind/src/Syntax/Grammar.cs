@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Whirlwind.Parser
+namespace Whirlwind.Syntax
 {
     // The IGrammatical Interface
     // Used for storing the grammatical

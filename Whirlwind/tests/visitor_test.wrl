@@ -1,5 +1,8 @@
-﻿include tests::block_test;
+﻿#res_name "test.llvm"
+
+#intrinsic
+func test();
 
 func main() {
-	block_test::main();
+
 }

@@ -1,4 +1,4 @@
-﻿using Whirlwind.Parser;
+﻿using Whirlwind.Syntax;
 using Whirlwind.Types;
 
 using System.Collections.Generic;
@@ -57,6 +57,28 @@ namespace Whirlwind.Semantic.Visitor
 
             if (genericVars.Count > 0)
                 _makeGeneric(root, genericVars, modifiers, _table.GetScope().Last(), namePosition);
+
+            if (_wrapsNextAnnotBlock && (root.Name == "struct_decl" || root.Name == "func_decl"))
+            {
+                var lastNodes = new List<ITypeNode>();
+
+                // remove last two nodes
+                for (int i = 0; i < 2; i++)
+                {
+                    lastNodes.Add(_nodes.Last());
+                    _nodes.RemoveLast();
+                }
+
+                // put nodes in correct order
+                lastNodes.Reverse();
+
+                // add to annotated block
+                _nodes.Add(new BlockNode("AnnotatedBlock"));
+                ((BlockNode)_nodes.Last()).Block.AddRange(lastNodes);
+
+                // clear annotated block state
+                _wrapsNextAnnotBlock = false;
+            }
         }
     }
 }

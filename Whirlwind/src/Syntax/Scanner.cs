@@ -6,7 +6,7 @@ using System.Linq;
 
 using Newtonsoft.Json;
 
-namespace Whirlwind.Parser
+namespace Whirlwind.Syntax
 {
     // The Token Struct
     // Represents a single lexical element

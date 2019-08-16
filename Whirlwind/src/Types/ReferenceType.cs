@@ -22,12 +22,17 @@ namespace Whirlwind.Types
         {
             if (other is SelfType st && _name == st._name)
                 return true;
-
             else if (DataType.Classify() == TypeClassifier.INTERFACE &&
                 other.Classify() == TypeClassifier.INTERFACE_INSTANCE)
             {
-                // allow for self types to not be problematic
+                // allow for self interface types to not be problematic
                 return ((InterfaceType)DataType).GetInstance().Equals(other);
+            }
+            else if (DataType.Classify() == TypeClassifier.STRUCT &&
+                other.Classify() == TypeClassifier.STRUCT_INSTANCE)
+            {
+                // allow for self struct types to not be problematic
+                return ((StructType)DataType).GetInstance().Equals(other);
             }
 
             return DataType.Equals(other);
@@ -41,8 +46,14 @@ namespace Whirlwind.Types
             else if (DataType.Classify() == TypeClassifier.INTERFACE &&
                 other.Classify() == TypeClassifier.INTERFACE_INSTANCE)
             {
-                // allow for self types to not be problematic
+                // allow for self interface types to not be problematic
                 return ((InterfaceType)DataType).GetInstance().Coerce(other);
+            }
+            else if (DataType.Classify() == TypeClassifier.STRUCT &&
+                other.Classify() == TypeClassifier.STRUCT_INSTANCE)
+            {
+                // allow for self struct types to not be problematic
+                return ((StructType)DataType).GetInstance().Coerce(other);
             }
 
             return DataType.Coerce(other);

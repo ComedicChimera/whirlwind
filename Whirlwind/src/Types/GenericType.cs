@@ -443,6 +443,8 @@ namespace Whirlwind.Types
 
                 return GenericVariables.EnumerableEquals(gt.GenericVariables);
             }
+            else if (other is GenericSelfType gst && gst.GenericSelf != null)
+                return Equals(gst.GenericSelf);
 
             return false;
         }       

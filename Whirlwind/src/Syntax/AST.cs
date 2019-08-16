@@ -2,7 +2,7 @@
 using System.Linq;
 
 // remove to string methods, when they are no longer being used
-namespace Whirlwind.Parser
+namespace Whirlwind.Syntax
 {
     // The TextPosition Struct
     // The struct stores positioning

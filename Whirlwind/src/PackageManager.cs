@@ -58,7 +58,31 @@ namespace Whirlwind
 
         public bool ImportRaw(string path)
         {
-            return Import(path, out Package _);
+            if (File.Exists(path))
+            {
+                try
+                {
+                    // import raw only occurs at start of compilation therefore no context need
+                    // be preserved ;)
+                    if (path.Contains("/"))
+                        _importContext = string.Join("/", path.Split("/").SkipLast(1)) + "/";
+
+                    var text = File.ReadAllText(path);
+
+                    var sl = new Dictionary<string, Symbol>();
+                    _compiler.Build(text, _importContext, ref sl);
+
+                    _pg.AddPackage(string.Join("", path.SkipLast(4)), new Package(sl));
+
+                    return true;
+                }
+                catch (FileNotFoundException)
+                {
+                    // fail silently cause it already defaults to false
+                }
+            }
+
+            return false;
         }
 
         public bool OpenPackage(string path, out string text)

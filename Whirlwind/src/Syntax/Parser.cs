@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Whirlwind.Parser
+namespace Whirlwind.Syntax
 {
     // The InvalidSyntaxException Class
     // Thrown whenever the parser encounters
@@ -22,14 +22,14 @@ namespace Whirlwind.Parser
     // and the list of Tokens from the Scanner
     // and turning it into an AST while simultaneously
     // checking it for valid syntax
-    sealed class WhirlParser
+    sealed class Parser
     {
         private readonly Grammar _grammar;
         private List<Token> _tokens;
         private readonly List<ASTNode> _semanticStack;
         private int _errorPosition = -1;
 
-        public WhirlParser(Grammar grammar)
+        public Parser(Grammar grammar)
         {
             _grammar = grammar;
             _semanticStack = new List<ASTNode>();

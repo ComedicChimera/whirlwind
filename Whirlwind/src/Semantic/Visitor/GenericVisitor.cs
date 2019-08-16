@@ -2,7 +2,7 @@
 using System.Linq;
 using System;
 
-using Whirlwind.Parser;
+using Whirlwind.Syntax;
 using Whirlwind.Types;
 
 namespace Whirlwind.Semantic.Visitor

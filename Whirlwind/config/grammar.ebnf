@@ -3,6 +3,7 @@ whirlwind: ( variable_decl ';'
 | block_decl
 | include_stmt ';'
 | export_decl
+| annotation
 )+ ;
 
 main: ( func_decl
@@ -14,6 +15,9 @@ main: ( func_decl
 
 subscope: '{' main '}' ;
 capture_block: capture subscope ;
+
+// compiler annotation
+annotation: '#' 'IDENTIFIER' ['STRING_LITERAL'] ;
 
 // include statement
 include_stmt: 'INCLUDE' ( pkg_name ['AS' 'IDENTIFIER'] | include_set 'FROM' pkg_name ) ;

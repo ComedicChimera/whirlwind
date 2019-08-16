@@ -3,7 +3,7 @@ using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Whirlwind.Parser
+namespace Whirlwind.Syntax
 {
     // The GrammarException Class
     // This exception is thrown whenever

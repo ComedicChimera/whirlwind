@@ -1,5 +1,5 @@
 ﻿using Whirlwind.Types;
-using Whirlwind.Parser;
+using Whirlwind.Syntax;
 using Whirlwind.Semantic.Visitor;
 
 using System.Collections.Generic;
