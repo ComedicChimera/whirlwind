@@ -226,7 +226,7 @@ namespace Whirlwind.Types
 
         public override TypeClassifier Classify() => TypeClassifier.VOID;
 
-        protected override bool _equals(DataType other) => false;
+        protected override bool _equals(DataType other) => true;
 
         public override DataType ConstCopy()
             => new VoidType() { Constant = true };

@@ -1,8 +1,13 @@
-﻿#impl "str"
-struct __str__ {
-	char_list: [char];
+﻿struct Test<T> {
+	x, y: T;
 }
 
-func main() {
+interf<T> for Test<T> {
+	func __copy__() Test<T> {
+		return this;
+	}
 
+	func __set__(value: Test<T>) {
+	
+	}
 }

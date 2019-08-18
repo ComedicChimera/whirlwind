@@ -104,6 +104,8 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitFunctionBody(ASTNode body, FunctionType ft)
         {
+            _dominantPosition = body.Content.First().Position;
+
             if (!ft.ReturnType.Coerce(_visitFuncBody(body, ft.Parameters)))
                 throw new SemanticException("Return type of signature does not match return type of body", _dominantPosition);
         }

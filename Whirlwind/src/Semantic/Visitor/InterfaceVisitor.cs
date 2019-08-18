@@ -19,25 +19,42 @@ namespace Whirlwind.Semantic.Visitor
             _nodes.Add(new BlockNode("Interface"));
 
             string name = ((TokenNode)node.Content[1]).Tok.Value;
+            DataType selfType;
 
             // declare self referential type (ok early b/c reference)
             if (_isGenericSelfContext)
             {
                 // if there's context, the symbol exists
                 _table.Lookup("$GENERIC_SELF", out Symbol genSelf);
-                _table.AddSymbol(new Symbol(name, genSelf.DataType));
+
+                selfType = genSelf.DataType;
+                _table.AddSymbol(new Symbol(name, selfType));
+
+                var genSelfType = (GenericSelfType)selfType;
+
+                genSelfType.GetInstance(genSelfType.GenericVariables.Select(x => (DataType)new GenericPlaceholder(x.Name)).ToList(), 
+                    out DataType gsit);
+
+                _collectInterfaceMethods(interfaceType, (ASTNode)node.Content[node.Content[2].Name == "generic_tag" ? 4 : 3], 
+                    false, gsit);
             }
             else
-                _table.AddSymbol(new Symbol(name, new SelfType(_namePrefix + name, interfaceType) { Constant = true }));
+            {
+                selfType = new SelfType(_namePrefix + name, interfaceType) { Constant = true };
+                _table.AddSymbol(new Symbol(name, selfType));
 
-            _collectInterfaceMethods(interfaceType, (ASTNode)node.Content[node.Content[2].Name == "generic_tag" ? 4 : 3], false);
+                _collectInterfaceMethods(interfaceType, (ASTNode)node.Content[3], false, selfType);
+            }
+                
+
+            
 
             _nodes.Add(new IdentifierNode(name, interfaceType));
             MergeBack();
 
             // update self type if necessary
-            if (_table.Lookup(name, out Symbol selfSym) && selfSym.DataType is SelfType)
-                ((SelfType)selfSym.DataType).Initialized = true;
+            if (selfType is SelfType st)
+                st.Initialized = true;
             
             _table.AscendScope();
 
@@ -64,7 +81,7 @@ namespace Whirlwind.Semantic.Visitor
 
                 dt = _generateType((ASTNode)node.Content[2]);
 
-                _collectInterfaceMethods(interfaceType, (ASTNode)node.Content[node.Content.Count - 2], true);
+                _collectInterfaceMethods(interfaceType, (ASTNode)node.Content[node.Content.Count - 2], true, dt);
 
                 interfaceType.Derive(dt);                    
 
@@ -112,28 +129,29 @@ namespace Whirlwind.Semantic.Visitor
 
             _nodes.Add(new BlockNode("BindGenericInterface"));
 
-            var ifType = new InterfaceType();
-            _collectInterfaceMethods(ifType, (ASTNode)node.Content[node.Content.Count - 2], true);
+            var bindTypeNode = (ASTNode)node.Content[3];
+            var bindDt = _generateType(bindTypeNode);
 
-            var generic = new GenericType(genericVars, ifType, _decorateEval(node, 
+            var ifType = new InterfaceType();
+            _collectInterfaceMethods(ifType, (ASTNode)node.Content[node.Content.Count - 2], true, bindDt);
+
+            var generic = new GenericType(genericVars, ifType, _decorateEval(node,
                 delegate (ASTNode ifBind, List<Modifier> modifiers)
                 {
                     var newType = new InterfaceType();
 
-                    _nodes.Add(new BlockNode("BindGenerateInterface"));
-                    _collectInterfaceMethods(newType, (ASTNode)ifBind.Content[ifBind.Content.Count - 2], true);
-
-                    _nodes.Add(new ValueNode("GenerateThis", _generateType((ASTNode)ifBind.Content[2])));
-                    MergeBack();
+                    var newDt = _generateType((ASTNode)ifBind.Content[2]);
 
                     // no need to add implements because processed later
+                    _nodes.Add(new ValueNode("GenerateThis", newDt));
+                    MergeBack();
+
+                    _nodes.Add(new BlockNode("BindGenerateInterface"));
+                    _collectInterfaceMethods(newType, (ASTNode)ifBind.Content[ifBind.Content.Count - 2], true, newDt);
 
                     _table.AddSymbol(new Symbol("$GENERATE_BIND", newType));
                 }
                 ));
-
-            var bindTypeNode = (ASTNode)node.Content[3];
-            var bindDt = _generateType(bindTypeNode);
 
             _nodes.Add(new ValueNode("GenericTypeInterface", generic));
             _nodes.Add(new ValueNode("BindType", bindDt));
@@ -184,7 +202,7 @@ namespace Whirlwind.Semantic.Visitor
             _table.AscendScope();
         }
 
-        private void _collectInterfaceMethods(InterfaceType interfaceType, ASTNode block, bool typeInterface)
+        private void _collectInterfaceMethods(InterfaceType interfaceType, ASTNode block, bool typeInterface, DataType selfType)
         {
             _functionCanHaveNoBody = true;
 
@@ -214,8 +232,8 @@ namespace Whirlwind.Semantic.Visitor
 
                         var genNode = (IdentifierNode)((BlockNode)_nodes.Last()).Nodes[0];
 
-                        if (genNode.IdName == "__finalize__")
-                            throw new SemanticException("Finalizers cannot be generic", func.Content[2].Position);
+                        if (new[] { "__finalize__", "__copy__", "__get__", "__set__" }.Contains(genNode.IdName))
+                            throw new SemanticException("Special methods cannot be generic", func.Content[2].Position);
 
                         if (!interfaceType.AddMethod(new Symbol(genNode.IdName, genNode.Type, memberModifiers),
                             func.Content.Last().Name == "func_body"))
@@ -226,13 +244,9 @@ namespace Whirlwind.Semantic.Visitor
                         _visitFunction(func, memberModifiers);
                         var fnNode = (IdentifierNode)((BlockNode)_nodes.Last()).Nodes[0];
 
-                        if (fnNode.IdName == "__finalize__")
-                        {
-                            var fn = ((FunctionType)fnNode.Type);
+                        if (fnNode.IdName.StartsWith("__"))
+                            _checkSpecialMethod(fnNode, selfType, func.Content[1].Position);
 
-                            if (fn.Async || fn.Parameters.Count > 0 || fn.ReturnType.Classify() != TypeClassifier.VOID)
-                                throw new SemanticException("Invalid definition for finalizer", func.Content[1].Position);
-                        }
 
                         if (!interfaceType.AddMethod(new Symbol(fnNode.IdName, fnNode.Type, memberModifiers),
                             func.Content.Last().Name == "func_body"))
@@ -349,6 +363,33 @@ namespace Whirlwind.Semantic.Visitor
             MergeBack();
 
             _table.AddSymbol(new Symbol("$TYPE", dt));
+        }
+
+        private void _checkSpecialMethod(IdentifierNode fnNode, DataType selfType, TextPosition namePos)
+        {
+            var fn = ((FunctionType)fnNode.Type);
+
+            if (fnNode.IdName == "__finalize__")
+            {
+                if (fn.Async || fn.Parameters.Count > 0 || fn.ReturnType.Classify() != TypeClassifier.VOID)
+                    throw new SemanticException("Invalid definition for finalizer", namePos);
+            }
+            else if (fnNode.IdName == "__copy__")
+            {
+                if (fn.Async || fn.Parameters.Count != 0 || !selfType.Equals(fn.ReturnType))
+                    throw new SemanticException("Invalid definition for copier", namePos);
+            }
+            else if (fnNode.IdName == "__get__")
+            {
+                if (fn.Async || fn.Parameters.Count != 0 || !selfType.Equals(fn.ReturnType))
+                    throw new SemanticException("Invalid definition for getter", namePos);
+            }
+            else if (fnNode.IdName == "__set__")
+            {
+                if (fn.Async || fn.Parameters.Count != 1 || !selfType.Equals(fn.Parameters.First().DataType) 
+                    || fn.ReturnType.Classify() != TypeClassifier.VOID)
+                    throw new SemanticException("Invalid definition for copier", namePos);
+            }
         }
     }
 }

@@ -269,8 +269,8 @@ namespace Whirlwind.Semantic.Visitor
                         throw new SemanticException($"Interface has no function `{name}`", idPos);
                     break;
                 default:
-                    if (name == "__finalize__")
-                        throw new SemanticException("Unable to directly access finalizer outside of runtime core", idPos);
+                    if (!_annotatedSettings.ContainsKey("core") && new[] { "__finalize__", "__copy__", "__get__", "__set__" }.Contains(name))
+                        throw new SemanticException("Unable to directly access special methods outside of runtime core", idPos);
                     else if (!type.GetInterface().GetFunction(name, out symbol))
                         throw new SemanticException($"Type has no interface member `{name}`", idPos);
                     break;

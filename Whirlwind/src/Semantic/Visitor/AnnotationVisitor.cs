@@ -38,7 +38,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             if (hasValue && new[] { "impl", "platform", "static_link", "res_name" }.Contains(annot))
                 return true;
-            else if (new[] { "extern", "intrinsic", "joined" }.Contains(annot))
+            else if (new[] { "extern", "intrinsic", "joined", "core" }.Contains(annot))
                 return true;
 
             return false;
