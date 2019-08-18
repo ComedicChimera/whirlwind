@@ -101,7 +101,10 @@ namespace Whirlwind.Semantic.Visitor
             {
                 if (subNode.Name == "expr")
                 {
+                    _couldOwnerExist = true;
                     _visitExpr((ASTNode)subNode);
+                    _couldOwnerExist = false;
+
                     exprCount++;
                 }
             }

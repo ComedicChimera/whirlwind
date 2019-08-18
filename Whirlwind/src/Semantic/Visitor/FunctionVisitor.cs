@@ -161,7 +161,10 @@ namespace Whirlwind.Semantic.Visitor
                         break;
                     case "expr":
                         _nodes.Add(new StatementNode("ExpressionReturn"));
+
+                        _couldOwnerExist = true;
                         _visitExpr((ASTNode)item);
+                        _couldOwnerExist = false;
 
                         _dominantPosition = item.Position;
 

@@ -1,13 +1,5 @@
-﻿struct Test<T> {
-	x, y: T;
+﻿func test() dyn *int {
+	return make int;
 }
 
-interf<T> for Test<T> {
-	func __copy__() Test<T> {
-		return this;
-	}
-
-	func __set__(value: Test<T>) {
-	
-	}
-}
+func test2() dyn *float => make float;
