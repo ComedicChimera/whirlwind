@@ -1,6 +1,9 @@
 # TODO
 
-- Testing
+- allow new to a new version of all types
+  * `new [int]`
+  * `new [3]int`
+- TESTING
 
 # TESTING
 
@@ -59,4 +62,5 @@ for those intrinsics under certain conditions?)
   * like `func toDict<T to (K, V)>() [K: V]`
   * or maybe `func toDict<T as (K, V)>() [K: V]`
   * or even without generics `func toDict() T to [K: V]` where to compiler infers the missing types
+  
 
