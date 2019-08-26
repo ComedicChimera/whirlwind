@@ -3,6 +3,9 @@
 - allow new to a new version of all types
   * `new [int]`
   * `new [3]int`
+- add the any type and remove void pointers
+  * `any` any type in whirlwind, translates to `*void` with implict ref and deref
+  * `*any` functions exactly like a void pointer, no ref and deref logic
 - TESTING
 
 # TESTING
