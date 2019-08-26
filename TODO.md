@@ -8,9 +8,6 @@
   * `*any` functions exactly like a void pointer, no ref and deref logic
   * `any` and `null` are two different types (`any` must be explicitly cast from, null cannot be used during declaration)
   * `any` and void are different because `any` means anything and void means nothing
-- allow for more precise dynamic pointer processing
-  * `dyn* *int` is a dynamic pointer to stack int pointer
-  * `dyn* dyn* int` is a double dynamic pointer to an int ;)
 
 # TESTING
 
