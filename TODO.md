@@ -6,6 +6,7 @@
 - add the any type and remove void pointers
   * `any` any type in whirlwind, translates to `*void` with implict ref and deref
   * `*any` functions exactly like a void pointer, no ref and deref logic
+  * `any` and `null` are two different types (`any` must be explicitly cast from, null cannot be used during declaration)
 - allow for more precise dynamic pointer processing
   * `dyn* *int` is a dynamic pointer to stack int pointer
   * `dyn* dyn* int` is a double dynamic pointer to an int ;)
