@@ -6,14 +6,12 @@
 - add the any type and remove void pointers
   * `any` any type in whirlwind, translates to `*void` with implict ref and deref
   * `*any` functions exactly like a void pointer, no ref and deref logic
-- TESTING
+- allow for more precise dynamic pointer processing
+  * `dyn* *int` is a dynamic pointer to stack int pointer
+  * `dyn* dyn* int` is a double dynamic pointer to an int ;)
 
 # TESTING
 
-- static get
-- change include syntax to use `::` instead of `.`
-  * include { Println, Scan } from io::std;
-  * include ..a::b;
 - ALL DE NEW STUFF
 
 # FUTURE
