@@ -226,10 +226,23 @@ namespace Whirlwind.Types
 
         public override TypeClassifier Classify() => TypeClassifier.VOID;
 
-        protected override bool _equals(DataType other) => true;
+        protected override bool _equals(DataType other) => other is VoidType;
 
         public override DataType ConstCopy()
             => new VoidType() { Constant = true };
+    }
+
+    // any type; means something but with no type
+    class AnyType : DataType
+    {
+        public override bool Coerce(DataType other) => true;
+
+        public override TypeClassifier Classify() => TypeClassifier.ANY;
+
+        protected override bool _equals(DataType other) => other is AnyType;
+
+        public override DataType ConstCopy()
+            => new AnyType() { Constant = true };
     }
 
     // type that means there is a value, but it has no type
@@ -281,6 +294,7 @@ namespace Whirlwind.Types
         PACKAGE,
         VOID,
         NULL,
+        ANY,
         INCOMPLETE,
         SELF, // self-referential type
         GENERIC_SELF, // generic self-referential type

@@ -1,5 +1,8 @@
-﻿func test() dyn *int {
-	return make int;
-}
+﻿func fn(a: any) int => a as int;
 
-func test2() dyn *float => make float;
+func main() {
+	fn(5);
+
+	// will fail at runtime
+	fn("test");
+}

@@ -312,7 +312,7 @@ simple_types: 'BOOL_TYPE'
 | 'BYTE_TYPE'
 | 'LONG_TYPE'
 | 'DOUBLE_TYPE'
-| 'VOID_TYPE'
+| 'ANY_TYPE'
 ;
 
 collection_types: '[' [ expr ] ']' types

@@ -16,7 +16,8 @@ namespace Whirlwind.Semantic.Checker
                 return true;
 
             // although alias possesses a type, for the purposes of casting, the alias is actually variadic
-            if (start.Classify() == TypeClassifier.GENERIC_ALIAS)
+            // any type can cast to anything
+            if (start is GenericAlias || start is AnyType)
                 return true;
 
             // void pointers can be cast to anything (b/c they are basically memory addresses)

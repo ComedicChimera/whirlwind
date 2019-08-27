@@ -105,7 +105,7 @@ namespace Whirlwind.Semantic.Visitor
                     break;
             }
 
-            if (_isVoid(dt) || new[] { TypeClassifier.SELF, TypeClassifier.GENERIC_SELF, TypeClassifier.GENERIC_SELF_INSTANCE }
+            if (new[] { TypeClassifier.SELF, TypeClassifier.GENERIC_SELF, TypeClassifier.GENERIC_SELF_INSTANCE }
                     .Contains(dt.Classify()) && _selfNeedsPointer)
                 throw new SemanticException("Unable to declare incomplete type", node.Position);
 
@@ -127,8 +127,8 @@ namespace Whirlwind.Semantic.Visitor
                     SimpleType.SimpleClassifier dt;
                     Token tok = ((TokenNode)((ASTNode)subNode).Content[0]).Tok;
 
-                    if (tok.Type == "VOID_TYPE")
-                        return new VoidType();
+                    if (tok.Type == "ANY_TYPE")
+                        return new AnyType();
 
                     switch (tok.Type)
                     {

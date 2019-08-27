@@ -3,11 +3,6 @@
 - allow new to a new version of all types
   * `new [int]`
   * `new [3]int`
-- add the any type and remove void pointers (and `void` keyword)
-  * `any` any type in whirlwind, translates to `*void` with implict ref and deref
-  * `*any` functions exactly like a void pointer, no ref and deref logic
-  * `any` and `null` are two different types (`any` must be explicitly cast from, null cannot be used during declaration)
-  * `any` and void are different because `any` means anything and void means nothing
 
 # TESTING
 
