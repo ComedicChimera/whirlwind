@@ -1,8 +1,17 @@
 # TODO
 
-- allow new to a new version of all types
-  * `new [int]`
-  * `new [3]int`
+- fix type system to be more usable (for simple types)
+  * unsigned integers: `u8, u16, u32, u64`
+  * integers: `i8, i16, i32, i64`
+  * floats: `f32, f64`
+  * keep `str` the same
+  * allow `char, byte` to cast to `u16, u8` respectively
+  * define `int, uint, voidptr` via runtime core for use when necessary
+  * sizes coerce upward and cast downward, you must cast between signed and unsigned
+  * integer literals default to whatever `int` is, floats default `f32`
+- update ranges to go in both directions and have inclusive bounds on both sides
+  * 1..10 is actually `1, 2, 3, ... , 9, 10`
+  * 10..1 generates like `10, 9, ... , 3, 2, 1`
 
 # TESTING
 
