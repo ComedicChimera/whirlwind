@@ -254,61 +254,33 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitByteLiteral(Token token)
         {
+            int tokenCount = token.Value.Length - 2;
+            SimpleType.SimpleClassifier sc;
+
             if (token.Type == "HEX_LITERAL")
             {
-                if (token.Value.Length < 5 /* 5 to account for prefix */)
-                {
-                    _nodes.Add(new ValueNode("Literal", new SimpleType(SimpleType.SimpleClassifier.BYTE, true), token.Value));
-                }
+                if (tokenCount <= 2)
+                    sc = SimpleType.SimpleClassifier.BYTE;
+                else if (tokenCount <= 4)
+                    sc = SimpleType.SimpleClassifier.CHAR;
+                else if (tokenCount <= 8)
+                    sc = SimpleType.SimpleClassifier.INTEGER;
                 else
-                {
-                    token.Value = token.Value.Substring(2);
-                    string value = token.Value.Length % 2 == 0 ? token.Value : "0" + token.Value;
-                    var pairs = Enumerable.Range(0, value.Length)
-                        .Where(x => x % 2 == 0)
-                        .Select(x => "0x" + value[x] + value[x + 1])
-                        .Select(x => new ValueNode("Literal",
-                            new SimpleType(SimpleType.SimpleClassifier.BYTE, true),
-                            x))
-                        .ToArray();
-                    _nodes.Add(new ExprNode("Array",
-                        new ArrayType(new SimpleType(SimpleType.SimpleClassifier.BYTE, true), pairs.Length)
-                        ));
-                    foreach (ValueNode node in pairs)
-                    {
-                        _nodes.Add(node);
-                        MergeBack();
-                    }
-                }
+                    sc = SimpleType.SimpleClassifier.DOUBLE;
             }
             else
             {
-                if (token.Value.Length < 11 /* 11 to account for prefix */)
-                {
-                    _nodes.Add(new ValueNode("Literal", new SimpleType(SimpleType.SimpleClassifier.BYTE, true), token.Value));
-                }
+                if (tokenCount <= 8)
+                    sc = SimpleType.SimpleClassifier.BYTE;
+                else if (tokenCount <= 16)
+                    sc = SimpleType.SimpleClassifier.CHAR;
+                else if (tokenCount <= 32)
+                    sc = SimpleType.SimpleClassifier.INTEGER;
                 else
-                {
-                    token.Value = token.Value.Substring(2);
-                    string value = token.Value.Length % 8 == 0 ? token.Value :
-                        string.Join("", Enumerable.Repeat("0", 8 - token.Value.Length % 8)) + token.Value;
-                    var pairs = Enumerable.Range(0, value.Length)
-                        .Where(x => x % 8 == 0)
-                        .Select(x => "0b" + value.Substring(x, 8))
-                        .Select(x => new ValueNode("Literal",
-                            new SimpleType(SimpleType.SimpleClassifier.BYTE, true),
-                            x))
-                        .ToArray();
-                    _nodes.Add(new ExprNode("Array",
-                        new ArrayType(new SimpleType(SimpleType.SimpleClassifier.BYTE, true), pairs.Length)
-                        ));
-                    foreach (ValueNode node in pairs)
-                    {
-                        _nodes.Add(node);
-                        MergeBack();
-                    }
-                }
+                    sc = SimpleType.SimpleClassifier.DOUBLE;
             }
+
+            _nodes.Add(new ValueNode("ByteLiteral", new SimpleType(sc, false), token.Value));
         }
 
         private void _visitComprehension(ASTNode node)

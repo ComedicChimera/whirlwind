@@ -1,18 +1,5 @@
 # TODO
 
-- fix type system to be more usable (for simple types)
-  * unsigned integers: `u8, u16, u32, u64`
-  * integers: `i8, i16, i32, i64`
-  * floats: `f32, f64`
-  * keep `str` the same
-  * allow `char, byte` to cast to `u16, u8` respectively
-  * define `int, uint, voidptr` via runtime core for use when necessary
-  * sizes coerce upward and cast downward, you must cast between signed and unsigned
-  * integer literals default to whatever `int` is, floats default `f32`
-- update ranges to go in both directions and have inclusive bounds on both sides
-  * 1..10 is actually `1, 2, 3, ... , 9, 10`
-  * 10..1 generates like `10, 9, ... , 3, 2, 1`
-
 # TESTING
 
 - ALL DE NEW STUFF
@@ -50,6 +37,7 @@
 - add prelude 
 - make sure `#impl` is used in generating intrinsics (and in visiting type interfaces
 for those intrinsics under certain conditions?)
+- remember, ranges can go in both directions are are inclusive on both sides
 
 # THOUGHTS
 
@@ -66,5 +54,14 @@ for those intrinsics under certain conditions?)
   * like `func toDict<T to (K, V)>() [K: V]`
   * or maybe `func toDict<T as (K, V)>() [K: V]`
   * or even without generics `func toDict() T to [K: V]` where to compiler infers the missing types
+- fix type system to be more usable (for simple types)
+  * unsigned integers: `u8, u16, u32, u64`
+  * integers: `i8, i16, i32, i64`
+  * floats: `f32, f64`
+  * keep `str` the same
+  * allow `char, byte` to cast to `u16, u8` respectively
+  * define `int, uint, voidptr` via runtime core for use when necessary
+  * sizes coerce upward and cast downward, you must cast between signed and unsigned
+  * integer literals default to whatever `int` is, floats default `f32`
   
 
