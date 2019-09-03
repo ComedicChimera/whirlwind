@@ -168,7 +168,10 @@ namespace Whirlwind.Semantic.Visitor
         public ITypeNode Result() => _nodes.First();
 
         // returns exported list of symbols
-        public Dictionary<string, Symbol> Table() => _table.Filter(s => s.Modifiers.Contains(Modifier.EXPORTED));
+        public SymbolTable Table() => _table;
+
+        // returns the list of visitor flags
+        public Dictionary<string, string> Flags() => _annotatedSettings;
 
         // ------------------------------------
         // Construction Stack Control Functions

@@ -2,6 +2,46 @@
   "version": 3,
   "targets": {
     ".NETCoreApp,Version=v2.1": {
+      "LibLLVM/5.0.1": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.NETCore.Platforms": "1.0.1"
+        },
+        "build": {
+          "build/net461/_._": {}
+        },
+        "runtimeTargets": {
+          "runtimes/linux-x64/native/libLLVM.so": {
+            "assetType": "native",
+            "rid": "linux-x64"
+          },
+          "runtimes/osx/native/libLLVM.dylib": {
+            "assetType": "native",
+            "rid": "osx"
+          },
+          "runtimes/win-x64/native/libLLVM.dll": {
+            "assetType": "native",
+            "rid": "win-x64"
+          },
+          "runtimes/win-x86/native/libLLVM.dll": {
+            "assetType": "native",
+            "rid": "win-x86"
+          }
+        }
+      },
+      "LLVMSharp/5.0.0": {
+        "type": "package",
+        "dependencies": {
+          "NETStandard.Library": "1.6.1",
+          "libLLVM": "5.0.1"
+        },
+        "compile": {
+          "lib/netstandard1.1/LLVMSharp.dll": {}
+        },
+        "runtime": {
+          "lib/netstandard1.1/LLVMSharp.dll": {}
+        }
+      },
       "Microsoft.NETCore.App/2.1.0": {
         "type": "package",
         "dependencies": {
@@ -220,6 +260,33 @@
     }
   },
   "libraries": {
+    "LibLLVM/5.0.1": {
+      "sha512": "tyT+yOd+A8uoUr6ejeBwE4d10EWCjfLwMN3O7dChTJR/dOYuy0FMx/CgywQHsYVK5MX0Ui5SWneaMMUH9hjZAg==",
+      "type": "package",
+      "path": "libllvm/5.0.1",
+      "files": [
+        ".signature.p7s",
+        "License.txt",
+        "build/net461/libLLVM.targets",
+        "libllvm.5.0.1.nupkg.sha512",
+        "libllvm.nuspec",
+        "runtimes/linux-x64/native/libLLVM.so",
+        "runtimes/osx/native/libLLVM.dylib",
+        "runtimes/win-x64/native/libLLVM.dll",
+        "runtimes/win-x86/native/libLLVM.dll"
+      ]
+    },
+    "LLVMSharp/5.0.0": {
+      "sha512": "ZGoK1MP98bCdcdts7RgWgvQWsM2+yYt4to04IXDFN1zM4gByinlpYUHR5axXne+Io5jkKmHxPijkY/pj6Iv6gQ==",
+      "type": "package",
+      "path": "llvmsharp/5.0.0",
+      "files": [
+        ".signature.p7s",
+        "lib/netstandard1.1/LLVMSharp.dll",
+        "llvmsharp.5.0.0.nupkg.sha512",
+        "llvmsharp.nuspec"
+      ]
+    },
     "Microsoft.NETCore.App/2.1.0": {
       "sha512": "AvT774nTFgU8cYcGO9j1EMwuayKslxqYTurg32HGpWa2hEYNuW2+XgYVVNcZe6Ndbr84QX6fwaOZfd5n+1m2OA==",
       "type": "package",
@@ -721,6 +788,7 @@
   },
   "projectFileDependencyGroups": {
     ".NETCoreApp,Version=v2.1": [
+      "LLVMSharp >= 5.0.0",
       "Microsoft.NETCore.App >= 2.1.0",
       "Newtonsoft.Json >= 11.0.2"
     ]
@@ -766,6 +834,10 @@
     "frameworks": {
       "netcoreapp2.1": {
         "dependencies": {
+          "LLVMSharp": {
+            "target": "Package",
+            "version": "[5.0.0, )"
+          },
           "Microsoft.NETCore.App": {
             "target": "Package",
             "version": "[2.1.0, )",
@@ -783,5 +855,17 @@
         "warn": true
       }
     }
-  }
+  },
+  "logs": [
+    {
+      "code": "NU1701",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "Package 'LibLLVM 5.0.1' was restored using '.NETFramework,Version=v4.6.1' instead of the project target framework '.NETCoreApp,Version=v2.1'. This package may not be fully compatible with your project.",
+      "libraryId": "LibLLVM",
+      "targetGraphs": [
+        ".NETCoreApp,Version=v2.1"
+      ]
+    }
+  ]
 }

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using Whirlwind.Syntax;
 using Whirlwind.Semantic.Visitor;
 using Whirlwind.Semantic;
+using Whirlwind.Generation;
 
 namespace Whirlwind
 {
@@ -42,7 +43,7 @@ namespace Whirlwind
                 return;
             }
 
-            // during package linking, add name prefix
+            
             var visitor = new Visitor(namePrefix, false);
 
             try
@@ -63,8 +64,19 @@ namespace Whirlwind
                 return;
             }
 
-            table = visitor.Table();
-            Console.WriteLine(visitor.Result().ToString());
+            var fullTable = visitor.Table();
+
+            var generator = new Generator(fullTable, visitor.Flags());
+
+            try
+            {
+                // supplement in real file name when appropriate
+                generator.Generate(visitor.Result(), "test.llvm");
+            }
+            catch (GeneratorException ge)
+            {
+                Console.WriteLine("Generation Error: " + ge.ErrorMessage);
+            }
         }
 
         private void WriteError(string text, string message, int position, int length)
