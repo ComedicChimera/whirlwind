@@ -688,7 +688,7 @@ namespace Whirlwind.Semantic.Visitor
                 if (item.Name == "types")
                 {
                     dt = _generateType((ASTNode)item);
-                    _nodes.Add(new ValueNode("DataType", dt));
+                    _nodes.Add(new ValueNode("Type", dt));
                     isTypeAlloc = true;
                 }
                 else if (item.Name == "expr")
@@ -746,7 +746,7 @@ namespace Whirlwind.Semantic.Visitor
                 if (!new SimpleType(SimpleType.SimpleClassifier.INTEGER, true).Coerce(_nodes.Last().Type))
                     throw new SemanticException("Size of allocated space must be an unsigned integer", allocBody.Content[0].Position);
 
-                _nodes.Add(new ExprNode("HeapAllocSize", new PointerType(new VoidType(), true)));
+                _nodes.Add(new ExprNode("HeapAllocSize", new PointerType(new AnyType(), true)));
                 PushForward();
             }
         }

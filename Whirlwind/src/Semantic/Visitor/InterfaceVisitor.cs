@@ -109,7 +109,7 @@ namespace Whirlwind.Semantic.Visitor
                             else
                                 throw new SemanticException("Type interface can only implement interfaces", item.Position);
 
-                            _nodes.Add(new ValueNode("Implement", impl));
+                            _nodes.Add(new ValueNode("StandardImplement", impl));
                             MergeBack();
                         }
                     }
@@ -173,7 +173,7 @@ namespace Whirlwind.Semantic.Visitor
                         if (_isGenericInterf(typeNode, genericVars.Select(x => x.Name).ToList()))
                         {
                             genericBinding.GenericImplements.Add(new GenericType(genericVars, dt, _decorateEval(typeNode, _typeVFN)));
-                            _nodes.Add(new ValueNode("GenericInherit", dt));
+                            _nodes.Add(new ValueNode("GenericImplement", dt));
                         }                           
                         else
                         {
@@ -182,7 +182,7 @@ namespace Whirlwind.Semantic.Visitor
                             else
                                 throw new SemanticException("Unable to use non-interface as a classifying interface", item.Position);
 
-                            _nodes.Add(new ValueNode("StandardInherit", dt));                           
+                            _nodes.Add(new ValueNode("StandardImplement", dt));                           
                         }
 
                         MergeBack();

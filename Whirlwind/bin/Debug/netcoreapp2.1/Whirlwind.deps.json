@@ -1,17 +1,53 @@
 {
   "runtimeTarget": {
     "name": ".NETCoreApp,Version=v2.1",
-    "signature": "883f5ab0e357ef56d00e5851b3cee30b45ba651b"
+    "signature": "e9a9a37861bb956f7336374e0890aa72d8677fbf"
   },
   "compilationOptions": {},
   "targets": {
     ".NETCoreApp,Version=v2.1": {
       "Whirlwind/1.0.0": {
         "dependencies": {
+          "LLVMSharp": "5.0.0",
           "Newtonsoft.Json": "11.0.2"
         },
         "runtime": {
           "Whirlwind.dll": {}
+        }
+      },
+      "LibLLVM/5.0.1": {
+        "runtimeTargets": {
+          "runtimes/linux-x64/native/libLLVM.so": {
+            "rid": "linux-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/osx/native/libLLVM.dylib": {
+            "rid": "osx",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/libLLVM.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x86/native/libLLVM.dll": {
+            "rid": "win-x86",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "LLVMSharp/5.0.0": {
+        "dependencies": {
+          "LibLLVM": "5.0.1"
+        },
+        "runtime": {
+          "lib/netstandard1.1/LLVMSharp.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
         }
       },
       "Newtonsoft.Json/11.0.2": {
@@ -29,6 +65,20 @@
       "type": "project",
       "serviceable": false,
       "sha512": ""
+    },
+    "LibLLVM/5.0.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-tyT+yOd+A8uoUr6ejeBwE4d10EWCjfLwMN3O7dChTJR/dOYuy0FMx/CgywQHsYVK5MX0Ui5SWneaMMUH9hjZAg==",
+      "path": "libllvm/5.0.1",
+      "hashPath": "libllvm.5.0.1.nupkg.sha512"
+    },
+    "LLVMSharp/5.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-ZGoK1MP98bCdcdts7RgWgvQWsM2+yYt4to04IXDFN1zM4gByinlpYUHR5axXne+Io5jkKmHxPijkY/pj6Iv6gQ==",
+      "path": "llvmsharp/5.0.0",
+      "hashPath": "llvmsharp.5.0.0.nupkg.sha512"
     },
     "Newtonsoft.Json/11.0.2": {
       "type": "package",

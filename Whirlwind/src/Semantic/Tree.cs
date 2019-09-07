@@ -80,7 +80,7 @@ namespace Whirlwind.Semantic
         public string Name { get; }
         public DataType Type { get; set; }
 
-    public string Value;
+        public string Value;
 
         public ValueNode(string name, DataType type)
         {
@@ -154,13 +154,6 @@ namespace Whirlwind.Semantic
             Name = name;
             Type = new VoidType();
             Nodes = new List<ITypeNode>();
-        }
-
-        public StatementNode(string name, List<ITypeNode> nodes)
-        {
-            Name = name;
-            Type = new VoidType();
-            Nodes = nodes;
         }
 
         public override string ToString()
