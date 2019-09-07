@@ -86,7 +86,7 @@ namespace Whirlwind.Semantic.Visitor
                                 .Where(c => c.Name == name);
 
                             if (customMatches.Count() == 0)
-                                throw new SemanticException($"Undefined Symbol: `{name}`", node.Position);
+                                throw new SemanticException($"Undefined symbol: `{name}`", node.Position);
 
                             _nodes.Add(new IdentifierNode(_typeClassContext.Name, _typeClassContext));
                             _nodes.Add(new IdentifierNode(name, customMatches.First()));
@@ -97,7 +97,7 @@ namespace Whirlwind.Semantic.Visitor
                             return;
                         }
                         else
-                            throw new SemanticException($"Undefined Symbol: `{((TokenNode)node.Content[0]).Tok.Value}`", node.Position);
+                            throw new SemanticException($"Undefined symbol: `{((TokenNode)node.Content[0]).Tok.Value}`", node.Position);
                     case "THIS":
                         if (_table.Lookup("$THIS", out Symbol instance))
                         {
@@ -170,7 +170,7 @@ namespace Whirlwind.Semantic.Visitor
 
         private Tuple<DataType, int> _visitSet(ASTNode node)
         {
-            DataType elementType = new VoidType();
+            DataType elementType = new NoneType();
             int size = 0;
             foreach (var element in node.Content)
             {
@@ -186,7 +186,7 @@ namespace Whirlwind.Semantic.Visitor
 
         private Tuple<DataType, DataType, int> _visitDict(ASTNode node)
         {
-            DataType keyType = new VoidType(), valueType = new VoidType();
+            DataType keyType = new NoneType(), valueType = new NoneType();
             bool isKey = true;
             int size = 0;
 
@@ -285,10 +285,10 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitComprehension(ASTNode node)
         {
-            DataType elementType = new VoidType();
+            DataType elementType = new NoneType();
 
             // used in case of map comprehension
-            DataType valueType = new VoidType();
+            DataType valueType = new NoneType();
 
             int sizeBack = 0;
             bool isKeyPair = false, isCondition = false, isList = ((TokenNode)node.Content[0]).Tok.Type == "[";
@@ -365,7 +365,7 @@ namespace Whirlwind.Semantic.Visitor
         private void _visitLambda(ASTNode node, FunctionType ctx = null)
         {
             var args = new List<Parameter>();
-            DataType rtType = new VoidType();
+            DataType rtType = new NoneType();
             bool async = false;
 
             foreach (var item in node.Content)
@@ -455,7 +455,7 @@ namespace Whirlwind.Semantic.Visitor
                     _visitExpr(expr);
 
                     if (!fnType.Parameters[ndx].DataType.Coerce(_nodes.Last().Type))
-                        throw new SemanticException("Invalid value for the given argument", item.Value.Position);
+                        throw new SemanticException("Invalid value for argument named " + fnType.Parameters[ndx].Name, item.Value.Position);
 
                     // create the partial arguments
                     _nodes.Add(new ExprNode($"PartialArg{ndx}", _nodes.Last().Type));
@@ -510,7 +510,7 @@ namespace Whirlwind.Semantic.Visitor
                                         _nodes.Add(new IdentifierNode(token.Value, sym.DataType));
                                     }
                                     else
-                                        throw new SemanticException($"Unable to find parent by name `{token.Value}`", item.Position);
+                                        throw new SemanticException($"Unable to find parent named `{token.Value}`", item.Position);
                                 }
                                 break;
                             case "static_get":
@@ -526,7 +526,7 @@ namespace Whirlwind.Semantic.Visitor
                                         PushForward(2);
                                     }
                                     else
-                                        throw new SemanticException($"The given package has no exported member `{idNode.Tok.Value}", idNode.Position);
+                                        throw new SemanticException($"The given package has no exported member: `{idNode.Tok.Value}", idNode.Position);
                                 }
                                 else
                                     throw new SemanticException("Static get can only be used on packages in a super argument", item.Position);
@@ -540,7 +540,8 @@ namespace Whirlwind.Semantic.Visitor
                                     PushForward();
                                 }
                                 else
-                                    throw new SemanticException("Unable to apply generic specifier to non-generic type", item.Position);
+                                    throw new SemanticException("Unable to apply generic specifier to type of " + _nodes.Last().Type.ToString(), 
+                                        item.Position);
                                 break;
                         }
                     }
@@ -558,7 +559,7 @@ namespace Whirlwind.Semantic.Visitor
                             throw new SemanticException("The given interface is not a parent to the current type", node.Position);
                     }
                     else
-                        throw new SemanticException("Unable to use non-interface as a parent", node.Position);
+                        throw new SemanticException($"Unable to use type of {_nodes.Last().Type.ToString()} as a parent", node.Position);
                 }
             }
             else

@@ -40,7 +40,7 @@ namespace Whirlwind.Semantic.Visitor
                 if (subNode.Name == "struct_var")
                 {
                     var processingStack = new List<TokenNode>();
-                    DataType type = new VoidType();
+                    DataType type = new NoneType();
                     bool isVolatile = false;
 
                     foreach (var item in ((ASTNode)subNode).Content)
@@ -66,7 +66,8 @@ namespace Whirlwind.Semantic.Visitor
                             _visitExpr((ASTNode)((ASTNode)item).Content[1]);
 
                             if (!type.Coerce(_nodes.Last().Type))
-                                throw new SemanticException("Unable to initialize the given members with a value of the given type", item.Position);
+                                throw new SemanticException("Unable to initialize the given members with a type of " + _nodes.Last().Type.ToString(), 
+                                    item.Position);
 
                             _nodes.Add(new ExprNode("MemberInitializer", _nodes.Last().Type));
                             PushForward();
@@ -99,7 +100,7 @@ namespace Whirlwind.Semantic.Visitor
             }
 
             if (needsDefaultConstr)
-                structType.AddConstructor(new FunctionType(new List<Parameter>(), new VoidType(), false));
+                structType.AddConstructor(new FunctionType(new List<Parameter>(), new NoneType(), false));
 
             _nodes.Add(new IdentifierNode(name.Tok.Value, structType));
             MergeBack();
@@ -111,7 +112,7 @@ namespace Whirlwind.Semantic.Visitor
             _table.AscendScope();
 
             if (!_table.AddSymbol(new Symbol(name.Tok.Value, structType, modifiers)))
-                throw new SemanticException($"Unable to redeclare symbol by name `{name.Tok.Value}`", name.Position);
+                throw new SemanticException($"Unable to redeclare symbol: `{name.Tok.Value}`", name.Position);
 
             // undo self needs pointer
             _selfNeedsPointer = false;
@@ -134,7 +135,7 @@ namespace Whirlwind.Semantic.Visitor
                 }
             }
 
-            FunctionType ft = new FunctionType(args, new VoidType(), false)
+            FunctionType ft = new FunctionType(args, new NoneType(), false)
             {
                 Constant = true
             };

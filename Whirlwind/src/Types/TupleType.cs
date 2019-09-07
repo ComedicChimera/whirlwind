@@ -37,5 +37,8 @@ namespace Whirlwind.Types
 
         public override DataType ConstCopy()
             => new TupleType(Types); // implicit const
+
+        public override string ToString()
+            => $"tuple({string.Join(", ", Types.Select(x => x.ToString()))})";
     }
 }

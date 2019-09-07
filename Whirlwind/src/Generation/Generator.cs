@@ -5,10 +5,11 @@ using System.Text;
 using LLVMSharp;
 
 using Whirlwind.Semantic;
+using Whirlwind.Types;
 
 namespace Whirlwind.Generation
 {
-    class Generator
+    partial class Generator
     {
         // visitor extracted data
         private readonly SymbolTable _table;
@@ -30,7 +31,32 @@ namespace Whirlwind.Generation
 
         public void Generate(ITypeNode tree, string outputFile)
         {
+            // first node is Package
+            foreach (var node in ((BlockNode)tree).Block)
+            {
+                switch (node.Name)
+                {
+                    case "Function":
+                    case "AsyncFunction":
+                        _generateFunction((BlockNode)node);
+                        break;
+                }
+            }
+        }
 
+        private string ConvertTypeToName(DataType dt)
+        {
+            return dt.ToString()
+                .Replace("[", "_")
+                .Replace("]", "_")
+                .Replace("(", "_")
+                .Replace(")", "_")
+                .Replace("<", "_$_")
+                .Replace(">", "_$_")
+                .Replace(",", "$")
+                .Replace("::", ".")
+                .Replace("*", "$.")
+                .Replace(" ", "");
         }
     }
 

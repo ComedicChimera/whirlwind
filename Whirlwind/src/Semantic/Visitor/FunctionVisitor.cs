@@ -16,7 +16,7 @@ namespace Whirlwind.Semantic.Visitor
             bool isAsync = false;
             string name = "";
             var arguments = new List<Parameter>();
-            DataType dataType = new VoidType();
+            DataType dataType = new NoneType();
 
             TextPosition namePosition = new TextPosition();
 
@@ -86,7 +86,7 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     if (FunctionGroup.CanDistinguish(oft, fnType))
                     {
-                        overload.DataType = new FunctionGroup(new List<FunctionType> { oft, fnType }) { Constant = true };
+                        overload.DataType = new FunctionGroup(_namePrefix + name, new List<FunctionType> { oft, fnType }) { Constant = true };
                         return;
                     }
                 }
@@ -96,7 +96,7 @@ namespace Whirlwind.Semantic.Visitor
                         return;
                 }
 
-                throw new SemanticException($"Unable to redeclare symbol by name {name}", namePosition);
+                throw new SemanticException($"Unable to redeclare symbol: `{name}`", namePosition);
             }
                 
 
@@ -136,7 +136,7 @@ namespace Whirlwind.Semantic.Visitor
 
         private DataType _visitFuncBody(ASTNode node, List<Parameter> args)
         {
-            DataType rtType = new VoidType();
+            DataType rtType = new NoneType();
 
             if (node.Content[0].Name == "capture")
             {
@@ -199,7 +199,7 @@ namespace Whirlwind.Semantic.Visitor
 
         private Tuple<bool, DataType> _extractReturnType(BlockNode block, List<TextPosition> positions, ref int pos)
         {
-            DataType rtType = new VoidType();
+            DataType rtType = new NoneType();
             bool returnsValue = false, setReturn = false, terminatingReturn = false;
 
             foreach (var node in block.Block)
@@ -327,7 +327,7 @@ namespace Whirlwind.Semantic.Visitor
                         isVolatile = false,
                         inferredType = false;
                     var identifiers = new List<string>();
-                    DataType paramType = new VoidType();
+                    DataType paramType = new NoneType();
 
                     foreach (var argPart in ((ASTNode)subNode).Content)
                     {
@@ -446,7 +446,7 @@ namespace Whirlwind.Semantic.Visitor
                 else if (subNode.Name == "ending_arg")
                 {
                     string name = "";
-                    DataType dt = new VoidType();
+                    DataType dt = new NoneType();
 
                     foreach (var item in ((ASTNode)subNode).Content)
                     {

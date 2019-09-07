@@ -1,3 +1,6 @@
 ﻿func main() {
-	
+	let x = 0;
+	let s = "hi";
+
+	x == s;
 }

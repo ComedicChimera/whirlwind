@@ -43,7 +43,7 @@ namespace Whirlwind.Types
                 return true;
             }
             
-            cAlias = new CustomAlias(this, new VoidType());
+            cAlias = new CustomAlias(this, new NoneType());
             return false;
         }
 
@@ -109,6 +109,9 @@ namespace Whirlwind.Types
                 Constant = true,
                 Instances = Instances
             };
+
+        public override string ToString()
+            => PrefixToPackageName(Name);
     }
 
     abstract class CustomInstance : DataType
@@ -132,6 +135,9 @@ namespace Whirlwind.Types
 
             return false;
         }
+
+        public override string ToString()
+            => PrefixToPackageName(Parent.Name);
     }
 
     class CustomNewType : CustomInstance
@@ -160,7 +166,10 @@ namespace Whirlwind.Types
         }
 
         public override DataType ConstCopy()
-            => new CustomNewType(Parent, Name, Values) { Constant = true };  
+            => new CustomNewType(Parent, Name, Values) { Constant = true };
+
+        public override string ToString()
+            => PrefixToPackageName(Parent.Name) + "::" + Name;
     }
 
     class CustomAlias : CustomInstance
@@ -183,5 +192,8 @@ namespace Whirlwind.Types
 
         public override DataType ConstCopy()
             => new CustomAlias(Parent, Type) { Constant = true };
+
+        public override string ToString()
+            => PrefixToPackageName(Parent.Name) + "::" + Type.ToString();
     }
 }

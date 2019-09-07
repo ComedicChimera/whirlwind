@@ -169,13 +169,13 @@ namespace Whirlwind.Types
 
             if (new[] { TypeClassifier.GENERIC_ALIAS, TypeClassifier.GENERIC, TypeClassifier.GENERIC_PLACEHOLDER ,
                 TypeClassifier.GENERIC_GROUP, TypeClassifier.FUNCTION_GROUP }.Contains(Classify()))
-                return new InterfaceType();
+                return new InterfaceType("TypeInterf:" + ToString());
 
             // don't create entries for nulls and voids
-            if (this is VoidType || this is NullType)
-                return new InterfaceType();
+            if (this is NoneType || this is NullType)
+                return new InterfaceType("TypeInterf:" + ToString());
 
-            InterfaceRegistry.StandardInterfaces[this] = new InterfaceType();
+            InterfaceRegistry.StandardInterfaces[this] = new InterfaceType("TypeInterf:" + ToString());
 
             return InterfaceRegistry.StandardInterfaces[this];
         }
@@ -217,19 +217,24 @@ namespace Whirlwind.Types
 
         // returns a constant copy of a given data type
         public abstract DataType ConstCopy();
+
+        protected string PrefixToPackageName(string name)
+            => name.Replace("/", "::");
     }
 
-    // pure void type; means nothing (no value)
-    class VoidType : DataType
+    // pure none type; means nothing (no value)
+    class NoneType : DataType
     {
         public override bool Coerce(DataType other) => true;
 
-        public override TypeClassifier Classify() => TypeClassifier.VOID;
+        public override TypeClassifier Classify() => TypeClassifier.NONE;
 
-        protected override bool _equals(DataType other) => other is VoidType;
+        protected override bool _equals(DataType other) => other is NoneType;
 
         public override DataType ConstCopy()
-            => new VoidType() { Constant = true };
+            => new NoneType() { Constant = true };
+
+        public override string ToString() => "none";
     }
 
     // any type; means something but with no type
@@ -243,6 +248,8 @@ namespace Whirlwind.Types
 
         public override DataType ConstCopy()
             => new AnyType() { Constant = true };
+
+        public override string ToString() => "any";
     }
 
     // type that means there is a value, but it has no type
@@ -257,6 +264,8 @@ namespace Whirlwind.Types
 
         public override DataType ConstCopy()
            => new NullType() { Constant = true };
+
+        public override string ToString() => "null";
     }
 
     class IncompleteType : DataType
@@ -292,7 +301,7 @@ namespace Whirlwind.Types
         GENERIC_PLACEHOLDER,
         GENERIC_GROUP,
         PACKAGE,
-        VOID,
+        NONE,
         NULL,
         ANY,
         INCOMPLETE,

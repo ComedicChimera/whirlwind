@@ -103,15 +103,16 @@ namespace Whirlwind.Semantic.Checker
 
             if (valid)
             {
-                if (rootType.Classify() == TypeClassifier.VOID)
-                    throw new SemanticException("Unable to apply operator to root type of void", position);
+                if (rootType.Classify() == TypeClassifier.NONE)
+                    throw new SemanticException("Unable to apply operator to root type of none", position);
 
                 if (!rootType.Coerce(operandType))
                 {
                     if (operandType.Coerce(rootType))
                         rootType = operandType;
                     else
-                        throw new SemanticException($"All operands of the '{op}' operator must be of similar types", position);
+                        throw new SemanticException($"Unable to apply `{op}` to types of {rootType.ToString()} and {operandType.ToString()}", 
+                            position);
                 }
 
                 // all roots that reach this point are simple

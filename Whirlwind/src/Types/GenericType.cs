@@ -29,6 +29,8 @@ namespace Whirlwind.Types
 
         public override DataType ConstCopy()
             => new GenericPlaceholder(Name); // implicit const
+
+        public override string ToString() => Name;
     }
 
     // represents the various aliases of the generics (ie. the T in id<T>)
@@ -49,6 +51,8 @@ namespace Whirlwind.Types
 
         public override DataType ConstCopy()
             => new GenericAlias(ReplacementType); // implicit const
+
+        public override string ToString() => ReplacementType.ToString();
     }
 
     // function used to evaluate generic body
@@ -447,27 +451,33 @@ namespace Whirlwind.Types
                 return Equals(gst.GenericSelf);
 
             return false;
-        }       
+        }
+
+        public override string ToString()
+            => DataType.ToString() + "<" + string.Join(", ", GenericVariables.Select(x => x.Name)) + ">";
     }
 
     // represents a generic function group
     class GenericGroup : DataType
     {
+        public readonly string Name;
         public readonly List<GenericType> GenericFunctions;
 
-        public GenericGroup(GenericType type1, GenericType type2)
+        public GenericGroup(string name, GenericType type1, GenericType type2)
         {
+            Name = name;
             GenericFunctions = new List<GenericType> { type1, type2 };
         }
 
-        private GenericGroup(List<GenericType> genericFunctions)
+        private GenericGroup(string name, List<GenericType> genericFunctions)
         {
+            Name = name;
             GenericFunctions = genericFunctions;
         }
 
         public override TypeClassifier Classify() => TypeClassifier.GENERIC_GROUP;
 
-        public override DataType ConstCopy() => new GenericGroup(GenericFunctions) { Constant = true };
+        public override DataType ConstCopy() => new GenericGroup(Name, GenericFunctions) { Constant = true };
 
         public bool AddGeneric(GenericType gt)
         {
@@ -520,6 +530,8 @@ namespace Whirlwind.Types
             else
                 return false;
         }
+
+        public override string ToString() => $"GenericGroup[{PrefixToPackageName(Name)}]";
     }
 
     // used in the generic interface registry to determine whether or not a construct

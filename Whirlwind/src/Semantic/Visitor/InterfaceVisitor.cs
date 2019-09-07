@@ -14,11 +14,12 @@ namespace Whirlwind.Semantic.Visitor
             _table.AddScope();
             _table.DescendScope();
 
-            var interfaceType = new InterfaceType();
-
             _nodes.Add(new BlockNode("Interface"));
 
             string name = ((TokenNode)node.Content[1]).Tok.Value;
+
+            var interfaceType = new InterfaceType(_namePrefix + name);
+
             DataType selfType;
 
             // declare self referential type (ok early b/c reference)
@@ -59,7 +60,7 @@ namespace Whirlwind.Semantic.Visitor
             _table.AscendScope();
 
             if (!_table.AddSymbol(new Symbol(name, interfaceType, modifiers)))
-                throw new SemanticException($"Unable to redeclare symbol by name `{name}`", node.Content[1].Position);
+                throw new SemanticException($"Unable to redeclare symbol: `{name}`", node.Content[1].Position);
         }
 
         private void _visitInterfaceBind(ASTNode node)
@@ -74,12 +75,12 @@ namespace Whirlwind.Semantic.Visitor
             {
                 _nodes.Add(new BlockNode("BindInterface"));
 
-                var interfaceType = new InterfaceType();
-
                 _table.AddScope();
                 _table.DescendScope();
 
                 dt = _generateType((ASTNode)node.Content[2]);
+
+                var interfaceType = new InterfaceType("TypeInterf:" + dt.ToString());
 
                 _collectInterfaceMethods(interfaceType, (ASTNode)node.Content[node.Content.Count - 2], true, dt);
 
@@ -92,7 +93,7 @@ namespace Whirlwind.Semantic.Visitor
 
                 if (node.Content.Count > 5)
                 {
-                    _nodes.Add(new ExprNode("Implements", new VoidType()));
+                    _nodes.Add(new ExprNode("Implements", new NoneType()));
 
                     foreach (var item in ((ASTNode)node.Content[4]).Content)
                     {
@@ -103,7 +104,7 @@ namespace Whirlwind.Semantic.Visitor
                             if (impl is InterfaceType it && !it.SuperForm)
                             {
                                 if (!it.Derive(dt))
-                                    throw new SemanticException("The given data type does not implement all required methods of the interface",
+                                    throw new SemanticException($"Type of {dt.ToString()} does not implement all required methods of the interface",
                                         item.Position);
                             }
                             else
@@ -132,15 +133,15 @@ namespace Whirlwind.Semantic.Visitor
             var bindTypeNode = (ASTNode)node.Content[3];
             var bindDt = _generateType(bindTypeNode);
 
-            var ifType = new InterfaceType();
+            var ifType = new InterfaceType("GenericTypeInterf" + bindDt.ToString());
             _collectInterfaceMethods(ifType, (ASTNode)node.Content[node.Content.Count - 2], true, bindDt);
 
             var generic = new GenericType(genericVars, ifType, _decorateEval(node,
                 delegate (ASTNode ifBind, List<Modifier> modifiers)
                 {
-                    var newType = new InterfaceType();
-
                     var newDt = _generateType((ASTNode)ifBind.Content[2]);
+
+                    var newType = new InterfaceType("TypeInterf:" + newDt.ToString());
 
                     // no need to add implements because processed later
                     _nodes.Add(new ValueNode("GenerateThis", newDt));
@@ -161,7 +162,7 @@ namespace Whirlwind.Semantic.Visitor
 
             if (node.Content[node.Content.Count - 4] is ASTNode implNode && implNode.Name == "implements")
             {
-                _nodes.Add(new ExprNode("Implements", new VoidType()));
+                _nodes.Add(new ExprNode("Implements", new NoneType()));
 
                 foreach (var item in implNode.Content)
                 {
@@ -267,7 +268,7 @@ namespace Whirlwind.Semantic.Visitor
 
             string op = "";
             var args = new List<Parameter>();
-            DataType rtType = new VoidType();
+            DataType rtType = new NoneType();
             var genericVars = new List<GenericVariable>();
 
             foreach (var subNode in node.Content)
@@ -371,7 +372,7 @@ namespace Whirlwind.Semantic.Visitor
 
             if (fnNode.IdName == "__finalize__")
             {
-                if (fn.Async || fn.Parameters.Count > 0 || fn.ReturnType.Classify() != TypeClassifier.VOID)
+                if (fn.Async || fn.Parameters.Count > 0 || fn.ReturnType.Classify() != TypeClassifier.NONE)
                     throw new SemanticException("Invalid definition for finalizer", namePos);
             }
             else if (fnNode.IdName == "__copy__")
@@ -387,7 +388,7 @@ namespace Whirlwind.Semantic.Visitor
             else if (fnNode.IdName == "__set__")
             {
                 if (fn.Async || fn.Parameters.Count != 1 || !selfType.Equals(fn.Parameters.First().DataType) 
-                    || fn.ReturnType.Classify() != TypeClassifier.VOID)
+                    || fn.ReturnType.Classify() != TypeClassifier.NONE)
                     throw new SemanticException("Invalid definition for copier", namePos);
             }
         }

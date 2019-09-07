@@ -296,7 +296,7 @@ namespace Whirlwind.Semantic.Visitor
             string iterVarName = "";
             Token token;
 
-            _nodes.Add(new ExprNode("CForExpr", new VoidType()));
+            _nodes.Add(new ExprNode("CForExpr", new NoneType()));
 
             foreach (var item in node.Content)
             {
@@ -354,7 +354,7 @@ namespace Whirlwind.Semantic.Visitor
                 else if (item.Name == "assignment")
                 {
                     _visitAssignment((ASTNode)item);
-                    _nodes.Add(new ExprNode("CForUpdateAssignment", new VoidType()));
+                    _nodes.Add(new ExprNode("CForUpdateAssignment", new NoneType()));
                     PushForward();
 
                     MergeBack();

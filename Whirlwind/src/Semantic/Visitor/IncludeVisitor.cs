@@ -93,12 +93,12 @@ namespace Whirlwind.Semantic.Visitor
 
                         if (name != "")
                         {
-                            _nodes.Add(new ValueNode("Rename", new VoidType(), name));
+                            _nodes.Add(new ValueNode("Rename", new NoneType(), name));
                             MergeBack();
                         }   
                     }
                     else
-                        throw new SemanticException($"Unable to redeclare symbol by name `{finalName}`", namePos);
+                        throw new SemanticException($"Unable to redeclare symbol: `{finalName}`", namePos);
 
                     return;
                 }
@@ -128,7 +128,7 @@ namespace Whirlwind.Semantic.Visitor
                     _nodes.Add(new ValueNode("Package", pkg));
                     MergeBack();
 
-                    _nodes.Add(new ExprNode("IncludeSet", new VoidType()));
+                    _nodes.Add(new ExprNode("IncludeSet", new NoneType()));
 
                     foreach (var symbol in symbolList)
                     {

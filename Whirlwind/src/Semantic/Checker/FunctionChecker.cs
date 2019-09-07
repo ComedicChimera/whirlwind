@@ -50,7 +50,7 @@ namespace Whirlwind.Semantic.Checker
                         return new ArgumentCheckData($"Invalid type for unnamed argument at position {fnParameter.Name.Substring(4)}", 
                             position);
                     
-                    return new ArgumentCheckData($"Invalid type for parameter by name `{fnParameter.Name}`", position);
+                    return new ArgumentCheckData($"Invalid type for parameter named `{fnParameter.Name}`", position);
                 }
                     
             }

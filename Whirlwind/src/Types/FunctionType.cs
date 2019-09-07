@@ -124,19 +124,45 @@ namespace Whirlwind.Types
 
         public FunctionType MutableCopy()
             => new FunctionType(Parameters, ReturnType, Async) { Constant = false };
+
+        public override string ToString()
+        {
+            string baseString = Async ? "async" : "func";
+          
+            var stringParams = new List<string>();
+
+            foreach (var param in Parameters)
+            {
+                string stringParam = "";
+
+                if (param.Indefinite)
+                    stringParam += "...";
+                else if (param.Optional)
+                    stringParam += "~";
+
+                stringParam += param.DataType.ToString();
+
+                stringParams.Add(stringParam);
+            }
+
+            return baseString += string.Join(", ", stringParams) + ")";
+        }
     }
 
     class FunctionGroup : DataType
     {
+        public readonly string Name;
         public List<FunctionType> Functions;
 
-        public FunctionGroup()
+        public FunctionGroup(string name)
         {
+            Name = name;
             Functions = new List<FunctionType>();
         }
 
-        public FunctionGroup(List<FunctionType> functions)
+        public FunctionGroup(string name, List<FunctionType> functions)
         {
+            Name = name;
             Functions = functions;
         }
 
@@ -176,7 +202,7 @@ namespace Whirlwind.Types
                     if ((e1.Current.Optional || e1.Current.Indefinite) && (e2.Current.Optional || e2.Current.Indefinite))
                         return false;
                     // no need for indefinite check since void type only occurs on indefinite arguments
-                    else if (e1.Current.DataType is VoidType || e2.Current.DataType is VoidType)
+                    else if (e1.Current.DataType is NoneType || e2.Current.DataType is NoneType)
                         return false;
                     else if (!e1.Current.DataType.Equals(e2.Current.DataType) 
                         && !(e1.Current.DataType is GenericPlaceholder || e2.Current.DataType is GenericPlaceholder))
@@ -208,6 +234,8 @@ namespace Whirlwind.Types
         }
 
         public override DataType ConstCopy()
-            => new FunctionGroup(Functions) { Constant = true };
+            => new FunctionGroup(Name, Functions) { Constant = true };
+
+        public override string ToString() => $"FunctionGroup[{PrefixToPackageName(Name)}]";
     }
 }

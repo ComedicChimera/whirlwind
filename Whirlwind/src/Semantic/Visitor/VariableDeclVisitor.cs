@@ -24,7 +24,7 @@ namespace Whirlwind.Semantic.Visitor
         private void _visitVarDecl(ASTNode stmt, List<Modifier> modifiers)
         {
             bool constant = false, constexpr = false, hasType = false, hasInitializer = false;
-            DataType mainType = new VoidType();
+            DataType mainType = new NoneType();
 
             var variables = new Dictionary<string, Variable>();
             var initializers = new Dictionary<string, Tuple<bool, ITypeNode>>();
@@ -47,7 +47,7 @@ namespace Whirlwind.Semantic.Visitor
 
                             if (variableBlock.Content.Count == 1)
                                 variables[((TokenNode)variableBlock.Content[0]).Tok.Value]
-                                    = new Variable(new VoidType(), variableBlock.Content[0].Position);
+                                    = new Variable(new NoneType(), variableBlock.Content[0].Position);
                             else
                             {
                                 string currentIdentifier = "";
@@ -65,7 +65,7 @@ namespace Whirlwind.Semantic.Visitor
                                                     {
                                                         currentIdentifier = ((TokenNode)elem).Tok.Value;
 
-                                                        variables[currentIdentifier] = new Variable(new VoidType(), elem.Position);
+                                                        variables[currentIdentifier] = new Variable(new NoneType(), elem.Position);
                                                     }
                                                     break;
                                                 case "extension":
@@ -76,7 +76,7 @@ namespace Whirlwind.Semantic.Visitor
                                                     {
                                                         var initNode = (ASTNode)((ASTNode)elem).Content[1];
 
-                                                        if (variables[currentIdentifier].Type is VoidType)
+                                                        if (variables[currentIdentifier].Type is NoneType)
                                                         {
                                                             _couldOwnerExist = true;
                                                             _visitExpr(initNode);
@@ -228,7 +228,7 @@ namespace Whirlwind.Semantic.Visitor
                         dt = tupleType.Types[j];
 
                         if (initializers.ContainsKey(id))
-                            throw new SemanticException("Unable to perform tuple based initialization on pre initialized values", variables[id].Position);
+                            throw new SemanticException("Unable to perform tuple based initialization on pre-initialized values", variables[id].Position);
                         else if (_isVoid(variables.Values.ElementAt(i).Type))
                             variables[id] = new Variable(dt, variables[id].Position);
                         else if (!variables[id].Type.Coerce(dt))
@@ -295,7 +295,7 @@ namespace Whirlwind.Semantic.Visitor
                 }
             }
 
-            _nodes.Add(new ExprNode("Variables", new VoidType()));
+            _nodes.Add(new ExprNode("Variables", new NoneType()));
             PushForward(variables.Keys.Where(x => x != "_").Count());
 
             string statementName;

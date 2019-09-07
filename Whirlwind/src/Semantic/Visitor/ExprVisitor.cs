@@ -11,7 +11,7 @@ namespace Whirlwind.Semantic.Visitor
 {
     partial class Visitor
     {
-        DataType _thenExprType = new VoidType();
+        DataType _thenExprType = new NoneType();
 
         private void _visitExpr(ASTNode node, bool needsSubscope=true)
         {
@@ -54,7 +54,7 @@ namespace Whirlwind.Semantic.Visitor
                             throw new SemanticException("Unable to redeclare symbol in scope", exprVarDecl.Content[0].Position);
                         }
 
-                        _nodes.Add(new ExprNode("ExprVarDecl", new VoidType()));
+                        _nodes.Add(new ExprNode("ExprVarDecl", new NoneType()));
                         PushForward(2);
 
                         _visitThen((ASTNode)exprVarDecl.Content[3], false);
@@ -167,7 +167,8 @@ namespace Whirlwind.Semantic.Visitor
                                 PushForward(2);
                             }
                             else
-                                throw new SemanticException("The `:>` operator is not defined on the given type", extractExpr.Content[0].Position);
+                                throw new SemanticException("The `:>` operator is not defined on type of " + _nodes.Last().Type.ToString(), 
+                                    extractExpr.Content[0].Position);
                         }
                         else if (op == ".")
                         {
@@ -247,7 +248,7 @@ namespace Whirlwind.Semantic.Visitor
                 return;
 
             // check for erroneous void types
-            if (_nodes.Last().Type is VoidType && !isExprStmt)
+            if (_nodes.Last().Type is NoneType && !isExprStmt)
                 throw new SemanticException("Unable to use an expression that returns no value", node.Position);
 
             // apply constexpr optimization
@@ -257,7 +258,7 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitInlineCase(ASTNode node)
         {
-            DataType dt = new VoidType();
+            DataType dt = new NoneType();
             DataType rootType = _nodes.Last().Type;
 
             int caseCount = 2;
@@ -383,7 +384,8 @@ namespace Whirlwind.Semantic.Visitor
                         if (HasOverload(rootType, "__>>=__", new ArgumentList(new List<DataType> { _nodes.Last().Type }), out DataType rtType))
                             _nodes.Add(new ExprNode("Bind", rtType));
                         else
-                            throw new SemanticException("The `>>=` operator is not defined on the given type", node.Content[opPos].Position);
+                            throw new SemanticException("The `>>=` operator is not defined on type of " + rootType.ToString(), 
+                                node.Content[opPos].Position);
                     }
                     else
                     {
@@ -401,7 +403,8 @@ namespace Whirlwind.Semantic.Visitor
                             _nodes.Add(new ExprNode("Compose", rtType));
                         }
                         else
-                            throw new SemanticException("The `~*` operator not defined on the given types", node.Content[opPos].Position);
+                            throw new SemanticException($"The `~*` operator not defined between types of {rootType.ToString()} and {_nodes.Last().Type.ToString()}", 
+                                node.Content[opPos].Position);
                     }
 
                     PushForward(2);
@@ -418,7 +421,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             string op = "";
             bool hitFirst = false;
-            DataType rootType = new VoidType();
+            DataType rootType = new NoneType();
 
             foreach (var subNode in node.Content)
             {
@@ -460,7 +463,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             string op = "";
             bool hitFirst = false;
-            DataType rootType = new VoidType();
+            DataType rootType = new NoneType();
 
             foreach (var subNode in node.Content)
             {
@@ -528,7 +531,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             string op = "";
             bool hitFirst = false;
-            DataType rootType = new VoidType();
+            DataType rootType = new NoneType();
 
             foreach (var subNode in node.Content)
             {
@@ -570,7 +573,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             string op = "";
             bool hitFirst = false;
-            DataType rootType = new VoidType();
+            DataType rootType = new NoneType();
 
             foreach (var subNode in node.Content)
             {
@@ -691,7 +694,8 @@ namespace Whirlwind.Semantic.Visitor
                         dt = rootType;
                     }
                     else
-                        throw new SemanticException("Increment operator is not valid on non-numeric types", node.Content[postfix ? 1 : 0].Position);
+                        throw new SemanticException("Increment operator is not valid on type of " + rootType.ToString(), 
+                            node.Content[postfix ? 1 : 0].Position);
                     break;
                 case "--":
                     if (Numeric(rootType) || rootType.Classify() == TypeClassifier.POINTER)
@@ -703,7 +707,8 @@ namespace Whirlwind.Semantic.Visitor
                         dt = rootType;
                     }
                     else
-                        throw new SemanticException("Decrement operator is not valid on non-numeric types", node.Content[postfix ? 1 : 0].Position);
+                        throw new SemanticException("Decrement operator is not valid on type of " + rootType.ToString(), 
+                            node.Content[postfix ? 1 : 0].Position);
                     break;
                 case "-":
                     treeName = "ChangeSign";
@@ -720,7 +725,7 @@ namespace Whirlwind.Semantic.Visitor
                         return;
                     }
                     else
-                        throw new SemanticException("Unable to change sign of non-numeric type", node.Content[0].Position);
+                        throw new SemanticException("Unable to change sign of a type of " + rootType.ToString(), node.Content[0].Position);
                     break;
                 case "~":
                     treeName = "Complement";
@@ -736,14 +741,15 @@ namespace Whirlwind.Semantic.Visitor
 
                     }
                     else
-                        throw new SemanticException("The complement operator is not valid for the given type", node.Content[0].Position);
+                        throw new SemanticException("The complement operator is not valid on type of " + rootType.ToString(), 
+                            node.Content[0].Position);
                     break;
                 case "&":
                     if (new[] {
                         TypeClassifier.STRUCT, TypeClassifier.INTERFACE, TypeClassifier.GENERIC,
                         TypeClassifier.FUNCTION, TypeClassifier.FUNCTION_GROUP
                     }.Contains(rootType.Classify()))
-                        throw new SemanticException("The given object is not able to referenced", node.Content[0].Position);
+                        throw new SemanticException("Unable to reference type of " + rootType.ToString(), node.Content[0].Position);
                     treeName = "Indirect";
                     dt = new PointerType(rootType, false);
                     break;
@@ -755,10 +761,10 @@ namespace Whirlwind.Semantic.Visitor
                         dt = pt.DataType;
 
                         if (_isVoid(dt))
-                            throw new SemanticException("Unable to dereference a void pointer", node.Content[node.Content.Count - 1].Position);
+                            throw new SemanticException("Unable to dereference a pointer to none", node.Content[node.Content.Count - 1].Position);
                     }
                     else
-                        throw new SemanticException("Unable to dereference a non-pointer", node.Content[op.Length - 1].Position);
+                        throw new SemanticException("Unable to dereference a type of " + rootType.ToString(), node.Content[op.Length - 1].Position);
                     break;
             }
 

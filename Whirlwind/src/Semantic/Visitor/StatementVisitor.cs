@@ -178,7 +178,7 @@ namespace Whirlwind.Semantic.Visitor
                                         PushForward(2);
                                     }
                                     else
-                                        throw new SemanticException($"Struct contains no member by name `{name}`", elem.Position);
+                                        throw new SemanticException($"Struct contains no member named `{name}`", elem.Position);
                                 }
                                 else if (_table.Lookup(name, out Symbol symbol))
                                     _nodes.Add(new IdentifierNode(name, symbol.DataType));
@@ -221,7 +221,7 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     case "assign_var":
                         if (varTypes.Count == 0)
-                            _nodes.Add(new ExprNode("AssignVars", new VoidType()));
+                            _nodes.Add(new ExprNode("AssignVars", new NoneType()));
 
                         _visitAssignVar((ASTNode)node);
                         varTypes.Add(_nodes.Last().Type);
@@ -244,7 +244,7 @@ namespace Whirlwind.Semantic.Visitor
                         break;
                     case "expr":
                         if (exprTypes.Count == 0)
-                            _nodes.Add(new ExprNode("AssignExprs", new VoidType()));
+                            _nodes.Add(new ExprNode("AssignExprs", new NoneType()));
 
                         {
                             var exprNode = (ASTNode)node;
@@ -339,7 +339,7 @@ namespace Whirlwind.Semantic.Visitor
                             throw new SemanticException("Unable to apply operator which would result in type change", stmt.Position);
                     }
                     else if (!varType.Coerce(exprType))
-                        throw new SemanticException("Unable to assign to dissimilar types", stmt.Position);
+                        throw new SemanticException($"Unable to assign type of {exprType.ToString()} to type of {varType.ToString()}", stmt.Position);
 
                     i++;
                     j++;
@@ -397,10 +397,10 @@ namespace Whirlwind.Semantic.Visitor
                                 _nodes.Add(new IdentifierNode(symbol.Name, symbol.DataType));
                         }
                         else
-                            throw new SemanticException($"Undefined Identifier: `{token.Value}`", node.Position);
+                            throw new SemanticException($"Undefined symbol: `{token.Value}`", node.Position);
                     }
                     else if (token.Type == "_")
-                        _nodes.Add(new IdentifierNode("_", new VoidType()));
+                        _nodes.Add(new IdentifierNode("_", new NoneType()));
                     else if (token.Type == "*")
                         derefCount++;
                     // this
@@ -424,14 +424,14 @@ namespace Whirlwind.Semantic.Visitor
                 if (_nodes.Last().Type is PointerType pType)
                 {
                     if (_isVoid(pType.DataType))
-                        throw new SemanticException("Unable to dereference void pointer", assignVar.Position);
+                        throw new SemanticException("Unable to dereference pointer to none", assignVar.Position);
                     else
                     _nodes.Add(new ExprNode("Dereference", pType.DataType));
 
                 PushForward();
                 }
                 else
-                    throw new SemanticException("Unable to dereference non-pointer", assignVar.Position);
+                    throw new SemanticException("Unable to dereference a type of " + _nodes.Last().Type.ToString(), assignVar.Position);
             }
 
             _isSetContext = false;

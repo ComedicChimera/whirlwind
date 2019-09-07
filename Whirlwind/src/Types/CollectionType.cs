@@ -45,6 +45,9 @@
 
         public override DataType ConstCopy()
             => new ArrayType(ElementType, Size) { Constant = true };
+
+        public override string ToString()
+            => $"array[{ElementType.ToString()}{(Size == -1 ? "]" : $", {Size}]")}";
     }
 
     class ListType : DataType, IIterable
@@ -85,6 +88,9 @@
 
         public override DataType ConstCopy()
             => new ListType(ElementType) { Constant = true };
+
+        public override string ToString()
+            => $"list[{ElementType.ToString()}]";
     }
 
     class DictType : DataType,  IIterable
@@ -122,5 +128,8 @@
 
         public override DataType ConstCopy()
             => new DictType(KeyType, ValueType) { Constant = true };
+
+        public override string ToString()
+            => $"dict[{KeyType.ToString()}, {ValueType.ToString()}]";
     }
 }

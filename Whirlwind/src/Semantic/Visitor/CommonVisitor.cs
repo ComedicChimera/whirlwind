@@ -23,7 +23,7 @@ namespace Whirlwind.Semantic.Visitor
                 iteratorType = _getIterableElementType(iterable);
             }
             else
-                throw new SemanticException("Unable to create iterator over non-iterable value", node.Position);
+                throw new SemanticException("Unable to create iterator over type of " + iterable.ToString(), node.Position);
 
             string[] identifiers = node.Content
                 .Where(x => x.Name == "iter_var")
@@ -40,7 +40,7 @@ namespace Whirlwind.Semantic.Visitor
             if (identifiers.Length != iteratorTypes.Count)
                 throw new SemanticException("Base iterator and its aliases don't match", node.Position);
 
-            _nodes.Add(new ExprNode("Iterator", new VoidType()));
+            _nodes.Add(new ExprNode("Iterator", new NoneType()));
             // push forward base expression
             PushForward();
 
@@ -73,14 +73,14 @@ namespace Whirlwind.Semantic.Visitor
                 if (mdt is FunctionGroup fg && fg.GetFunction(new ArgumentList(), out FunctionType ft))
                     mdt = ft;
                 else
-                    return new VoidType();                   
+                    return new NoneType();                   
 
                 // all iterable __next__ methods return a specific element type (T, bool)
                 var elementType = ((FunctionType)method.DataType).ReturnType;
 
                 return ((TupleType)elementType).Types[0];
             }
-            return new VoidType();
+            return new NoneType();
         }
 
         private DataType _generateGeneric(GenericType baseType, ASTNode genericSpecifier)
@@ -91,7 +91,7 @@ namespace Whirlwind.Semantic.Visitor
             if (baseType.CreateGeneric(typeList, out DataType dt))
                 return dt;
             else
-                throw new SemanticException("Invalid type specifier for the given generic", genericSpecifier.Position);
+                throw new SemanticException("Invalid type specifier for " + baseType.ToString(), genericSpecifier.Position);
 
         }
 
@@ -112,7 +112,7 @@ namespace Whirlwind.Semantic.Visitor
                     excluded = false;
                     constant = false;
                     modifiers = new List<Modifier>();
-                    dt = new VoidType();
+                    dt = new NoneType();
 
                     foreach (var elem in ((ASTNode)item).Content)
                     {
@@ -128,7 +128,7 @@ namespace Whirlwind.Semantic.Visitor
                                     dt = sym.DataType;
                                 }
                                 else
-                                    throw new SemanticException("Undefined symbol by name $`{tok.Value}`", elem.Position);
+                                    throw new SemanticException("Undefined symbol: $`{tok.Value}`", elem.Position);
                                 break;
                             // make captures work with interfaces and structs
                             case "THIS":
@@ -138,7 +138,7 @@ namespace Whirlwind.Semantic.Visitor
                                     dt = inst.DataType;
                                 }
                                 else
-                                    throw new SemanticException("Unable to use this outside of instance", elem.Position);
+                                    throw new SemanticException("Unable to use `this` outside of instance", elem.Position);
                                 break;
                             case "!":
                                 excluded = true;

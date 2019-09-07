@@ -68,5 +68,52 @@ namespace Whirlwind.Types
 
         public override DataType ConstCopy()
             => new SimpleType(Type, Unsigned) { Constant = true };
+
+        public override string ToString()
+        {
+            string baseString;
+            int qualifierStatus = 0;
+
+            switch (Type)
+            {
+                case SimpleClassifier.BOOL:
+                    baseString = "bool";
+                    break;
+                case SimpleClassifier.BYTE:
+                    baseString = "byte";
+                    qualifierStatus = 2;
+                    break;
+                case SimpleClassifier.CHAR:
+                    baseString = "char";
+                    qualifierStatus = 2;
+                    break;
+                case SimpleClassifier.DOUBLE:
+                    baseString = "double";
+                    qualifierStatus = 1;
+                    break;
+                case SimpleClassifier.FLOAT:
+                    baseString = "float";
+                    qualifierStatus = 1;
+                    break;
+                case SimpleClassifier.INTEGER:
+                    baseString = "int";
+                    qualifierStatus = 1;
+                    break;
+                case SimpleClassifier.LONG:
+                    baseString = "long";
+                    qualifierStatus = 1;
+                    break;
+                default:
+                    baseString = "str";
+                    break;
+            }
+
+            if (qualifierStatus == 1 && Unsigned)
+                return "u" + baseString;
+            else if (qualifierStatus == 2 && !Unsigned)
+                return "s" + baseString;
+            else
+                return baseString;
+        }
     }
 }

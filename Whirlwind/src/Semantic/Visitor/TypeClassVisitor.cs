@@ -108,7 +108,7 @@ namespace Whirlwind.Semantic.Visitor
                                     var resIdName = ((TokenNode)anode.Content[0]).Tok.Value;
 
                                     if (!_table.AddSymbol(new Symbol(resIdName, dt)))
-                                        throw new SemanticException($"Unable to redeclare type placeholder by name `{resIdName}`", 
+                                        throw new SemanticException($"Unable to redeclare type placeholder: `{resIdName}`", 
                                             anode.Content[0].Position);
 
                                     _nodes.Add(new IdentifierNode(resIdName, dt));
@@ -142,7 +142,7 @@ namespace Whirlwind.Semantic.Visitor
             _table.AscendScope();
 
             if (!_table.AddSymbol(new Symbol(name, typeClass, typeModifiers)))
-                throw new SemanticException($"Unable to redeclare symbol by name `{name}`", node.Content[1].Position);
+                throw new SemanticException($"Unable to redeclare symbol: `{name}`", node.Content[1].Position);
 
             if (genericVars.Count > 0)
                 _makeGeneric(node, genericVars, typeModifiers, _table.GetScope().Last(), node.Content[1].Position);
@@ -158,7 +158,7 @@ namespace Whirlwind.Semantic.Visitor
             if (!new SimpleType(SimpleType.SimpleClassifier.BOOL).Coerce(_nodes.Last().Type))
                 throw new SemanticException("Type of value restrictor expression must be a boolean", restrictor.Content[1].Position);
 
-            _nodes.Add(new ExprNode("ValueRestrictor", new VoidType()));
+            _nodes.Add(new ExprNode("ValueRestrictor", new NoneType()));
             PushForward();
         }
     }

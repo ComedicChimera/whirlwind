@@ -7,14 +7,17 @@ namespace Whirlwind.Types
 {
     class InterfaceType : DataType
     {
+        public readonly string Name;
         public readonly List<InterfaceType> Implements;
         public bool SuperForm { get; private set; } = false;
         public Dictionary<Symbol, bool> Methods { get; private set; }
 
         private bool _initialized = false;
 
-        public InterfaceType()
+        public InterfaceType(string name)
         {
+            Name = name;
+
             Implements = new List<InterfaceType>();
 
             Methods = new Dictionary<Symbol, bool>();
@@ -24,6 +27,8 @@ namespace Whirlwind.Types
 
         private InterfaceType(InterfaceType interf, bool superForm)
         {
+            Name = interf.Name;
+
             Implements = interf.Implements;
 
             if (superForm)
@@ -57,7 +62,7 @@ namespace Whirlwind.Types
 
                 if (symbol.DataType is FunctionType ftb && FunctionGroup.CanDistinguish(fta, ftb))
                 {
-                    symbol.DataType = new FunctionGroup(new List<FunctionType> { fta, ftb });
+                    symbol.DataType = new FunctionGroup(symbol.Name, new List<FunctionType> { fta, ftb });
                     return true;
                 }
                 else if (symbol.DataType is FunctionGroup)
@@ -170,5 +175,7 @@ namespace Whirlwind.Types
                     _initialized = _initialized,
                     Constant = true
                 };
+
+        public override string ToString() => PrefixToPackageName(Name);
     }
 }

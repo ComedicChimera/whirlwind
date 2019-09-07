@@ -66,7 +66,7 @@ namespace Whirlwind.Types
                 return true;
             }
 
-            fnType = new FunctionType(new List<Parameter>(), new VoidType(), false);
+            fnType = new FunctionType(new List<Parameter>(), new NoneType(), false);
             return false;
         }
 
@@ -115,5 +115,7 @@ namespace Whirlwind.Types
                 _instance = _instance,
                 Constant = true
             };
+
+        public override string ToString() => PrefixToPackageName(Name);
     }
 }

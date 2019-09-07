@@ -100,7 +100,7 @@ namespace Whirlwind.Semantic.Visitor
 
                     if (groupSymbol.DataType is GenericType gt2 && gt2.DataType is FunctionType ft2 && FunctionGroup.CanDistinguish(ft, ft2))
                     {
-                        var gg = new GenericGroup(gt, gt2);
+                        var gg = new GenericGroup(sym.Name, gt, gt2);
 
                         groupSymbol.DataType = gg;
                         return;
@@ -110,7 +110,7 @@ namespace Whirlwind.Semantic.Visitor
                 }
 
                 // pretty much all sub symbols have the same name position
-                throw new SemanticException($"Unable to redeclare symbol by name `{sym.Name}`", position);
+                throw new SemanticException($"Unable to redeclare symbol: `{sym.Name}`", position);
             }
         }
 
@@ -218,7 +218,7 @@ namespace Whirlwind.Semantic.Visitor
                     throw new SemanticException("Unable to implement multilevel variance with a variant depth of one", node.Content[1].Position);
             }
             else
-                throw new SemanticException("Unable to add variant to non-generic", id.Position);
+                throw new SemanticException("Unable to add variant to type of " + symbol.DataType.ToString(), id.Position);
         }
     }
 }

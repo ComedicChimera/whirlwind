@@ -27,7 +27,7 @@ namespace Whirlwind.Semantic.Visitor
 
         public DataType _generateType(ASTNode node)
         {
-            DataType dt = new VoidType();
+            DataType dt = new NoneType();
             bool constant = false;
 
             foreach (var subNode in node.Content)
@@ -45,7 +45,7 @@ namespace Whirlwind.Semantic.Visitor
                             if (_table.Lookup(tokenNode.Tok.Value, out Symbol symbol))
                                 dt = _getIdentifierType(symbol.DataType, tokenNode.Position);
                             else
-                                throw new SemanticException($"Undefined Symbol: `{tokenNode.Tok.Value}`", tokenNode.Position);
+                                throw new SemanticException($"Undefined symbol: `{tokenNode.Tok.Value}`", tokenNode.Position);
                             break;
                     }
                 }
@@ -54,10 +54,10 @@ namespace Whirlwind.Semantic.Visitor
                     if (dt is GenericSelfType gst)
                     {
                         if (!gst.GetInstance(_generateTypeList((ASTNode)((ASTNode)subNode).Content[1]), out dt))
-                            throw new SemanticException("Invalid generic specifier for the given type", subNode.Position);
-                    }                        
+                            throw new SemanticException("Invalid generic specifier for " + dt.ToString(), subNode.Position);
+                    }
                     else if (dt.Classify() != TypeClassifier.GENERIC)
-                        throw new SemanticException("Unable to apply generic specifier to non-generic type", subNode.Position);
+                        throw new SemanticException("Unable to apply generic specifier to type of " + dt.ToString(), subNode.Position);
                     else
                         dt = _generateGeneric((GenericType)dt, (ASTNode)subNode);
                 }
@@ -79,14 +79,13 @@ namespace Whirlwind.Semantic.Visitor
                             if (ct.GetInstanceByName(idNode.Tok.Value, out CustomNewType cnt))
                                 dt = cnt;
                             else
-                                throw new SemanticException($"Type class has no member by name `{idNode.Tok.Value}`", idNode.Position);
+                                throw new SemanticException($"Type class has no member named `{idNode.Tok.Value}`", idNode.Position);
                         }                          
                         else
                             throw new SemanticException("Unable to use type class value as type", subNode.Position);
-                    }
-                        
+                    }                      
                     else
-                        throw new SemanticException("Unable to get static value from the given type", subNode.Position);
+                        throw new SemanticException("Unable to get static value from type of " + dt.ToString(), subNode.Position);
                 }
                 else
                     dt = _generateBaseType((ASTNode)subNode);
@@ -252,7 +251,7 @@ namespace Whirlwind.Semantic.Visitor
                                     else if (elem.Name == "func_arg_indef")
                                     {
                                         ASTNode arg = (ASTNode)elem;
-                                        DataType dt = arg.Content.Count == 2 ? _generateType((ASTNode)arg.Content[1]) : new VoidType();
+                                        DataType dt = arg.Content.Count == 2 ? _generateType((ASTNode)arg.Content[1]) : new NoneType();
 
                                         args.Add(new Parameter("$arg" + args.Count.ToString(), dt, false, true, false));
                                     }
@@ -269,7 +268,7 @@ namespace Whirlwind.Semantic.Visitor
                     switch (returnTypes.Count)
                     {
                         case 0:
-                            returnType = new VoidType();
+                            returnType = new NoneType();
                             break;
                         case 1:
                             returnType = returnTypes[0];
@@ -302,7 +301,7 @@ namespace Whirlwind.Semantic.Visitor
             }
 
             // cover all your bases ;)
-            return new VoidType();
+            return new NoneType();
         }
 
         private DataType _getIdentifierType(DataType sdt, TextPosition symbolPos)

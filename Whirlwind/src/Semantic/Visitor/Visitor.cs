@@ -328,7 +328,7 @@ namespace Whirlwind.Semantic.Visitor
         // checks to see if a type is void
         private bool _isVoid(DataType type)
         {
-            if (type.Classify() == TypeClassifier.VOID || type.Classify() == TypeClassifier.NULL)
+            if (type.Classify() == TypeClassifier.NONE || type.Classify() == TypeClassifier.NULL)
                 return true;
             else if (type.Classify() == TypeClassifier.DICT)
             {

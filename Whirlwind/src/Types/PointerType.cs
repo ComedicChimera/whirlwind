@@ -31,5 +31,8 @@
 
         public override DataType ConstCopy()
             => new PointerType(DataType, IsDynamicPointer) { Constant = true };
+
+        public override string ToString()
+            => $"{(IsDynamicPointer ? "dyn*" : "*")} {DataType.ToString()}";
     }
 }

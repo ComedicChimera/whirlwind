@@ -24,7 +24,7 @@ namespace Whirlwind.Semantic.Visitor
                 _annotatedSettings[annotation] = value;
 
             _nodes.Add(new StatementNode("Annotation"));
-            _nodes.Add(new ValueNode("AnnotationName", new VoidType(), annotation));
+            _nodes.Add(new ValueNode("AnnotationName", new NoneType(), annotation));
             MergeBack();
 
             if (value != "")

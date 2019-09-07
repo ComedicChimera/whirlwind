@@ -75,7 +75,7 @@ namespace Whirlwind.Semantic.Visitor
                     PushForward();
                 }
                 else
-                    throw new SemanticException("Unable to apply generic specifier to non-generic type", node.Position);
+                    throw new SemanticException("Unable to apply generic specifier to type of " + _nodes.Last().Type.ToString(), node.Position);
             }
             else if (node.Content[0].Name == "static_get")
             {
@@ -134,7 +134,8 @@ namespace Whirlwind.Semantic.Visitor
                                         throw new SemanticException(tupleNdx + " is not a member of the given tuple", node.Content[1].Position);
                                 }
                                 else
-                                    throw new SemanticException("Unable to use get integer member from non-tuple", node.Content[1].Position);
+                                    throw new SemanticException("Unable to use get integer member from type of " + root.Type.ToString(), 
+                                        node.Content[1].Position);
                             }
                         }
                         
@@ -153,7 +154,8 @@ namespace Whirlwind.Semantic.Visitor
                             break;
                         }
                         else
-                            throw new SemanticException("The '->' operator is not valid the given type", node.Content[0].Position);
+                            throw new SemanticException("The '->' operator is not valid on type of " + root.Type.ToString(), 
+                                node.Content[0].Position);
                     case "?":
                         if (root.Type is PointerType pt)
                         {
@@ -168,7 +170,8 @@ namespace Whirlwind.Semantic.Visitor
                             break;
                         }
                         else
-                            throw new SemanticException("The '?->' operator is not valid the given type", node.Content[0].Position);
+                            throw new SemanticException("The '?->' operator is not valid on type of " + root.Type.ToString(), 
+                                node.Content[0].Position);
                     case "[":
                         _visitSubscript(root.Type, node);
                         break;
@@ -182,7 +185,7 @@ namespace Whirlwind.Semantic.Visitor
                                 if (((TokenNode)item).Tok.Type == "IDENTIFIER")
                                 {
                                     positions.Add(item.Position);
-                                    _nodes.Add(new IdentifierNode(((TokenNode)item).Tok.Value, new VoidType()));
+                                    _nodes.Add(new IdentifierNode(((TokenNode)item).Tok.Value, new NoneType()));
                                 }
                                     
                             }
@@ -206,9 +209,10 @@ namespace Whirlwind.Semantic.Visitor
                                 var item = (ExprNode)_nodes[_nodes.Count - initCount + i];
                                 string name = ((IdentifierNode)item.Nodes[0]).IdName;
                                 if (!members.ContainsKey(name))
-                                    throw new SemanticException($"Struct has no member {name}", positions[i]);
+                                    throw new SemanticException($"Struct has no member named `{name}`", positions[i]);
                                 if (!members[name].DataType.Coerce(item.Nodes[1].Type))
-                                    throw new SemanticException($"Unable to initialize member {name} with the given type", positions[i]);
+                                    throw new SemanticException($"Unable to initialize member named `{name}` with type of {item.Nodes[1].Type.ToString()}", 
+                                        positions[i]);
                             }
 
                             _nodes.Add(new ExprNode("InitList", ((StructType)root.Type).GetInstance()));
@@ -294,7 +298,7 @@ namespace Whirlwind.Semantic.Visitor
                         if (((CustomType)type).GetInstanceByName(name, out CustomNewType match))
                             symbol = new Symbol(match.Name, match);
                         else
-                            throw new SemanticException($"Type class has no enumerated/value member `{name}`", idPos);
+                            throw new SemanticException($"Type class has no enumerated/value member: `{name}`", idPos);
                     }
                     break;
                 default:
@@ -330,7 +334,7 @@ namespace Whirlwind.Semantic.Visitor
                         );
                 }
                 else if (!isFunction && !((StructType)rootType).GetConstructor(args, out ft))
-                    throw new SemanticException($"Struct `{((StructType)rootType).Name}` has no constructor the accepts the given parameters", node.Position);
+                    throw new SemanticException($"Struct named `{((StructType)rootType).Name}` has no constructor the accepts the given parameters", node.Position);
 
                 DataType returnType = isFunction ? ((FunctionType)rootType).ReturnType : ((StructType)rootType).GetInstance();
 
@@ -462,10 +466,10 @@ namespace Whirlwind.Semantic.Visitor
                     PushForward();
                 }
                 else
-                    throw new SemanticException("Unable to call non-callable type", node.Content[0].Position);
+                    throw new SemanticException("Unable to call a type of " + rootType.ToString(), node.Content[0].Position);
             }
             else
-                throw new SemanticException("Unable to call non-callable type", node.Content[0].Position);
+                throw new SemanticException("Unable to call a type of " + rootType.ToString(), node.Content[0].Position);
         }
 
         private void _inferLambdaCallContext(int argsCount, FunctionType ft)
@@ -651,7 +655,7 @@ namespace Whirlwind.Semantic.Visitor
                             }
                             else
                                 throw new SemanticException(
-                                    $"Unable to perform {(expressionCount == 1 && hasStartingExpr ? "subscript" : "slice")} on the given type",
+                                    $"Unable to perform {(expressionCount == 1 && hasStartingExpr ? "subscript" : "slice")} on type of {rootType.ToString()}",
                                     node.Position
                                  );
                         }
@@ -680,7 +684,7 @@ namespace Whirlwind.Semantic.Visitor
             // make ( alloc_body ) -> types , expr
             var allocBody = (ASTNode)node.Content[1];
 
-            DataType dt = new VoidType();
+            DataType dt = new NoneType();
             bool hasSizeExpr = false, isStructAlloc = false, isTypeAlloc = false;
 
             foreach (var item in allocBody.Content)
@@ -763,7 +767,8 @@ namespace Whirlwind.Semantic.Visitor
                 PushForward();
             }
             else
-                throw new SemanticException("Unable to extract value from non-value-holding type class member", node.Content[1].Position);
+                throw new SemanticException($"Unable to extract value from type of {_nodes.Last().Type.ToString()} class member", 
+                    node.Content[1].Position);
         }
     }
 }

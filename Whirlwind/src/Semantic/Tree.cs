@@ -152,7 +152,7 @@ namespace Whirlwind.Semantic
         public StatementNode(string name)
         {
             Name = name;
-            Type = new VoidType();
+            Type = new NoneType();
             Nodes = new List<ITypeNode>();
         }
 

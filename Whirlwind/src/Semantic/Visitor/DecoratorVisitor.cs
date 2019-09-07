@@ -57,10 +57,10 @@ namespace Whirlwind.Semantic.Visitor
                             MergeBack();
                         }
                         else
-                            throw new SemanticException("This decorator is not valid for the given function", item.Position);
+                            throw new SemanticException("This decorator is not valid for " + startFn.ToString(), item.Position);
                     }
                     else
-                        throw new SemanticException("Unable to use non-function as a decorator", item.Position);
+                        throw new SemanticException($"Unable to use type of {_nodes.Last().Type.ToString()} as a decorator", item.Position);
                 }
             }
 
@@ -84,7 +84,7 @@ namespace Whirlwind.Semantic.Visitor
                                 if (_table.Lookup(tkNode.Tok.Value, out Symbol sym))
                                     _nodes.Add(new IdentifierNode(sym.Name, sym.DataType));
                                 else
-                                    throw new SemanticException($"Undefined Symbol: `{tkNode.Tok.Value}`", tkNode.Position);
+                                    throw new SemanticException($"Undefined symbol: `{tkNode.Tok.Value}`", tkNode.Position);
                             }
                             else if (tkNode.Tok.Type == ")" && noArgsList)
                                 throw new SemanticException("Decorator function call must contain at least 1 argument", item.Position);
@@ -117,7 +117,8 @@ namespace Whirlwind.Semantic.Visitor
                             PushForward();
                         }
                         else
-                            throw new SemanticException("Unable to apply generic specifier to non-generic type", item.Position);
+                            throw new SemanticException("Unable to apply generic specifier to type of " + _nodes.Last().Type.ToString(), 
+                                item.Position);
                         break;
                     case "args_list":
                         {
@@ -136,7 +137,7 @@ namespace Whirlwind.Semantic.Visitor
                             else if (startType is GenericType gt)
                             {
                                 if (gt.DataType.Classify() != TypeClassifier.FUNCTION)
-                                    throw new SemanticException("Unable to use non-function as a decorator", decorExpr.Position);
+                                    throw new SemanticException($"Unable to use type of {gt.DataType.ToString()} as a decorator", decorExpr.Position);
 
                                 if (gt.Infer(args, out List<DataType> inferredTypes))
                                 {
@@ -160,14 +161,14 @@ namespace Whirlwind.Semantic.Visitor
                                     throw new SemanticException("Unable to infer types of generic arguments", item.Position);
                             }
                             else
-                                throw new SemanticException("Unable to use non-function as a decorator", decorExpr.Position);
+                                throw new SemanticException($"Unable to use type of {startType.ToString()} as a decorator", decorExpr.Position);
 
                             var paramData = CheckArguments(fnType, args);
 
                             if (paramData.IsError)
                             {
                                 if (paramData.ParameterPosition == 0)
-                                    throw new SemanticException("This decorator is not valid for the given function", decorExpr.Position);
+                                    throw new SemanticException("This decorator is not valid for " + fnType.ToString(), decorExpr.Position);
                                 else if (paramData.ParameterPosition == -1)
                                     throw new SemanticException(paramData.ErrorMessage, decorExpr.Position);
                                 else

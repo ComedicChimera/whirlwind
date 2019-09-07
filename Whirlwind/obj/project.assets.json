@@ -2,32 +2,8 @@
   "version": 3,
   "targets": {
     ".NETCoreApp,Version=v2.1": {
-      "LibLLVM/5.0.1": {
-        "type": "package",
-        "dependencies": {
-          "Microsoft.NETCore.Platforms": "1.0.1"
-        },
-        "build": {
-          "build/net461/_._": {}
-        },
-        "runtimeTargets": {
-          "runtimes/linux-x64/native/libLLVM.so": {
-            "assetType": "native",
-            "rid": "linux-x64"
-          },
-          "runtimes/osx/native/libLLVM.dylib": {
-            "assetType": "native",
-            "rid": "osx"
-          },
-          "runtimes/win-x64/native/libLLVM.dll": {
-            "assetType": "native",
-            "rid": "win-x64"
-          },
-          "runtimes/win-x86/native/libLLVM.dll": {
-            "assetType": "native",
-            "rid": "win-x86"
-          }
-        }
+      "libLLVM/8.0.0": {
+        "type": "package"
       },
       "LLVMSharp/5.0.0": {
         "type": "package",
@@ -260,20 +236,16 @@
     }
   },
   "libraries": {
-    "LibLLVM/5.0.1": {
-      "sha512": "tyT+yOd+A8uoUr6ejeBwE4d10EWCjfLwMN3O7dChTJR/dOYuy0FMx/CgywQHsYVK5MX0Ui5SWneaMMUH9hjZAg==",
+    "libLLVM/8.0.0": {
+      "sha512": "lOfpp3ydmOq+4puXSz5r1yKCKDfh2Fv/YCOvuF9b5pjGjVqTBZu+1+49XU4X0yoNMo0+sPt6UlkeTEVQXlx77Q==",
       "type": "package",
-      "path": "libllvm/5.0.1",
+      "path": "libllvm/8.0.0",
       "files": [
         ".signature.p7s",
-        "License.txt",
-        "build/net461/libLLVM.targets",
-        "libllvm.5.0.1.nupkg.sha512",
+        "LICENSE.TXT",
+        "libllvm.8.0.0.nupkg.sha512",
         "libllvm.nuspec",
-        "runtimes/linux-x64/native/libLLVM.so",
-        "runtimes/osx/native/libLLVM.dylib",
-        "runtimes/win-x64/native/libLLVM.dll",
-        "runtimes/win-x86/native/libLLVM.dll"
+        "runtime.json"
       ]
     },
     "LLVMSharp/5.0.0": {
@@ -790,7 +762,8 @@
     ".NETCoreApp,Version=v2.1": [
       "LLVMSharp >= 5.0.0",
       "Microsoft.NETCore.App >= 2.1.0",
-      "Newtonsoft.Json >= 11.0.2"
+      "Newtonsoft.Json >= 11.0.2",
+      "libLLVM >= 8.0.0"
     ]
   },
   "packageFolders": {
@@ -846,6 +819,10 @@
           "Newtonsoft.Json": {
             "target": "Package",
             "version": "[11.0.2, )"
+          },
+          "libLLVM": {
+            "target": "Package",
+            "version": "[8.0.0, )"
           }
         },
         "imports": [
@@ -855,17 +832,5 @@
         "warn": true
       }
     }
-  },
-  "logs": [
-    {
-      "code": "NU1701",
-      "level": "Warning",
-      "warningLevel": 1,
-      "message": "Package 'LibLLVM 5.0.1' was restored using '.NETFramework,Version=v4.6.1' instead of the project target framework '.NETCoreApp,Version=v2.1'. This package may not be fully compatible with your project.",
-      "libraryId": "LibLLVM",
-      "targetGraphs": [
-        ".NETCoreApp,Version=v2.1"
-      ]
-    }
-  ]
+  }
 }
