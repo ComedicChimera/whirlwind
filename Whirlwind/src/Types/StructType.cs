@@ -116,6 +116,6 @@ namespace Whirlwind.Types
                 Constant = true
             };
 
-        public override string ToString() => PrefixToPackageName(Name);
+        public override string ToString() => RemovePrefix(Name);
     }
 }

@@ -531,7 +531,7 @@ namespace Whirlwind.Types
                 return false;
         }
 
-        public override string ToString() => $"GenericGroup[{PrefixToPackageName(Name)}]";
+        public override string ToString() => $"GenericGroup[{RemovePrefix(Name)}]";
     }
 
     // used in the generic interface registry to determine whether or not a construct

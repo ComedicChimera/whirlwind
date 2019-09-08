@@ -218,8 +218,8 @@ namespace Whirlwind.Types
         // returns a constant copy of a given data type
         public abstract DataType ConstCopy();
 
-        protected string PrefixToPackageName(string name)
-            => name.Replace("/", "::");
+        protected string RemovePrefix(string name)
+            => name.Contains("/") ? name.Split("/").Last() : name;
     }
 
     // pure none type; means nothing (no value)

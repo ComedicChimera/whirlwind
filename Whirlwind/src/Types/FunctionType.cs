@@ -236,6 +236,6 @@ namespace Whirlwind.Types
         public override DataType ConstCopy()
             => new FunctionGroup(Name, Functions) { Constant = true };
 
-        public override string ToString() => $"FunctionGroup[{PrefixToPackageName(Name)}]";
+        public override string ToString() => $"FunctionGroup[{RemovePrefix(Name)}]";
     }
 }

@@ -111,7 +111,7 @@ namespace Whirlwind.Types
             };
 
         public override string ToString()
-            => PrefixToPackageName(Name);
+            => RemovePrefix(Name);
     }
 
     abstract class CustomInstance : DataType
@@ -137,7 +137,7 @@ namespace Whirlwind.Types
         }
 
         public override string ToString()
-            => PrefixToPackageName(Parent.Name);
+            => RemovePrefix(Parent.Name);
     }
 
     class CustomNewType : CustomInstance
@@ -169,7 +169,7 @@ namespace Whirlwind.Types
             => new CustomNewType(Parent, Name, Values) { Constant = true };
 
         public override string ToString()
-            => PrefixToPackageName(Parent.Name) + "::" + Name;
+            => RemovePrefix(Parent.Name) + "::" + Name;
     }
 
     class CustomAlias : CustomInstance
@@ -194,6 +194,6 @@ namespace Whirlwind.Types
             => new CustomAlias(Parent, Type) { Constant = true };
 
         public override string ToString()
-            => PrefixToPackageName(Parent.Name) + "::" + Type.ToString();
+            => RemovePrefix(Parent.Name) + "::" + Type.ToString();
     }
 }
