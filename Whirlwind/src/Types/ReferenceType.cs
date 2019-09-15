@@ -64,7 +64,7 @@ namespace Whirlwind.Types
         public override DataType ConstCopy()
             => new SelfType(_name, DataType) { Constant = true };
 
-        public override string ToString() => RemovePrefix(_name);
+        public override string ToString() => _name;
     }
 
     // used as a self-referential type for generics
@@ -150,7 +150,7 @@ namespace Whirlwind.Types
             return false;
         }
 
-        public override string ToString() => RemovePrefix(_name) + "<" + string.Join(", ", GenericVariables.Select(x => x.Name)) + ">";
+        public override string ToString() => _name + "<" + string.Join(", ", GenericVariables.Select(x => x.Name)) + ">";
     }
 
     // used for handling instances of generic self-types (ie. when things get rough)
@@ -203,6 +203,6 @@ namespace Whirlwind.Types
             return false;
         }
 
-        public override string ToString() => RemovePrefix(_name);
+        public override string ToString() => _name;
     }
 }

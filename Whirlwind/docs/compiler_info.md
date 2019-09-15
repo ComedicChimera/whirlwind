@@ -29,3 +29,11 @@ S-Expressions. However, they are strongly typed, type annotated and thoroughly
 checked.
 
 ***NOTE*** *The _ character should never be declared, merely ignored*.
+
+## Type Conversions
+
+This document describes how types are converted from Whirlwind to LLVM.
+
+- [Type Conversions](https://github.com/ComedicChimera/Whirlwind/blob/master/Whirlwind/docs/type_conversions.md)
+
+This document has nothing to do with casting: that is in the Language Reference.

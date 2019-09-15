@@ -12,6 +12,7 @@ namespace Whirlwind
         private PackageGraph _pg;
         private Compiler _compiler;
         private string _importContext = "";
+        private string _packagePrefix = "";
 
         private static readonly string _extension = ".wrl";
 
@@ -38,7 +39,7 @@ namespace Whirlwind
             if (OpenPackage(path, out string text))
             {
                 var sl = new Dictionary<string, Symbol>();
-                _compiler.Build(text, _importContext, ref sl);
+                _compiler.Build(text, _packagePrefix, ref sl);
 
                 pkg = new Package(sl);
 
@@ -69,7 +70,7 @@ namespace Whirlwind
                     var text = File.ReadAllText(path);
 
                     var sl = new Dictionary<string, Symbol>();
-                    _compiler.Build(text, _importContext, ref sl);
+                    _compiler.Build(text, _packagePrefix, ref sl);
 
                     _pg.AddPackage(string.Join("", path.SkipLast(4)), new Package(sl));
 

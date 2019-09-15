@@ -176,6 +176,6 @@ namespace Whirlwind.Types
                     Constant = true
                 };
 
-        public override string ToString() => RemovePrefix(Name);
+        public override string ToString() => Name;
     }
 }
