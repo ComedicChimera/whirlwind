@@ -12,7 +12,8 @@ namespace Whirlwind
         private PackageGraph _pg;
         private Compiler _compiler;
         private string _importContext = "";
-        private string _packagePrefix = "";
+
+        private string _startDirectory = "";
 
         private static readonly string _extension = ".wrl";
 
@@ -39,7 +40,7 @@ namespace Whirlwind
             if (OpenPackage(path, out string text))
             {
                 var sl = new Dictionary<string, Symbol>();
-                _compiler.Build(text, _packagePrefix, ref sl);
+                _compiler.Build(text, _convertPathToPrefix(path), ref sl);
 
                 pkg = new Package(sl);
 
@@ -66,13 +67,18 @@ namespace Whirlwind
                     // be preserved ;)
                     if (path.Contains("/"))
                         _importContext = string.Join("/", path.Split("/").SkipLast(1)) + "/";
+                    else if (path.Contains("\\"))
+                        _importContext = string.Join("\\", path.Split("/").SkipLast(1)) + "/";
 
                     var text = File.ReadAllText(path);
 
-                    var sl = new Dictionary<string, Symbol>();
-                    _compiler.Build(text, _packagePrefix, ref sl);
+                    // initialize starting directory
+                    _startDirectory = Path.GetFullPath(string.Join("/", path.Split("/").SkipLast(1)) + "/");
 
-                    _pg.AddPackage(string.Join("", path.SkipLast(4)), new Package(sl));
+                    var sl = new Dictionary<string, Symbol>();
+                    _compiler.Build(text, "", ref sl);
+
+                    _pg.AddPackage(new string(path.SkipLast(4).ToArray()), new Package(sl));
 
                     return true;
                 }
@@ -122,6 +128,19 @@ namespace Whirlwind
         {
             if (newContext != _importContext)
                 _importContext = newContext;
+        }
+
+        private string _convertPathToPrefix(string path)
+        {
+            int i = 0;
+            for (; i < path.Length && i < _startDirectory.Length; i++)
+            {
+                if (path[i] != _startDirectory[i])
+                    break;
+            }
+
+            return new string(path.Skip(i).ToArray())
+                .Replace("\\", "::") + "::";
         }
     }
 }

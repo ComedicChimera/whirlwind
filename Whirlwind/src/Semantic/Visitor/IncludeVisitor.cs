@@ -39,7 +39,7 @@ namespace Whirlwind.Semantic.Visitor
                             {
                                 if (tk.Tok.Type == "IDENTIFIER")
                                     path += tk.Tok.Value;
-                                else if (tk.Tok.Type == ":")
+                                else if (path.Last() != '/' && tk.Tok.Type == ":")
                                 {
                                     path += "/";
                                     continue;

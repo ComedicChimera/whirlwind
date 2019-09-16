@@ -12,14 +12,14 @@ namespace Whirlwind
     class Compiler
     {
         private Scanner _scanner;
-        private Syntax.Parser _parser;
+        private Parser _parser;
 
         public Compiler(string tokenPath, string grammarPath)
         {
             _scanner = new Scanner(tokenPath);
 
             var gramloader = new GramLoader();
-            _parser = new Syntax.Parser(gramloader.Load(grammarPath));
+            _parser = new Parser(gramloader.Load(grammarPath));
 
         }
 
