@@ -19,7 +19,7 @@ connote any operation or computation.
 | This | Represents an pointer to any valid instance | *empty* |
 | Null | Represents a use of the null keyword | *empty* |
 | Type | Represents the data type used in is type testing | *empty* |
-| Val | Represents the chained data value | *empty* |
+| Value | Represents the chained data value | *empty* |
 | Super | Represents a reference to the single parent of a type interface | "()" |
 | AnnotationValue | Stores the value being given to an annotation | *Any string value* |
 | ByteLiteral | Represents a byte literal value | *Any byte literal* |

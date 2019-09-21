@@ -107,12 +107,12 @@ namespace Whirlwind.Semantic.Visitor
                         {
                             throw new SemanticException("Unable to use `this` outside of type method or constructor", node.Content[0].Position);
                         }
-                    case "VAL":
+                    case "VALUE":
                         {
                             if (_isVoid(_thenExprType))
                                 throw new SemanticException("No valid chained value is accessible", node.Content[0].Position);
 
-                            _nodes.Add(new ValueNode("Val", _thenExprType));
+                            _nodes.Add(new ValueNode("Value", _thenExprType));
                             return;
                         }
                     case "NULL":

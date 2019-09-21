@@ -254,7 +254,7 @@ base: 'INTEGER_LITERAL'
 | 'THIS'
 | 'IDENTIFIER'
 | 'NULL'
-| 'VAL'
+| 'VALUE'
 | array
 | list
 | dict
