@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 
 using LLVMSharp;
 
@@ -38,13 +37,18 @@ namespace Whirlwind.Generation
                 {
                     case "Function":
                     case "AsyncFunction":
-                        _generateFunction((BlockNode)node);
+                        _generateFunction((BlockNode)node, false);
                         break;
                 }
             }
+
+            if (LLVM.VerifyModule(_module, LLVMVerifierFailureAction.LLVMPrintMessageAction, out var error) != new LLVMBool(0))
+                Console.WriteLine("LLVM Build Error: " + error);
+
+            LLVM.DumpModule(_module);
         }
 
-        private string ConvertTypeToName(DataType dt)
+        private string _convertTypeToName(DataType dt)
         {
             return dt.ToString()
                 .Replace("[", "_")

@@ -50,7 +50,9 @@ namespace Whirlwind
                 return;
             
             var visitor = new Visitor(namePrefix, false);
-            _runVisitor(visitor, ast, text);
+
+            if (!_runVisitor(visitor, ast, text))
+                return;
 
             var fullTable = visitor.Table();
             var sat = visitor.Result();
@@ -71,13 +73,14 @@ namespace Whirlwind
 
                 var userMainDefinition = (FunctionType)symbol.DataType;
 
-                if (!_generateUserMainCall(userMainDefinition, out string mainUserCall))
+                if (!_generateUserMainCall(userMainDefinition, out string userMainCall))
                 {
                     Console.WriteLine("Invalid main function declaration");
                     return;
                 }
 
-                var mainTemplate = File.ReadAllText(WHIRL_PATH + "lib/std/__core__/main.wrl");
+                var mainTemplate = File.ReadAllText(WHIRL_PATH + "lib/std/__core__/main.wrl")
+                    .Replace("// $INSERT_MAIN_CALL$", userMainCall);
 
                 var mtTokens = _scanner.Scan(mainTemplate);
 
@@ -87,9 +90,12 @@ namespace Whirlwind
                     return;
 
                 var mtVisitor = new Visitor("", false);
-                _runVisitor(mtVisitor, mtAst, mainTemplate);
+                mtVisitor.Table().AddSymbol(symbol.Copy());
 
-                foreach (var item in mtVisitor.Table().GetScope())
+                if (!_runVisitor(mtVisitor, mtAst, mainTemplate))
+                    return;
+
+                foreach (var item in mtVisitor.Table().GetScope().Skip(1))
                 {
                     if (!fullTable.AddSymbol(item))
                     {
@@ -154,7 +160,7 @@ namespace Whirlwind
             }
         }
 
-        private void _runVisitor(Visitor visitor, ASTNode ast, string text)
+        private bool _runVisitor(Visitor visitor, ASTNode ast, string text)
         {
             try
             {
@@ -163,7 +169,7 @@ namespace Whirlwind
             catch (SemanticException smex)
             {
                 _writeError(text, smex.Message, smex.Position.Start, smex.Position.Length);
-                return;
+                return false;
             }
 
             if (visitor.ErrorQueue.Count > 0)
@@ -171,8 +177,10 @@ namespace Whirlwind
                 foreach (var error in visitor.ErrorQueue)
                     _writeError(text, error.Message, error.Position.Start, error.Position.Length);
 
-                return;
+                return false;
             }
+
+            return true;
         }
 
         private bool _generateUserMainCall(FunctionType mainFnType, out string callString)

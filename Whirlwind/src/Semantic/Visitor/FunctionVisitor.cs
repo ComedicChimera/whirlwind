@@ -120,17 +120,10 @@ namespace Whirlwind.Semantic.Visitor
                 if (arg.Volatile)
                     modifiers.Add(Modifier.VOLATILE);
 
-                if (_isVoid(arg.DataType))
-                {
-                    // add va_args param
-                }
-                else
-                {
-                    _table.AddSymbol(new Symbol(arg.Name, 
+                _table.AddSymbol(new Symbol(arg.Name,
                         arg.Indefinite ? new ListType(arg.DataType) : arg.DataType,
                         modifiers
                     ));
-                }
             }
         }
 
@@ -446,7 +439,7 @@ namespace Whirlwind.Semantic.Visitor
                 else if (subNode.Name == "ending_arg")
                 {
                     string name = "";
-                    DataType dt = new NoneType();
+                    DataType dt = new AnyType();
 
                     foreach (var item in ((ASTNode)subNode).Content)
                     {
