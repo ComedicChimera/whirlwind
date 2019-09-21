@@ -145,7 +145,7 @@ namespace Whirlwind.Types
                 stringParams.Add(stringParam);
             }
 
-            return baseString += string.Join(", ", stringParams) + ")";
+            return baseString += $"({string.Join(", ", stringParams)})({(ReturnType is NoneType ? "" : ReturnType.ToString())})";
         }
     }
 

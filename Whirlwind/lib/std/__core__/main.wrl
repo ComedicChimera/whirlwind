@@ -1,0 +1,20 @@
+﻿// Uses __core__ prefix because this code is
+// substituted into the main file.
+
+// The true main function for Whirlwind.
+// Initializes the program calls __userMain, 
+// and terminates the program.  This function
+// is the function that is actually called first
+// in program execution
+func __main() {
+	let status = __userMain(null);
+}
+
+// Calls the user's main function using a 
+// custom function call generated from the
+// signature of the user's main (eg. if the
+// user's main takes arguments, this function
+// will generate a call that passes them)
+func __userMain(args: []str) int {
+	// $INSERT_MAIN_CALL$
+}

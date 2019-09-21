@@ -21,10 +21,18 @@ namespace Whirlwind
 
             Console.ReadKey();
         }
+
+        static void _initVars()
+        {
+            WhirlGlobals.WHIRL_PATH = "C:/Users/forlo/dev/whirlwind/compiler/";
+        }
     }
 
     static class WhirlGlobals
     {
+        // global variables
+        public static string WHIRL_PATH;
+
         // global functions
         public static bool DictionaryEquals<TKey, TValue>(
             this IDictionary<TKey, TValue> first, IDictionary<TKey, TValue> second)

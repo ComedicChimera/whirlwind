@@ -17,6 +17,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="lib\local\" />
+    <Folder Include="lib\global\" />
   </ItemGroup>
 </Project>

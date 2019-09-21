@@ -48,6 +48,8 @@ namespace Whirlwind.Syntax
 
             _tokens.Clear();
 
+            _errorPosition = -1;
+
             return tree;
         }
 

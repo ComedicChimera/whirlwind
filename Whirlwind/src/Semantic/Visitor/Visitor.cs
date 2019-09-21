@@ -167,7 +167,7 @@ namespace Whirlwind.Semantic.Visitor
         // returns final, visited node
         public ITypeNode Result() => _nodes.First();
 
-        // returns exported list of symbols
+        // returns symbol table
         public SymbolTable Table() => _table;
 
         // returns the list of visitor flags
