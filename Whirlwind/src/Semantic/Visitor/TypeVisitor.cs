@@ -176,12 +176,12 @@ namespace Whirlwind.Semantic.Visitor
                                     _visitExpr((ASTNode)component);
                                     collectionType = "array";
 
-                                    if (!Evaluator.TryEval((ExprNode)_nodes.Last()))
+                                    if (!Evaluator.TryEval(_nodes.Last()))
                                     {
                                         throw new SemanticException("Unable to initialize array with non constexpr array bound", component.Position);
                                     }
 
-                                    var val = Evaluator.Evaluate((ExprNode)_nodes.Last());
+                                    var val = Evaluator.Evaluate(_nodes.Last());
 
                                     if (!new SimpleType(SimpleType.SimpleClassifier.INTEGER).Coerce(val.Type))
                                     {

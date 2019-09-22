@@ -143,12 +143,12 @@ namespace Whirlwind.Semantic.Visitor
 
                     var newType = new InterfaceType("TypeInterf:" + newDt.ToString());
 
+                    _nodes.Add(new BlockNode("BindGenerateInterface"));
+                    _collectInterfaceMethods(newType, (ASTNode)ifBind.Content[ifBind.Content.Count - 2], true, newDt);
+
                     // no need to add implements because processed later
                     _nodes.Add(new ValueNode("GenerateThis", newDt));
                     MergeBack();
-
-                    _nodes.Add(new BlockNode("BindGenerateInterface"));
-                    _collectInterfaceMethods(newType, (ASTNode)ifBind.Content[ifBind.Content.Count - 2], true, newDt);
 
                     _table.AddSymbol(new Symbol("$GENERATE_BIND", newType));
                 }

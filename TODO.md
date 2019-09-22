@@ -1,5 +1,10 @@
 # TODO
 
+- add support for prelude
+- make sure `#impl` is used in generating intrinsics
+- add std and global package importing
+- make sure WHIRL_PATH works
+
 # TESTING
 
 - ALL DE NEW STUFF
@@ -35,8 +40,6 @@
 - make sure to check and apply externals and intrinsics where necessary
 - make sure package linker works on generative side
 - add prelude 
-- make sure `#impl` is used in generating intrinsics (and in visiting type interfaces
-for those intrinsics under certain conditions?)
 - remember, ranges can go in both directions are are inclusive on both sides
 - make sure to inline expr functions
 

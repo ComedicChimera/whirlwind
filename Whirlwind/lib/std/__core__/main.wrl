@@ -7,14 +7,8 @@
 // is the function that is actually called first
 // in program execution
 func __main() {
-	let status = __userMain(null);
-}
+	let args: []str;
+	let exitCode: int;
 
-// Calls the user's main function using a 
-// custom function call generated from the
-// signature of the user's main (eg. if the
-// user's main takes arguments, this function
-// will generate a call that passes them)
-func __userMain(args: []str) int {
 	// $INSERT_MAIN_CALL$
 }

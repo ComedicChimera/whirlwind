@@ -63,61 +63,20 @@ namespace Whirlwind.Types
                 }
             }
 
-            if (dt is StructType st)
+            foreach (var item in StandardInterfaces)
             {
-                foreach (var item in StandardInterfaces)
+                if (MatchStdType(dt, item.Key))
                 {
-                    if (item.Key is StructType ist && st.Coerce(ist))
+                    if (typeInterf != null)
                     {
-                        if (typeInterf != null)
-                        {
-                            var baseInterf = item.Value;
+                        var baseInterf = item.Value;
 
-                            typeInterf.Derive(baseInterf, true);
-                        }
-                        else
-                            typeInterf = item.Value;
-
-                        return true;
+                        typeInterf.Derive(baseInterf, true);
                     }
-                }
-            }
-            else if (dt is CustomInstance cnt)
-            {
-                foreach (var item in StandardInterfaces)
-                {
-                    if (item.Key is CustomType && item.Key.Equals(cnt.Parent))
-                    {
-                        if (typeInterf != null)
-                        {
-                            var baseInterf = item.Value;
+                    else
+                        typeInterf = item.Value;
 
-                            typeInterf.Derive(baseInterf, true);
-                        }
-                        else
-                            typeInterf = item.Value;
-
-                        return true;
-                    }
-                }
-            }
-            else
-            {
-                foreach (var item in StandardInterfaces)
-                {
-                    if (item.Key.Equals(dt))
-                    {
-                        if (typeInterf != null)
-                        {
-                            var baseInterf = item.Value;
-
-                            typeInterf.Derive(baseInterf, true);
-                        }
-                        else
-                            typeInterf = item.Value;
-
-                        return true;
-                    }
+                    return true;
                 }
             }
 
@@ -126,6 +85,21 @@ namespace Whirlwind.Types
 
             typeInterf = null;
             return false;
+        }
+
+        private static bool MatchStdType(DataType lookup, DataType other)
+        {
+            lookup = lookup.ConstCopy();
+            other = other.ConstCopy();
+
+            if (lookup is StructType st && other is StructType)
+                return st.Coerce(other);
+            else if (lookup is CustomInstance cnt && other is CustomType)
+                return other.Equals(cnt.Parent);
+            else if (lookup is ArrayType at && other is ArrayType oat && oat.Size == -1)
+                return oat.ElementType.Equals(at.ElementType);
+
+            return other.Equals(lookup);
         }
     }
 

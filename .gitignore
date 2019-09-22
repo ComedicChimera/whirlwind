@@ -2,3 +2,5 @@
 Whirlwind/vendor/
 Whirlwind/bin/
 Whirlwind/obj/
+Whirlwind/libLLVM.dll
+Whirlwind/libclang.dll

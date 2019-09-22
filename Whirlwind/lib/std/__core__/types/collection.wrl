@@ -1,5 +1,6 @@
 ﻿include { Iterable, Iterator } from iter;
 
+// GENERAL COLLECTIONS
 interf Collection<T> {
 	func at(ndx: int) T;
 
@@ -25,4 +26,20 @@ interf<T> for CollectionIterator<T> is Iterator<T> {
 	}
 }
 
-// figure out how to handle arrays oof
+// ARRAYS
+#impl "array"
+struct __array<T> {
+	_p: *T;
+	_size: int;
+}
+
+interf<T> for []T is Collection<T>, Iterable<T> {
+	func len() int => this.size;
+
+	func iter() Iterator<T>
+		=> new CollectionIterator(&this);
+
+	// bounds check inserted by generator
+	func at(ndx: int) T 
+		=> this[ndx];
+}

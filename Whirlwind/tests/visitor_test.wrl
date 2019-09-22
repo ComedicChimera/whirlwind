@@ -1,6 +1,5 @@
 ﻿// include test_dir::dir_test;
 
 func main() {
-	let x = 0;
-	let s = "hi";
+	
 }

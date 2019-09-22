@@ -99,7 +99,7 @@ namespace Whirlwind
                 {
                     if (!fullTable.AddSymbol(item))
                     {
-                        if (item.Name.StartsWith("__"))
+                        if (item.Name == "__main")
                         {
                             Console.WriteLine("Use of reserved name in main file");
                             return;
@@ -188,7 +188,7 @@ namespace Whirlwind
             if (mainFnType.ReturnType.Classify() == TypeClassifier.NONE)
                 callString = "main(";
             else if (new SimpleType(SimpleType.SimpleClassifier.INTEGER).Equals(mainFnType.ReturnType))
-                callString = "return main(";
+                callString = "exitCode = main(";
             else
             {
                 callString = "";
@@ -214,9 +214,6 @@ namespace Whirlwind
                 callString = "";
                 return false;
             }
-
-            if (!callString.StartsWith("return"))
-                callString += "\nreturn 0;";
 
             return true;
         }
