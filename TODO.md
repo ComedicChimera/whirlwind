@@ -1,6 +1,9 @@
 # TODO
 
 - add support for prelude
+  * `type-impl.wrl` included first in EVERY file (has LLVM type structs)
+  * `prelude.wrl` included after (so there are two includes in regular files) 
+    in every file NOT in `__core__`
 - make sure `#impl` is used in generating intrinsics
   * impl only effects `this` pointer :)
 - add std and global package importing

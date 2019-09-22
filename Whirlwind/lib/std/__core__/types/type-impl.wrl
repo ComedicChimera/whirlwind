@@ -1,1 +1,5 @@
-﻿export include { __array } from collection;
+﻿#impl "array"
+struct __array<T> {
+	p: *T;
+	size: int;
+}

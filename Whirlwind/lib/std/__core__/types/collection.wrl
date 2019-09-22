@@ -27,12 +27,6 @@ interf<T> for CollectionIterator<T> is Iterator<T> {
 }
 
 // ARRAYS
-#impl "array"
-struct __array<T> {
-	_p: *T;
-	_size: int;
-}
-
 interf<T> for []T is Collection<T>, Iterable<T> {
 	func len() int => this.size;
 
