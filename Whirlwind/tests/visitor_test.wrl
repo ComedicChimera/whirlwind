@@ -1,5 +1,11 @@
 ﻿// include test_dir::dir_test;
 
 func main() {
-	
+	let b = 0xEA;
+
+	b += 0x34;
+
+	let c = 0x478;
+
+	c += b;
 }
