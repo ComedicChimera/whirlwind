@@ -24,8 +24,8 @@ namespace Whirlwind.Generation
             _flags = flags;
 
             // pass in necessary config data
-            _module = new LLVMModuleRef();
-            _builder = new LLVMBuilderRef();
+            _module = LLVM.ModuleCreateWithName("test");
+            _builder = LLVM.CreateBuilder();
         }
 
         public void Generate(ITypeNode tree, string outputFile)

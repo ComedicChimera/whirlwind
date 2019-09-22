@@ -1,0 +1,28 @@
+﻿include { Iterable, Iterator } from iter;
+
+interf Collection<T> {
+	func at(ndx: int) T;
+
+	func len() int;
+}
+
+struct CollectionIterator<T> {
+	col: *Collection<T>;
+	pos: int;
+
+	constructor(col: *Collection<T>) {
+		this.col = col;
+		this.pos = 0;
+	}
+}
+
+interf<T> for CollectionIterator<T> is Iterator<T> {
+	func next() (T, bool) {
+		if (this.pos < this.col.len())
+			return this.col[this.pos], this.pos++ < this.col.len();
+
+		return null, false;
+	}
+}
+
+// figure out how to handle arrays oof

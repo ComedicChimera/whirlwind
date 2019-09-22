@@ -24,7 +24,7 @@ namespace Whirlwind.Generation
                             else
                             {
                                 // just do 1 argument
-                                var exprRes = _generateExpr((ExprNode)rtNode.Nodes[0]);
+                                var exprRes = _generateExpr(rtNode.Nodes[0]);
 
                                 LLVM.BuildRet(_builder, exprRes);
                             }

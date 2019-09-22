@@ -1,0 +1,9 @@
+﻿interf Iterator<T> {
+	func next() (T, bool);
+}
+
+interf Iterable<T> {
+	func len() int;
+
+	func iter() Iterator<T>;
+}

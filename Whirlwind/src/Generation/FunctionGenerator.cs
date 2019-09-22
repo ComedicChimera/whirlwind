@@ -47,7 +47,7 @@ namespace Whirlwind.Generation
 
                 llvmFn = _generateFunctionPrototype(name, fn, externLink);
 
-                // LLVM.PositionBuilderAtEnd(_builder, LLVM.AppendBasicBlock(llvmFn, "entry"));
+                LLVM.PositionBuilderAtEnd(_builder, LLVM.AppendBasicBlock(llvmFn, "entry"));
 
                 _generateBlock(node.Block);
 

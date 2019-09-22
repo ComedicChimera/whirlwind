@@ -11,7 +11,7 @@ namespace Whirlwind.Generation
 {
     partial class Generator
     {
-        private LLVMValueRef _generateExpr(ExprNode expr)
+        private LLVMValueRef _generateExpr(ITypeNode expr)
         {
             // for now
             return LLVM.ConstInt(LLVM.Int32Type(), 0, new LLVMBool(0));

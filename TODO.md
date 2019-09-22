@@ -38,6 +38,7 @@
 - make sure `#impl` is used in generating intrinsics (and in visiting type interfaces
 for those intrinsics under certain conditions?)
 - remember, ranges can go in both directions are are inclusive on both sides
+- make sure to inline expr functions
 
 # THOUGHTS
 
