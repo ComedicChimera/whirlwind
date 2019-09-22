@@ -9,6 +9,8 @@
   * one type can only be given one `impl` once (ie. you cannot override compiler implementations)
 - add std and global package importing
 - make sure WHIRL_PATH works
+- make sure you can cast every type to a byte array
+  * it must be handled appropriately internally
 
 # TESTING
 
