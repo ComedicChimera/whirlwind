@@ -45,10 +45,7 @@ namespace Whirlwind.Semantic.Visitor
                 _table.AddSymbol(new Symbol(name, selfType));
 
                 _collectInterfaceMethods(interfaceType, (ASTNode)node.Content[3], false, selfType);
-            }
-                
-
-            
+            }          
 
             _nodes.Add(new IdentifierNode(name, interfaceType));
             MergeBack();

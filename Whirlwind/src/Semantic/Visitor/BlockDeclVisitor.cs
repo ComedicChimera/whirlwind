@@ -60,6 +60,12 @@ namespace Whirlwind.Semantic.Visitor
 
             if (_wrapsNextAnnotBlock && (root.Name == "struct_decl" || root.Name == "func_decl"))
             {
+                if (_implName != "")
+                {
+                    _typeImpls[_implName] = ((BlockNode)_nodes.Last()).Nodes[0].Type;
+                    _implName = "";
+                }
+
                 var lastNodes = new List<ITypeNode>();
 
                 // remove last two nodes

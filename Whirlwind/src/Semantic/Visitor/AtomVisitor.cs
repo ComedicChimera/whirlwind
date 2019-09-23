@@ -273,7 +273,7 @@ namespace Whirlwind.Semantic.Visitor
                         throw new SemanticException($"Interface has no function `{name}`", idPos);
                     break;
                 default:
-                    if (!_annotatedSettings.ContainsKey("core") && new[] { "__finalize__", "__copy__", "__get__", "__set__" }.Contains(name))
+                    if (!_flags.ContainsKey("core") && new[] { "__finalize__", "__copy__", "__get__", "__set__" }.Contains(name))
                         throw new SemanticException("Unable to directly access special methods outside of runtime core", idPos);
                     else if (!type.GetInterface().GetFunction(name, out symbol))
                         throw new SemanticException($"Type has no interface member `{name}`", idPos);

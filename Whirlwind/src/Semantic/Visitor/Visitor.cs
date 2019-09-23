@@ -49,7 +49,8 @@ namespace Whirlwind.Semantic.Visitor
         // visitor shared constructs
         private List<ITypeNode> _nodes;
         private SymbolTable _table;
-        private Dictionary<string, string> _annotatedSettings;
+        private Dictionary<string, string> _flags;
+        private Dictionary<string, DataType> _typeImpls;
 
         // compiler-provided shared data
         private string _namePrefix;
@@ -57,6 +58,7 @@ namespace Whirlwind.Semantic.Visitor
         
         // visitor state data
         private CustomType _typeClassContext;
+        private string _implName;
 
         // visitor state flags
         private bool _couldLambdaContextExist = false, _couldTypeClassContextExist = false;
@@ -75,10 +77,12 @@ namespace Whirlwind.Semantic.Visitor
 
             _nodes = new List<ITypeNode>();
             _table = new SymbolTable();
-            _annotatedSettings = new Dictionary<string, string>();
+            _flags = new Dictionary<string, string>();
 
             _namePrefix = namePrefix;
             _constexprOptimizerEnabled = constexprOptimizerEnabled;
+
+            _implName = "";
         }
 
         // ----------------------
@@ -170,8 +174,11 @@ namespace Whirlwind.Semantic.Visitor
         // returns symbol table
         public SymbolTable Table() => _table;
 
-        // returns the list of visitor flags
-        public Dictionary<string, string> Flags() => _annotatedSettings;
+        // returns the visitor flags
+        public Dictionary<string, string> Flags() => _flags;
+
+        // returns the type implementations found in any file
+        public Dictionary<string, DataType> Impls() => _typeImpls;
 
         // ------------------------------------
         // Construction Stack Control Functions

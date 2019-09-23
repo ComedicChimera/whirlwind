@@ -21,7 +21,7 @@ namespace Whirlwind.Semantic.Visitor
             _processAnnotation(annotation, value, node.Content.Last().Position);
 
             if (!_wrapsNextAnnotBlock)
-                _annotatedSettings[annotation] = value;
+                _flags[annotation] = value;
 
             _nodes.Add(new StatementNode("Annotation"));
             _nodes.Add(new ValueNode("AnnotationName", new NoneType(), annotation));
@@ -58,6 +58,7 @@ namespace Whirlwind.Semantic.Visitor
                     break;
                 case "impl":
                     _wrapsNextAnnotBlock = true;
+                    _implName = value;
                     break;
                 case "res_name":
                     if (!value.EndsWith(".llvm") || value.Contains("/"))
