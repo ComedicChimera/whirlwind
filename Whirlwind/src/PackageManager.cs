@@ -9,8 +9,9 @@ namespace Whirlwind
     // ADD STD AND GLOBAL IMPORT CAPABILITIES
     class PackageManager
     {
-        private PackageGraph _pg;
         private Compiler _compiler;
+
+        private Dictionary<string, Package> _packageGraph;
         private string _importContext = "";
 
         private string _startDirectory = "";
@@ -19,7 +20,7 @@ namespace Whirlwind
 
         public PackageManager()
         {
-            _pg = new PackageGraph();
+            _packageGraph = new Dictionary<string, Package>();
             _compiler = new Compiler("config/tokens.json", "config/grammar.ebnf");
         }
 
@@ -34,17 +35,25 @@ namespace Whirlwind
             path = Path.GetFullPath(currentContext + path);
 
             // try preemptive lookup before creating new package
-            if (_pg.GetPackage(path, out pkg))
-                return true;
+            // prevents recursive and redundant inclusions
+            if (_packageGraph.ContainsKey(path))
+            {
+                pkg = _packageGraph[path];
+
+                return pkg != null;
+            }              
 
             if (OpenPackage(path, out string text))
             {
+                // reserve package slot (prevent recursion)
+                _packageGraph[path] = null;
+
                 var sl = new Dictionary<string, Symbol>();
                 _compiler.Build(text, _convertPathToPrefix(path), ref sl);
 
                 pkg = new Package(sl);
 
-                _pg.AddPackage(path, pkg);
+                _packageGraph[path] = pkg;
 
                 _importContext = currentContext;
 
@@ -75,10 +84,15 @@ namespace Whirlwind
                     // initialize starting directory
                     _startDirectory = Path.GetFullPath(string.Join("/", path.Split("/").SkipLast(1)) + "/");
 
+                    string idpPath = new string(path.SkipLast(4).ToArray());
+
+                    // reserve package slot
+                    _packageGraph[idpPath] = null;
+
                     var sl = new Dictionary<string, Symbol>();
                     _compiler.Build(text, "", ref sl);
 
-                    _pg.AddPackage(new string(path.SkipLast(4).ToArray()), new Package(sl));
+                    _packageGraph[idpPath] = new Package(sl);
 
                     return true;
                 }
