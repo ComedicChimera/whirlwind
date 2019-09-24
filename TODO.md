@@ -11,6 +11,8 @@
 - make sure WHIRL_PATH works
 - make sure you can cast every type to a byte array
   * it must be handled appropriately internally
+- remove package graph (move package dictionary into PackageManager)
+- make sure package graph is actually used prevent redundant and recursive imports
 
 # TESTING
 
