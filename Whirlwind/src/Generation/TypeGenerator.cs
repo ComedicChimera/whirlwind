@@ -12,9 +12,9 @@ namespace Whirlwind.Generation
     {
         private LLVMTypeRef _convertType(DataType dt)
         {
-            if (dt is SimpleType st)
+            if (dt is SimpleType simt)
             {
-                switch (st.Type)
+                switch (simt.Type)
                 {
                     case SimpleType.SimpleClassifier.BOOL:
                         return LLVM.Int1Type();
@@ -34,6 +34,16 @@ namespace Whirlwind.Generation
                     default:
                         return LLVM.VoidType();
                 }
+            }
+            else if (dt is ArrayType at)
+            {
+                ((GenericType)_typeImpls["array"]).CreateGeneric(new List<DataType> { at.ElementType }, out DataType ast);
+                return _convertType(ast);
+            }
+            else if (dt is StructType st)
+            {
+                // handle generic types and regular structures
+                return LLVM.VoidType();
             }
             else
                 return LLVM.VoidType();
