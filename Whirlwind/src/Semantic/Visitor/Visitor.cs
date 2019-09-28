@@ -71,13 +71,15 @@ namespace Whirlwind.Semantic.Visitor
         private bool _wrapsNextAnnotBlock = false;
         private bool _functionCanHaveNoBody = false;
 
-        public Visitor(string namePrefix, bool constexprOptimizerEnabled)
+        public Visitor(string namePrefix, bool constexprOptimizerEnabled, Dictionary<string, DataType> typeImpls)
         {
             ErrorQueue = new List<SemanticException>();
 
             _nodes = new List<ITypeNode>();
             _table = new SymbolTable();
             _flags = new Dictionary<string, string>();
+
+            _typeImpls = typeImpls;
 
             _namePrefix = namePrefix;
             _constexprOptimizerEnabled = constexprOptimizerEnabled;

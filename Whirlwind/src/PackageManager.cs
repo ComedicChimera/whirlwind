@@ -24,7 +24,7 @@ namespace Whirlwind
             _compiler = new Compiler("config/tokens.json", "config/grammar.ebnf");
         }
 
-        public bool Import(string path, out Package pkg)
+        public bool Import(string basePath, bool tryGlobalImport, out Package pkg)
         {
             // preserve context
             var currentContext = _importContext;
@@ -32,7 +32,7 @@ namespace Whirlwind
             // convert to absolute path after applying context
             // this makes package lookups (to avoid recompilation)
             // work properly since abs path is used as key
-            path = Path.GetFullPath(currentContext + path);
+            string path = Path.GetFullPath(currentContext + basePath);
 
             // try preemptive lookup before creating new package
             // prevents recursive and redundant inclusions
@@ -59,11 +59,27 @@ namespace Whirlwind
 
                 return true;
             }
-            else
+            else if (tryGlobalImport)
             {
-                pkg = null;
-                return false;
-            }               
+                // try global import
+                _importContext = WhirlGlobals.WHIRL_PATH + "lib/globals/";
+                if (Import(basePath, false, out pkg))
+                {
+                    _importContext = currentContext;
+                    return true;
+                }
+
+                // try standard import
+                _importContext = WhirlGlobals.WHIRL_PATH + "lib/std/";
+                if (Import(basePath, false, out pkg))
+                {
+                    _importContext = currentContext;
+                    return true;
+                }
+            }
+
+            pkg = null;
+            return false;
         }
 
         public bool ImportRaw(string path)

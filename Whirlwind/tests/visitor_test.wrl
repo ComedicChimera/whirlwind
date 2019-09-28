@@ -1,5 +1,9 @@
 ﻿// include test_dir::dir_test;
 
+interf for []int {
+	func mySize() int => this.size;
+}
+
 func main() {
 	let b = 0xEA;
 
@@ -8,4 +12,6 @@ func main() {
 	let c = 0x478;
 
 	c += b;
+
+	test();
 }

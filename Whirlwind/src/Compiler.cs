@@ -19,6 +19,7 @@ namespace Whirlwind
         private Parser _parser;
 
         private bool _compiledMainFile;
+        private Dictionary<string, DataType> _typeImpls;
 
         public Compiler(string tokenPath, string grammarPath)
         {
@@ -28,6 +29,7 @@ namespace Whirlwind
             _parser = new Parser(gramloader.Load(WHIRL_PATH + grammarPath));
 
             _compiledMainFile = false;
+            _typeImpls = new Dictionary<string, DataType>();
         }
 
         public void Build(string text, string namePrefix, ref Dictionary<string, Symbol> table)
@@ -42,16 +44,22 @@ namespace Whirlwind
             else
                 isMainFile = false;
 
+            if (!namePrefix.StartsWith("lib::std::__core__"))
+                text = "include { ... } from __core__::prelude; " + text;
+
+            if (namePrefix != "lib::std::__core__::types::type_impls::")
+                text = "include __core__::types::type_impls as __type_impls;\n" + text;
+
             var tokens = _scanner.Scan(text);
 
-            ASTNode ast = _runParser(_parser, tokens, text);
+            ASTNode ast = _runParser(_parser, tokens, text, namePrefix);
 
             if (ast == null)
                 return;
             
-            var visitor = new Visitor(namePrefix, false);
+            var visitor = new Visitor(namePrefix, false, _typeImpls);
 
-            if (!_runVisitor(visitor, ast, text))
+            if (!_runVisitor(visitor, ast, text, namePrefix))
                 return;
 
             var fullTable = visitor.Table();
@@ -84,15 +92,15 @@ namespace Whirlwind
 
                 var mtTokens = _scanner.Scan(mainTemplate);
 
-                var mtAst = _runParser(_parser, mtTokens, mainTemplate);
+                var mtAst = _runParser(_parser, mtTokens, mainTemplate, namePrefix);
 
                 if (mtAst == null)
                     return;
 
-                var mtVisitor = new Visitor("", false);
+                var mtVisitor = new Visitor("", false, _typeImpls);
                 mtVisitor.Table().AddSymbol(symbol.Copy());
 
-                if (!_runVisitor(mtVisitor, mtAst, mainTemplate))
+                if (!_runVisitor(mtVisitor, mtAst, mainTemplate, namePrefix))
                     return;
 
                 foreach (var item in mtVisitor.Table().GetScope().Skip(1))
@@ -110,7 +118,7 @@ namespace Whirlwind
                 ((BlockNode)sat).Block.AddRange(((BlockNode)mtVisitor.Result()).Block);
             }
 
-            var generator = new Generator(fullTable, visitor.Flags());
+            var generator = new Generator(fullTable, visitor.Flags(), _typeImpls);
 
             try
             {
@@ -121,12 +129,14 @@ namespace Whirlwind
             {
                 Console.WriteLine("Generation Error: " + ge.ErrorMessage);
             }
+
+            table = fullTable.Filter(x => x.Modifiers.Contains(Modifier.EXPORTED));
         }
 
-        private void _writeError(string text, string message, int position, int length)
+        private void _writeError(string text, string message, int position, int length, string package)
         {
             int line = _getLine(text, position), column = _getColumn(text, position);
-            Console.WriteLine($"{message} at (Line: {line + 1}, Column: {column})");
+            Console.WriteLine($"{message} at (Line: {line}, Column: {column}) in {(package == "" ? "main file" : string.Join("", package.SkipLast(2)))}");
             Console.WriteLine($"\n\t{text.Split('\n')[line].Trim('\t')}");
             Console.WriteLine("\t" + String.Concat(Enumerable.Repeat(" ", column - 1)) + String.Concat(Enumerable.Repeat("^", length)));
         }
@@ -142,7 +152,7 @@ namespace Whirlwind
             return splitText[splitText.Count() - 1].Trim('\t').Length;
         }
 
-        private ASTNode _runParser(Parser parser, List<Token> tokens, string text)
+        private ASTNode _runParser(Parser parser, List<Token> tokens, string text, string package)
         {
             try
             {
@@ -154,13 +164,13 @@ namespace Whirlwind
                     Console.WriteLine("Unexpected End of File");
                 else
                 {
-                    _writeError(text, $"Unexpected Token: '{isx.Tok.Value}'", isx.Tok.Index, isx.Tok.Value.Length);
+                    _writeError(text, $"Unexpected Token: '{isx.Tok.Value}'", isx.Tok.Index, isx.Tok.Value.Length, package);
                 }
                 return null;
             }
         }
 
-        private bool _runVisitor(Visitor visitor, ASTNode ast, string text)
+        private bool _runVisitor(Visitor visitor, ASTNode ast, string text, string package)
         {
             try
             {
@@ -168,14 +178,14 @@ namespace Whirlwind
             }
             catch (SemanticException smex)
             {
-                _writeError(text, smex.Message, smex.Position.Start, smex.Position.Length);
+                _writeError(text, smex.Message, smex.Position.Start, smex.Position.Length, package);
                 return false;
             }
 
             if (visitor.ErrorQueue.Count > 0)
             {
                 foreach (var error in visitor.ErrorQueue)
-                    _writeError(text, error.Message, error.Position.Start, error.Position.Length);
+                    _writeError(text, error.Message, error.Position.Start, error.Position.Length, package);
 
                 return false;
             }

@@ -109,7 +109,9 @@ namespace Whirlwind.Semantic.Visitor
                             {
                                 string identifier = ((TokenNode)node.Content[1]).Tok.Value;
 
-                                var symbol = _getMember(root.Type, identifier, node.Content[0].Position, node.Content[1].Position);
+                                var symbol = _getMember(root.Type, identifier, node.Content[0].Position, node.Content[1].Position, 
+                                    root is IdentifierNode id && id.IdName == "$THIS");
+
                                 _nodes.Add(new ExprNode("GetMember", symbol.DataType));
 
                                 PushForward();
@@ -259,7 +261,7 @@ namespace Whirlwind.Semantic.Visitor
             }
         }
 
-        private Symbol _getMember(DataType type, string name, TextPosition opPos, TextPosition idPos)
+        private Symbol _getMember(DataType type, string name, TextPosition opPos, TextPosition idPos, bool enableIntrinsicGet = false)
         {
             Symbol symbol;
             switch (type.Classify())
@@ -276,7 +278,41 @@ namespace Whirlwind.Semantic.Visitor
                     if (!_flags.ContainsKey("core") && new[] { "__finalize__", "__copy__", "__get__", "__set__" }.Contains(name))
                         throw new SemanticException("Unable to directly access special methods outside of runtime core", idPos);
                     else if (!type.GetInterface().GetFunction(name, out symbol))
+                    {
+                        if (enableIntrinsicGet)
+                        {
+                            string typeString = type.ToString();
+                            var matches = _typeImpls.Where(x => typeString.StartsWith(x.Key));
+
+                            if (matches.Count() > 0)
+                            {
+                                var match = matches.First();
+
+                                // may never be added, but here in case it is :D
+                                if (match.Value is StructType st)
+                                    return _getMember(st.GetInstance(), name, opPos, idPos);
+                                else if (match.Value is GenericType gt)
+                                {
+                                    var dataTypes = new List<DataType>();
+
+                                    if (type is ArrayType at)
+                                        dataTypes.Add(at.ElementType);
+                                    else if (type is ListType lt)
+                                        dataTypes.Add(lt.ElementType);
+                                    else if (type is DictType dt)
+                                        dataTypes.AddRange(new[] { dt.KeyType, dt.ValueType });
+                                    else if (type is PointerType pt)
+                                        dataTypes.Add(pt.DataType);
+
+                                    if (gt.CreateGeneric(dataTypes, out DataType it) && it is StructType ist)
+                                        return _getMember(ist.GetInstance(), name, opPos, idPos);                                    
+                                }
+                            }
+                        }
+
                         throw new SemanticException($"Type has no interface member `{name}`", idPos);
+                    }
+                        
                     break;
             }
 

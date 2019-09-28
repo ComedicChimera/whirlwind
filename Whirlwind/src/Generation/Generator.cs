@@ -13,15 +13,17 @@ namespace Whirlwind.Generation
         // visitor extracted data
         private readonly SymbolTable _table;
         private readonly Dictionary<string, string> _flags;
+        private readonly Dictionary<string, DataType> _typeImpls;
 
         // llvm build data
         private readonly LLVMModuleRef _module;
         private readonly LLVMBuilderRef _builder;
 
-        public Generator(SymbolTable table, Dictionary<string, string> flags)
+        public Generator(SymbolTable table, Dictionary<string, string> flags, Dictionary<string, DataType> typeImpls)
         {
             _table = table;
             _flags = flags;
+            _typeImpls = typeImpls;
 
             // pass in necessary config data
             _module = LLVM.ModuleCreateWithName("test");

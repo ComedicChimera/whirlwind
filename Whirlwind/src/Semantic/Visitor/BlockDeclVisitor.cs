@@ -61,7 +61,14 @@ namespace Whirlwind.Semantic.Visitor
             if (_wrapsNextAnnotBlock && (root.Name == "struct_decl" || root.Name == "func_decl"))
             {
                 if (_implName != "")
-                {
+                {             
+                    if (_typeImpls.ContainsKey(_implName))
+                    {
+                        _implName = "";
+                        throw new SemanticException($"Intrinsic implementation for `{_implName}` provided multiple times", 
+                            root.Content[1].Position);
+                    }
+
                     _typeImpls[_implName] = ((BlockNode)_nodes.Last()).Nodes[0].Type;
                     _implName = "";
                 }

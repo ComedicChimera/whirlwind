@@ -12,6 +12,8 @@ namespace Whirlwind
         // TODO - change directory to whirlpath environment variable
         static void Main(string[] args)
         {
+            _initVars();
+
             string fileName = Console.ReadLine();
 
             PkgManager = new PackageManager();
@@ -24,7 +26,7 @@ namespace Whirlwind
 
         static void _initVars()
         {
-            WhirlGlobals.WHIRL_PATH = "C:/Users/forlo/dev/whirlwind/compiler/";
+            WhirlGlobals.WHIRL_PATH = "C:/Users/forlo/dev/Projects/whirlwind/compiler/Whirlwind/";
         }
     }
 
