@@ -16,7 +16,7 @@ namespace Whirlwind.Generation
             var name = ((IdentifierNode)node.Nodes[0]).IdName;
             var st = (StructType)node.Nodes[0].Type;
 
-            var llvmStruct = LLVM.StructCreateNamed(_ctx, name);
+            var llvmStruct = LLVM.StructCreateNamed(_ctx, _namePrefix + name);
             llvmStruct.StructSetBody(st.Members.Select(x => _convertType(x.Value.DataType)).ToArray(), packed);
 
             // process constructor

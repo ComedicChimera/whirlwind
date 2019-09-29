@@ -58,21 +58,6 @@ namespace Whirlwind.Generation
             LLVM.DumpModule(_module);
         }
 
-        private string _convertTypeToName(DataType dt)
-        {
-            return dt.ToString()
-                .Replace("[", "_")
-                .Replace("]", "_")
-                .Replace("(", "_")
-                .Replace(")", "_")
-                .Replace("<", ".")
-                .Replace(">", "")
-                .Replace(",", "._.")
-                .Replace("::", ".")
-                .Replace("*", "..")
-                .Replace(" ", "");
-        }
-
         private string _getLookupName(string name)
         {
             int i = 0;

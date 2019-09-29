@@ -20,12 +20,15 @@ namespace Whirlwind.Generation
             _table.Lookup(name, out Symbol sym);
             bool externLink = external || sym.Modifiers.Contains(Modifier.EXPORTED);
 
+            // add in the package prefix
+            name = _namePrefix + name;
+
             LLVMValueRef llvmFn;
 
             if (sym.DataType is FunctionGroup fg)
             {
                 var fn = (FunctionType)idNode.Type;
-                llvmFn = _generateFunctionPrototype(name + "." + _convertTypeToName(fn), fn, externLink);
+                llvmFn = _generateFunctionPrototype(name + "." + string.Join(",", fn.Parameters.Select(x => x.DataType.ToString())), fn, externLink);
 
                 if (!external)
                 {

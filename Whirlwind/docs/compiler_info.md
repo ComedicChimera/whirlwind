@@ -36,4 +36,12 @@ This document describes how types are converted from Whirlwind to LLVM.
 
 - [Type Conversions](https://github.com/ComedicChimera/Whirlwind/blob/master/Whirlwind/docs/type_conversions.md)
 
-This document has nothing to do with casting: that is in the Language Reference.
+This document has nothing to do with casting: that information is in the Language Reference.
+
+## Naming Conventions
+This document describes the various naming conventions that occurs when translating from Whirlwind to LLVM.
+
+- [Naming Conventions](https://github.com/ComedicChimera/Whirlwind/blob/master/Whirlwind/docs/naming.md)
+
+This document does not describe stylistic rules such as when to use different cases.  That can
+be found in the style guide.

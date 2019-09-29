@@ -1,5 +1,8 @@
 # TODO
 
+- deal with multifile overloading
+- make sure everything is in line with `naming.md`
+
 # TESTING
 
 - ALL DE NEW STUFF
