@@ -28,7 +28,7 @@ namespace Whirlwind.Generation
             if (sym.DataType is FunctionGroup fg)
             {
                 var fn = (FunctionType)idNode.Type;
-                llvmFn = _generateFunctionPrototype(name + "." + string.Join(",", fn.Parameters.Select(x => x.DataType.ToString())), fn, externLink);
+                llvmFn = _generateFunctionPrototype(name + "." + string.Join(",", fn.Parameters.Select(x => x.DataType.LLVMName())), fn, externLink);
 
                 if (!external)
                 {
@@ -59,6 +59,7 @@ namespace Whirlwind.Generation
             }           
         }
 
+        // handle function generations for functions returning and accepting structs/tuples
         private LLVMValueRef _generateFunctionPrototype(string name, FunctionType ft, bool external)
         {
             var arguments = new LLVMTypeRef[ft.Parameters.Count];

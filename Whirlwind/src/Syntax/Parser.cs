@@ -41,16 +41,27 @@ namespace Whirlwind.Syntax
 
             // error position is position of token in THE TOKENS LIST, not the source string            
             if (_parseProduction(_grammar.First) != _tokens.Count)
-                throw new InvalidSyntaxException(GetToken(_errorPosition));
+            {
+                var errorTok = GetToken(_errorPosition);
+                Reset();
+
+                throw new InvalidSyntaxException(errorTok);
+            }
+                
 
             var tree = _semanticStack[0];
+            Reset();
+
+            return tree;
+        }
+
+        private void Reset()
+        {
             _semanticStack.Clear();
 
             _tokens.Clear();
 
             _errorPosition = -1;
-
-            return tree;
         }
 
         private Token GetToken(int pos)

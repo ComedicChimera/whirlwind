@@ -1,10 +1,5 @@
-﻿struct Point {
-	x, y: int;
-}
-
-func test(p: *Point) int {
-	return p->x;
-}
+﻿func myFn(x: (int, bool)) func()(bool)
+	=> | | => x.1 if x.0 < 2 else !x.1;
 
 func main() {
 	

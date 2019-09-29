@@ -185,6 +185,9 @@ namespace Whirlwind.Types
             return newDt;
         }
 
+        public string LLVMName()
+            => ToString().Replace(" ", "");
+
 
         // get a given data type classifier as a string
         public abstract TypeClassifier Classify();

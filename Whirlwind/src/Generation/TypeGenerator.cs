@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Linq;
 
 using LLVMSharp;
 
@@ -41,6 +41,16 @@ namespace Whirlwind.Generation
                 ((GenericType)_typeImpls["array"]).CreateGeneric(new List<DataType> { at.ElementType }, out DataType ast);
                 return _convertType(ast);
             }
+            else if (dt is ListType lt)
+            {
+                ((GenericType)_typeImpls["list"]).CreateGeneric(new List<DataType> { lt.ElementType }, out DataType lst);
+                return _convertType(lst);
+            }
+            else if (dt is DictType dct)
+            {
+                ((GenericType)_typeImpls["dict"]).CreateGeneric(new List<DataType> { dct.KeyType, dct.ValueType }, out DataType dst);
+                return _convertType(dst);
+            }
             else if (dt is PointerType pt)
                 return LLVM.PointerType(_convertType(pt.DataType), 0);
             else if (dt is StructType st)
@@ -56,6 +66,15 @@ namespace Whirlwind.Generation
                 // only other option is generic type
                 else
                     return _processGeneric((GenericType)symbol.DataType, dt);
+            }
+            else if (dt is TupleType tt)
+                return LLVM.StructType(tt.Types.Select(x => _convertType(x)).ToArray(), true);
+            else if (dt is FunctionType ft)
+            {
+                // handle function generations for functions returning and accepting structs and tuples
+                return LLVM.PointerType(LLVM.FunctionType(_convertType(ft.ReturnType),
+                    ft.Parameters.Select(x => _convertType(x.DataType)).ToArray(),
+                    ft.Parameters.Count > 0 && ft.Parameters.Last().Indefinite), 0);
             }
             else
                 return LLVM.VoidType();

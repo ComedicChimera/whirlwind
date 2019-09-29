@@ -1,5 +1,30 @@
 ﻿#impl "array"
 struct __array<T> {
 	p: *T;
-	size: int;
+	size: uint;
+}
+
+#impl "list"
+struct __list<T> {
+	p: dyn* T;
+	size: uint;
+	cap: uint;
+}
+
+#impl "dict"
+struct __dict<K, V> {
+	kvList: dyn* (K, V);
+	kvSize, kvCap: uint;
+
+	hashTable: dyn *int;
+	htSize, htCap: uint;
+
+	nextInsertNdx: uint;
+}
+
+#impl "string"
+struct __string {
+	bytes: dyn* byte;
+	size, cap: uint;
+	enc: bool;
 }
