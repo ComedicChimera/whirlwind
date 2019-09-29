@@ -38,7 +38,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             if (hasValue && new[] { "impl", "platform", "static_link", "res_name" }.Contains(annot))
                 return true;
-            else if (new[] { "extern", "intrinsic", "joined", "core" }.Contains(annot))
+            else if (new[] { "extern", "intrinsic", "packed", "core" }.Contains(annot))
                 return true;
 
             return false;
@@ -53,7 +53,7 @@ namespace Whirlwind.Semantic.Visitor
                     _wrapsNextAnnotBlock = true;
                     _functionCanHaveNoBody = true;
                     break;
-                case "joined":
+                case "packed":
                     _wrapsNextAnnotBlock = true;
                     break;
                 case "impl":

@@ -5,6 +5,7 @@ using System.Text;
 using LLVMSharp;
 
 using Whirlwind.Types;
+using Whirlwind.Semantic;
 
 namespace Whirlwind.Generation
 {
@@ -42,11 +43,25 @@ namespace Whirlwind.Generation
             }
             else if (dt is StructType st)
             {
-                // handle generic types and regular structures
-                return LLVM.VoidType();
+                string lName = _getLookupName(st.Name);
+
+                Symbol symbol = null;
+                foreach (var item in lName.Split("::"))
+                    _table.Lookup(item, out symbol);
+
+                if (symbol.DataType is StructType)
+                    return LLVM.GetNamedGlobal(_module, symbol.Name).TypeOf();
+                // only other option is generic type
+                else
+                    return _processGeneric((GenericType)symbol.DataType, dt);
             }
             else
                 return LLVM.VoidType();
+        }
+
+        private LLVMTypeRef _processGeneric(GenericType gt, DataType ot)
+        {
+            return LLVM.VoidType();
         }
     }
 }

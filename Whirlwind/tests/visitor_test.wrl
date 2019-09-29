@@ -1,13 +1,9 @@
-﻿// include test_dir::dir_test;
+﻿struct Point {
+	x, y: int;
+}
+
+// func test(p: Point) => p.x;
 
 func main() {
-	let b = 0xEA;
-
-	b += 0x34;
-
-	let c = 0x478;
-
-	c += b;
-
-	test();
+	
 }

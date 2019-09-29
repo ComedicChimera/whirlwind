@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 
 using LLVMSharp;
@@ -14,16 +15,18 @@ namespace Whirlwind.Generation
         private readonly SymbolTable _table;
         private readonly Dictionary<string, string> _flags;
         private readonly Dictionary<string, DataType> _typeImpls;
+        private readonly string _namePrefix;
 
         // llvm build data
         private readonly LLVMModuleRef _module;
         private readonly LLVMBuilderRef _builder;
 
-        public Generator(SymbolTable table, Dictionary<string, string> flags, Dictionary<string, DataType> typeImpls)
+        public Generator(SymbolTable table, Dictionary<string, string> flags, Dictionary<string, DataType> typeImpls, string namePrefix)
         {
             _table = table;
             _flags = flags;
             _typeImpls = typeImpls;
+            _namePrefix = namePrefix;
 
             // pass in necessary config data
             _module = LLVM.ModuleCreateWithName("test");
@@ -40,6 +43,9 @@ namespace Whirlwind.Generation
                     case "Function":
                     case "AsyncFunction":
                         _generateFunction((BlockNode)node, false);
+                        break;
+                    case "Struct":
+                        _generateStruct((BlockNode)node, false);
                         break;
                 }
             }
@@ -63,6 +69,18 @@ namespace Whirlwind.Generation
                 .Replace("::", ".")
                 .Replace("*", "$.")
                 .Replace(" ", "");
+        }
+
+        private string _getLookupName(string name)
+        {
+            int i = 0;
+            for (; i < _namePrefix.Length && i < name.Length; i++)
+            {
+                if (name[i] != _namePrefix[i])
+                    break;
+            }
+
+            return string.Join("", name.Skip(i));
         }
     }
 

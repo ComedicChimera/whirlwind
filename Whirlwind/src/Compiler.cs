@@ -118,7 +118,7 @@ namespace Whirlwind
                 ((BlockNode)sat).Block.AddRange(((BlockNode)mtVisitor.Result()).Block);
             }
 
-            var generator = new Generator(fullTable, visitor.Flags(), _typeImpls);
+            var generator = new Generator(fullTable, visitor.Flags(), _typeImpls, namePrefix);
 
             try
             {
