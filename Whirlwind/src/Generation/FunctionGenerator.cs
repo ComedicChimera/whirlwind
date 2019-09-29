@@ -24,22 +24,20 @@ namespace Whirlwind.Generation
 
             if (sym.DataType is FunctionGroup fg)
             {
-                foreach (var fn in fg.Functions)
+                var fn = (FunctionType)idNode.Type;
+                llvmFn = _generateFunctionPrototype(name + "." + _convertTypeToName(fn), fn, externLink);
+
+                if (!external)
                 {
-                    llvmFn = _generateFunctionPrototype(name + "." + _convertTypeToName(fn), fn, externLink);
+                    LLVM.PositionBuilderAtEnd(_builder, LLVM.AppendBasicBlockInContext(_ctx, llvmFn, "entry"));
 
-                    if (!external)
-                    {
-                        LLVM.PositionBuilderAtEnd(_builder, LLVM.AppendBasicBlock(llvmFn, "entry"));
+                    _generateBlock(node.Block);
 
-                        _generateBlock(node.Block);
-
-                        if (fn.ReturnType.Classify() == TypeClassifier.NONE)
-                            LLVM.BuildRetVoid(_builder);
-                    }
-
-                    LLVM.VerifyFunction(llvmFn, LLVMVerifierFailureAction.LLVMPrintMessageAction);
+                    if (fn.ReturnType.Classify() == TypeClassifier.NONE)
+                        LLVM.BuildRetVoid(_builder);
                 }
+
+                LLVM.VerifyFunction(llvmFn, LLVMVerifierFailureAction.LLVMPrintMessageAction);
             }
             else
             {
@@ -47,7 +45,7 @@ namespace Whirlwind.Generation
 
                 llvmFn = _generateFunctionPrototype(name, fn, externLink);
 
-                LLVM.PositionBuilderAtEnd(_builder, LLVM.AppendBasicBlock(llvmFn, "entry"));
+                LLVM.PositionBuilderAtEnd(_builder, LLVM.AppendBasicBlockInContext(_ctx, llvmFn, "entry"));
 
                 _generateBlock(node.Block);
 
@@ -74,7 +72,7 @@ namespace Whirlwind.Generation
                     arguments[i] = _convertType(param.DataType);
             }
 
-            var llvmFn = LLVM.AddFunction(_module, name, LLVM.FunctionType(_convertType(ft.ReturnType), arguments, isVarArg));
+            var llvmFn = LLVM.AddFunction(_module, name, LLVM.FunctionType(_convertType(ft.ReturnType), arguments, isVarArg));         
 
             // handle external symbols as necessary
             LLVM.SetLinkage(llvmFn, external ? LLVMLinkage.LLVMExternalLinkage : LLVMLinkage.LLVMLinkerPrivateLinkage);

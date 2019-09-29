@@ -16,12 +16,8 @@ namespace Whirlwind.Generation
             var name = ((IdentifierNode)node.Nodes[0]).IdName;
             var st = (StructType)node.Nodes[0].Type;
 
-            var llvmStruct = LLVM.StructType(st.Members.Select(x => _convertType(x.Value.DataType)).ToArray(), packed);
-            var ctx = llvmStruct.GetTypeContext();
-            LLVM.StructCreateNamed(ctx, name);
-
-            // no idea how fix this
-            // var glob = LLVM.AddGlobal(_module, llvmStruct, name);
+            var llvmStruct = LLVM.StructCreateNamed(_ctx, name);
+            llvmStruct.StructSetBody(st.Members.Select(x => _convertType(x.Value.DataType)).ToArray(), packed);
 
             // process constructor
         }

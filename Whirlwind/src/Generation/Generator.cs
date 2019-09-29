@@ -20,6 +20,7 @@ namespace Whirlwind.Generation
         // llvm build data
         private readonly LLVMModuleRef _module;
         private readonly LLVMBuilderRef _builder;
+        private readonly LLVMContextRef _ctx;
 
         public Generator(SymbolTable table, Dictionary<string, string> flags, Dictionary<string, DataType> typeImpls, string namePrefix)
         {
@@ -30,7 +31,8 @@ namespace Whirlwind.Generation
 
             // pass in necessary config data
             _module = LLVM.ModuleCreateWithName("test");
-            _builder = LLVM.CreateBuilder();
+            _ctx = LLVM.GetModuleContext(_module);
+            _builder = LLVM.CreateBuilderInContext(_ctx);
         }
 
         public void Generate(ITypeNode tree, string outputFile)
@@ -51,7 +53,7 @@ namespace Whirlwind.Generation
             }
 
             if (LLVM.VerifyModule(_module, LLVMVerifierFailureAction.LLVMPrintMessageAction, out var error) != new LLVMBool(0))
-                Console.WriteLine("LLVM Build Error: " + error);
+                Console.WriteLine("LLVM Build Errors");
 
             LLVM.DumpModule(_module);
         }
@@ -65,9 +67,9 @@ namespace Whirlwind.Generation
                 .Replace(")", "_")
                 .Replace("<", ".")
                 .Replace(">", "")
-                .Replace(",", "$")
+                .Replace(",", "._.")
                 .Replace("::", ".")
-                .Replace("*", "$.")
+                .Replace("*", "..")
                 .Replace(" ", "");
         }
 

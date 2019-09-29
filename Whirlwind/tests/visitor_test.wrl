@@ -2,7 +2,9 @@
 	x, y: int;
 }
 
-func test(p: Point) => p.x;
+func test(p: *Point) int {
+	return p->x;
+}
 
 func main() {
 	

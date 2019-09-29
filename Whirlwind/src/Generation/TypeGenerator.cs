@@ -41,6 +41,8 @@ namespace Whirlwind.Generation
                 ((GenericType)_typeImpls["array"]).CreateGeneric(new List<DataType> { at.ElementType }, out DataType ast);
                 return _convertType(ast);
             }
+            else if (dt is PointerType pt)
+                return LLVM.PointerType(_convertType(pt.DataType), 0);
             else if (dt is StructType st)
             {
                 string lName = _getLookupName(st.Name);
@@ -50,7 +52,7 @@ namespace Whirlwind.Generation
                     _table.Lookup(item, out symbol);
 
                 if (symbol.DataType is StructType)
-                    return LLVM.GetNamedGlobal(_module, symbol.Name).TypeOf();
+                    return LLVM.GetTypeByName(_module, symbol.Name);
                 // only other option is generic type
                 else
                     return _processGeneric((GenericType)symbol.DataType, dt);
