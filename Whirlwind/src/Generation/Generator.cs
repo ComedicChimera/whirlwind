@@ -45,7 +45,7 @@ namespace Whirlwind.Generation
                         _generateFunction((BlockNode)node, false);
                         break;
                     case "Struct":
-                        _generateStruct((BlockNode)node, false);
+                        _generateStruct((BlockNode)node, false, false);
                         break;
                 }
             }
