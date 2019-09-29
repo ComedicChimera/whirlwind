@@ -27,6 +27,7 @@ connote any operation or computation.
 ### Components
 
 | Name | Purpose |
+| ---- | ------- |
 | Type | Store a data type |
 | StandardImplement | Store a standard inherit in an interface bind |
 | GenericImplement | Store a generic inherit in a generic interface bind |
