@@ -1,7 +1,13 @@
 # TODO
 
-- deal with multifile overloading
-- make sure everything is in line with `naming.md`
+- get structs up and running
+  * variable initializers
+  * constructors
+- finish functions
+  * deal with multifile overloading
+  * any other problems that could come up
+- add all the types
+- WORK ON GENERATOR
 
 # TESTING
 

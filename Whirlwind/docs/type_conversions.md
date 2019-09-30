@@ -2,7 +2,7 @@
 
 | Whirlwind | LLVM | Notes |
 | --------- | ---- | ----- |
-| `any` | `*void` | |
+| `any` | `i8*` | |
 | `none` | `void` | Shouldn't ever be used as an actual type |
 | `null` | _ | Doesn't compile to anything because it can't occur as a type: it compiles to whatever it needs to |
 | `[]T` | `std.array<T>` | |
@@ -17,14 +17,14 @@
 | `long` | `i64` | |
 | `str` | std.string | Can be either ASCII or Unicode encoded depending on the context |
 | `func(T...)(R)` | `R (T...)*` | |
-| `interf:name` | `*void` | |
+| `interf:name` | `i8*` | |
 | `struct:name` | `type {} name` | The type before is designate how the struct declaration will generated: it isn't part of the type |
 | `*T` | `*T` | *See special cases for pointers* |
 | `(T...)` | `type { T... } ` | |
-| `type:name` | `*void` | This is for normal opaque types |
+| `type:name` | _ | Opaque types are just a name; there is no type declared |
 | `type:alias` | `alias` | The alias is the resulting LLVM type |
 | `type:enum` | `i32` | All empty enumerated types compile as `i32` |
-| `type:enum_val | `type { i32, *void }` | This is for any type class that stores value in its enumerate variants. `*void` does have copy semantics |
+| `type:enum_val | `type { i32, i8* }` | This is for any type class that stores value in its enumerate variants. `*void` does have copy semantics |
 
 ## Notes
 
@@ -47,9 +47,9 @@ All self types just compile to pointers to whatever they were a self reference t
 
 | Case | Actual Result |
 | ---- | ------------- |
-| `*any` | `*void` |
-| `*interf:name` | `*void` |
-| `*type:name` | `*void` |
-| `*type:enum_val` | `*type { i32, *void }` | |
+| `*any` | `i8*` |
+| `*interf:name` | `i8*` |
+| `*type:name` | `i8*` |
+| `*type:enum_val` | `type { i32, i8* }*` | |
 
-All `*void` do NOT have copy semantics applied to them ie. they are treated like normal pointers instead of having their data copied.
+All `i8*` do NOT have copy semantics applied to them ie. they are treated like normal pointers instead of having their data copied.

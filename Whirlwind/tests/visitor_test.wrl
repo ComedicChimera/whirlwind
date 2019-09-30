@@ -1,5 +1,16 @@
-﻿func myFn(x: (int, bool)) func()(bool)
-	=> | | => x.1 if x.0 < 2 else !x.1;
+﻿struct Point {
+	x, y: int;
+
+	constructor() {
+		this.x = 5;
+		this.y = 10;
+	}
+
+	constructor(x, y: int) {
+		this.x = x;
+		this.y = y;
+	}
+}
 
 func main() {
 	
