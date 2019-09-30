@@ -62,6 +62,7 @@ namespace Whirlwind.Generation
         private LLVMValueRef _generateFunctionPrototype(string name, FunctionType ft, bool external)
         {
             var arguments = new LLVMTypeRef[ft.Parameters.Count];
+            var byvalAttr = new List<int>();
             var isVarArg = false;
 
             Parameter param;
@@ -71,11 +72,22 @@ namespace Whirlwind.Generation
 
                 if (param.Indefinite)
                     isVarArg = true;
+                else if (param.DataType is StructType)
+                {
+                    arguments[i] = LLVM.PointerType(_convertType(param.DataType), 0);
+                    byvalAttr.Add(i);
+                }
                 else
                     arguments[i] = _convertType(param.DataType);
             }
 
-            var llvmFn = LLVM.AddFunction(_module, name, LLVM.FunctionType(_convertType(ft.ReturnType), arguments, isVarArg));         
+
+            var llvmFn = LLVM.AddFunction(_module, name, LLVM.FunctionType(_convertType(ft.ReturnType), arguments, isVarArg));
+            
+            foreach (int i in byvalAttr)
+            {
+                // pass structs using byval
+            }
 
             // handle external symbols as necessary
             LLVM.SetLinkage(llvmFn, external ? LLVMLinkage.LLVMExternalLinkage : LLVMLinkage.LLVMLinkerPrivateLinkage);

@@ -3,6 +3,7 @@
 - get structs up and running
   * variable initializers
   * constructors
+  * add byval attribute passing
 - finish functions
   * deal with multifile overloading
   * any other problems that could come up
