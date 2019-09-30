@@ -3,9 +3,10 @@
 - add strong pattern matching to select expressions and statements
   * `option case { Some(let t) => t, _ => 0 }`
   * `tuple case { (let x, 4) => x, _ => 5 }`
+- interfaces can't override each other
+  * if two interfaces provide two methods that are named the same and don't overload, throw an error (fail derivation)
 - get structs up and running
   * variable initializers
-  * constructors
   * add byval attribute passing
 - finish functions
   * deal with multifile overloading
