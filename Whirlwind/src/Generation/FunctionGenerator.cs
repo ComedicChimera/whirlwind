@@ -59,7 +59,6 @@ namespace Whirlwind.Generation
             }           
         }
 
-        // handle function generations for functions returning and accepting structs/tuples
         private LLVMValueRef _generateFunctionPrototype(string name, FunctionType ft, bool external)
         {
             var arguments = new LLVMTypeRef[ft.Parameters.Count];

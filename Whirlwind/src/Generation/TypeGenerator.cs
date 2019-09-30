@@ -71,7 +71,6 @@ namespace Whirlwind.Generation
                 return LLVM.StructType(tt.Types.Select(x => _convertType(x)).ToArray(), true);
             else if (dt is FunctionType ft)
             {
-                // handle function generations for functions returning and accepting structs and tuples
                 return LLVM.PointerType(LLVM.FunctionType(_convertType(ft.ReturnType),
                     ft.Parameters.Select(x => _convertType(x.DataType)).ToArray(),
                     ft.Parameters.Count > 0 && ft.Parameters.Last().Indefinite), 0);
