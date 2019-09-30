@@ -84,9 +84,11 @@ namespace Whirlwind.Generation
 
             var llvmFn = LLVM.AddFunction(_module, name, LLVM.FunctionType(_convertType(ft.ReturnType), arguments, isVarArg));
             
+            // test this
             foreach (int i in byvalAttr)
             {
-                // pass structs using byval
+                LLVM.AddAttributeAtIndex(llvmFn.GetParam((uint)i), LLVMAttributeIndex.LLVMAttributeFunctionIndex, 
+                    LLVM.CreateStringAttribute(_ctx, "byval", 5, "", 0));
             }
 
             // handle external symbols as necessary
