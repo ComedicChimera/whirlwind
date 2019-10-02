@@ -52,6 +52,7 @@
 - add prelude 
 - remember, ranges can go in both directions are are inclusive on both sides
 - make sure to inline expr functions
+- make sure naming conventions are properly handled (ie. should std-lib have prefix lib::std?)
 
 # THOUGHTS
 
