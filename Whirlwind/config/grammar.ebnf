@@ -95,7 +95,7 @@ else_block: 'ELSE' block ;
 // select statement
 select_stmt: 'SELECT' '(' expr ')' '{' select_block '}' ;
 select_block: case+ [default] ;
-case: 'CASE' expr (',' expr)* ':' main ;
+case: 'CASE' case_expr (',' case_expr)* ':' main ;
 default: 'DEFAULT' ':' main ;
 
 // for loop
@@ -173,7 +173,7 @@ then_extension: 'THEN' expr ;
 
 // case extension
 case_extension: 'CASE' '{' inline_case+ default_case '}' ;
-inline_case: expr (',' expr)* '=>' expr ',' ;
+inline_case: case_expr (',' case_expr)* '=>' expr ',' ;
 default_case: '_' '=>' expr ;
 
 // functional/monadic operators
@@ -386,3 +386,8 @@ get_op: ':' ':' ;
 
 // type identifier pair
 type_id: [ 'IDENTIFIER' ':' ] types ;
+
+// case-expressions and patterns
+case_expr: expr | pattern ;
+pattern: ['IDENTIFIER' static_get*] '(' pattern_elem (',' pattern_elem)* ')' ;
+pattern_elem: ('LET' | 'CONST') ['VOL'] 'IDENTIFIER' | '_' | expr ;

@@ -196,11 +196,9 @@ namespace Whirlwind.Semantic.Visitor
 
                     foreach (var caseItem in ((ASTNode)item).Content)
                     {
-                        if (caseItem.Name == "expr")
+                        if (caseItem.Name == "case_expr")
                         {
-                            _visitExpr((ASTNode)caseItem);
-
-                            if (!exprType.Coerce(_nodes.Last().Type))
+                            if (!_visitCaseExpr((ASTNode)caseItem, exprType))
                                 throw new SemanticException("The case expressions must be the same type of the select root", caseItem.Position);
 
                             MergeBack();

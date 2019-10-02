@@ -271,11 +271,9 @@ namespace Whirlwind.Semantic.Visitor
 
                     foreach (var elem in ((ASTNode)item).Content)
                     {
-                        if (elem.Name == "expr")
+                        if (elem.Name == "case_expr")
                         {
-                            _visitExpr((ASTNode)elem);
-
-                            if (checkedExpr && !rootType.Coerce(_nodes.Last().Type))
+                            if (checkedExpr && !_visitCaseExpr((ASTNode)elem, rootType))
                                 throw new SemanticException("All conditions of case expression must be similar to the root type", 
                                     elem.Position);
 
@@ -351,6 +349,77 @@ namespace Whirlwind.Semantic.Visitor
 
             _nodes.Add(new ExprNode("InlineCaseExpr", dt));
             PushForward(caseCount);
+        }
+
+        private bool _visitCaseExpr(ASTNode node, DataType rootType)
+        {
+            var caseContent = (ASTNode)node.Content[0];
+            DataType dt = new NoneType();
+
+            if (caseContent.Name == "expr")
+            {
+                _visitExpr(caseContent);
+                dt = _nodes.Last().Type;
+            }              
+            else
+            {
+                bool isTypeClass = false;             
+
+                foreach (var item in caseContent.Content)
+                {
+                    if (item is TokenNode tk)
+                    {
+                        if (tk.Tok.Type == "IDENTIFIER")
+                        {
+                            if (_table.Lookup(tk.Tok.Value, out Symbol sym))
+                            {
+                                if (sym.DataType is CustomInstance || sym.DataType is Package)
+                                {
+                                    _nodes.Add(new IdentifierNode(sym.Name, sym.DataType));
+                                    dt = sym.DataType;
+                                }                                    
+                                else
+                                    throw new SemanticException("Unable to pattern match over type of " + sym.DataType.ToString(), tk.Position);
+                            }
+                            else
+                                throw new SemanticException($"Undefined symbol: `{tk.Tok.Value}`", tk.Position);
+
+                            isTypeClass = true;
+                        }
+                    }
+                    else if (item.Name == "static_get")
+                    {
+                        // always happens with identifier
+                        // add static get
+                    }
+                    else if (item.Name == "pattern_elem")
+                    {
+                        var patternElem = (ASTNode)item;
+                        for (int i = 0; i < patternElem.Content.Count; i++)
+                        {
+                            var pc = patternElem.Content[i];
+
+                            if (pc is TokenNode ptk)
+                            {
+                                switch (ptk.Tok.Type)
+                                {
+                                    // add pattern elem processing
+                                }
+                            }
+                            // expr
+                            else
+                            {
+                                _visitExpr((ASTNode)pc);
+
+                                // add expr check
+                                // if (_nodes.Last().Type)
+                            }
+                        }
+                    }
+                }
+            }
+
+            return dt.Coerce(rootType);
         }
 
         private void _visitThen(ASTNode node, bool needsSubscope)

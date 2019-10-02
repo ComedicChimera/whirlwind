@@ -69,5 +69,9 @@
   * `0.0f` - float
   * `0l` - long
   * `0u` - uint
+- add some higher level pattern matching capability
+  * more than just tuples and type classes
+  * `[let x, 4, _, ...]`
+  * `struct {y: let t}`
   
 
