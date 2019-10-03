@@ -86,7 +86,7 @@ Whirlwind also features pattern matching in a number of situations that can prov
        
        // case pattern matching
        let res = t case {
-          (_, "abc", let z) => z,
+          (_, "abc", z) => z,
           (4, _, _) => 1,
           _ => 0
        };
