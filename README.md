@@ -19,6 +19,31 @@ Whirlwind tries to achieve all of these goals, and admittedly falls short in som
 there is often a trade off between ease of thought and writing and speed of compilation and execution.  When designing this
 language I aimed for an "85% solution" which effectively means close enough, but not perfect: each construct fulfills the majority of our speed goals, but not all at once.  In essence, instead of trying to make each and every construct perfect, I provide a variety of constructs and approaches each of which is suited to one of the goals, this design allowing you to choose what you find most important.
 
+### Notable Features:
+
+- Interface Binding
+- Generics
+- Concurrent Functions (Asyncs)
+- Lambdas and Closures
+- Comprehensions
+- Algebraic Data Types
+- Dynamic Pointer Types
+- Chaining (Complex Expressions)
+- Inline Case Statement
+- Captures
+- Shadowing
+- Constexpr Evaluation
+- Builtin List and Dictionary Types
+- Decorators
+- Higher Order Functions
+- Default Interface Members
+- Composition and Binding Operators
+- Operator Overloading
+- Exponentiation Operator
+- Packages
+
+Other features that are less unique to Whirlwind include interfaces, structs, functions, variables, and all the usual suspects.
+
 ### Syntax:
 
 Whirlwind is designed to have a smooth, expressive, and concise syntax.  It is akin to a hodgepodge of various different styles, but they are all share similar patterns and styles.
