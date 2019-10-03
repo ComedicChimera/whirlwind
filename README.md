@@ -42,7 +42,7 @@ language I aimed for an "85% solution" which effectively means close enough, but
 - Exponentiation Operator
 - Packages
 
-Other features that are less unique to Whirlwind include interfaces, structs, functions, variables, and all the usual suspects.
+Other features that are less unique to Whirlwind include interfaces, structs, functions, variables, and all the other usual suspects.
 
 ### Syntax:
 
@@ -75,6 +75,31 @@ Whirlwind's blended syntax also propagates to the higher level language construc
     
 Again, we can see the concise nature of Whirlwind's syntax.  Whirlwind only makes your write what is necessary and this can
 be seen everywhere in the language.
+
+Whirlwind also features pattern matching in a number of situations that can prove very useful:
+
+    func main() {
+       let t = (7, "abc", 3.14);
+       
+       // tuple pattern matching
+       let (x, y, _) = t;
+       
+       // case pattern matching
+       let res = t case {
+          (_, "abc", let z) => z,
+          (4, _, _) => 1,
+          _ => 0
+       };
+       
+       let a: any = 56;
+       
+       // type pattern matching
+       if (a is i: int) {
+           // do something with i
+       }
+   }
+   
+In summary, one way Whirlwind encourages speed of development is by providing a concise, but expressive syntax.
 
 ### Resources:
 
