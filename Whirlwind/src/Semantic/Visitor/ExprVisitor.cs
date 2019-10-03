@@ -267,20 +267,26 @@ namespace Whirlwind.Semantic.Visitor
                 if (item.Name == "inline_case")
                 {
                     int exprs = 0;
-                    bool checkedExpr = true;
+
+                    _table.AddScope();
+                    _table.DescendScope();
 
                     foreach (var elem in ((ASTNode)item).Content)
                     {
                         if (elem.Name == "case_expr")
                         {
-                            if (checkedExpr && !_visitCaseExpr((ASTNode)elem, rootType))
-                                throw new SemanticException("All conditions of case expression must be similar to the root type", 
+                            if (!_visitCaseExpr((ASTNode)elem, rootType))
+                                throw new SemanticException("All conditions of case expression must be similar to the root type",
                                     elem.Position);
 
                             exprs++;
                         }
-                        else if (elem.Name == "TOKEN" && ((TokenNode)elem).Tok.Value == "=>")
-                            checkedExpr = false;
+                        else if (elem.Name == "expr")
+                        {
+                            _visitExpr((ASTNode)elem, false);
+
+                            exprs++;
+                        }
                     }
 
                     if (_isVoid(dt))
@@ -312,6 +318,8 @@ namespace Whirlwind.Semantic.Visitor
                     PushForward(exprs);
 
                     caseCount++;
+
+                    _table.AscendScope();
                 }
                 else if (item.Name == "default_case")
                 {
@@ -354,16 +362,16 @@ namespace Whirlwind.Semantic.Visitor
         private bool _visitCaseExpr(ASTNode node, DataType rootType)
         {
             var caseContent = (ASTNode)node.Content[0];
-            DataType dt = new NoneType();
 
             if (caseContent.Name == "expr")
             {
                 _visitExpr(caseContent);
-                dt = _nodes.Last().Type;
+                return _nodes.Last().Type.Coerce(rootType);
             }              
             else
             {
-                bool isTypeClass = false;             
+                int patternElemCount = 0;
+                DataType dt = new NoneType();
 
                 foreach (var item in caseContent.Content)
                 {
@@ -373,7 +381,7 @@ namespace Whirlwind.Semantic.Visitor
                         {
                             if (_table.Lookup(tk.Tok.Value, out Symbol sym))
                             {
-                                if (sym.DataType is CustomInstance || sym.DataType is Package)
+                                if (sym.DataType is CustomType || sym.DataType is CustomNewType || sym.DataType is Package)
                                 {
                                     _nodes.Add(new IdentifierNode(sym.Name, sym.DataType));
                                     dt = sym.DataType;
@@ -383,43 +391,99 @@ namespace Whirlwind.Semantic.Visitor
                             }
                             else
                                 throw new SemanticException($"Undefined symbol: `{tk.Tok.Value}`", tk.Position);
-
-                            isTypeClass = true;
                         }
                     }
                     else if (item.Name == "static_get")
                     {
-                        // always happens with identifier
-                        // add static get
+                        var name = (TokenNode)((ASTNode)item).Content[1];
+
+                        var sym = _getStaticMember(dt, name.Tok.Value, ((ASTNode)item).Content[0].Position, name.Position);
+
+                        if (sym.DataType is CustomType || sym.DataType is CustomNewType || sym.DataType is Package)
+                        {
+                            _nodes.Add(new IdentifierNode(sym.Name, sym.DataType));
+
+                            _nodes.Add(new ExprNode("StaticGet", sym.DataType));
+
+                            dt = sym.DataType;
+                        }
+                        else
+                            throw new SemanticException("Unable to pattern match over type of " + sym.DataType.ToString(), name.Position);
                     }
                     else if (item.Name == "pattern_elem")
                     {
                         var patternElem = (ASTNode)item;
-                        for (int i = 0; i < patternElem.Content.Count; i++)
+                        
+                        // _ case
+                        if (patternElem.Content.First() is TokenNode)
+                            _nodes.Add(new ValueNode("_", new NoneType()));
+                        // expr or identifier
+                        else
                         {
-                            var pc = patternElem.Content[i];
+                            INode idNode = patternElem.Content[0];
 
-                            if (pc is TokenNode ptk)
+                            while (idNode is ASTNode anode && anode.Content.Count == 1)
                             {
-                                switch (ptk.Tok.Type)
+                                if (anode.Content[0] is TokenNode itkn && itkn.Tok.Type == "IDENTIFIER")
                                 {
-                                    // add pattern elem processing
+                                    if (_table.Lookup(itkn.Tok.Value, out Symbol sym))
+                                        _nodes.Add(new IdentifierNode(sym.Name, sym.DataType));
+                                    else
+                                        _nodes.Add(new ValueNode("PatternSymbol", new NoneType(), sym.Name));
+
+                                    continue;
                                 }
                             }
-                            // expr
-                            else
-                            {
-                                _visitExpr((ASTNode)pc);
 
-                                // add expr check
-                                // if (_nodes.Last().Type)
-                            }
+                            // no id found
+                            _visitExpr((ASTNode)patternElem.Content.First());
                         }
+
+                        patternElemCount++;
                     }
                 }
-            }
 
-            return dt.Coerce(rootType);
+                if (dt is TupleType tt && rootType is TupleType)
+                {
+                    for (int i = patternElemCount; i > 0; i++)
+                    {
+                        var cNode = _nodes[_nodes.Count - i];
+
+                        if (cNode is ValueNode vn)
+                        {
+                            if (vn.Name == "PatternSymbol")
+                                _table.AddSymbol(new Symbol(vn.Value, tt.Types[i]));
+                        }
+                        else if (!cNode.Type.Coerce(tt.Types[i]))
+                            return false;
+                    }
+
+                    _nodes.Add(new ExprNode("TuplePattern", dt));
+                    PushForward(patternElemCount);
+                }
+                else if (dt is CustomNewType nt && rootType is CustomInstance)
+                {
+                    for (int i = patternElemCount; i > 0; i++)
+                    {
+                        var cNode = _nodes[_nodes.Count - i];
+
+                        if (cNode is ValueNode vn)
+                        {
+                            if (vn.Name == "PatternSymbol")
+                                _table.AddSymbol(new Symbol(vn.Value, nt.Values[i]));
+                        }
+                        else if (!cNode.Type.Coerce(nt.Values[i]))
+                            return false;
+                    }
+
+                    _nodes.Add(new ExprNode("TypeClassPattern", dt));
+                    PushForward(patternElemCount + 1);
+                }
+                else
+                    return false;               
+
+                return true;
+            }
         }
 
         private void _visitThen(ASTNode node, bool needsSubscope)

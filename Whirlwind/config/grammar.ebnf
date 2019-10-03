@@ -388,6 +388,6 @@ get_op: ':' ':' ;
 type_id: [ 'IDENTIFIER' ':' ] types ;
 
 // case-expressions and patterns
-case_expr: expr | pattern ;
+case_expr: pattern | expr ;
 pattern: ['IDENTIFIER' static_get*] '(' pattern_elem (',' pattern_elem)* ')' ;
-pattern_elem: ('LET' | 'CONST') ['VOL'] 'IDENTIFIER' | '_' | expr ;
+pattern_elem: expr | '_' ;

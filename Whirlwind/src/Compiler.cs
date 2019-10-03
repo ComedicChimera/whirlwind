@@ -190,6 +190,8 @@ namespace Whirlwind
                 return false;
             }
 
+            Console.WriteLine(visitor.Result().ToString());
+
             return true;
         }
 
