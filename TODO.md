@@ -1,8 +1,8 @@
 # TODO
 
-- add predefinitions
-  * `#pred "package"` - declares a function as defined in the given package (full prefix)
-  * prevent recursive imports
+- revamp/redo package system
+  * golang-esque?
+  * with statements/c#-esque?
 - get structs up and running
   * variable initializers
   * add byval attribute passing
