@@ -1,8 +1,5 @@
 # TODO
 
-- add strong pattern matching to select expressions and statements
-  * `option case { Some(t) => t, _ => 0 }`
-  * `tuple case { (x, 4) => x, _ => 5 }`
 - add predefinitions
   * `#pred "package"` - declares a function as defined in the given package (full prefix)
   * prevent recursive imports

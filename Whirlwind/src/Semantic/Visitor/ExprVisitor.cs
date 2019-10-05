@@ -371,7 +371,7 @@ namespace Whirlwind.Semantic.Visitor
             else
             {
                 int patternElemCount = 0;
-                DataType dt = new NoneType();
+                DataType dt = new TupleType(new List<DataType>());
 
                 foreach (var item in caseContent.Content)
                 {
@@ -405,6 +405,8 @@ namespace Whirlwind.Semantic.Visitor
 
                             _nodes.Add(new ExprNode("StaticGet", sym.DataType));
 
+                            PushForward(2);
+
                             dt = sym.DataType;
                         }
                         else
@@ -420,39 +422,48 @@ namespace Whirlwind.Semantic.Visitor
                         // expr or identifier
                         else
                         {
-                            INode idNode = patternElem.Content[0];
+                            INode iNode = patternElem.Content[0];
 
-                            while (idNode is ASTNode anode && anode.Content.Count == 1)
+                            while (iNode is ASTNode anode && anode.Content.Count == 1)
                             {
                                 if (anode.Content[0] is TokenNode itkn && itkn.Tok.Type == "IDENTIFIER")
                                 {
                                     if (_table.Lookup(itkn.Tok.Value, out Symbol sym))
                                         _nodes.Add(new IdentifierNode(sym.Name, sym.DataType));
                                     else
-                                        _nodes.Add(new ValueNode("PatternSymbol", new NoneType(), sym.Name));
+                                        _nodes.Add(new ValueNode("PatternSymbol", new NoneType(), itkn.Tok.Value));
 
-                                    continue;
+                                    goto loopEnd;
                                 }
+
+                                iNode = anode.Content[0];
                             }
 
                             // no id found
                             _visitExpr((ASTNode)patternElem.Content.First());
                         }
 
+                        loopEnd:
+
                         patternElemCount++;
+
+                        if (dt is TupleType ttc)
+                            ttc.Types.Add(_nodes.Last().Type);
+                        else if (dt is CustomNewType ntc)
+                            ntc.Values.Add(_nodes.Last().Type);
                     }
                 }
 
-                if (dt is TupleType tt && rootType is TupleType)
+                if (dt is TupleType tt && rootType is TupleType rt)
                 {
-                    for (int i = patternElemCount; i > 0; i++)
+                    for (int i = 0; i < patternElemCount; i++)
                     {
-                        var cNode = _nodes[_nodes.Count - i];
+                        var cNode = _nodes[_nodes.Count - patternElemCount + i];
 
                         if (cNode is ValueNode vn)
                         {
                             if (vn.Name == "PatternSymbol")
-                                _table.AddSymbol(new Symbol(vn.Value, tt.Types[i]));
+                                _table.AddSymbol(new Symbol(vn.Value, rt.Types[i]));
                         }
                         else if (!cNode.Type.Coerce(tt.Types[i]))
                             return false;
@@ -463,9 +474,9 @@ namespace Whirlwind.Semantic.Visitor
                 }
                 else if (dt is CustomNewType nt && rootType is CustomInstance)
                 {
-                    for (int i = patternElemCount; i > 0; i++)
+                    for (int i = 0; i < patternElemCount; i++)
                     {
-                        var cNode = _nodes[_nodes.Count - i];
+                        var cNode = _nodes[_nodes.Count - patternElemCount + i];
 
                         if (cNode is ValueNode vn)
                         {
