@@ -91,7 +91,7 @@ namespace Whirlwind.Semantic.Visitor
                         }
                         break;
                     case "static_get":
-                        if (_nodes.Last().Type is Package pkg)
+                        if (_nodes.Last().Type is PackageType pkg)
                         {
                             var getId = (TokenNode)((ASTNode)item).Content[1];
 

@@ -381,7 +381,7 @@ namespace Whirlwind.Semantic.Visitor
                         {
                             if (_table.Lookup(tk.Tok.Value, out Symbol sym))
                             {
-                                if (sym.DataType is CustomType || sym.DataType is CustomNewType || sym.DataType is Package)
+                                if (sym.DataType is CustomType || sym.DataType is CustomNewType || sym.DataType is PackageType)
                                 {
                                     _nodes.Add(new IdentifierNode(sym.Name, sym.DataType));
                                     dt = sym.DataType;
@@ -399,7 +399,7 @@ namespace Whirlwind.Semantic.Visitor
 
                         var sym = _getStaticMember(dt, name.Tok.Value, ((ASTNode)item).Content[0].Position, name.Position);
 
-                        if (sym.DataType is CustomType || sym.DataType is CustomNewType || sym.DataType is Package)
+                        if (sym.DataType is CustomType || sym.DataType is CustomNewType || sym.DataType is PackageType)
                         {
                             _nodes.Add(new IdentifierNode(sym.Name, sym.DataType));
 

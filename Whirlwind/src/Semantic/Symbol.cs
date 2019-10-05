@@ -13,11 +13,11 @@ namespace Whirlwind.Semantic
         STATIC
     }
 
-    class Package : DataType
+    class PackageType : DataType
     {
         public readonly Dictionary<string, Symbol> ExternalTable;
 
-        public Package(Dictionary<string, Symbol> eTable)
+        public PackageType(Dictionary<string, Symbol> eTable)
         {
             ExternalTable = eTable;
 
@@ -41,7 +41,7 @@ namespace Whirlwind.Semantic
         public override TypeClassifier Classify() => TypeClassifier.PACKAGE;
 
         public override DataType ConstCopy()
-    => new Package(ExternalTable); // implicit const
+            => new PackageType(ExternalTable); // implicit const
 
         protected override bool _equals(DataType other) => false;
     }

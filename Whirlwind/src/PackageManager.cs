@@ -3,14 +3,29 @@ using System.Linq;
 using System.Collections.Generic;
 
 using Whirlwind.Semantic;
+using Whirlwind.Syntax;
 
 namespace Whirlwind
 {
-    // ADD STD AND GLOBAL IMPORT CAPABILITIES
+    class Package
+    {
+        public readonly string Name;
+
+        public Dictionary<string, ASTNode> Files;
+        public PackageType Type;
+        public bool Compiled;
+
+        public Package(string name)
+        {
+            Name = name;
+            Files = new Dictionary<string, ASTNode>();
+
+            Compiled = false;
+        }
+    }
+
     class PackageManager
     {
-        private Compiler _compiler;
-
         private Dictionary<string, Package> _packageGraph;
         private string _importContext = "";
 
@@ -18,150 +33,61 @@ namespace Whirlwind
 
         private static readonly string _extension = ".wrl";
 
+        public string ImportContext
+        {
+            get { return _importContext; }
+            set
+            {
+                if (value != _importContext)
+                    _importContext = value;
+            }
+        }
+
         public PackageManager()
         {
             _packageGraph = new Dictionary<string, Package>();
-            _compiler = new Compiler("config/tokens.json", "config/grammar.ebnf");
         }
 
-        public bool Import(string basePath, bool tryGlobalImport, out Package pkg)
+        public bool LoadPackage(string path, string packageName, out Package pkg)
         {
-            // preserve context
-            var currentContext = _importContext;
+            string fullPath = Path.GetFullPath(_importContext + path);
 
-            // convert to absolute path after applying context
-            // this makes package lookups (to avoid recompilation)
-            // work properly since abs path is used as key
-            string path = Path.GetFullPath(currentContext + basePath);
-
-            // try preemptive lookup before creating new package
-            // prevents recursive and redundant inclusions
-            if (_packageGraph.ContainsKey(path))
+            if (_packageGraph.ContainsKey(fullPath))
             {
-                pkg = _packageGraph[path];
+                pkg = _packageGraph[fullPath];
+                return pkg.Compiled;
+            }
 
-                return pkg != null;
-            }              
-
-            if (OpenPackage(path, out string text))
+            if (_openPackage(fullPath, out string[] files))
             {
-                // reserve package slot (prevent recursion)
-                _packageGraph[path] = null;
+                if (_startDirectory == "")
+                    _startDirectory = fullPath;
 
-                var sl = new Dictionary<string, Symbol>();
-                _compiler.Build(text, _convertPathToPrefix(path), ref sl);
+                _importContext = fullPath;
 
-                pkg = new Package(sl);
+                pkg = new Package(packageName);
 
-                _packageGraph[path] = pkg;
-
-                _importContext = currentContext;
+                foreach (var file in files)
+                {
+                    if (file.EndsWith(_extension))
+                        pkg.Files.Add(file, null);
+                }
 
                 return true;
             }
-            else if (tryGlobalImport)
-            {
-                // try global import
-                _importContext = WhirlGlobals.WHIRL_PATH + "lib/globals/";
-                if (Import(basePath, false, out pkg))
-                {
-                    _importContext = currentContext;
-                    return true;
-                }
-
-                // try standard import
-                _importContext = WhirlGlobals.WHIRL_PATH + "lib/std/";
-                if (Import(basePath, false, out pkg))
-                {
-                    _importContext = currentContext;
-                    return true;
-                }
-            }
+            else if (LoadPackage(WhirlGlobals.WHIRL_PATH + "lib/global/" + path, packageName, out pkg))
+                return true;
+            else if (LoadPackage(WhirlGlobals.WHIRL_PATH + "lib/std/" + path, packageName, out pkg))
+                return true;
 
             pkg = null;
             return false;
         }
 
-        public bool ImportRaw(string path)
+        public string ConvertPathToPrefix(string path)
         {
-            if (File.Exists(path))
-            {
-                try
-                {
-                    // import raw only occurs at start of compilation therefore no context need
-                    // be preserved ;)
-                    if (path.Contains("/"))
-                        _importContext = string.Join("/", path.Split("/").SkipLast(1)) + "/";
-                    else if (path.Contains("\\"))
-                        _importContext = string.Join("\\", path.Split("/").SkipLast(1)) + "/";
+            path = Path.GetFullPath(path);
 
-                    var text = File.ReadAllText(path);
-
-                    // initialize starting directory
-                    _startDirectory = Path.GetFullPath(string.Join("/", path.Split("/").SkipLast(1)) + "/");
-
-                    string idpPath = new string(path.SkipLast(4).ToArray());
-
-                    // reserve package slot
-                    _packageGraph[idpPath] = null;
-
-                    var sl = new Dictionary<string, Symbol>();
-                    _compiler.Build(text, "", ref sl);
-
-                    _packageGraph[idpPath] = new Package(sl);
-
-                    return true;
-                }
-                catch (FileNotFoundException)
-                {
-                    // fail silently cause it already defaults to false
-                }
-            }
-
-            return false;
-        }
-
-        public bool OpenPackage(string path, out string text)
-        {
-            // must be a directory since it has not had extension appended yet
-            if (File.Exists(path))
-            {
-                path += "/__api__" + _extension;
-
-                if (File.Exists(path))
-                {
-                    _setImportContext(path.Remove(path.Length - 8 - _extension.Length - 1));
-
-                    text = File.ReadAllText(path);
-                    return true;
-                }
-            }
-            else
-            {
-                path += _extension;
-
-                if (File.Exists(path))
-                {
-                    if (path.Contains("/"))
-                        _setImportContext(path.Split('/').SkipLast(1).Aggregate((a, b) => a + "/" + b) + "/");
-
-                    text = File.ReadAllText(path);
-                    return true;
-                }
-            }
-
-            text = "";
-            return false;
-        }
-
-        private void _setImportContext(string newContext)
-        {
-            if (newContext != _importContext)
-                _importContext = newContext;
-        }
-
-        private string _convertPathToPrefix(string path)
-        {
             int i = 0;
             for (; i < path.Length && i < _startDirectory.Length; i++)
             {
@@ -172,5 +98,17 @@ namespace Whirlwind
             return new string(path.Skip(i).ToArray())
                 .Replace("\\", "::") + "::";
         }
+
+        private bool _openPackage(string path, out string[] files)
+        {
+            if (Directory.Exists(path))
+            {
+                files = Directory.GetFiles(path);
+                return true;
+            }
+
+            files = null;
+            return false;
+        }      
     }
 }

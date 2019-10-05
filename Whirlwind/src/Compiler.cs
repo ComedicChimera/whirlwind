@@ -17,8 +17,9 @@ namespace Whirlwind
     {
         private Scanner _scanner;
         private Parser _parser;
+        private PackageManager _pm;
 
-        private bool _compiledMainFile;
+        private bool _compiledMainPackage;
         private Dictionary<string, DataType> _typeImpls;
 
         public Compiler(string tokenPath, string grammarPath)
@@ -28,21 +29,98 @@ namespace Whirlwind
             var gramloader = new GramLoader();
             _parser = new Parser(gramloader.Load(WHIRL_PATH + grammarPath));
 
-            _compiledMainFile = false;
+            _pm = new PackageManager();
+
+            _compiledMainPackage = false;
             _typeImpls = new Dictionary<string, DataType>();
         }
 
-        public void Build(string text, string namePrefix, ref Dictionary<string, Symbol> table)
+        public bool Build(string path)
         {
-            bool isMainFile;
+            return Build(path, out PackageType _);
+        }
 
-            if (!_compiledMainFile)
+        public bool Build(string path, out PackageType pkgType)
+        {
+            string namePrefix = _pm.ConvertPathToPrefix(path);
+
+            if (namePrefix == "")
+                namePrefix = "";
+            else if (!namePrefix.EndsWith("::"))
+                namePrefix += "::";
+
+            var currentCtx = _pm.ImportContext;
+
+            pkgType = null;
+
+            if (_pm.LoadPackage(path, namePrefix.Trim(':'), out Package pkg))
             {
-                isMainFile = true;
-                _compiledMainFile = true;
+                if (pkg.Compiled)
+                {
+                    pkgType = pkg.Type;
+                    return true;
+                }
+                    
+                for (int i = 0; i < pkg.Files.Count; i++)
+                {
+                    string fName = pkg.Files.Keys.ElementAt(i);
+
+                    string text = File.ReadAllText(fName);
+
+                    var tokens = _scanner.Scan(text);
+
+                    ASTNode ast = _runParser(tokens, text, fName);
+
+                    if (ast == null)
+                        return false;
+
+                    pkg.Files[fName] = ast;
+                }
+
+                var pa = new PackageAssembler(pkg);
+                var finalAst = pa.Assemble();
+
+                var visitor = new Visitor(namePrefix, false, _typeImpls);
+
+                if (!_runVisitor(visitor, finalAst, pkg))
+                    return false;
+
+                var table = visitor.Table();
+                var generator = new Generator(table, visitor.Flags(), _typeImpls, namePrefix);
+
+                try
+                {
+                    generator.Generate(visitor.Result(), namePrefix.Trim(':') + ".llvm");
+                }
+                catch (GeneratorException ge)
+                {
+                    Console.WriteLine("Generator Error: " + ge.ErrorMessage);
+                }
+
+                var eTable = table.Filter(s => s.Modifiers.Contains(Modifier.EXPORTED));
+
+                // update _pm package data
+                pkg.Compiled = true;
+                pkg.Type = new PackageType(eTable);
+
+                _pm.ImportContext = currentCtx;
+
+                pkgType = pkg.Type;
+                return true;
             }
             else
-                isMainFile = false;
+                return false;
+
+            /*
+            bool isMainPackage;
+
+            if (!_compiledMainPackage)
+            {
+                isMainPackage = true;
+                _compiledMainPackage = true;
+            }
+            else
+                isMainPackage = false;
 
             if (!namePrefix.StartsWith("lib::std::__core__"))
                 text = "include { ... } from __core__::prelude; " + text;
@@ -65,7 +143,7 @@ namespace Whirlwind
             var fullTable = visitor.Table();
             var sat = visitor.Result();
 
-            if (isMainFile)
+            if (isMainPackage)
             {
                 if (!fullTable.Lookup("main", out Symbol symbol))
                 {
@@ -131,28 +209,11 @@ namespace Whirlwind
             }
 
             table = fullTable.Filter(x => x.Modifiers.Contains(Modifier.EXPORTED));
+
+            */
         }
 
-        private void _writeError(string text, string message, int position, int length, string package)
-        {
-            int line = _getLine(text, position), column = _getColumn(text, position);
-            Console.WriteLine($"{message} at (Line: {line}, Column: {column}) in {(package == "" ? "main file" : string.Join("", package.SkipLast(2)))}");
-            Console.WriteLine($"\n\t{text.Split('\n')[line].Trim('\t')}");
-            Console.WriteLine("\t" + String.Concat(Enumerable.Repeat(" ", column - 1)) + String.Concat(Enumerable.Repeat("^", length)));
-        }
-
-        private int _getLine(string text, int ndx)
-        {
-            return text.Substring(0, ndx + 1).Count(x => x == '\n');
-        }
-
-        private int _getColumn(string text, int ndx)
-        {
-            var splitText = text.Substring(0, ndx + 1).Split('\n');
-            return splitText[splitText.Count() - 1].Trim('\t').Length;
-        }
-
-        private ASTNode _runParser(Parser parser, List<Token> tokens, string text, string package)
+        private ASTNode _runParser(List<Token> tokens, string text, string package)
         {
             try
             {
@@ -160,17 +221,12 @@ namespace Whirlwind
             }
             catch (InvalidSyntaxException isx)
             {
-                if (isx.Tok.Type == "EOF")
-                    Console.WriteLine("Unexpected End of File");
-                else
-                {
-                    _writeError(text, $"Unexpected Token: '{isx.Tok.Value}'", isx.Tok.Index, isx.Tok.Value.Length, package);
-                }
+                ErrorDisplay.DisplayError(text, package, isx);
                 return null;
             }
         }
 
-        private bool _runVisitor(Visitor visitor, ASTNode ast, string text, string package)
+        private bool _runVisitor(Visitor visitor, ASTNode ast, Package pkg)
         {
             try
             {
@@ -178,14 +234,14 @@ namespace Whirlwind
             }
             catch (SemanticException smex)
             {
-                _writeError(text, smex.Message, smex.Position.Start, smex.Position.Length, package);
+                ErrorDisplay.DisplayError(pkg, smex);
                 return false;
             }
 
             if (visitor.ErrorQueue.Count > 0)
             {
                 foreach (var error in visitor.ErrorQueue)
-                    _writeError(text, error.Message, error.Position.Start, error.Position.Length, package);
+                    ErrorDisplay.DisplayError(pkg, error);
 
                 return false;
             }

@@ -6,7 +6,7 @@ namespace Whirlwind
 {
     class Program
     {
-        public static PackageManager PkgManager;
+        public static Compiler compiler;
 
         // TODO - reconfigure to use command line args for the final build
         // TODO - change directory to whirlpath environment variable
@@ -14,12 +14,12 @@ namespace Whirlwind
         {
             _initVars();
 
-            string fileName = Console.ReadLine();
+            string mainPath = Console.ReadLine();
 
-            PkgManager = new PackageManager();
+            compiler = new Compiler("config/tokens.json", "config/grammar.ebnf");
 
-            if (!PkgManager.ImportRaw(fileName))
-                Console.WriteLine($"Unable to open file at \'{fileName}\'.");
+            if (!compiler.Build(mainPath))
+                Console.WriteLine($"Unable to open package at {mainPath}");
 
             Console.ReadKey();
         }

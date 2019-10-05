@@ -65,7 +65,7 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     var idNode = (TokenNode)((ASTNode)subNode).Content[1];
 
-                    if (dt is Package pkg)
+                    if (dt is PackageType pkg)
                     {
                         if (pkg.Lookup(idNode.Tok.Value, out Symbol symbol))
                             dt = _getIdentifierType(symbol.DataType, idNode.Position);
@@ -111,7 +111,7 @@ namespace Whirlwind.Semantic.Visitor
             if (constant)
                 dt.Constant = true;
 
-            if (dt is Package)
+            if (dt is PackageType)
                 throw new SemanticException("Unable to package as data type", node.Position);
 
             return dt;

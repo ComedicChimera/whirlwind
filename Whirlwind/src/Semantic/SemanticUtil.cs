@@ -9,13 +9,15 @@ namespace Whirlwind.Semantic
     // semantic exception
     class SemanticException : Exception
     {
-        public readonly TextPosition Position;
         public readonly new string Message;
+        public readonly TextPosition Position;
+        public readonly int FilePosition;
 
         public SemanticException(string message, TextPosition pos)
         {
             Message = message;
             Position = pos;
+            FilePosition = -1;
         }
     }
 

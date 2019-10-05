@@ -63,7 +63,7 @@ namespace Whirlwind.Semantic.Visitor
                 }
             }
 
-            if (Program.PkgManager.Import(path, true, out Package pkg))
+            if (Program.compiler.Build(path, out PackageType pkg))
             {
                 var symbolList = new List<Symbol>();
 
