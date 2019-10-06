@@ -46,6 +46,7 @@ namespace Whirlwind
         private Dictionary<string, SymbolInfo> _resolvingSymbols;
 
         private int _currentFileFlag = -1;
+        private int _interfBindId = 0;
 
         public PackageAssembler(Package pkg)
         {
@@ -60,6 +61,8 @@ namespace Whirlwind
                 _processPackage(_package.Files.Values.ElementAt(i), i);
 
             var result = new ASTNode("whirlwind");
+
+            // add on type impls and prelude here
 
             foreach (var item in _resolvingSymbols)
             {
@@ -117,10 +120,13 @@ namespace Whirlwind
                         switch (blockDecl.Name)
                         {
                             case "func_decl":
+                                _processFuncDecl(blockDecl, astNum, astLoc);
                                 break;
                             case "interface_decl":
+                                _processInterfDecl(blockDecl, astNum, astLoc);
                                 break;
                             case "type_class_decl":
+                                _processTypeClassDecl(blockDecl, astNum, astLoc);
                                 break;
                             case "struct_decl":
                                 break;
@@ -129,6 +135,7 @@ namespace Whirlwind
                             case "decor_decl":
                                 break;
                             case "interface_bind":
+                                _processInterfBind(blockDecl, astNum, astLoc);
                                 break;
                         }
                     }
@@ -185,6 +192,146 @@ namespace Whirlwind
             }
 
             _resolvingSymbols[name] = new SymbolInfo(foundDeps, astNum, astLoc);
+        }
+
+        private void _processFuncDecl(ASTNode node, int astNum, int astLoc)
+        {
+            string name = ((TokenNode)node.Content[1]).Tok.Value;
+            var info = new SymbolInfo(astNum, astLoc);
+
+            _extractPrototype(node, info.Dependecies);
+
+            _resolvingSymbols.Add(name, info);
+        }
+
+        private void _processInterfDecl(ASTNode node, int astNum, int astLoc)
+        {
+            var name = "";
+            var info = new SymbolInfo(astNum, astLoc);
+
+            foreach (var item in node.Content)
+            {
+                if (item is TokenNode tkNode && tkNode.Tok.Type == "IDENTIFIER")
+                    name = tkNode.Tok.Value;
+                else if (item.Name == "generic_tag")
+                    _extractGenericTag((ASTNode)item, info.Dependecies);
+                else if (item.Name == "interface_main")
+                {
+                    foreach (var elem in ((ASTNode)item).Content)
+                        _extractPrototype((ASTNode)elem, info.Dependecies);
+                }
+
+            }
+
+            _resolvingSymbols.Add(name, info);
+        }
+
+        private void _processTypeClassDecl(ASTNode node, int astNum, int astLoc)
+        {
+            string name = "";
+            var info = new SymbolInfo(astNum, astLoc);
+
+            foreach (var item in node.Content)
+            {
+                if (item is TokenNode tkNode && tkNode.Tok.Type == "IDENTIFIER")
+                    name = tkNode.Tok.Value;
+                else if (item.Name == "generic_tag")
+                    _extractGenericTag((ASTNode)item, info.Dependecies);
+                else if (item.Name == "type_class_main")
+                {
+                    foreach (var elem in ((ASTNode)item).Content)
+                    {
+                        if (elem is TokenNode tkElem && tkElem.Tok.Type == "IDENTIFIER")
+                            info.Dependecies.Add(tkElem.Tok.Value);
+                        else if (elem is ASTNode anode)
+                        {
+                            switch (elem.Name)
+                            {
+                                case "value_constructor":
+                                    _extractAll(anode, info.Dependecies);
+                                    break;
+                                case "type_id":
+                                    _extractAll((ASTNode)anode.Content.Last(), info.Dependecies);
+                                    break;
+                                case "type_constructor":
+                                    foreach (var typeId in anode.Content)
+                                    {
+                                        if (typeId.Name == "type_id")
+                                            _extractAll((ASTNode)((ASTNode)typeId).Content.Last(), info.Dependecies);
+                                    }
+                                    break;
+                            }
+                        }
+                            
+                    }
+                }
+            }
+
+            _resolvingSymbols.Add(name, info);
+        }
+
+        private void _processInterfBind(ASTNode node, int astNum, int astLoc)
+        {
+            var info = new SymbolInfo(astNum, astLoc);
+
+            foreach (var item in node.Content)
+            {
+                switch (item.Name)
+                {
+                    case "types":
+                    case "implements":
+                        _extractAll((ASTNode)item, info.Dependecies);
+                        break;
+                    case "generic_tag":
+                        _extractGenericTag((ASTNode)item, info.Dependecies);
+                        break;
+                    case "interface_main":
+                        foreach (var elem in ((ASTNode)item).Content)
+                            _extractPrototype((ASTNode)elem, info.Dependecies);
+                        break;
+                }
+            }
+
+            _resolvingSymbols.Add("$INTERF_BIND$" + _interfBindId++, info);
+        }
+
+        private void _extractPrototype(ASTNode node, List<string> foundDeps)
+        {
+            foreach (var item in node.Content)
+            {
+                if (item.Name == "generic_tag")
+                    _extractGenericTag((ASTNode)item, foundDeps);
+                else if (item.Name == "args_decl_list")
+                {
+                    foreach (var elem in ((ASTNode)item).Content)
+                    {
+                        if (elem.Name == "decl_arg" || elem.Name == "ending_arg")
+                        {
+                            foreach (var argElem in ((ASTNode)elem).Content)
+                            {
+                                if (argElem.Name == "extension")
+                                    _extractAll((ASTNode)argElem, foundDeps);
+                            }
+                        }
+                    }
+                }
+                else if (item.Name == "types")
+                    _extractAll((ASTNode)item, foundDeps);
+            }
+        }
+
+        private void _extractGenericTag(ASTNode genDecl, List<string> foundDeps)
+        {
+            foreach (var item in genDecl.Content)
+            {
+                if (item.Name == "generic")
+                {
+                    var anode = (ASTNode)item;
+
+                    if (anode.Content.Count > 1)
+                        _extractAll((ASTNode)anode.Content[2], foundDeps);
+                }
+            }
         }
 
         private void _extractAll(ASTNode node, List<string> foundDeps)
