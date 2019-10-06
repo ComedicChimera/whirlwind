@@ -67,22 +67,6 @@ namespace Whirlwind
                     _resolveSymbol(item.Key, item.Value, result);
             }
 
-            for (int astNum = 0; astNum < _package.Files.Count; astNum++)
-            {
-                var ast = _package.Files.Values.ElementAt(astNum);
-
-                // no need to update file flag b/c we already know
-                // the next ast won't match up
-                if (astNum != _currentFileFlag)
-                    result.Content.Add(new ASTNode("$FILE_FLAG$" + astNum));
-
-                for (int i = 0; i < ast.Content.Count; i++)
-                {
-                    if (_resolvingSymbols.All(x => x.Value.ASTNumber != astNum && x.Value.ASTLocation != i))
-                        result.Content.Add(ast.Content[i]);
-                }
-            }
-
             return result;
         }
 
