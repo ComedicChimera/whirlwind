@@ -33,6 +33,8 @@ namespace Whirlwind
 
             _compiledMainPackage = false;
             _typeImpls = new Dictionary<string, DataType>();
+
+            ErrorDisplay.InitLoadedFiles();
         }
 
         public bool Build(string path)
@@ -59,7 +61,7 @@ namespace Whirlwind
                 {
                     pkgType = pkg.Type;
                     return true;
-                }
+                }               
                     
                 for (int i = 0; i < pkg.Files.Count; i++)
                 {
@@ -83,7 +85,11 @@ namespace Whirlwind
                 var visitor = new Visitor(namePrefix, false, _typeImpls);
 
                 if (!_runVisitor(visitor, finalAst, pkg))
+                {
+                    ErrorDisplay.ClearLoadedFiles();
                     return false;
+                }
+                    
 
                 var table = visitor.Table();
                 var generator = new Generator(table, visitor.Flags(), _typeImpls, namePrefix);
@@ -246,7 +252,7 @@ namespace Whirlwind
                 return false;
             }
 
-            Console.WriteLine(visitor.Result().ToString());
+            // Console.WriteLine(visitor.Result().ToString());
 
             return true;
         }

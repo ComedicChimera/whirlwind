@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 
 using Whirlwind.Syntax;
 using Whirlwind.Semantic;
@@ -9,6 +10,8 @@ namespace Whirlwind
 {
     static class ErrorDisplay
     {
+        static Dictionary<int, string> _loadedFiles;
+
         static public void DisplayError(string text, string fileName, InvalidSyntaxException isnex)
         {
             if (isnex.Tok.Type == "EOF")
@@ -19,7 +22,25 @@ namespace Whirlwind
 
         static public void DisplayError(Package pkg, SemanticException smex)
         {
+            string text;
 
+            if (_loadedFiles.ContainsKey(smex.FilePosition))
+                text = _loadedFiles[smex.FilePosition];
+            else
+            {
+                text = File.ReadAllText(pkg.Files.Keys.ElementAt(smex.FilePosition));
+                _loadedFiles[smex.FilePosition] = text;
+            }
+        }
+
+        static public void InitLoadedFiles()
+        {
+            _loadedFiles = new Dictionary<int, string>();
+        }
+
+        static public void ClearLoadedFiles()
+        {
+            _loadedFiles.Clear();
         }
 
         static private void _writeError(string text, string message, int position, int length, string fileName)
