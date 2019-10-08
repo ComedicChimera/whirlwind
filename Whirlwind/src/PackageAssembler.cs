@@ -44,6 +44,7 @@ namespace Whirlwind
 
         private Package _package;
         private Dictionary<string, SymbolInfo> _resolvingSymbols;
+        private Dictionary<int, List<int>> _annotations;
 
         private int _currentFileFlag = -1;
         private int _interfBindId = 0;
@@ -53,6 +54,8 @@ namespace Whirlwind
             _package = pkg;
 
             _resolvingSymbols = new Dictionary<string, SymbolInfo>();
+
+            _annotations = new Dictionary<int, List<int>>();
         }
 
         public ASTNode Assemble()
@@ -63,6 +66,23 @@ namespace Whirlwind
             var result = new ASTNode("whirlwind");
 
             // add on type impls and prelude here
+
+            // add non-coupling annotations
+            for (int astNum = 0; astNum < _package.Files.Count; astNum++)
+            {
+                for (int i = _annotations[astNum].Count - 1; i >= 0; i--)
+                {
+                    var ndx = _annotations[astNum][i];
+                    var annot = _package.Files.Values.ElementAt(astNum).Content[ndx];
+
+                    if (new[] { "platform", "static_link", "res_name" }.Contains(
+                        ((TokenNode)((ASTNode)annot).Content[1]).Tok.Value)) 
+                    {
+                        result.Content.Add(_package.Files.Values.ElementAt(astNum).Content[ndx]);
+                        _annotations[astNum].RemoveAt(ndx);
+                    }
+                }
+            }
 
             foreach (var item in _resolvingSymbols)
             {
@@ -94,15 +114,30 @@ namespace Whirlwind
                 _currentFileFlag = info.ASTNumber;
             }
 
-            result.Content.Add(_package.Files.Values.ElementAt(info.ASTNumber).Content[info.ASTLocation]);
+            var fileAST = _package.Files.Values.ElementAt(info.ASTNumber);
+
+            // append annotation before the block it wraps if necessary
+            int prevNdx = info.ASTLocation - 1;
+            if (_annotations[info.ASTNumber].Contains(prevNdx))
+            {
+                result.Content.Add(fileAST.Content[prevNdx]);
+                _annotations[info.ASTNumber].Remove(prevNdx);
+            }
+
+            result.Content.Add(fileAST.Content[info.ASTLocation]);
         }
 
         private void _processPackage(ASTNode node, int astNum)
         {
             for (int i = 0; i < node.Content.Count; i++)
             {
-                if (node.Content[i] is ASTNode anode && anode.Name != "annotation")
-                    _processDecl(anode, astNum, i);
+                if (node.Content[i] is ASTNode anode)
+                {
+                    if (anode.Name == "annotation")
+                        _annotations[astNum].Add(i);
+                    else
+                        _processDecl(anode, astNum, i);
+                }
             }
         }
 

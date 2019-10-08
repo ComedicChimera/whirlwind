@@ -74,5 +74,6 @@
   * more than just tuples and type classes
   * `[let x, 4, _, ...]`
   * `struct {y: let t}`
+- separate bitwise and logical operators?
   
 
