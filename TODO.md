@@ -3,6 +3,10 @@
 - revamp/redo package system
   * golang-esque?
   * with statements/c#-esque?
+- rename Type Classes to Algebraic Types
+- allow for type decomposition (infer one type from another as in generics)
+  * as in `func toDict<T as (K, V)>() [K: V]`
+  * or even without generics `func toDict() T as [K: V]` where compiler infers the missing types
 - get structs up and running
   * variable initializers
   * add byval attribute passing
@@ -62,10 +66,6 @@
   * add a `priv` modifier
 - make the overloading for generic function groups account for restrictors
 - add context-based inferencing for lambdas in `case` and `if` expressions
-- allow for type decomposition (infer one type from another as in generics)
-  * like `func toDict<T to (K, V)>() [K: V]`
-  * or maybe `func toDict<T as (K, V)>() [K: V]`
-  * or even without generics `func toDict() T to [K: V]` where to compiler infers the missing types
 - add literal suffixes for different types:
   * `0.0f` - float
   * `0l` - long
