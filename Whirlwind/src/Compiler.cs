@@ -110,6 +110,10 @@ namespace Whirlwind
                 if (isMainPackage)
                     _buildMainFile(pkg, table, sat, namePrefix);
 
+                // clear out AST once it is no longer being used
+                foreach (var key in pkg.Files.Keys)
+                    pkg.Files[key] = null;
+
                 var generator = new Generator(table, visitor.Flags(), _typeImpls, namePrefix);
 
                 if (_runGenerator(generator, sat, pkg.Name + ".llvm"))
@@ -154,6 +158,8 @@ namespace Whirlwind
 
             if (!_runVisitor(visitor, ast, pkg))
                 return null;
+
+            pkg.Files[pkg.Files.Keys.First()] = null;
 
             var table = visitor.Table();
             var generator = new Generator(table, visitor.Flags(), _typeImpls, "");
