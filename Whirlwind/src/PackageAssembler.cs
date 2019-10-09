@@ -6,6 +6,17 @@ using Whirlwind.Syntax;
 
 namespace Whirlwind
 {
+    class PackageAssemblyException : Exception
+    {
+        public string SymbolA, SymbolB;
+
+        public PackageAssemblyException(string symA, string symB)
+        {
+            SymbolA = symA;
+            SymbolB = symB;
+        }
+    }
+
     class PackageAssembler
     {
         enum ResolutionStatus
@@ -85,7 +96,7 @@ namespace Whirlwind
 
             foreach (var item in _resolvingSymbols)
             {
-                if (item.Value.Status != ResolutionStatus.RESOLVED)
+                if (item.Value.Status == ResolutionStatus.UNRESOLVED)
                     _resolveSymbol(item.Key, item.Value, result);
             }
 
@@ -104,6 +115,9 @@ namespace Whirlwind
 
                     if (dep.Status == ResolutionStatus.UNRESOLVED)
                         _resolveSymbol(item, dep, result);
+                    // symbol is in resolution as this lookup is occuring => recursive definition (ERROR)
+                    else if (dep.Status == ResolutionStatus.RESOLVING)
+                        throw new PackageAssemblyException(name, item);
                 }
             }
 

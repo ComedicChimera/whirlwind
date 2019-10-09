@@ -94,7 +94,22 @@ namespace Whirlwind
                 }
 
                 var pa = new PackageAssembler(pkg);
-                var finalAst = pa.Assemble();
+
+                ASTNode finalAst;
+                try
+                {
+                    finalAst = pa.Assemble();
+                }
+                catch (PackageAssemblyException pae)
+                {
+                    ErrorDisplay.DisplayError(pae, pkg.Name);
+
+                    // clear out AST (package assembly failed)
+                    foreach (var key in pkg.Files.Keys)
+                        pkg.Files[key] = null;
+
+                    return false;
+                }
 
                 var visitor = new Visitor(namePrefix, false, _typeImpls);
 

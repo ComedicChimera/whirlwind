@@ -32,6 +32,13 @@ namespace Whirlwind
                 text = File.ReadAllText(pkg.Files.Keys.ElementAt(smex.FileNumber));
                 _loadedFiles[smex.FileNumber] = text;
             }
+
+            _writeError(text, smex.Message, smex.Position.Start, smex.Position.Length, pkg.Files.Keys.ElementAt(smex.FileNumber));
+        }
+
+        static public void DisplayError(PackageAssemblyException pae, string package)
+        {
+            Console.WriteLine($"Global symbols {pae.SymbolA} and {pae.SymbolB} are recursively defined in package `{package}`");
         }
 
         static public void DisplayError(GeneratorException gex, string outputFile)
