@@ -25,12 +25,12 @@ namespace Whirlwind
         {
             string text;
 
-            if (_loadedFiles.ContainsKey(smex.FilePosition))
-                text = _loadedFiles[smex.FilePosition];
+            if (_loadedFiles.ContainsKey(smex.FileNumber))
+                text = _loadedFiles[smex.FileNumber];
             else
             {
-                text = File.ReadAllText(pkg.Files.Keys.ElementAt(smex.FilePosition));
-                _loadedFiles[smex.FilePosition] = text;
+                text = File.ReadAllText(pkg.Files.Keys.ElementAt(smex.FileNumber));
+                _loadedFiles[smex.FileNumber] = text;
             }
         }
 

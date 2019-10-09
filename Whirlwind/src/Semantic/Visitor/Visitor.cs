@@ -59,6 +59,7 @@ namespace Whirlwind.Semantic.Visitor
         // visitor state data
         private CustomType _typeClassContext;
         private string _implName;
+        private int _fileNumber;
 
         // visitor state flags
         private bool _couldLambdaContextExist = false, _couldTypeClassContextExist = false;
@@ -85,6 +86,8 @@ namespace Whirlwind.Semantic.Visitor
             _constexprOptimizerEnabled = constexprOptimizerEnabled;
 
             _implName = "";
+
+            _fileNumber = 0;
         }
 
         // ----------------------
@@ -94,81 +97,83 @@ namespace Whirlwind.Semantic.Visitor
         // main visit function
         public void Visit(ASTNode ast)
         {
-            _nodes.Add(new BlockNode("Package"));
-
-            var variableDecls = new List<Tuple<ASTNode, List<Modifier>>>();
-
-            // visit block nodes first
-            foreach (INode node in ast.Content)
+            try
             {
-                switch (node.Name)
+                _nodes.Add(new BlockNode("Package"));
+
+                // visit block nodes first
+                foreach (INode node in ast.Content)
                 {
-                    case "block_decl":
-                        _visitBlockDecl((ASTNode)node, new List<Modifier>());
-                        break;
-                    case "variable_decl":
-                        variableDecls.Add(new Tuple<ASTNode, List<Modifier>>((ASTNode)node, new List<Modifier>()));
-                        continue;
-                    case "export_decl":
-                        ASTNode decl = (ASTNode)((ASTNode)node).Content[1];
+                    switch (node.Name)
+                    {
+                        case "block_decl":
+                            _visitBlockDecl((ASTNode)node, new List<Modifier>());
+                            break;
+                        case "variable_decl":
+                            _visitVarDecl((ASTNode)node, new List<Modifier>());
+                            break;
+                        case "export_decl":
+                            ASTNode decl = (ASTNode)((ASTNode)node).Content[1];
 
-                        switch (decl.Name)
-                        {
-                            case "block_decl":
-                                _visitBlockDecl(decl, new List<Modifier>() { Modifier.EXPORTED });
-                                break;
-                            case "variable_decl":
-                                variableDecls.Add(new Tuple<ASTNode, List<Modifier>>(decl, new List<Modifier>() { Modifier.EXPORTED }));
-                                continue;
-                            case "include_stmt":
-                                _visitInclude(decl, true);
-                                break;
-                        }
-                        break;
-                    // add any logic surrounding inclusion
-                    case "include_stmt":
-                        _visitInclude((ASTNode)node, true);
-                        break;
-                    case "annotation":
-                        // if no block was found, perform check here (make sure it isn't ignored
-                        if (_wrapsNextAnnotBlock)
-                            throw new SemanticException("Unable to stack annotations", node.Position);
+                            switch (decl.Name)
+                            {
+                                case "block_decl":
+                                    _visitBlockDecl(decl, new List<Modifier> { Modifier.EXPORTED });
+                                    break;
+                                case "variable_decl":
+                                    _visitVarDecl((ASTNode)node, new List<Modifier> { Modifier.EXPORTED });
+                                    break;
+                                case "include_stmt":
+                                    _visitInclude(decl, true);
+                                    break;
+                            }
+                            break;
+                        // add any logic surrounding inclusion
+                        case "include_stmt":
+                            _visitInclude((ASTNode)node, true);
+                            break;
+                        case "annotation":
+                            // if no block was found, perform check here (make sure it isn't ignored
+                            if (_wrapsNextAnnotBlock)
+                                throw new SemanticException("Unable to stack annotations", node.Position);
 
-                        _visitAnnotation((ASTNode)node);
-                        
-                        // only merge if it is not expecting a block
-                        if (!_wrapsNextAnnotBlock)
-                            MergeToBlock();
+                            _visitAnnotation((ASTNode)node);
 
-                        // prevent state from being cleared/checked
-                        continue;
-                    // catches rogue tokens and things of the like
-                    default:
-                        continue;
+                            // only merge if it is not expecting a block
+                            if (!_wrapsNextAnnotBlock)
+                                MergeToBlock();
+
+                            // prevent state from being cleared/checked
+                            continue;
+                        // catches rogue tokens and things of the like
+                        default:
+                            if (node.Name.StartsWith("$FILE_NUM$"))
+                                _fileNumber = int.Parse(string.Join("", node.Name.Skip(11)));
+                            continue;
+                    }
+
+                    // both cases only reached after non-annotation block
+                    if (_wrapsNextAnnotBlock)
+                        throw new SemanticException("Invalid application of annotation to block", node.Position);
+                    if (_functionCanHaveNoBody)
+                        _functionCanHaveNoBody = false;
+
+                    MergeToBlock();
                 }
 
-                // both cases only reached after non-annotation block
+                // if annotation block never satisfied, error
                 if (_wrapsNextAnnotBlock)
-                    throw new SemanticException("Invalid application of annotation to block", node.Position);
-                if (_functionCanHaveNoBody)
-                    _functionCanHaveNoBody = false;
+                    throw new SemanticException("Annotation missing block", ast.Content.Last().Position);
 
-                MergeToBlock();
+                _completeTree();
             }
-
-            // if annotation block never satisfied, error
-            if (_wrapsNextAnnotBlock)
-                throw new SemanticException("Annotation missing block", ast.Content.Last().Position);
-
-            // visit variable declaration second
-            foreach (var varDecl in variableDecls)
+            catch (SemanticException smex)
             {
-                _visitVarDecl(varDecl.Item1, varDecl.Item2);
-                MergeToBlock();
+                // add on the file flag
+                smex.FileNumber = _fileNumber;
+                ErrorQueue.Add(smex);
             }
-
-            _completeTree();
-        }
+        }       
 
         // returns final, visited node
         public ITypeNode Result() => _nodes.First();

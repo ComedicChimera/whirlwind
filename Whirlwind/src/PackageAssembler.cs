@@ -46,7 +46,7 @@ namespace Whirlwind
         private Dictionary<string, SymbolInfo> _resolvingSymbols;
         private Dictionary<int, List<int>> _annotations;
 
-        private int _currentFileFlag = -1;
+        private int _currentFileFlag = 0;
         private int _interfBindId = 0;
         private int _variantId = 0;
 
@@ -109,7 +109,7 @@ namespace Whirlwind
 
             if (info.ASTNumber != _currentFileFlag)
             {
-                result.Content.Add(new ASTNode("$FILE_FLAG$" + info.ASTNumber));
+                result.Content.Add(new ASTNode("$FILE_NUM$" + info.ASTNumber));
                 _currentFileFlag = info.ASTNumber;
             }
 

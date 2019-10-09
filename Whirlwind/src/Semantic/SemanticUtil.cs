@@ -11,13 +11,14 @@ namespace Whirlwind.Semantic
     {
         public readonly new string Message;
         public readonly TextPosition Position;
-        public readonly int FilePosition;
+
+        public int FileNumber;
 
         public SemanticException(string message, TextPosition pos)
         {
             Message = message;
             Position = pos;
-            FilePosition = -1;
+            FileNumber = -1;
         }
     }
 

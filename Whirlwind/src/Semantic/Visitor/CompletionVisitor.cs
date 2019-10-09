@@ -176,9 +176,10 @@ namespace Whirlwind.Semantic.Visitor
 
                     // maybe add check to make sure all resources were accounted for
                 }
-                catch (SemanticException se)
+                catch (SemanticException smex)
                 {
-                    ErrorQueue.Add(se);
+                    smex.FileNumber = _fileNumber;
+                    ErrorQueue.Add(smex);
 
                     fn.Block = new List<ITypeNode>();
 

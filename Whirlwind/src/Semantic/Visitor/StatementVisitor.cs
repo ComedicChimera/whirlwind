@@ -80,8 +80,9 @@ namespace Whirlwind.Semantic.Visitor
                         break;
                 }
             }
-            catch (SemanticException se) {
-                ErrorQueue.Add(se);
+            catch (SemanticException smex) {
+                smex.FileNumber = _fileNumber;
+                ErrorQueue.Add(smex);
 
                 while (_nodes.Count > nodeLen)
                     _nodes.RemoveAt(_nodes.Count - 1);

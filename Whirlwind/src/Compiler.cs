@@ -209,7 +209,7 @@ namespace Whirlwind
             if (mtAst == null)
                 return false;
 
-            mtAst.Content.Insert(0, new ASTNode("$FILE_FLAG$" + mainPkg.Files.Count));
+            mtAst.Content.Insert(0, new ASTNode("$FILE_NUM$" + mainPkg.Files.Count));
             mainPkg.Files.Add(mainTempPath, mtAst);
 
             var mtVisitor = new Visitor("", false, _typeImpls);
@@ -249,15 +249,8 @@ namespace Whirlwind
 
         private bool _runVisitor(Visitor visitor, ASTNode ast, Package pkg)
         {
-            try
-            {
-                visitor.Visit(ast);
-            }
-            catch (SemanticException smex)
-            {
-                ErrorDisplay.DisplayError(pkg, smex);
-                return false;
-            }
+            // does not throw errors
+            visitor.Visit(ast);
 
             if (visitor.ErrorQueue.Count > 0)
             {
