@@ -48,6 +48,7 @@ namespace Whirlwind
 
         private int _currentFileFlag = -1;
         private int _interfBindId = 0;
+        private int _variantId = 0;
 
         public PackageAssembler(Package pkg)
         {
@@ -64,8 +65,6 @@ namespace Whirlwind
                 _processPackage(_package.Files.Values.ElementAt(i), i);
 
             var result = new ASTNode("whirlwind");
-
-            // add on type impls and prelude here
 
             // add non-coupling annotations
             for (int astNum = 0; astNum < _package.Files.Count; astNum++)
@@ -164,10 +163,13 @@ namespace Whirlwind
                                 _processTypeClassDecl(blockDecl, astNum, astLoc);
                                 break;
                             case "struct_decl":
+                                _processStructDecl(blockDecl, astNum, astLoc);
                                 break;
                             case "variant_decl":
+                                _processVariantDecl(blockDecl, astNum, astLoc);
                                 break;
                             case "decor_decl":
+                                _processDecorDecl(blockDecl, astNum, astLoc);
                                 break;
                             case "interface_bind":
                                 _processInterfBind(blockDecl, astNum, astLoc);
@@ -328,6 +330,62 @@ namespace Whirlwind
             }
 
             _resolvingSymbols.Add("$INTERF_BIND$" + _interfBindId++, info);
+        }
+
+        private void _processStructDecl(ASTNode node, int astNum, int astLoc)
+        {
+            string name = ((TokenNode)node.Content[1]).Tok.Value;
+            var info = new SymbolInfo(astNum, astLoc);
+
+            foreach (var item in node.Content)
+            {
+                if (item.Name == "generic_tag")
+                    _extractGenericTag((ASTNode)item, info.Dependecies);
+                else if (item.Name == "struct_main")
+                {
+                    foreach (var elem in ((ASTNode)item).Content)
+                    {
+                        if (elem.Name == "struct_var")
+                            _extractAll((ASTNode)((ASTNode)elem).Content.Where(x => x.Name == "types").First(), info.Dependecies);
+                        else if (elem.Name == "constructor_decl")
+                            _extractPrototype((ASTNode)elem, info.Dependecies);
+                    }
+                }
+            }
+
+            _resolvingSymbols.Add(name, info);
+        }
+
+        private void _processVariantDecl(ASTNode node, int astNum, int astLoc)
+        {
+            string name = "$VARIANT$" + _variantId++;
+            var info = new SymbolInfo(astNum, astLoc);
+
+            info.Dependecies.Add(((TokenNode)node.Content[2]).Tok.Value);
+
+            if (node.Content[1].Name == "variant")
+                _extractAll((ASTNode)node.Content[1], info.Dependecies);
+            else if (node.Content[1].Name == "variant_list")
+            {
+                foreach (var item in ((ASTNode)node.Content[1]).Content)
+                {
+                    if (item.Name == "variant")
+                        _extractAll((ASTNode)item, info.Dependecies);
+                }
+            }
+
+            _resolvingSymbols.Add(name, info);
+        }
+
+        private void _processDecorDecl(ASTNode node, int astNum, int astLoc)
+        {
+            string name = ((TokenNode)((ASTNode)node.Content[1]).Content[1]).Tok.Value;
+            var info = new SymbolInfo(astNum, astLoc);
+
+            _extractAll((ASTNode)node.Content[0], info.Dependecies);
+            _extractPrototype((ASTNode)node.Content[1], info.Dependecies);
+
+            _resolvingSymbols.Add(name, info);
         }
 
         private void _extractPrototype(ASTNode node, List<string> foundDeps)

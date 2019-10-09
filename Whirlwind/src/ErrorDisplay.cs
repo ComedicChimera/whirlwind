@@ -5,6 +5,7 @@ using System.IO;
 
 using Whirlwind.Syntax;
 using Whirlwind.Semantic;
+using Whirlwind.Generation;
 
 namespace Whirlwind
 {
@@ -32,6 +33,11 @@ namespace Whirlwind
                 _loadedFiles[smex.FilePosition] = text;
             }
         }
+
+        static public void DisplayError(GeneratorException gex, string outputFile)
+        {
+
+        } 
 
         static public void InitLoadedFiles()
         {

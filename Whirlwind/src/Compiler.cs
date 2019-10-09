@@ -22,6 +22,8 @@ namespace Whirlwind
         private bool _compiledMainPackage;
         private Dictionary<string, DataType> _typeImpls;
 
+        private Package _typeImplPkg;
+
         public Compiler(string tokenPath, string grammarPath)
         {
             _scanner = new Scanner(WHIRL_PATH + tokenPath);
@@ -35,6 +37,8 @@ namespace Whirlwind
             _typeImpls = new Dictionary<string, DataType>();
 
             ErrorDisplay.InitLoadedFiles();
+
+            _typeImplPkg = _buildRaw("__core__/__buildutil__/type_impls.wrl", "type_impls");
         }
 
         public bool Build(string path)
@@ -69,6 +73,9 @@ namespace Whirlwind
 
                     string text = File.ReadAllText(fName);
 
+                    if (i == 0 && !namePrefix.StartsWith("lib::std::__core__"))
+                        text = "include { ... } from __core__;" + text;
+
                     var tokens = _scanner.Scan(text);
 
                     ASTNode ast = _runParser(tokens, text, fName);
@@ -77,6 +84,13 @@ namespace Whirlwind
                         return false;
 
                     pkg.Files[fName] = ast;
+                }
+
+                bool isMainPackage = false;
+                if (!_compiledMainPackage)
+                {
+                    isMainPackage = true;
+                    _compiledMainPackage = true;
                 }
 
                 var pa = new PackageAssembler(pkg);
@@ -89,18 +103,19 @@ namespace Whirlwind
                     ErrorDisplay.ClearLoadedFiles();
                     return false;
                 }
-                    
 
                 var table = visitor.Table();
+                var sat = visitor.Result();
+
+                if (isMainPackage)
+                    _buildMainFile(pkg, table, sat, namePrefix);
+
                 var generator = new Generator(table, visitor.Flags(), _typeImpls, namePrefix);
 
-                try
+                if (_runGenerator(generator, sat, pkg.Name + ".llvm"))
                 {
-                    generator.Generate(visitor.Result(), namePrefix.Trim(':') + ".llvm");
-                }
-                catch (GeneratorException ge)
-                {
-                    Console.WriteLine("Generator Error: " + ge.ErrorMessage);
+                    pkgType = null;
+                    return false;
                 }
 
                 var eTable = table.Filter(s => s.Modifiers.Contains(Modifier.EXPORTED));
@@ -116,107 +131,101 @@ namespace Whirlwind
             }
             else
                 return false;
+        }
 
-            /*
-            bool isMainPackage;
+        private Package _buildRaw(string corePath, string name)
+        {
+            corePath = WHIRL_PATH + corePath;
 
-            if (!_compiledMainPackage)
-            {
-                isMainPackage = true;
-                _compiledMainPackage = true;
-            }
-            else
-                isMainPackage = false;
+            var pkg = new Package(name);            
 
-            if (!namePrefix.StartsWith("lib::std::__core__"))
-                text = "include { ... } from __core__::prelude; " + text;
-
-            if (namePrefix != "lib::std::__core__::types::type_impls::")
-                text = "include __core__::types::type_impls as __type_impls;\n" + text;
+            // if exception happens here, we got problems
+            string text = File.ReadAllText(corePath);
 
             var tokens = _scanner.Scan(text);
 
-            ASTNode ast = _runParser(_parser, tokens, text, namePrefix);
-
+            var ast = _runParser(tokens, text, name);
             if (ast == null)
-                return;
-            
-            var visitor = new Visitor(namePrefix, false, _typeImpls);
+                return null;
 
-            if (!_runVisitor(visitor, ast, text, namePrefix))
-                return;
+            pkg.Files.Add(corePath, ast);
 
-            var fullTable = visitor.Table();
-            var sat = visitor.Result();
+            var visitor = new Visitor("", false, _typeImpls);
 
-            if (isMainPackage)
+            if (!_runVisitor(visitor, ast, pkg))
+                return null;
+
+            var table = visitor.Table();
+            var generator = new Generator(table, visitor.Flags(), _typeImpls, "");
+
+            if (_runGenerator(generator, visitor.Result(), "type_impls.llvm"))
             {
-                if (!fullTable.Lookup("main", out Symbol symbol))
+                pkg.Compiled = true;
+
+                var eTable = table.Filter(x => x.Modifiers.Contains(Modifier.EXPORTED));
+                pkg.Type = new PackageType(eTable);
+
+                return pkg;
+            }
+
+            return null;
+        }
+
+        private bool _buildMainFile(Package mainPkg, SymbolTable fullTable, ITypeNode sat, string namePrefix)
+        {
+            if (!fullTable.Lookup("main", out Symbol symbol))
+            {
+                Console.WriteLine("Main package missing main function definition");
+                return false;
+            }
+
+            if (symbol.DataType.Classify() != TypeClassifier.FUNCTION)
+            {
+                Console.WriteLine("Symbol `main` in main package must be a function");
+                return false;
+            }
+
+            var userMainDefinition = (FunctionType)symbol.DataType;
+
+            if (!_generateUserMainCall(userMainDefinition, out string userMainCall))
+            {
+                Console.WriteLine("Invalid main function declaration");
+                return false;
+            }
+
+            string mainTempPath = WHIRL_PATH + "lib/std/__core__/__buildutils__/main.wrl";
+            var mainTemplate = File.ReadAllText(mainTempPath.Replace("// $INSERT_MAIN_CALL$", userMainCall));
+
+            var mtTokens = _scanner.Scan(mainTemplate);
+
+            var mtAst = _runParser(mtTokens, mainTemplate, namePrefix);
+
+            if (mtAst == null)
+                return false;
+
+            mtAst.Content.Insert(0, new ASTNode("$FILE_FLAG$" + mainPkg.Files.Count));
+            mainPkg.Files.Add(mainTempPath, mtAst);
+
+            var mtVisitor = new Visitor("", false, _typeImpls);
+            mtVisitor.Table().AddSymbol(symbol.Copy());
+
+            if (!_runVisitor(mtVisitor, mtAst, mainPkg))
+                return false;
+
+            foreach (var item in mtVisitor.Table().GetScope().Skip(1))
+            {
+                if (!fullTable.AddSymbol(item))
                 {
-                    Console.WriteLine("Main file missing main function definition");
-                    return;
-                }
-
-                if (symbol.DataType.Classify() != TypeClassifier.FUNCTION)
-                {
-                    Console.WriteLine("Symbol `main` in main file must be a function");
-                    return;
-                }
-
-                var userMainDefinition = (FunctionType)symbol.DataType;
-
-                if (!_generateUserMainCall(userMainDefinition, out string userMainCall))
-                {
-                    Console.WriteLine("Invalid main function declaration");
-                    return;
-                }
-
-                var mainTemplate = File.ReadAllText(WHIRL_PATH + "lib/std/__core__/main.wrl")
-                    .Replace("// $INSERT_MAIN_CALL$", userMainCall);
-
-                var mtTokens = _scanner.Scan(mainTemplate);
-
-                var mtAst = _runParser(_parser, mtTokens, mainTemplate, namePrefix);
-
-                if (mtAst == null)
-                    return;
-
-                var mtVisitor = new Visitor("", false, _typeImpls);
-                mtVisitor.Table().AddSymbol(symbol.Copy());
-
-                if (!_runVisitor(mtVisitor, mtAst, mainTemplate, namePrefix))
-                    return;
-
-                foreach (var item in mtVisitor.Table().GetScope().Skip(1))
-                {
-                    if (!fullTable.AddSymbol(item))
+                    if (item.Name == "__main")
                     {
-                        if (item.Name == "__main")
-                        {
-                            Console.WriteLine("Use of reserved name in main file");
-                            return;
-                        }                           
+                        Console.WriteLine("Use of reserved name in main file");
+                        return false;
                     }
                 }
-
-                ((BlockNode)sat).Block.AddRange(((BlockNode)mtVisitor.Result()).Block);
             }
 
-            var generator = new Generator(fullTable, visitor.Flags(), _typeImpls, namePrefix);
-
-            try
-            {
-                // supplement in real file name when appropriate
-                generator.Generate(sat, "test.llvm");
-            }
-            catch (GeneratorException ge)
-            {
-                Console.WriteLine("Generation Error: " + ge.ErrorMessage);
-            }
-
-            table = fullTable.Filter(x => x.Modifiers.Contains(Modifier.EXPORTED));
-
-            */
+            ((BlockNode)sat).Block.AddRange(((BlockNode)mtVisitor.Result()).Block);
+            return true;
         }
 
         private ASTNode _runParser(List<Token> tokens, string text, string package)
@@ -255,6 +264,20 @@ namespace Whirlwind
             // Console.WriteLine(visitor.Result().ToString());
 
             return true;
+        }
+
+        private bool _runGenerator(Generator generator, ITypeNode sat, string outputFile)
+        {
+            try
+            {
+                generator.Generate(sat, outputFile);
+                return true;
+            }
+            catch (GeneratorException ge)
+            {
+                ErrorDisplay.DisplayError(ge, outputFile);
+                return false;
+            }
         }
 
         private bool _generateUserMainCall(FunctionType mainFnType, out string callString)
