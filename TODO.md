@@ -4,9 +4,6 @@
   * golang-esque?
   * with statements/c#-esque?
 - rename Type Classes to Algebraic Types
-- allow for type decomposition (infer one type from another as in generics)
-  * as in `func toDict<T as (K, V)>() [K: V]`
-  * or even without generics `func toDict() T as [K: V]` where compiler infers the missing types
 - get structs up and running
   * variable initializers
   * add byval attribute passing
