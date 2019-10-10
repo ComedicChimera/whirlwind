@@ -360,7 +360,15 @@ namespace Whirlwind
                     foreach (var elem in ((ASTNode)item).Content)
                     {
                         if (elem.Name == "struct_var")
+                        {
                             _extractAll((ASTNode)((ASTNode)elem).Content.Where(x => x.Name == "types").First(), info.Dependecies);
+
+                            var initMatches = ((ASTNode)elem).Content.Where(x => x.Name == "initializer");
+
+                            if (initMatches.Count() == 1)
+                                _extractAll((ASTNode)initMatches.First(), info.Dependecies);
+                        }
+                            
                         else if (elem.Name == "constructor_decl")
                             _extractPrototype((ASTNode)elem, info.Dependecies);
                     }
@@ -417,6 +425,8 @@ namespace Whirlwind
                             foreach (var argElem in ((ASTNode)elem).Content)
                             {
                                 if (argElem.Name == "extension")
+                                    _extractAll((ASTNode)argElem, foundDeps);
+                                else if (argElem.Name == "initializer")
                                     _extractAll((ASTNode)argElem, foundDeps);
                             }
                         }
