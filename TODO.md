@@ -1,8 +1,8 @@
 # TODO
 
-- revamp/redo package system
-  * golang-esque?
-  * with statements/c#-esque?
+- fix symbol resolution to allow for structs that have self-types
+  * structs and interfaces automatically resolve when they are declared
+- add predefinitions (#pred)
 - rename Type Classes to Algebraic Types
 - get structs up and running
   * variable initializers
@@ -16,6 +16,9 @@
 # TESTING
 
 - ALL DE NEW STUFF
+- PACKAGE SYSTEM
+- INFERRED TYPES ON CASE EXPRESSIONS
+- HIGH LEVEL INITIALIZERS (not demoted)
 
 # FUTURE
 
