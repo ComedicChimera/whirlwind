@@ -4,6 +4,9 @@
   * make sure they assemble correctly
 - rename Type Classes to Custom Types
   * completely (as in errors, documentation, grammar, etc.)
+- add `own` modifier
+  * tells compiler which block can automatically deallocate heap memory
+  * in structs and on arguments
 - get structs up and running
   * variable initializers
   * add byval attribute passing
@@ -28,7 +31,7 @@
 - closures must obey the behavior described in the docs
   * they share their state, don't copy it
 - ensure null initialization is pervasive
-  * this should work: `let x = f(); func f() int => x;`
+  * this should work: `func f() int => x; let x = f();`
 - account for out of order variable declaration if necessary
 - distinguish between fibers, threads, and processes.
   * fiber: lightweight, non-OS, concurrent executor
@@ -75,5 +78,4 @@
   * `[let x, 4, _, ...]`
   * `struct {y: let t}`
 - separate bitwise and logical operators?
-  
 
