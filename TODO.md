@@ -25,6 +25,7 @@
 
 # FUTURE
 
+- think about temporary objects and null initialization and how it can be optimized (+ optimization for all std lib constructs)
 - add operator overloading during generation
 - add strict group overload matching during compilation
 - ensure compiled code handles coercion properly (particularly on tuples)
