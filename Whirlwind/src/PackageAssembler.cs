@@ -105,7 +105,13 @@ namespace Whirlwind
 
         private void _resolveSymbol(string name, SymbolInfo info, ASTNode result)
         {
-            info.Status = ResolutionStatus.RESOLVING;
+            var fileAST = _package.Files.Values.ElementAt(info.ASTNumber);
+
+            // auto resolve interfaces and structs since they can have self types
+            if (new[] { "interface_decl", "struct_decl" }.Contains(fileAST.Content[info.ASTLocation].Name))
+                info.Status = ResolutionStatus.RESOLVED;
+            else
+                info.Status = ResolutionStatus.RESOLVING;
 
             foreach (var item in info.Dependecies)
             {
@@ -126,8 +132,6 @@ namespace Whirlwind
                 result.Content.Add(new ASTNode("$FILE_NUM$" + info.ASTNumber));
                 _currentFileFlag = info.ASTNumber;
             }
-
-            var fileAST = _package.Files.Values.ElementAt(info.ASTNumber);
 
             // append annotation before the block it wraps if necessary
             int prevNdx = info.ASTLocation - 1;

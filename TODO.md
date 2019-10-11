@@ -1,9 +1,9 @@
 # TODO
 
-- fix symbol resolution to allow for structs that have self-types
-  * structs and interfaces automatically resolve when they are declared
 - add predefinitions (#pred)
-- rename Type Classes to Algebraic Types
+  * make sure they assemble correctly
+- rename Type Classes to Custom Types
+  * completely (as in errors, documentation, grammar, etc.)
 - get structs up and running
   * variable initializers
   * add byval attribute passing
