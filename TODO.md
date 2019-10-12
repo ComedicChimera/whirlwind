@@ -48,6 +48,7 @@
   * `this.property` compiles to `this->property`
   * whenever `this` is used as a value type (non-reference) it is implicitly
     dereferenced
+  * `this as Type` implicitly copies this whereas `this as *Type` does not
 - remove MirrorType and declare builtins in SymbolTable as necessary (via prelude)
 - make sure then functions as a CONDITIONAL CHAINING operator
   * if the previous expression is a boolean, continue only if true
