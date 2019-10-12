@@ -7,9 +7,9 @@
 - add `own` modifier
   * tells compiler which block can automatically deallocate heap memory
   * in structs and on arguments
+- demote struct and arg initializers (this is important, make it work)
 - get structs up and running
   * variable initializers
-  * add byval attribute passing
 - finish functions
   * deal with multifile overloading
   * any other problems that could come up
@@ -25,6 +25,10 @@
 
 # FUTURE
 
+- BE CONCIOUS ABOUT EVERY TRANSLATION: NOTHING IS EVER "THAT" SIMPLE
+  * how can this optimized?
+  * how can this be condensed?
+  * could this cause problems?
 - think about temporary objects and null initialization and how it can be optimized (+ optimization for all std lib constructs)
 - make sure Whirlwind inserts `delete` whenever possible, but no "plausible" deletes, slows down too much
   * if compiler isn't sure, it does nothing

@@ -109,8 +109,7 @@ namespace Whirlwind.Semantic.Visitor
                             {
                                 string identifier = ((TokenNode)node.Content[1]).Tok.Value;
 
-                                var symbol = _getMember(root.Type, identifier, node.Content[0].Position, node.Content[1].Position, 
-                                    root is IdentifierNode id && id.IdName == "$THIS");
+                                var symbol = _getMember(root.Type, identifier, node.Content[0].Position, node.Content[1].Position);
 
                                 _nodes.Add(new ExprNode("GetMember", symbol.DataType));
 
@@ -261,7 +260,7 @@ namespace Whirlwind.Semantic.Visitor
             }
         }
 
-        private Symbol _getMember(DataType type, string name, TextPosition opPos, TextPosition idPos, bool enableIntrinsicGet = false)
+        private Symbol _getMember(DataType type, string name, TextPosition opPos, TextPosition idPos)
         {
             Symbol symbol;
             switch (type.Classify())
@@ -279,7 +278,7 @@ namespace Whirlwind.Semantic.Visitor
                         throw new SemanticException("Unable to directly access special methods outside of runtime core", idPos);
                     else if (!type.GetInterface().GetFunction(name, out symbol))
                     {
-                        if (enableIntrinsicGet)
+                        if (_enableIntrinsicGet)
                         {
                             string typeString = type.ToString();
                             var matches = _typeImpls.Where(x => typeString.StartsWith(x.Key));

@@ -63,6 +63,7 @@ namespace Whirlwind.Semantic.Visitor
         private void _visitInterfaceBind(ASTNode node)
         {
             _selfNeedsPointer = false;
+            _enableIntrinsicGet = true;
 
             DataType dt;
 
@@ -119,6 +120,8 @@ namespace Whirlwind.Semantic.Visitor
 
                 _table.AscendScope();
             }
+
+            _enableIntrinsicGet = false;
         }
 
         private void _visitGenericBind(ASTNode node)

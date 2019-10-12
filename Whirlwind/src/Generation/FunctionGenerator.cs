@@ -72,24 +72,12 @@ namespace Whirlwind.Generation
 
                 if (param.Indefinite)
                     isVarArg = true;
-                else if (param.DataType is StructType)
-                {
-                    arguments[i] = LLVM.PointerType(_convertType(param.DataType), 0);
-                    byvalAttr.Add(i);
-                }
-                else
-                    arguments[i] = _convertType(param.DataType);
+
+                arguments[i] = _convertType(param.DataType);
             }
 
 
             var llvmFn = LLVM.AddFunction(_module, name, LLVM.FunctionType(_convertType(ft.ReturnType), arguments, isVarArg));
-            
-            // test this
-            foreach (int i in byvalAttr)
-            {
-                LLVM.AddAttributeAtIndex(llvmFn.GetParam((uint)i), LLVMAttributeIndex.LLVMAttributeFunctionIndex, 
-                    LLVM.CreateStringAttribute(_ctx, "byval", 5, "", 0));
-            }
 
             // handle external symbols as necessary
             LLVM.SetLinkage(llvmFn, external ? LLVMLinkage.LLVMExternalLinkage : LLVMLinkage.LLVMLinkerPrivateLinkage);

@@ -71,6 +71,7 @@ namespace Whirlwind.Semantic.Visitor
         private bool _isExprStmt = false;
         private bool _wrapsNextAnnotBlock = false;
         private bool _functionCanHaveNoBody = false;
+        private bool _enableIntrinsicGet = false;
 
         public Visitor(string namePrefix, bool constexprOptimizerEnabled, Dictionary<string, DataType> typeImpls)
         {

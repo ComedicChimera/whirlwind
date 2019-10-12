@@ -107,7 +107,7 @@ namespace Whirlwind
         {
             var fileAST = _package.Files.Values.ElementAt(info.ASTNumber);
 
-            // auto resolve interfaces and structs since they can have self types
+            // auto resolve interfaces and structs since they can have self types (auto resolve internally?)
             if (new[] { "interface_decl", "struct_decl" }.Contains(fileAST.Content[info.ASTLocation].Name))
                 info.Status = ResolutionStatus.RESOLVED;
             else
