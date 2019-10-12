@@ -26,6 +26,9 @@
 # FUTURE
 
 - think about temporary objects and null initialization and how it can be optimized (+ optimization for all std lib constructs)
+- make sure Whirlwind inserts `delete` whenever possible, but no "plausible" deletes, slows down too much
+  * if compiler isn't sure, it does nothing
+  * add note about this in memory section of guide
 - add operator overloading during generation
 - add strict group overload matching during compilation
 - ensure compiled code handles coercion properly (particularly on tuples)
