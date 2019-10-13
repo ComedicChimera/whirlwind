@@ -41,24 +41,33 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     var processingStack = new List<TokenNode>();
                     DataType type = new NoneType();
-                    bool isVolatile = false;
+                    var memberModifiers = new List<Modifier>();
 
                     foreach (var item in ((ASTNode)subNode).Content)
                     {
-                        if (item.Name == "TOKEN" && ((TokenNode)item).Tok.Type == "IDENTIFIER")
-                            processingStack.Add((TokenNode)item);
+                        if (item is TokenNode tkNode)
+                        {
+                            switch (item.Name)
+                            {
+                                case "IDENTIFIER":
+                                    processingStack.Add(tkNode);
+                                    break;
+                                case "VOL":
+                                    memberModifiers.Add(Modifier.VOLATILE);
+                                    break;
+                                case "OWN":
+                                    memberModifiers.Add(Modifier.OWNED);
+                                    break;
+                            }
+                        }                          
                         else if (item.Name == "types")
                         {
                             type = _generateType((ASTNode)item);
 
                             foreach (var member in processingStack)
                             {
-                                if (!structType.AddMember(new Symbol(member.Tok.Value, type,
-                                    isVolatile ? new List<Modifier> { Modifier.VOLATILE } : new List<Modifier>()
-                                    )))
-                                {
+                                if (!structType.AddMember(new Symbol(member.Tok.Value, type, memberModifiers)))
                                     throw new SemanticException("Structs cannot contain duplicate members", member.Position);
-                                }  
                             }
                         }
                         else if (item.Name == "initializer")

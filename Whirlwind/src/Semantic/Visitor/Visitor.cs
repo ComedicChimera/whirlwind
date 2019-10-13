@@ -59,7 +59,7 @@ namespace Whirlwind.Semantic.Visitor
         // visitor state data
         private CustomType _typeClassContext;
         private string _implName;
-        private int _fileNumber;
+        private string _fileName;
 
         // visitor state flags
         private bool _couldLambdaContextExist = false, _couldTypeClassContextExist = false;
@@ -88,7 +88,7 @@ namespace Whirlwind.Semantic.Visitor
 
             _implName = "";
 
-            _fileNumber = 0;
+            _fileName = "";
         }
 
         // ----------------------
@@ -148,8 +148,8 @@ namespace Whirlwind.Semantic.Visitor
                             continue;
                         // catches rogue tokens and things of the like
                         default:
-                            if (node.Name.StartsWith("$FILE_NUM$"))
-                                _fileNumber = int.Parse(string.Join("", node.Name.Skip(11)));
+                            if (node.Name.StartsWith("$FILE_NAME$"))
+                                _fileName = node.Name.Substring(11);
                             continue;
                     }
 
@@ -171,7 +171,7 @@ namespace Whirlwind.Semantic.Visitor
             catch (SemanticException smex)
             {
                 // add on the file flag
-                smex.FileNumber = _fileNumber;
+                smex.FileName = _fileName;
                 ErrorQueue.Add(smex);
             }
         }       

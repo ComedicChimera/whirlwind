@@ -5,7 +5,7 @@ func indef(x: float, ... a: str) {
 
 }
 
-func main() {
+func init() {
 	add(2, 3);
 
 	add(2.0, 4); // fail

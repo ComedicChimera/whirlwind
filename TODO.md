@@ -1,12 +1,7 @@
 # TODO
 
-- add predefinitions (#pred)
-  * make sure they assemble correctly
 - rename Type Classes to Custom Types
   * completely (as in errors, documentation, grammar, etc.)
-- add `own` modifier
-  * tells compiler which block can automatically deallocate heap memory
-  * in structs and on arguments
 - demote struct and arg initializers (this is important, make it work)
 - get structs up and running
   * variable initializers

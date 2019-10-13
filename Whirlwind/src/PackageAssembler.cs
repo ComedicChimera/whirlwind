@@ -10,6 +10,12 @@ namespace Whirlwind
     {
         public string SymbolA, SymbolB;
 
+        public PackageAssemblyException(string dup)
+        {
+            SymbolA = dup;
+            SymbolB = "";
+        }
+
         public PackageAssemblyException(string symA, string symB)
         {
             SymbolA = symA;
@@ -31,35 +37,37 @@ namespace Whirlwind
             public List<string> Dependecies;
             public ResolutionStatus Status;
 
-            public int ASTNumber;
+            public string FileName;
             public int ASTLocation;
 
-            public SymbolInfo(int astNum, int astLoc)
+            public SymbolInfo(string fileName, int astLoc)
             {
                 Dependecies = new List<string>();
                 Status = ResolutionStatus.UNRESOLVED;
 
-                ASTNumber = astNum;
+                FileName = fileName;
                 ASTLocation = astLoc;
             }
 
-            public SymbolInfo(List<string> deps, int astNum, int astLoc)
+            public SymbolInfo(List<string> deps, string fileName, int astLoc)
             {
                 Dependecies = deps;
                 Status = ResolutionStatus.UNRESOLVED;
 
-                ASTNumber = astNum;
+                FileName = fileName;
                 ASTLocation = astLoc;
             }
         }
 
         private Package _package;
         private Dictionary<string, SymbolInfo> _resolvingSymbols;
-        private Dictionary<int, List<int>> _annotations;
+        private Dictionary<string, List<int>> _annotations;
 
-        private int _currentFileFlag = 0;
+        private string _currentFileName = "";
+
         private int _interfBindId = 0;
         private int _variantId = 0;
+        private int _overloadId = 0;
 
         public PackageAssembler(Package pkg)
         {
@@ -67,29 +75,32 @@ namespace Whirlwind
 
             _resolvingSymbols = new Dictionary<string, SymbolInfo>();
 
-            _annotations = new Dictionary<int, List<int>>();
+            _annotations = new Dictionary<string, List<int>>();
         }
 
         public ASTNode Assemble()
         {
-            for (int i = 0; i < _package.Files.Count; i++)
-                _processPackage(_package.Files.Values.ElementAt(i), i);
+            foreach (var item in _package.Files)
+                _processPackage(item.Value, item.Key);
 
             var result = new ASTNode("whirlwind");
 
             // add non-coupling annotations
-            for (int astNum = 0; astNum < _package.Files.Count; astNum++)
+            foreach (var fileName in _package.Files.Keys)
             {
-                for (int i = _annotations[astNum].Count - 1; i >= 0; i--)
+                if (_annotations.ContainsKey(fileName))
                 {
-                    var ndx = _annotations[astNum][i];
-                    var annot = _package.Files.Values.ElementAt(astNum).Content[ndx];
-
-                    if (new[] { "platform", "static_link", "res_name" }.Contains(
-                        ((TokenNode)((ASTNode)annot).Content[1]).Tok.Value)) 
+                    for (int i = _annotations[fileName].Count - 1; i >= 0; i--)
                     {
-                        result.Content.Add(_package.Files.Values.ElementAt(astNum).Content[ndx]);
-                        _annotations[astNum].RemoveAt(ndx);
+                        var ndx = _annotations[fileName][i];
+                        var annot = _package.Files[fileName].Content[ndx];
+
+                        if (new[] { "platform", "static_link", "res_name" }.Contains(
+                            ((TokenNode)((ASTNode)annot).Content[1]).Tok.Value))
+                        {
+                            result.Content.Add(_package.Files[fileName].Content[ndx]);
+                            _annotations[fileName].RemoveAt(ndx);
+                        }
                     }
                 }
             }
@@ -105,13 +116,12 @@ namespace Whirlwind
 
         private void _resolveSymbol(string name, SymbolInfo info, ASTNode result)
         {
-            var fileAST = _package.Files.Values.ElementAt(info.ASTNumber);
+            var fileAST = _package.Files[info.FileName];
+            var symbolAST = (ASTNode)fileAST.Content[info.ASTLocation];
 
-            // auto resolve interfaces and structs since they can have self types (auto resolve internally?)
-            if (new[] { "interface_decl", "struct_decl" }.Contains(fileAST.Content[info.ASTLocation].Name))
-                info.Status = ResolutionStatus.RESOLVED;
-            else
-                info.Status = ResolutionStatus.RESOLVING;
+            var noSelf = symbolAST.Name == "block_decl" && !new[] { "interface_decl", "struct_decl" }.Contains(symbolAST.Content[0].Name);
+
+            info.Status = ResolutionStatus.RESOLVING;
 
             foreach (var item in info.Dependecies)
             {
@@ -122,48 +132,63 @@ namespace Whirlwind
                     if (dep.Status == ResolutionStatus.UNRESOLVED)
                         _resolveSymbol(item, dep, result);
                     // symbol is in resolution as this lookup is occuring => recursive definition (ERROR)
-                    else if (dep.Status == ResolutionStatus.RESOLVING)
+                    else if ((noSelf || name != item) && dep.Status == ResolutionStatus.RESOLVING)
                         throw new PackageAssemblyException(name, item);
                 }
             }
 
-            if (info.ASTNumber != _currentFileFlag)
+            if (info.FileName != _currentFileName)
             {
-                result.Content.Add(new ASTNode("$FILE_NUM$" + info.ASTNumber));
-                _currentFileFlag = info.ASTNumber;
+                result.Content.Add(new ASTNode("$FILE_NAME$" + info.FileName));
+                _currentFileName = info.FileName;
             }
 
             // append annotation before the block it wraps if necessary
             int prevNdx = info.ASTLocation - 1;
-            if (_annotations[info.ASTNumber].Contains(prevNdx))
+            if (_annotations.ContainsKey(info.FileName) && _annotations[info.FileName].Contains(prevNdx))
             {
                 result.Content.Add(fileAST.Content[prevNdx]);
-                _annotations[info.ASTNumber].Remove(prevNdx);
+                _annotations[info.FileName].Remove(prevNdx);
             }
 
-            result.Content.Add(fileAST.Content[info.ASTLocation]);
+            result.Content.Add(symbolAST);
+
+            info.Status = ResolutionStatus.RESOLVED;
         }
 
-        private void _processPackage(ASTNode node, int astNum)
+        private void _addSymbol(string name, SymbolInfo info, bool allowDuplicates = false)
+        {
+            if (_resolvingSymbols.ContainsKey(name))
+            {
+                if (allowDuplicates)
+                    _resolvingSymbols.Add(name + "$" + _overloadId++, info);
+                else
+                    throw new PackageAssemblyException(name);
+            }
+            else
+                _resolvingSymbols.Add(name, info);
+        }
+
+        private void _processPackage(ASTNode node, string fileName)
         {
             for (int i = 0; i < node.Content.Count; i++)
             {
                 if (node.Content[i] is ASTNode anode)
                 {
                     if (anode.Name == "annotation")
-                        _annotations[astNum].Add(i);
+                        _annotations[fileName].Add(i);
                     else
-                        _processDecl(anode, astNum, i);
+                        _processDecl(anode, fileName, i);
                 }
             }
         }
 
-        private void _processDecl(ASTNode node, int astNum, int astLoc)
+        private void _processDecl(ASTNode node, string fileName, int astLoc)
         {
             switch (node.Name)
             {
                 case "variable_decl":
-                    _processVarDecl(node, astNum, astLoc);
+                    _processVarDecl(node, fileName, astLoc);
                     break;
                 case "block_decl":
                     {
@@ -172,25 +197,25 @@ namespace Whirlwind
                         switch (blockDecl.Name)
                         {
                             case "func_decl":
-                                _processFuncDecl(blockDecl, astNum, astLoc);
+                                _processFuncDecl(blockDecl, fileName, astLoc);
                                 break;
                             case "interface_decl":
-                                _processInterfDecl(blockDecl, astNum, astLoc);
+                                _processInterfDecl(blockDecl, fileName, astLoc);
                                 break;
                             case "type_class_decl":
-                                _processTypeClassDecl(blockDecl, astNum, astLoc);
+                                _processTypeClassDecl(blockDecl, fileName, astLoc);
                                 break;
                             case "struct_decl":
-                                _processStructDecl(blockDecl, astNum, astLoc);
+                                _processStructDecl(blockDecl, fileName, astLoc);
                                 break;
                             case "variant_decl":
-                                _processVariantDecl(blockDecl, astNum, astLoc);
+                                _processVariantDecl(blockDecl, fileName, astLoc);
                                 break;
                             case "decor_decl":
-                                _processDecorDecl(blockDecl, astNum, astLoc);
+                                _processDecorDecl(blockDecl, fileName, astLoc);
                                 break;
                             case "interface_bind":
-                                _processInterfBind(blockDecl, astNum, astLoc);
+                                _processInterfBind(blockDecl, fileName, astLoc);
                                 break;
                         }
                     }
@@ -207,16 +232,16 @@ namespace Whirlwind
                                 name = tkNode.Tok.Value;
                         }
 
-                        _resolvingSymbols.Add(name, new SymbolInfo(astNum, astLoc));
+                        _addSymbol(name, new SymbolInfo(fileName, astLoc));
                     }
                     break;
                 case "export_decl":
-                    _processDecl((ASTNode)node.Content[1], astNum, astLoc);
+                    _processDecl((ASTNode)node.Content[1], fileName, astLoc);
                     break;
             }
         }
 
-        private void _processVarDecl(ASTNode node, int astNum, int astLoc)
+        private void _processVarDecl(ASTNode node, string fileName, int astLoc)
         {
             string name = "";
             var foundDeps = new List<string>();
@@ -246,23 +271,23 @@ namespace Whirlwind
                 }
             }
 
-            _resolvingSymbols[name] = new SymbolInfo(foundDeps, astNum, astLoc);
+            _addSymbol(name, new SymbolInfo(foundDeps, fileName, astLoc));
         }
 
-        private void _processFuncDecl(ASTNode node, int astNum, int astLoc)
+        private void _processFuncDecl(ASTNode node, string fileName, int astLoc)
         {
             string name = ((TokenNode)node.Content[1]).Tok.Value;
-            var info = new SymbolInfo(astNum, astLoc);
+            var info = new SymbolInfo(fileName, astLoc);
 
             _extractPrototype(node, info.Dependecies);
 
-            _resolvingSymbols.Add(name, info);
+            _addSymbol(name, info, true);
         }
 
-        private void _processInterfDecl(ASTNode node, int astNum, int astLoc)
+        private void _processInterfDecl(ASTNode node, string fileName, int astLoc)
         {
             var name = "";
-            var info = new SymbolInfo(astNum, astLoc);
+            var info = new SymbolInfo(fileName, astLoc);
 
             foreach (var item in node.Content)
             {
@@ -275,16 +300,15 @@ namespace Whirlwind
                     foreach (var elem in ((ASTNode)item).Content)
                         _extractPrototype((ASTNode)elem, info.Dependecies);
                 }
-
             }
 
-            _resolvingSymbols.Add(name, info);
+            _addSymbol(name, info);
         }
 
-        private void _processTypeClassDecl(ASTNode node, int astNum, int astLoc)
+        private void _processTypeClassDecl(ASTNode node, string fileName, int astLoc)
         {
             string name = "";
-            var info = new SymbolInfo(astNum, astLoc);
+            var info = new SymbolInfo(fileName, astLoc);
 
             foreach (var item in node.Content)
             {
@@ -316,18 +340,17 @@ namespace Whirlwind
                                     }
                                     break;
                             }
-                        }
-                            
+                        }                            
                     }
                 }
             }
 
-            _resolvingSymbols.Add(name, info);
+            _addSymbol(name, info);
         }
 
-        private void _processInterfBind(ASTNode node, int astNum, int astLoc)
+        private void _processInterfBind(ASTNode node, string fileName, int astLoc)
         {
-            var info = new SymbolInfo(astNum, astLoc);
+            var info = new SymbolInfo(fileName, astLoc);
 
             foreach (var item in node.Content)
             {
@@ -347,13 +370,13 @@ namespace Whirlwind
                 }
             }
 
-            _resolvingSymbols.Add("$INTERF_BIND$" + _interfBindId++, info);
+            _addSymbol("$INTERF_BIND$" + _interfBindId++, info);
         }
 
-        private void _processStructDecl(ASTNode node, int astNum, int astLoc)
+        private void _processStructDecl(ASTNode node, string fileName, int astLoc)
         {
             string name = ((TokenNode)node.Content[1]).Tok.Value;
-            var info = new SymbolInfo(astNum, astLoc);
+            var info = new SymbolInfo(fileName, astLoc);
 
             foreach (var item in node.Content)
             {
@@ -379,13 +402,13 @@ namespace Whirlwind
                 }
             }
 
-            _resolvingSymbols.Add(name, info);
+            _addSymbol(name, info);
         }
 
-        private void _processVariantDecl(ASTNode node, int astNum, int astLoc)
+        private void _processVariantDecl(ASTNode node, string fileName, int astLoc)
         {
             string name = "$VARIANT$" + _variantId++;
-            var info = new SymbolInfo(astNum, astLoc);
+            var info = new SymbolInfo(fileName, astLoc);
 
             info.Dependecies.Add(((TokenNode)node.Content[2]).Tok.Value);
 
@@ -400,18 +423,18 @@ namespace Whirlwind
                 }
             }
 
-            _resolvingSymbols.Add(name, info);
+            _addSymbol(name, info);
         }
 
-        private void _processDecorDecl(ASTNode node, int astNum, int astLoc)
+        private void _processDecorDecl(ASTNode node, string fileName, int astLoc)
         {
             string name = ((TokenNode)((ASTNode)node.Content[1]).Content[1]).Tok.Value;
-            var info = new SymbolInfo(astNum, astLoc);
+            var info = new SymbolInfo(fileName, astLoc);
 
             _extractAll((ASTNode)node.Content[0], info.Dependecies);
             _extractPrototype((ASTNode)node.Content[1], info.Dependecies);
 
-            _resolvingSymbols.Add(name, info);
+            _addSymbol(name, info);
         }
 
         private void _extractPrototype(ASTNode node, List<string> foundDeps)

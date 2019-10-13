@@ -81,7 +81,7 @@ namespace Whirlwind.Semantic.Visitor
                 }
             }
             catch (SemanticException smex) {
-                smex.FileNumber = _fileNumber;
+                smex.FileName = _fileName;
                 ErrorQueue.Add(smex);
 
                 while (_nodes.Count > nodeLen)

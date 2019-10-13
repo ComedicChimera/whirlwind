@@ -23,6 +23,7 @@ namespace Whirlwind
         private Dictionary<string, DataType> _typeImpls;
 
         private Package _typeImplPkg;
+        private string _startDirectory;
 
         public Compiler(string tokenPath, string grammarPath)
         {
@@ -38,7 +39,9 @@ namespace Whirlwind
 
             ErrorDisplay.InitLoadedFiles();
 
-            _typeImplPkg = _buildRaw("__core__/__buildutil__/type_impls.wrl", "type_impls");
+            _typeImplPkg = _buildRaw("__buildutil__/type_impls.wrl", "type_impls");
+
+            _startDirectory = Directory.GetCurrentDirectory();
         }
 
         public bool Build(string path)
@@ -48,7 +51,7 @@ namespace Whirlwind
 
         public bool Build(string path, out PackageType pkgType)
         {
-            string namePrefix = _pm.ConvertPathToPrefix(path);
+            string namePrefix = _convertPathToPrefix(path);
 
             if (namePrefix == "")
                 namePrefix = "";
@@ -59,7 +62,7 @@ namespace Whirlwind
 
             pkgType = null;
 
-            if (_pm.LoadPackage(path, namePrefix.Trim(':'), out Package pkg))
+            if (_pm.LoadPackage(path, namePrefix.Trim(':'), true, out Package pkg))
             {
                 if (pkg.Compiled)
                 {
@@ -73,8 +76,8 @@ namespace Whirlwind
 
                     string text = File.ReadAllText(fName);
 
-                    if (i == 0 && !namePrefix.StartsWith("lib::std::__core__"))
-                        text = "include { ... } from __core__;" + text;
+                    /*if (i == 0 && !namePrefix.StartsWith("lib::std::__core__"))
+                        text = "include { ... } from __core__;\n" + text;*/
 
                     var tokens = _scanner.Scan(text);
 
@@ -104,9 +107,7 @@ namespace Whirlwind
                 {
                     ErrorDisplay.DisplayError(pae, pkg.Name);
 
-                    // clear out AST (package assembly failed)
-                    foreach (var key in pkg.Files.Keys)
-                        pkg.Files[key] = null;
+                    _clearPackage(pkg);                   
 
                     return false;
                 }
@@ -116,6 +117,9 @@ namespace Whirlwind
                 if (!_runVisitor(visitor, finalAst, pkg))
                 {
                     ErrorDisplay.ClearLoadedFiles();
+
+                    _clearPackage(pkg);
+
                     return false;
                 }
 
@@ -126,8 +130,7 @@ namespace Whirlwind
                     _buildMainFile(pkg, table, sat, namePrefix);
 
                 // clear out AST once it is no longer being used
-                foreach (var key in pkg.Files.Keys)
-                    pkg.Files[key] = null;
+                _clearPackage(pkg);
 
                 var generator = new Generator(table, visitor.Flags(), _typeImpls, namePrefix);
 
@@ -154,7 +157,7 @@ namespace Whirlwind
 
         private Package _buildRaw(string corePath, string name)
         {
-            corePath = WHIRL_PATH + corePath;
+            corePath = WHIRL_PATH + "/lib/std/__core__/" + corePath;
 
             var pkg = new Package(name);            
 
@@ -190,6 +193,27 @@ namespace Whirlwind
             }
 
             return null;
+        }
+
+        public string _convertPathToPrefix(string path)
+        {
+            path = Path.GetFullPath(path);
+
+            int i = 0;
+            for (; i < path.Length && i < _startDirectory.Length; i++)
+            {
+                if (path[i] != _startDirectory[i])
+                    break;
+            }
+
+            return new string(path.Skip(i).ToArray())
+                .Replace("\\", "::") + "::";
+        }
+
+        private void _clearPackage(Package pkg)
+        {
+            for (int i = 0; i < pkg.Files.Count; i++)
+                pkg.Files[pkg.Files.Keys.ElementAt(i)] = null;
         }
 
         private bool _buildMainFile(Package mainPkg, SymbolTable fullTable, ITypeNode sat, string namePrefix)

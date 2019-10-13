@@ -11,7 +11,7 @@ namespace Whirlwind
 {
     static class ErrorDisplay
     {
-        static Dictionary<int, string> _loadedFiles;
+        static Dictionary<string, string> _loadedFiles;
 
         static public void DisplayError(string text, string fileName, InvalidSyntaxException isnex)
         {
@@ -25,20 +25,24 @@ namespace Whirlwind
         {
             string text;
 
-            if (_loadedFiles.ContainsKey(smex.FileNumber))
-                text = _loadedFiles[smex.FileNumber];
+            if (_loadedFiles.ContainsKey(smex.FileName))
+                text = _loadedFiles[smex.FileName];
             else
             {
-                text = File.ReadAllText(pkg.Files.Keys.ElementAt(smex.FileNumber));
-                _loadedFiles[smex.FileNumber] = text;
+                text = File.ReadAllText(smex.FileName);
+                _loadedFiles[smex.FileName] = text;
             }
 
-            _writeError(text, smex.Message, smex.Position.Start, smex.Position.Length, pkg.Files.Keys.ElementAt(smex.FileNumber));
+            _writeError(text, smex.Message, smex.Position.Start, smex.Position.Length, 
+                Path.GetRelativePath(Directory.GetCurrentDirectory(), smex.FileName));
         }
 
         static public void DisplayError(PackageAssemblyException pae, string package)
         {
-            Console.WriteLine($"Global symbols {pae.SymbolA} and {pae.SymbolB} are recursively defined in package `{package}`");
+            if (pae.SymbolB == "")
+                Console.WriteLine($"Multiple definitions for non-overloadable global symbol `{pae.SymbolA}` in package `{package}`");
+            else
+                Console.WriteLine($"Global symbols `{pae.SymbolA}` and `{pae.SymbolB}` are recursively defined in package `{package}`");
         }
 
         static public void DisplayError(GeneratorException gex, string outputFile)
@@ -48,7 +52,7 @@ namespace Whirlwind
 
         static public void InitLoadedFiles()
         {
-            _loadedFiles = new Dictionary<int, string>();
+            _loadedFiles = new Dictionary<string, string>();
         }
 
         static public void ClearLoadedFiles()

@@ -29,8 +29,6 @@ namespace Whirlwind
         private Dictionary<string, Package> _packageGraph;
         private string _importContext = "";
 
-        private string _startDirectory = "";
-
         private static readonly string _extension = ".wrl";
 
         public string ImportContext
@@ -48,7 +46,7 @@ namespace Whirlwind
             _packageGraph = new Dictionary<string, Package>();
         }
 
-        public bool LoadPackage(string path, string packageName, out Package pkg)
+        public bool LoadPackage(string path, string packageName, bool shouldTryGlob, out Package pkg)
         {
             string fullPath = Path.GetFullPath(_importContext + path);
 
@@ -60,9 +58,6 @@ namespace Whirlwind
 
             if (_openPackage(fullPath, out string[] files))
             {
-                if (_startDirectory == "")
-                    _startDirectory = fullPath;
-
                 _importContext = fullPath;
 
                 pkg = new Package(packageName);
@@ -75,28 +70,18 @@ namespace Whirlwind
 
                 return true;
             }
-            else if (LoadPackage(WhirlGlobals.WHIRL_PATH + "lib/global/" + path, packageName, out pkg))
+            else if (!shouldTryGlob)
+            {
+                pkg = null;
+                return false;
+            }              
+            else if (LoadPackage(WhirlGlobals.WHIRL_PATH + "lib/global/" + path, packageName, false, out pkg))
                 return true;
-            else if (LoadPackage(WhirlGlobals.WHIRL_PATH + "lib/std/" + path, packageName, out pkg))
+            else if (LoadPackage(WhirlGlobals.WHIRL_PATH + "lib/std/" + path, packageName, false, out pkg))
                 return true;
 
             pkg = null;
             return false;
-        }
-
-        public string ConvertPathToPrefix(string path)
-        {
-            path = Path.GetFullPath(path);
-
-            int i = 0;
-            for (; i < path.Length && i < _startDirectory.Length; i++)
-            {
-                if (path[i] != _startDirectory[i])
-                    break;
-            }
-
-            return new string(path.Skip(i).ToArray())
-                .Replace("\\", "::") + "::";
         }
 
         private bool _openPackage(string path, out string[] files)

@@ -120,6 +120,9 @@ namespace Whirlwind.Semantic.Visitor
                 if (arg.Volatile)
                     modifiers.Add(Modifier.VOLATILE);
 
+                if (arg.Owned)
+                    modifiers.Add(Modifier.OWNED);
+
                 _table.AddSymbol(new Symbol(arg.Name,
                         arg.Indefinite ? new ListType(arg.DataType) : arg.DataType,
                         modifiers
@@ -318,7 +321,8 @@ namespace Whirlwind.Semantic.Visitor
                     bool optional = false,
                         hasExtension = false,
                         isVolatile = false,
-                        inferredType = false;
+                        inferredType = false,
+                        isOwned = false;
                     var identifiers = new List<string>();
                     DataType paramType = new NoneType();
 
@@ -334,6 +338,9 @@ namespace Whirlwind.Semantic.Visitor
                                         break;
                                     case "VOL":
                                         isVolatile = true;
+                                        break;
+                                    case "OWN":
+                                        isOwned = true;
                                         break;
                                 }
 
@@ -400,7 +407,7 @@ namespace Whirlwind.Semantic.Visitor
                     if (optional)
                     {
                         foreach (var identifier in identifiers)
-                            argsDeclList.Add(new Parameter(identifier, paramType, true, false, isVolatile, _nodes.Last()));
+                            argsDeclList.Add(new Parameter(identifier, paramType, true, false, isVolatile, isOwned, _nodes.Last()));
 
                         _nodes.RemoveAt(_nodes.Count - 1); // remove argument from node stack
                     }
@@ -408,7 +415,7 @@ namespace Whirlwind.Semantic.Visitor
                     {
                         inferredType = false;
 
-                        argsDeclList.Add(new Parameter(identifiers[0], paramType, false, false, isVolatile));
+                        argsDeclList.Add(new Parameter(identifiers[0], paramType, false, false, isVolatile, isOwned));
 
                         if (identifiers.Count > 1)
                         {
@@ -424,14 +431,14 @@ namespace Whirlwind.Semantic.Visitor
                                 if (ctxParam.Optional || ctxParam.Indefinite)
                                     throw new SemanticException("Unable to create argument with no type", subNode.Position);
 
-                                argsDeclList.Add(new Parameter(identifier, ctxParam.DataType, false, false, isVolatile));
+                                argsDeclList.Add(new Parameter(identifier, ctxParam.DataType, false, false, isVolatile, isOwned));
                             }
                         } 
                     }
                     else
                     {
                         foreach (var identifier in identifiers)
-                            argsDeclList.Add(new Parameter(identifier, paramType, false, false, isVolatile));
+                            argsDeclList.Add(new Parameter(identifier, paramType, false, false, isVolatile, isOwned));
                     }
 
                     ctxNdx++;
@@ -449,7 +456,7 @@ namespace Whirlwind.Semantic.Visitor
                             name = ((TokenNode)item).Tok.Value;
                     }
 
-                    argsDeclList.Add(new Parameter(name, dt, false, true, false));
+                    argsDeclList.Add(new Parameter(name, dt, false, true, false, false));
                 }
             }
 

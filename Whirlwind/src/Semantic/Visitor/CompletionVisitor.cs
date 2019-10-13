@@ -178,7 +178,7 @@ namespace Whirlwind.Semantic.Visitor
                 }
                 catch (SemanticException smex)
                 {
-                    smex.FileNumber = _fileNumber;
+                    smex.FileName = _fileName;
                     ErrorQueue.Add(smex);
 
                     fn.Block = new List<ITypeNode>();

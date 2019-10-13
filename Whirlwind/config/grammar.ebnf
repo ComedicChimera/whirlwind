@@ -65,7 +65,7 @@ value_restrictor: 'WHEN' expr ;
 // struct declaration
 struct_decl: 'STRUCT' 'IDENTIFIER' [generic_tag] '{' struct_main '}' ;
 struct_main: (struct_var ';' | constructor_decl )+ ;
-struct_var: ['VOL'] 'IDENTIFIER' (',' 'IDENTIFIER')* ':' types [initializer];
+struct_var: ['OWN'] ['VOL'] 'IDENTIFIER' (',' 'IDENTIFIER')* ':' types [initializer];
 
 // constructor declaration
 constructor_decl: 'CONSTRUCTOR' '(' args_decl_list ')' func_body ;
@@ -337,7 +337,7 @@ type_list: types (',' types)* ;
 
 // argument declaration syntax
 args_decl_list: [ decl_arg (',' decl_arg)* [',' ending_arg] | ending_arg ] ;
-decl_arg: ['VOL'] 'IDENTIFIER' (',' 'IDENTIFIER')* extension [initializer] ;
+decl_arg: ['OWN'] ['VOL'] 'IDENTIFIER' (',' 'IDENTIFIER')* extension [initializer] ;
 ending_arg: '...' 'IDENTIFIER' extension ;
 
 // general purpose initializer
