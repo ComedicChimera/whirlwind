@@ -149,8 +149,15 @@ namespace Whirlwind.Semantic.Visitor
                         // catches rogue tokens and things of the like
                         default:
                             if (node.Name.StartsWith("$FILE_NAME$"))
+                            {
                                 _fileName = node.Name.Substring(11);
-                            continue;
+                                _nodes.Add(new StatementNode(node.Name));
+
+                                break;
+                            }
+                            else
+                                continue;
+                            
                     }
 
                     // both cases only reached after non-annotation block

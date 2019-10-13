@@ -47,7 +47,7 @@ namespace Whirlwind.Semantic.Visitor
                     {
                         if (item is TokenNode tkNode)
                         {
-                            switch (item.Name)
+                            switch (tkNode.Tok.Type)
                             {
                                 case "IDENTIFIER":
                                     processingStack.Add(tkNode);

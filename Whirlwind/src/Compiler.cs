@@ -51,10 +51,10 @@ namespace Whirlwind
 
         public bool Build(string path, out PackageType pkgType)
         {
-            string namePrefix = _convertPathToPrefix(path);
+            string namePrefix = _convertPathToPrefix(path).TrimStart(':');
 
             if (namePrefix == "")
-                namePrefix = "";
+                namePrefix = "main::";
             else if (!namePrefix.EndsWith("::"))
                 namePrefix += "::";
 
@@ -207,7 +207,7 @@ namespace Whirlwind
             }
 
             return new string(path.Skip(i).ToArray())
-                .Replace("\\", "::") + "::";
+                .Replace("\\", "::");
         }
 
         private void _clearPackage(Package pkg)
@@ -238,8 +238,8 @@ namespace Whirlwind
                 return false;
             }
 
-            string mainTempPath = WHIRL_PATH + "lib/std/__core__/__buildutils__/main.wrl";
-            var mainTemplate = File.ReadAllText(mainTempPath.Replace("// $INSERT_MAIN_CALL$", userMainCall));
+            string mainTempPath = WHIRL_PATH + "lib/std/__core__/__buildutil__/main.wrl";
+            var mainTemplate = File.ReadAllText(mainTempPath).Replace("// $INSERT_MAIN_CALL$", userMainCall);
 
             var mtTokens = _scanner.Scan(mainTemplate);
 

@@ -8,8 +8,8 @@ func main() {
 	let t = Test::C;
 
 	let v = t case {
-		Test::A(4, f) => f,
-		Test::B('a') => 3,
+		A(4, f) => f,
+		B('a') => 3,
 		_ => 1.56
 	};
 }

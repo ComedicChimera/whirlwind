@@ -204,7 +204,8 @@ namespace Whirlwind.Semantic.Visitor
                             var members = ((StructType)root.Type).Members;
 
                             if (initCount != members.Count)
-                                throw new SemanticException("Struct initializer list must initialize all struct members", node.Content[0].Position);
+                                throw new SemanticException($"Struct initializer list must initialize exactly all struct members", 
+                                    node.Content[0].Position);
                             for (int i = 0; i < initCount; i++)
                             {
                                 var item = (ExprNode)_nodes[_nodes.Count - initCount + i];

@@ -20,6 +20,12 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _completeBlock(ITypeNode node, ref int scopePos)
         {
+            if (node.Name.StartsWith("$FILE_NAME$"))
+            {
+                _fileName = node.Name.Substring(11);
+                return;
+            }
+
             switch (node.Name)
             {
                 case "Function":
@@ -106,6 +112,12 @@ namespace Whirlwind.Semantic.Visitor
 
             foreach (var node in block)
             {
+                if (node.Name.StartsWith("$FILE_NAME$"))
+                {
+                    _fileName = node.Name.Substring(11);
+                    continue;
+                }
+                    
                 switch (node.Name)
                 {
                     case "Decorator":

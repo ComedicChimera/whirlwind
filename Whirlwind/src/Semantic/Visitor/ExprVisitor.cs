@@ -389,10 +389,22 @@ namespace Whirlwind.Semantic.Visitor
                                 else
                                     throw new SemanticException("Unable to pattern match over type of " + sym.DataType.ToString(), tk.Position);
                             }
-                            else if (rootType is CustomNewType cn && tk.Tok.Value == cn.Name)
+                            else if (rootType is CustomInstance ci)
                             {
-                                _nodes.Add(new IdentifierNode(cn.Name, cn));
-                                dt = cn;
+                                var instanceMatches = ci.Parent.Instances
+                                    .Where(x => x is CustomNewType)
+                                    .Select(x => (CustomNewType)x)
+                                    .Where(x => x.Name == tk.Tok.Value);
+
+                                if (instanceMatches.Count() > 0)
+                                {
+                                    var match = instanceMatches.First();
+
+                                    _nodes.Add(new IdentifierNode(match.Name, match));
+                                    dt = match;
+                                }
+                                else
+                                    throw new SemanticException($"Undefined symbol: `{tk.Tok.Value}`", tk.Position);                               
                             }
                             else
                                 throw new SemanticException($"Undefined symbol: `{tk.Tok.Value}`", tk.Position);

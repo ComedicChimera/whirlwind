@@ -6,6 +6,7 @@ func indef(x: float, ... a: str) {
 }
 
 func init() {
+	/*
 	add(2, 3);
 
 	add(2.0, 4); // fail
@@ -31,4 +32,5 @@ func init() {
 	indef(x=5, 'a', "b"); // fail
 
 	indef(x=21.1, a="d", a="c"); // fail
+	*/
 }
