@@ -44,7 +44,7 @@ namespace Whirlwind.Types
         {
             if (!DataType.Coerce(other.DataType))
                 return false;
-            if (Indefinite != other.Indefinite || Optional && !other.Optional)
+            if (Indefinite != other.Indefinite || Optional && !other.Optional || Owned != other.Owned)
                 return false;
             return true;
         }
@@ -55,7 +55,8 @@ namespace Whirlwind.Types
             return Name == other.Name &&
                 DataType.Equals(other.DataType) &&
                 Optional == other.Optional &&
-                Indefinite == other.Indefinite;
+                Indefinite == other.Indefinite && 
+                Owned == other.Owned;
         }
 
         public override bool Equals(object obj)

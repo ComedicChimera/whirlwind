@@ -1,16 +1,13 @@
-﻿type Test 
-	| A(int, float)
-	| B(char)
-	| C
-	;
-
-func main() {
-	let t = Test::C;
-
-	let v = t case {
-		A(4, f) => f,
-		B('a') => 3,
-		_ => 1.56
-	};
+﻿func test1(own x: dyn* int) {
+	
 }
 
+struct test3 {
+	own x, y: dyn* float;
+}
+
+func main() {
+	let f: func(own dyn* int)();
+
+	f = |own x| => *x;
+}

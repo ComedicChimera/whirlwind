@@ -404,6 +404,9 @@ namespace Whirlwind.Semantic.Visitor
                     if (hasExtension && optional && !paramType.Coerce(_nodes.Last().Type))
                         throw new SemanticException("Initializer type incompatable with type extension", subNode.Position);
 
+                    if (paramType.Classify() != TypeClassifier.INCOMPLETE && isOwned && !(paramType is PointerType pt && pt.IsDynamicPointer))
+                        throw new SemanticException("Own modifier must be used on a dynamic pointer", ((ASTNode)subNode).Content[0].Position);
+
                     if (optional)
                     {
                         foreach (var identifier in identifiers)

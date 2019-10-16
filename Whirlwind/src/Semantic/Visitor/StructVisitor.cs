@@ -64,6 +64,10 @@ namespace Whirlwind.Semantic.Visitor
                         {
                             type = _generateType((ASTNode)item);
 
+                            if (memberModifiers.Contains(Modifier.OWNED) && !(type is PointerType pt && pt.IsDynamicPointer))
+                                throw new SemanticException("Own modifier must be used on a dynamic pointer",
+                                    ((ASTNode)subNode).Content[0].Position);
+
                             foreach (var member in processingStack)
                             {
                                 if (!structType.AddMember(new Symbol(member.Tok.Value, type, memberModifiers)))

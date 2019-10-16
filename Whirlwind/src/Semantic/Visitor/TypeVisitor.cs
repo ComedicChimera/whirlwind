@@ -243,10 +243,16 @@ namespace Whirlwind.Semantic.Visitor
                                     {
                                         ASTNode arg = (ASTNode)elem;
 
+                                        bool owned = arg.Content.First() is TokenNode,
+                                            optional = arg.Content.Last() is TokenNode;
+
+                                        var type = _generateType((ASTNode)arg.Content[Convert.ToInt32(owned)]);
+
+                                        if (owned && !(type is PointerType pt && pt.IsDynamicPointer))
+                                            throw new SemanticException("Own modifier must be used on a dynamic pointer", arg.Content[0].Position);
+
                                         args.Add(new Parameter("$arg" + args.Count.ToString(), 
-                                            _generateType((ASTNode)arg.Content[0]), 
-                                            arg.Content.Count == 2, false, false, false
-                                            ));
+                                            type, optional, false, false, owned));
                                     }
                                     else if (elem.Name == "func_arg_indef")
                                     {

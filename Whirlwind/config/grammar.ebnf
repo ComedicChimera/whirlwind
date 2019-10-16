@@ -322,7 +322,7 @@ collection_types: '[' [ expr ] ']' types
 
 func_type: ('FUNC' | 'ASYNC') '(' func_arg_types ')' '(' [ type_list ] ')' ;
 func_arg_types: [ func_arg_type (',' func_arg_type)* ] [func_arg_indef] ;
-func_arg_type: types ['~'] ;
+func_arg_type: ['OWN'] types ['~'] ;
 func_arg_indef: '...' [types] ;
 
 tuple_type: '(' tuple_type_list ')' ;

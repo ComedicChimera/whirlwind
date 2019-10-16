@@ -1,6 +1,8 @@
 # TODO
 
-- rename Type Classes to Custom Types
+- get yo naming right
+  * Type Classes -> Custom Types
+  * "function objectification" -> First Class Functions
   * completely (as in errors, documentation, grammar, etc.)
 - demote struct and arg initializers (this is important, make it work)
 - get structs up and running
