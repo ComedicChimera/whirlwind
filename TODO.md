@@ -3,6 +3,7 @@
 - get yo naming right
   * Type Classes -> Custom Types
   * "function objectification" -> First Class Functions
+  * flip "deductive" and "inductive" type inference (it makes more sense the other way round)
   * completely (as in errors, documentation, grammar, etc.)
 - demote struct and arg initializers (this is important, make it work)
 - get structs up and running
