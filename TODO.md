@@ -1,11 +1,18 @@
 # TODO
 
 - get yo naming right
-  * Type Classes -> Custom Types
+  * "Value-Enumerated Type Class" -> "Algebraic Type Class"
   * "function objectification" -> First Class Functions
   * flip "deductive" and "inductive" type inference (it makes more sense the other way round)
   * completely (as in errors, documentation, grammar, etc.)
 - demote struct and arg initializers (this is important, make it work)
+- add value categories
+  * `lvalues`, `rvalues`, etc.
+  * determine operator validity based on category
+  * some implications for assignment?
+- make sure certain compound assignment operators make sense
+  * `===` is this valid?  if so why/should it be?
+- research some category theory (functional) and make sure your type system makes some degree of sense in that domain
 - get structs up and running
   * variable initializers
 - finish functions
