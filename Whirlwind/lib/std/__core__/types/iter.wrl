@@ -3,7 +3,5 @@
 }
 
 interf Iterable<T> {
-	func len() int;
-
 	func iter() Iterator<T>;
 }

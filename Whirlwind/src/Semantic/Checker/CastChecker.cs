@@ -23,7 +23,7 @@ namespace Whirlwind.Semantic.Checker
             // any pointers can be cast to anything (b/c they are basically memory addresses)
             // but, when casting a any pointer to a non-pointer, the pointer is implicitly dereferenced
             // in almost all cases (excluding function types)
-            if (start is PointerType pt && pt.DataType.Classify() == TypeClassifier.ANY)
+            if (start is PointerType apt && apt.DataType.Classify() == TypeClassifier.ANY && !apt.IsDynamicPointer)
                 return true;
 
             if (desired.Classify() == TypeClassifier.INTERFACE && !(start is InterfaceType))
@@ -100,8 +100,9 @@ namespace Whirlwind.Semantic.Checker
                         return TypeCast(((DictType)start).KeyType, ((DictType)desired).KeyType) && TypeCast(((DictType)start).ValueType, ((DictType)desired).ValueType);
                     break;
                 case TypeClassifier.POINTER:
-                    if (desired.Classify() == TypeClassifier.POINTER)
-                        return TypeCast(((PointerType)start).DataType, ((PointerType)desired).DataType);
+                    if (desired is PointerType pt)
+                        return ((PointerType)start).IsDynamicPointer == pt.IsDynamicPointer && 
+                            TypeCast(((PointerType)start).DataType, ((PointerType)desired).DataType);
                     else if (desired.Classify() == TypeClassifier.SIMPLE)
                         return ((SimpleType)desired).Type == SimpleType.SimpleClassifier.INTEGER && ((SimpleType)desired).Unsigned;
                     else if (desired.Classify() == TypeClassifier.ARRAY)

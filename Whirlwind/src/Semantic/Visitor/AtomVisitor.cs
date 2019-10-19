@@ -334,7 +334,7 @@ namespace Whirlwind.Semantic.Visitor
                         if (((CustomType)type).GetInstanceByName(name, out CustomNewType match))
                             symbol = new Symbol(match.Name, match);
                         else
-                            throw new SemanticException($"Type class has no enumerated/value member: `{name}`", idPos);
+                            throw new SemanticException($"Type class has no member: `{name}`", idPos);
                     }
                     break;
                 default:
@@ -444,7 +444,7 @@ namespace Whirlwind.Semantic.Visitor
                 if (rootType is CustomNewType cnt)
                 {
                     if (cnt.Values.Count == 0)
-                        throw new SemanticException("Cannot explicitly construct enumerated type class value that contains no types",
+                        throw new SemanticException("Cannot explicitly construct enumerated type class member",
                             node.Content[1].Position);
 
                     if (args.NamedArguments.Count > 0)

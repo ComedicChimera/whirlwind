@@ -22,7 +22,7 @@ namespace Whirlwind.Semantic
         }
     }
 
-    // exception thrown when inductive inferencing for type classes
+    // exception thrown when deductive inferencing for type classes
     // is enabled and an identifier lookup fails
     class SemanticContextException : Exception
     {

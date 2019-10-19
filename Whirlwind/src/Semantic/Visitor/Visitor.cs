@@ -256,7 +256,7 @@ namespace Whirlwind.Semantic.Visitor
         }
 
         // -------------------------------------------
-        // Context-Based/Inductive Inferencing Helpers
+        // Context-Based/Deductive Inferencing Helpers
         // -------------------------------------------
 
         // sets type class context label and calls check for setting

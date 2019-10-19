@@ -10,8 +10,6 @@
   * `lvalues`, `rvalues`, etc.
   * determine operator validity based on category
   * some implications for assignment?
-- make sure certain compound assignment operators make sense
-  * `===` is this valid?  if so why/should it be?
 - research some category theory (functional) and make sure your type system makes some degree of sense in that domain
 - get structs up and running
   * variable initializers
