@@ -1,13 +1,10 @@
-﻿func test1(own x: dyn* int) {
-	
+﻿struct MemberInit {
+	x, y: int = v;
+	z: float = 4.5;
 }
 
-struct test3 {
-	own x, y: dyn* float;
-}
+let v = 10;
 
 func main() {
-	let f: func(own dyn* int)();
 
-	f = |own x| => *x;
 }

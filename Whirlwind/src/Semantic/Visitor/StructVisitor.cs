@@ -76,14 +76,10 @@ namespace Whirlwind.Semantic.Visitor
                         }
                         else if (item.Name == "initializer")
                         {
-                            _visitExpr((ASTNode)((ASTNode)item).Content[1]);
+                            _nodes.Add(new ExprNode("MemberInitializer", type));
 
-                            if (!type.Coerce(_nodes.Last().Type))
-                                throw new SemanticException("Unable to initialize the given members with a type of " + _nodes.Last().Type.ToString(), 
-                                    item.Position);
-
-                            _nodes.Add(new ExprNode("MemberInitializer", _nodes.Last().Type));
-                            PushForward();
+                            _nodes.Add(new IncompleteNode((ASTNode)((ASTNode)item).Content[1]));
+                            MergeBack();
 
                             foreach (var member in processingStack)
                             {

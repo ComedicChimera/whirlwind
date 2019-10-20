@@ -96,6 +96,27 @@ namespace Whirlwind.Semantic.Visitor
                         {
                             if (item.Name == "Constructor")
                                 _completeFunction((BlockNode)item);
+                            else if (item.Name == "MemberInitializer")
+                            {
+                                var initializer = (ExprNode)item;
+                                var iAst = ((IncompleteNode)initializer.Nodes[0]).AST;
+
+                                _visitExpr(iAst);
+
+                                if (!item.Type.Coerce(_nodes.Last().Type))
+                                {
+                                    var smex = new SemanticException($"Type of {_nodes.Last().Type.ToString()} is not valid for this member initializer",
+                                        iAst.Position);
+
+                                    smex.FileName = _fileName;
+
+                                    ErrorQueue.Add(smex);
+                                }
+                                else
+                                    initializer.Nodes[0] = _nodes.Last();
+
+                                _nodes.RemoveLast();
+                            }
                         }
 
                         _table.AscendScope();

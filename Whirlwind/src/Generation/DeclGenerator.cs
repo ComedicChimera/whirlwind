@@ -25,6 +25,9 @@ namespace Whirlwind.Generation
             bool hasMultipleConstructors = node.Block.Count > 1;
             foreach (var item in node.Block)
             {
+                if (item is ExprNode)
+                    continue;
+
                 BlockNode constructor = (BlockNode)item;
                 FunctionType cft = (FunctionType)(constructor.Nodes[0].Type);
                 cft.ReturnType = st;
