@@ -1,11 +1,9 @@
 # TODO
 
-- get yo naming right
+- get yo naming right in documentation
   * "Value-Enumerated Type Class" -> "Algebraic Type Class"
   * "function objectification" -> First Class Functions
   * flip "deductive" and "inductive" type inference (it makes more sense the other way round)
-  * completely (as in documentation, grammar, etc.)
-- demote arg initializers (this is important, make it work)
 - get structs up and running
   * variable initializers
 - finish functions

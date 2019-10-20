@@ -349,42 +349,14 @@ namespace Whirlwind.Semantic.Visitor
                                 paramType = _generateType((ASTNode)((ASTNode)argPart).Content[1]);
                                 hasExtension = true;
                                 break;
-                            case "initializer":
-                                var initNode = (ASTNode)((ASTNode)argPart).Content[1];
-
-                                if (hasExtension)
-                                {
-                                    bool lambdaCtxExistTemp = _couldLambdaContextExist,
-                                        typeClassCtxExistTemp = _couldTypeClassContextExist;
-
-                                    _addContext(initNode);
-                                    _visitExpr(initNode);
-
-                                    _couldLambdaContextExist = lambdaCtxExistTemp;
-                                    _couldTypeClassContextExist = typeClassCtxExistTemp;
-
-                                    if (_nodes.Last() is IncompleteNode inode)
-                                    {
-                                        _giveContext(inode, paramType);  
-
-                                        _nodes[_nodes.Count - 2] = _nodes[_nodes.Count - 1];
-                                        _nodes.RemoveAt(_nodes.Count - 1);
-                                    }
-                                    else if (!paramType.Coerce(_nodes.Last().Type))
-                                        throw new SemanticException("Optional initializer must be coercible to the specified type extension", initNode.Position);
-                                }
-                                else
-                                {
-                                    _visitExpr(initNode);
-                                    paramType = _nodes.Last().Type;
-                                }   
-
+                            case "initializer":                               
+                                _nodes.Add(new IncompleteNode((ASTNode)((ASTNode)argPart).Content[1]));
                                 optional = true;
                                 break;
                         }
                     }
 
-                    if (!optional && !hasExtension)
+                    if (!hasExtension)
                     {
                         if (ctxParams != null && ctxNdx < ctxParams.Count && !ctxParams[ctxNdx].Optional && !ctxParams[ctxNdx].Indefinite)
                         {
@@ -398,13 +370,10 @@ namespace Whirlwind.Semantic.Visitor
                             paramType = new IncompleteType();
                         }
                         else
-                            throw new SemanticException("Unable to create argument with no type", subNode.Position);
+                            throw new SemanticException("Unable to create argument with no discernable type", subNode.Position);
                     }                        
 
-                    if (hasExtension && optional && !paramType.Coerce(_nodes.Last().Type))
-                        throw new SemanticException("Initializer type incompatable with type extension", subNode.Position);
-
-                    if (paramType.Classify() != TypeClassifier.INCOMPLETE && isOwned && !(paramType is PointerType pt && pt.IsDynamicPointer))
+                    if (isOwned && !(paramType is PointerType pt && pt.IsDynamicPointer))
                         throw new SemanticException("Own modifier must be used on a dynamic pointer", ((ASTNode)subNode).Content[0].Position);
 
                     if (optional)
@@ -412,7 +381,7 @@ namespace Whirlwind.Semantic.Visitor
                         foreach (var identifier in identifiers)
                             argsDeclList.Add(new Parameter(identifier, paramType, true, false, isVolatile, isOwned, _nodes.Last()));
 
-                        _nodes.RemoveAt(_nodes.Count - 1); // remove argument from node stack
+                        _nodes.RemoveLast(); // remove argument from node stack
                     }
                     else if (inferredType)
                     {

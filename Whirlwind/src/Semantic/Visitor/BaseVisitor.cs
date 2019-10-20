@@ -392,6 +392,17 @@ namespace Whirlwind.Semantic.Visitor
                         var vctx = _saveContext();
                         _clearContext();
 
+                        for (int i = 0; i < args.Count; i++)
+                        {
+                            var arg = args[i];
+
+                            if (arg.DefaultValue is IncompleteNode inode && _completeExprWithCtx(inode.AST, 
+                                ctx == null ? arg.DataType : ctx.Parameters[i].DataType, out ITypeNode cDefVal))
+                            {
+                                arg.DefaultValue = cDefVal;
+                            }
+                        }
+
                         rtType = _visitFuncBody((ASTNode)item, args);
 
                         // restore context after visiting (if fails, then context is irrelevant anyways :D)

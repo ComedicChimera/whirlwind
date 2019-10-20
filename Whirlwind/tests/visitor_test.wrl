@@ -1,9 +1,10 @@
-﻿struct MemberInit {
-	x, y: int = v;
-	z: float = 4.5;
-}
+﻿type Color
+	| RED
+	| GREEN
+	| BLUE
+	;
 
-let v = 10;
+func f(x: Color = GREEN) Color => x;
 
 func main() {
 

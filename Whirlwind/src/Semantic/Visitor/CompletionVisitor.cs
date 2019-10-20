@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 
 using Whirlwind.Types;
+using Whirlwind.Syntax;
 
 namespace Whirlwind.Semantic.Visitor
 {
@@ -101,21 +102,9 @@ namespace Whirlwind.Semantic.Visitor
                                 var initializer = (ExprNode)item;
                                 var iAst = ((IncompleteNode)initializer.Nodes[0]).AST;
 
-                                _visitExpr(iAst);
-
-                                if (!item.Type.Coerce(_nodes.Last().Type))
-                                {
-                                    var smex = new SemanticException($"Type of {_nodes.Last().Type.ToString()} is not valid for this member initializer",
-                                        iAst.Position);
-
-                                    smex.FileName = _fileName;
-
-                                    ErrorQueue.Add(smex);
-                                }
-                                else
-                                    initializer.Nodes[0] = _nodes.Last();
-
-                                _nodes.RemoveLast();
+                                // this function handles all errors :D
+                                if (_completeExprWithCtx(iAst, item.Type, out ITypeNode res))
+                                    initializer.Nodes[0] = res;
                             }
                         }
 
@@ -125,7 +114,7 @@ namespace Whirlwind.Semantic.Visitor
                     scopePos++;
                     break;
             }
-        }
+        }        
 
         private void _evaluateGenerates(List<ITypeNode> block)
         {
@@ -202,7 +191,17 @@ namespace Whirlwind.Semantic.Visitor
 
                 try
                 {
-                    _visitFunctionBody(((IncompleteNode)fn.Block[0]).AST, (FunctionType)fn.Nodes[0].Type);
+                    var fnType = (FunctionType)fn.Nodes[0].Type;
+
+                    for (int i = 0; i < fnType.Parameters.Count; i++)
+                    {
+                        var item = fnType.Parameters[i];
+
+                        if (item.DefaultValue is IncompleteNode inode && _completeExprWithCtx(inode.AST, item.DataType, out ITypeNode cDefVal))
+                            item.DefaultValue = cDefVal;      
+                    }
+
+                    _visitFunctionBody(((IncompleteNode)fn.Block[0]).AST, fnType);
 
                     fn.Block = ((BlockNode)_nodes.Last()).Block;
                     fn.Block.RemoveAt(0); // remove incomplete node lol
@@ -286,6 +285,50 @@ namespace Whirlwind.Semantic.Visitor
             }
 
             _table.AscendScope();
+        }
+
+        // complete the expression content of an initializer with the necessary type context
+        private bool _completeExprWithCtx(ASTNode node, DataType ctxType, out ITypeNode res)
+        {
+            int initNodeCount = _nodes.Count;
+
+            try
+            {
+                var pctx = _saveContext();
+
+                _addContext(node);
+                _visitExpr(node);
+
+                _restoreContext(pctx);
+
+                if (_nodes.Last() is IncompleteNode inode)
+                {
+                    _giveContext(inode, ctxType);
+
+                    _nodes[_nodes.Count - 2] = _nodes[_nodes.Count - 1];
+                    _nodes.RemoveLast();
+                }
+                else if (!ctxType.Coerce(_nodes.Last().Type))
+                    throw new SemanticException($"Initializer type of {_nodes.Last().Type.ToString()} not coercible to"
+                        + $" desired type of {ctxType.ToString()}", node.Position);
+
+                res = _nodes.Last();
+
+                _nodes.RemoveLast();
+
+                return true;
+            }
+            catch (SemanticException smex)
+            {
+                smex.FileName = _fileName;
+                ErrorQueue.Add(smex);
+
+                while (_nodes.Count != initNodeCount)
+                    _nodes.RemoveLast();
+
+                res = null;
+                return false;
+            }
         }
     }
 }

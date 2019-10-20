@@ -8,7 +8,7 @@ using static Whirlwind.Semantic.Checker.Checker;
 namespace Whirlwind.Types
 {
     // declared parameters
-    struct Parameter
+    class Parameter
     {
         public string Name;
         public DataType DataType;
