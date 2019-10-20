@@ -7,5 +7,6 @@
 func f(x: Color = GREEN) Color => x;
 
 func main() {
-
+	f(BLUE, 4
+		+ 5);
 }

@@ -63,9 +63,35 @@ namespace Whirlwind
         static private void _writeError(string text, string message, int position, int length, string fileName)
         {
             int line = _getLine(text, position), column = _getColumn(text, position);
-            Console.WriteLine($"{message} at (Line: {line}, Column: {column}) in {fileName}");
-            Console.WriteLine($"\n\t{text.Split('\n')[line].Trim('\t')}");
-            Console.WriteLine("\t" + String.Concat(Enumerable.Repeat(" ", column - 1)) + String.Concat(Enumerable.Repeat("^", length)));
+            Console.WriteLine($"{message} at (Line: {line}, Column: {column}) in {fileName}\n");
+
+            int showFrom = Enumerable.Range(0, position).Reverse().Where(i => text[i] == '\n').FirstOrDefault();
+            int showCount = text.Skip(showFrom).Select((ch, i) => new { ch, i })
+                .SkipWhile(x => x.i < length || x.ch != '\n').First().i;
+
+            int startArrowPos = position - showFrom, endArrowPos = startArrowPos + length;
+
+            string errorText = text.Substring(showFrom, showCount);
+            string arrows = string.Join("", errorText.Select((c, i) =>
+            {
+                if ("\r\t\n".Contains(c))
+                    return c;
+                else if (i < startArrowPos || i >= endArrowPos)
+                    return ' ';
+                else
+                    return '^';
+            }));
+
+            string[] errorLines = errorText.Trim('\n').Split("\n"), arrowLines = arrows.Trim('\n').Split("\n");
+
+            int maxSpaces = (line + errorLines.Length).ToString().Length;
+            string padSpace = String.Concat(Enumerable.Repeat(" ", maxSpaces + 1));
+
+            for (int i = 0; i < errorLines.Length; i++)
+            {
+                Console.WriteLine(" " + (line + i).ToString().PadLeft(maxSpaces) + " |\t" + errorLines[i].Trim('\t'));
+                Console.WriteLine(padSpace + " |\t" + arrowLines[i].Trim('\t'));
+            }
         }
 
         static private int _getColumn(string text, int ndx)
@@ -76,7 +102,7 @@ namespace Whirlwind
 
         static private int _getLine(string text, int ndx)
         {
-            return text.Substring(0, ndx + 1).Count(x => x == '\n');
+            return text.Substring(0, ndx + 1).Count(x => x == '\n') + 1;
         }
     }
 }
