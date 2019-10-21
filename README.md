@@ -97,7 +97,7 @@ Whirlwind also features pattern matching in a number of situations that can prov
        if (a is i: int) {
            // do something with i
        }
-   }
+    }
    
 In summary, one way Whirlwind encourages speed of development is by providing a concise, but expressive syntax.
 
