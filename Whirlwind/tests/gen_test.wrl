@@ -1,0 +1,7 @@
+﻿struct Test {
+	x, y: int = 10;
+}
+
+func main() {
+
+}
