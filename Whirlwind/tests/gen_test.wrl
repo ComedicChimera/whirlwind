@@ -1,5 +1,5 @@
-﻿func test() uint {
-	return 4294967294u;
+﻿func test() long {
+	return 14294967294;
 }
 
 func main() {	

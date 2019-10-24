@@ -1,10 +1,5 @@
 # TODO
 
-- add literal suffixes for large/unsigned types
-  * `0.0d` - double
-  * `0l` - long
-  * `0u` - unsigned
-- add literal checking: make sure that an integer literal is actually and integer
 - get yo naming right in documentation
   * "Value-Enumerated Type Class" -> "Algebraic Type Class"
   * "function objectification" -> First Class Functions

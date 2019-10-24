@@ -21,10 +21,57 @@ namespace Whirlwind.Semantic.Visitor
                 switch (((TokenNode)node.Content[0]).Tok.Type)
                 {
                     case "INTEGER_LITERAL":
-                        dt = SimpleType.SimpleClassifier.INTEGER;
+                        {
+                            var tokVal = ((TokenNode)node.Content[0]).Tok.Value;
+                            bool defLong = tokVal.Contains('l');
+
+                            unsigned = tokVal.Contains('u');
+
+                            if (ulong.TryParse(tokVal.TrimEnd('u', 'l'), out ulong result))
+                            {
+                                if (unsigned)
+                                {
+                                    if (result <= UInt32.MaxValue)
+                                        dt = SimpleType.SimpleClassifier.INTEGER;
+                                    else
+                                        dt = SimpleType.SimpleClassifier.LONG;
+                                }
+                                else
+                                {
+                                    if (result > Int64.MaxValue)
+                                    {
+                                        dt = SimpleType.SimpleClassifier.LONG;
+                                        unsigned = true;
+                                    }
+                                    else if (result > UInt32.MaxValue)
+                                        dt = SimpleType.SimpleClassifier.LONG;
+                                    else if (result > Int32.MaxValue)
+                                    {
+                                        dt = SimpleType.SimpleClassifier.INTEGER;
+                                        unsigned = true;
+                                    }
+                                    else
+                                        dt = SimpleType.SimpleClassifier.INTEGER;
+                                }
+                            }
+                            else
+                                throw new SemanticException("Integer literal too long", node.Content[0].Position);
+                        }
                         break;
                     case "FLOAT_LITERAL":
-                        dt = SimpleType.SimpleClassifier.FLOAT;
+                        {
+                            var tokVal = ((TokenNode)node.Content[0]).Tok.Value;
+
+                            if (double.TryParse(tokVal.TrimEnd('d'), out double result))
+                            {
+                                if (tokVal.Contains('d') || result > float.MaxValue)
+                                    dt = SimpleType.SimpleClassifier.DOUBLE;
+                                else
+                                    dt = SimpleType.SimpleClassifier.FLOAT;
+                            }
+                            else
+                                throw new SemanticException("Integer literal too long", node.Content[0].Position);
+                        }
                         break;
                     case "BOOL_LITERAL":
                         dt = SimpleType.SimpleClassifier.BOOL;
