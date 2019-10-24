@@ -34,6 +34,7 @@ namespace Whirlwind.Generation
                 {
                     LLVM.PositionBuilderAtEnd(_builder, LLVM.AppendBasicBlockInContext(_ctx, llvmFn, "entry"));
 
+                    // include arguments!
                     _generateBlock(node.Block);
 
                     if (fn.ReturnType.Classify() == TypeClassifier.NONE)
@@ -50,6 +51,7 @@ namespace Whirlwind.Generation
 
                 LLVM.PositionBuilderAtEnd(_builder, LLVM.AppendBasicBlockInContext(_ctx, llvmFn, "entry"));
 
+                // include arguments!
                 _generateBlock(node.Block);
 
                 if (fn.ReturnType.Classify() == TypeClassifier.NONE)

@@ -34,6 +34,7 @@ namespace Whirlwind.Semantic.Visitor
                         break;
                     case "CHAR_LITERAL":
                         dt = SimpleType.SimpleClassifier.CHAR;
+                        unsigned = true;
                         break;
                     case "HEX_LITERAL":
                     case "BINARY_LITERAL":

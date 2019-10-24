@@ -47,7 +47,7 @@ namespace Whirlwind
 
         static public void DisplayError(GeneratorException gex, string outputFile)
         {
-
+            Console.WriteLine($"Generation Error: {gex.ErrorMessage} in {outputFile}");
         } 
 
         static public void InitLoadedFiles()

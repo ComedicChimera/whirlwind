@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Linq;
 
 using LLVMSharp;
 
@@ -34,7 +34,7 @@ namespace Whirlwind.Generation
                             case SimpleType.SimpleClassifier.CHAR:
                             case SimpleType.SimpleClassifier.INTEGER:
                             case SimpleType.SimpleClassifier.LONG:
-                                return LLVM.ConstInt(_convertType(node.Type), ulong.Parse(node.Value), new LLVMBool(Convert.ToInt32(st.Unsigned)));
+                                return LLVM.ConstIntOfString(_convertType(node.Type), node.Value, 10);
                             case SimpleType.SimpleClassifier.FLOAT:
                             case SimpleType.SimpleClassifier.DOUBLE:
                                 return LLVM.ConstRealOfString(_convertType(node.Type), node.Value);
@@ -44,6 +44,16 @@ namespace Whirlwind.Generation
                         }
                     }
                     break;
+                case "This":
+                    return _getNamedValue("$THIS");
+                case "Value":
+                    return _getNamedValue("$value_tmp");
+                case "ByteLiteral":
+                    {
+                        ulong val = node.Value.StartsWith("0x") ? Convert.ToUInt64(node.Value, 16) : Convert.ToUInt64(node.Value, 2);
+
+                        return LLVM.ConstInt(_convertType(node.Type), val, new LLVMBool(0));
+                    }
             }
 
             // other values a bit more complicated

@@ -22,6 +22,9 @@ namespace Whirlwind.Generation
         private readonly LLVMBuilderRef _builder;
         private readonly LLVMContextRef _ctx;
 
+        // keeps track of current scope hierarchy (starting from upper level function scope, not global scope)
+        private readonly List<Dictionary<string, LLVMValueRef>> _scopes;
+
         public Generator(SymbolTable table, Dictionary<string, string> flags, Dictionary<string, DataType> typeImpls, string namePrefix)
         {
             _table = table;
@@ -33,6 +36,9 @@ namespace Whirlwind.Generation
             _module = LLVM.ModuleCreateWithName("test");
             _ctx = LLVM.GetModuleContext(_module);
             _builder = LLVM.CreateBuilderInContext(_ctx);
+
+            // setup generator state data
+            _scopes = new List<Dictionary<string, LLVMValueRef>>();
         }
 
         public void Generate(ITypeNode tree, string outputFile)
@@ -68,6 +74,20 @@ namespace Whirlwind.Generation
             }
 
             return string.Join("", name.Skip(i));
+        }
+
+        private LLVMValueRef _getNamedValue(string name)
+        {
+            IEnumerable<Dictionary<string, LLVMValueRef>> localScopes = _scopes;
+
+            foreach (var scope in localScopes.Reverse())
+            {
+                if (scope.ContainsKey(name))
+                    return scope[name];
+            }
+
+            // if it does not exist in local scopes, then it is a global
+            return LLVM.GetNamedGlobal(_module, name);
         }
     }
 

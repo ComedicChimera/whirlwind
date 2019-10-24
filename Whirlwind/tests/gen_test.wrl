@@ -1,7 +1,6 @@
-﻿struct Test {
-	x, y: int = 10;
+﻿func test() uint {
+	return 4294967294u;
 }
 
-func main() {
-
+func main() {	
 }

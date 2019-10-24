@@ -1,5 +1,10 @@
 # TODO
 
+- add literal suffixes for large/unsigned types
+  * `0.0d` - double
+  * `0l` - long
+  * `0u` - unsigned
+- add literal checking: make sure that an integer literal is actually and integer
 - get yo naming right in documentation
   * "Value-Enumerated Type Class" -> "Algebraic Type Class"
   * "function objectification" -> First Class Functions
@@ -72,10 +77,6 @@
   * add a `priv` modifier
 - make the overloading for generic function groups account for restrictors
 - add context-based inferencing for lambdas in `case` and `if` expressions
-- add literal suffixes for different types:
-  * `0.0f` - float
-  * `0l` - long
-  * `0u` - uint
 - add some higher level pattern matching capability
   * more than just tuples and type classes
   * `[let x, 4, _, ...]`

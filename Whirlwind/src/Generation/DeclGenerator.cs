@@ -60,6 +60,7 @@ namespace Whirlwind.Generation
 
                         }
 
+                        // generate block with declared arguments
                         _generateBlock(node.Block);
 
                         LLVM.VerifyFunction(llvmConstructor, LLVMVerifierFailureAction.LLVMPrintMessageAction);
