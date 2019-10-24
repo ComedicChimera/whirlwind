@@ -21,7 +21,6 @@ connote any operation or computation.
 | Type | Represents the data type used in is type testing | *empty* |
 | Value | Represents the chained data value | *empty* |
 | Super | Represents a reference to the single parent of a type interface | "()" |
-| AnnotationValue | Stores the value being given to an annotation | *Any string value* |
 | ByteLiteral | Represents a byte literal value | *Any byte literal* |
 
 ### Components
@@ -39,6 +38,7 @@ connote any operation or computation.
 | ConstructorSignature | Store the type of a constructor in a constructor block |
 | VariantGenerate | Represents the type generated for a specific variant instance |
 | AnnotationName | Stores the name of any given annotation |
+| AnnotationValue | Stores the value being given to an annotation | *Any string value* |
 | IntegerMember | Stores the "name" of the member being accessed from a tuple |
 | Rename | Stores the new name of a package in each file |
 | Operator | Stores the operator being overloaded in an op. overload |

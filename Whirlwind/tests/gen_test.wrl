@@ -1,6 +1,6 @@
-﻿func test() long {
-	return 14294967294;
-}
+﻿type Test | A | B | C ;
 
-func main() {	
+func main() {
+	let t = Test::A;
+
 }

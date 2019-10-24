@@ -251,6 +251,10 @@ namespace Whirlwind.Semantic.Visitor
             if (_nodes.Last().Type is NoneType && !isExprStmt)
                 throw new SemanticException("Unable to use an expression that returns no value", node.Position);
 
+            // check for type classes used without static get
+            if (_nodes.Last().Type is CustomType)
+                throw new SemanticException("Unable to use type definition as expression", node.Position);
+
             // apply constexpr optimization
             if (_constexprOptimizerEnabled && Evaluator.TryEval(_nodes.Last()))
                 _nodes[_nodes.Count - 1] = Evaluator.Evaluate(_nodes.Last());

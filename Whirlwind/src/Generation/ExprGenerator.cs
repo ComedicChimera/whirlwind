@@ -13,8 +13,20 @@ namespace Whirlwind.Generation
     {
         private LLVMValueRef _generateExpr(ITypeNode expr)
         {
-            if (expr is ValueNode vn)
-                return _generateExprValue(vn);
+            if (expr is ValueNode vnode)
+                return _generateExprValue(vnode);
+            // hopefully this is ok
+            else if (expr is IdentifierNode inode)
+                return _getNamedValue(inode.IdName);
+            else if (expr is ConstexprNode cnode)
+                return _generateExpr(cnode.ConstValue);
+            // only other option is expr node
+            else
+            {
+                var enode = (ExprNode)expr;
+
+
+            }
 
             return LLVM.ConstInt(LLVM.Int32Type(), 0, new LLVMBool(0));
         }

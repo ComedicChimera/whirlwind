@@ -190,6 +190,9 @@ namespace Whirlwind.Semantic.Visitor
 
                                     size = Int32.Parse(((ValueNode)val).Value);
                                     _nodes.RemoveLast();
+
+                                    if (size == 0)
+                                        throw new SemanticException("Unable to declare an array with an explicit length of 0", component.Position);
                                 }
                                 break;
                             case "TOKEN":

@@ -31,7 +31,7 @@ namespace Whirlwind.Semantic.Visitor
                             {
                                 if (unsigned)
                                 {
-                                    if (result <= UInt32.MaxValue)
+                                    if (!defLong && result <= UInt32.MaxValue)
                                         dt = SimpleType.SimpleClassifier.INTEGER;
                                     else
                                         dt = SimpleType.SimpleClassifier.LONG;
@@ -43,7 +43,7 @@ namespace Whirlwind.Semantic.Visitor
                                         dt = SimpleType.SimpleClassifier.LONG;
                                         unsigned = true;
                                     }
-                                    else if (result > UInt32.MaxValue)
+                                    else if (defLong || result > UInt32.MaxValue)
                                         dt = SimpleType.SimpleClassifier.LONG;
                                     else if (result > Int32.MaxValue)
                                     {
