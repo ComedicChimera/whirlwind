@@ -186,6 +186,11 @@ namespace Whirlwind.Semantic
 
         public bool Lookup(string name, out Symbol symbol)
         {
+            return Lookup(name, true, out symbol);
+        }
+
+        public bool Lookup(string name, bool allowInternal, out Symbol symbol)
+        {
             var visibleScopes = new List<Scope>() { _table };
             Scope currentScope = _table;
 
@@ -222,12 +227,12 @@ namespace Whirlwind.Semantic
                 if (scope.Symbols.ContainsKey(name))
                 {
                     symbol = scope.Symbols[name];
-                    return true;
+                    return allowInternal || symbol.Modifiers.Contains(Modifier.EXPORTED);
                 }
                 else if (capturedSymbol.Name != "$NOT_VALID")
                 {
                     symbol = capturedSymbol;
-                    return true;
+                    return allowInternal || symbol.Modifiers.Contains(Modifier.EXPORTED);
                 }
             }
             symbol = null;

@@ -83,5 +83,20 @@ namespace Whirlwind.Generation
         {
             return LLVM.VoidType();
         }
+
+        private LLVMValueRef _coerce(LLVMValueRef val, DataType start, DataType desired)
+        {
+            if (start is SimpleType st)
+            {
+
+            }
+
+            return _ignoreValueRef();
+        }
+
+        private LLVMValueRef _cast(LLVMValueRef val, DataType start, DataType desired)
+        {
+            return _ignoreValueRef();
+        }
     }
 }

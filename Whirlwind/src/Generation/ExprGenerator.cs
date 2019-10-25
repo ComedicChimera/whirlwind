@@ -25,11 +25,39 @@ namespace Whirlwind.Generation
             {
                 var enode = (ExprNode)expr;
 
-
+                switch (expr.Name)
+                {
+                    case "Add":
+                        
+                        break;
+                }
             }
 
-            return LLVM.ConstInt(LLVM.Int32Type(), 0, new LLVMBool(0));
+            return _ignoreValueRef();
         }
+
+        private List<LLVMValueRef> _buildOperands(List<ITypeNode> nodes, DataType exprType)
+        {
+            var results = new List<LLVMValueRef>();
+
+            foreach (var node in nodes)
+            {
+                var g = _generateExpr(node);
+
+                if (!exprType.Equals(node.Type))
+                    results.Add(_coerce(g, node.Type, exprType));
+                else
+                    results.Add(g);
+            }
+
+            return results;
+        }
+
+        private bool _buildOperOverload(ITypeNode expr, out LLVMValueRef res)
+        {
+            res = _ignoreValueRef();
+            return false;
+        } 
 
         private LLVMValueRef _generateExprValue(ValueNode node)
         {
@@ -53,7 +81,7 @@ namespace Whirlwind.Generation
                                 return LLVM.ConstRealOfString(_convertType(node.Type), node.Value.TrimEnd('d'));
                             case SimpleType.SimpleClassifier.STRING:
                                 // for now
-                                return LLVM.ConstInt(LLVM.Int32Type(), 0, new LLVMBool(0));
+                                return _ignoreValueRef();
                         }
                     }
                     break;
@@ -70,7 +98,7 @@ namespace Whirlwind.Generation
             }
 
             // other values a bit more complicated
-            return LLVM.ConstInt(LLVM.Int32Type(), 0, new LLVMBool(0));
+            return _ignoreValueRef();
         }
     }
 }

@@ -42,8 +42,14 @@ namespace Whirlwind.Semantic.Visitor
                             constant = true;
                             break;
                         case "IDENTIFIER":
-                            if (_table.Lookup(tokenNode.Tok.Value, out Symbol symbol))
+                            if (_table.Lookup(tokenNode.Tok.Value, _allowInternalTypes, out Symbol symbol))
                                 dt = _getIdentifierType(symbol.DataType, tokenNode.Position);
+                            // get proper error for inappropriate internal symbol
+                            else if (_allowInternalTypes && _table.Lookup(tokenNode.Tok.Value, out Symbol _))
+                            {
+                                throw new SemanticException($"Internal symbol `{tokenNode.Tok.Value}` used in export context",
+                                        tokenNode.Position);
+                            }
                             else
                                 throw new SemanticException($"Undefined symbol: `{tokenNode.Tok.Value}`", tokenNode.Position);
                             break;

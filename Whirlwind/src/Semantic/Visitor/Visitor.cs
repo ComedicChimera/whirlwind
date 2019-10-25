@@ -72,6 +72,7 @@ namespace Whirlwind.Semantic.Visitor
         private bool _wrapsNextAnnotBlock = false;
         private bool _functionCanHaveNoBody = false;
         private bool _enableIntrinsicGet = false;
+        private bool _allowInternalTypes = true;
 
         public Visitor(string namePrefix, bool constexprOptimizerEnabled, Dictionary<string, DataType> typeImpls)
         {
@@ -114,6 +115,8 @@ namespace Whirlwind.Semantic.Visitor
                             _visitVarDecl((ASTNode)node, new List<Modifier>());
                             break;
                         case "export_decl":
+                            _allowInternalTypes = false;
+
                             ASTNode decl = (ASTNode)((ASTNode)node).Content[1];
 
                             switch (decl.Name)
@@ -128,6 +131,8 @@ namespace Whirlwind.Semantic.Visitor
                                     _visitInclude(decl, true);
                                     break;
                             }
+
+                            _allowInternalTypes = true;
                             break;
                         // add any logic surrounding inclusion
                         case "include_stmt":

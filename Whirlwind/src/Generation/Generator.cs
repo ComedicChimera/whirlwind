@@ -89,6 +89,11 @@ namespace Whirlwind.Generation
             // if it does not exist in local scopes, then it is a global
             return LLVM.GetNamedGlobal(_module, name);
         }
+
+        private LLVMValueRef _ignoreValueRef()
+        {
+            return LLVM.ConstInt(LLVM.Int32Type(), 0, new LLVMBool(0));
+        }
     }
 
     class GeneratorException : Exception

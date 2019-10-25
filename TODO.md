@@ -6,6 +6,7 @@
   * flip "deductive" and "inductive" type inference (it makes more sense the other way round)
 - get structs up and running
   * variable initializers
+- make type impls actually work
 - finish functions
   * deal with multifile overloading
   * any other problems that could come up
@@ -60,6 +61,7 @@
 - remember, ranges can go in both directions are are inclusive on both sides
 - make sure to inline expr functions
 - make sure naming conventions are properly handled (ie. should std-lib have prefix lib::std?)
+- make sure includes bring in all of the necessary information (ie. if you import something, you import all of it)
 
 # THOUGHTS
 
