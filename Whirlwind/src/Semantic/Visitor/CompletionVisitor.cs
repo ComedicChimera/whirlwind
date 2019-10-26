@@ -82,7 +82,6 @@ namespace Whirlwind.Semantic.Visitor
                     // variants are basically functions for this stage of compilation
                     _completeFunction((BlockNode)node);
                     break;
-                // add completion for structs
                 case "Struct":
                     {
                         _table.GotoScope(scopePos);
@@ -113,6 +112,23 @@ namespace Whirlwind.Semantic.Visitor
 
                     scopePos++;
                     break;
+                case "TypeClass":
+                    scopePos++;
+                    break;
+                case "AnnotatedBlock":
+                    {
+                        BlockNode anode = (BlockNode)node;
+                        StatementNode annotation = (StatementNode)anode.Block[0];
+
+                        if (((ValueNode)annotation.Nodes[0]).Value == "friend")
+                            _friendName = ((ValueNode)annotation.Nodes[1]).Value;
+
+                        _completeBlock((BlockNode)anode.Block[1], ref scopePos);
+
+                        if (_friendName != "")
+                            _friendName = "";
+                    }
+                    break;
             }
         }        
 
@@ -133,6 +149,7 @@ namespace Whirlwind.Semantic.Visitor
                     case "Decorator":
                     case "Function":
                     case "AsyncFunction":
+                    case "TypeClass":
                         scopePos++;
                         break;
                     case "Generic":
@@ -166,7 +183,6 @@ namespace Whirlwind.Semantic.Visitor
 
                         scopePos++;
                         break;
-                    case "TypeClass":
                     case "Interface":
                     case "BindInterface":
                         _table.GotoScope(scopePos);
@@ -176,6 +192,20 @@ namespace Whirlwind.Semantic.Visitor
                         _table.AscendScope();
 
                         scopePos++;
+                        break;
+                    case "AnnotatedBlock":
+                        {
+                            BlockNode anode = (BlockNode)node;
+                            StatementNode annotation = (StatementNode)anode.Block[0];
+
+                            if (((ValueNode)annotation.Nodes[0]).Value == "friend")
+                                _friendName = ((ValueNode)annotation.Nodes[1]).Value;
+
+                            _evaluateGenerates(anode.Block);
+
+                            if (_friendName != "")
+                                _friendName = "";
+                        }
                         break;
                 }
             }

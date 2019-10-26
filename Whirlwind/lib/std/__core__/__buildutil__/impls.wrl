@@ -1,0 +1,67 @@
+﻿// TYPES
+
+#impl "array"
+struct __array<T> {
+	p: *T;
+	size: uint;
+}
+
+#impl "list"
+struct __list<T> {
+	p: dyn* T;
+	size: uint;
+	cap: uint;
+}
+
+#impl "dict"
+struct __dict<K, V> {
+	kvList: dyn* (K, V);
+	kvSize, kvCap: uint;
+
+	hashTable: dyn *int;
+	htSize, htCap: uint;
+
+	nextInsertNdx: uint;
+}
+
+#impl "string"
+struct __string {
+	chars: *char;
+	size: uint;
+}
+
+#impl "alg_type"
+struct __algType {
+	label: int;
+	values: *any;
+}
+
+#impl "closure"
+struct __closure<T> {
+	fp: *T; // possibly need another way to store function pointer
+	data: *any;
+}
+
+
+// FUNCTIONS
+#friend "string"
+func __concat(a, b: str) str {
+	let np: *char;
+	*np = *a.chars;
+
+	// better support for pointer ari?
+	let mp = np + a.size;
+	*mp = *b.chars;
+
+	return new __string { chars = np, size = a.size + b.size } as str;
+}
+
+#friend "array"
+func __concatA<T>(a, b: []T) {
+
+}
+
+#friend "list"
+func __concatL<T>(a, b: [T]) {
+
+}

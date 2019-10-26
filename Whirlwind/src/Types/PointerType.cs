@@ -33,6 +33,6 @@
             => new PointerType(DataType, IsDynamicPointer) { Constant = true };
 
         public override string ToString()
-            => $"{(IsDynamicPointer ? "dyn*" : "*")} {DataType.ToString()}";
+            => (IsDynamicPointer ? "dyn* " : "*") + DataType.ToString();
     }
 }

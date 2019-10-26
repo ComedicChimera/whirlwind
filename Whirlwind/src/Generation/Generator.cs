@@ -14,7 +14,7 @@ namespace Whirlwind.Generation
         // visitor extracted data
         private readonly SymbolTable _table;
         private readonly Dictionary<string, string> _flags;
-        private readonly Dictionary<string, DataType> _typeImpls;
+        private readonly Dictionary<string, DataType> _impls;
         private readonly string _namePrefix;
 
         // llvm build data
@@ -25,11 +25,14 @@ namespace Whirlwind.Generation
         // keeps track of current scope hierarchy (starting from upper level function scope, not global scope)
         private readonly List<Dictionary<string, LLVMValueRef>> _scopes;
 
-        public Generator(SymbolTable table, Dictionary<string, string> flags, Dictionary<string, DataType> typeImpls, string namePrefix)
+        // store global string type
+        private readonly LLVMTypeRef _stringType;
+
+        public Generator(SymbolTable table, Dictionary<string, string> flags, Dictionary<string, DataType> impls, string namePrefix)
         {
             _table = table;
             _flags = flags;
-            _typeImpls = typeImpls;
+            _impls = impls;
             _namePrefix = namePrefix;
 
             // pass in necessary config data
@@ -39,6 +42,7 @@ namespace Whirlwind.Generation
 
             // setup generator state data
             _scopes = new List<Dictionary<string, LLVMValueRef>>();
+            _stringType = _convertType(impls["string"]);
         }
 
         public void Generate(ITypeNode tree, string outputFile)

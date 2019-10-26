@@ -36,9 +36,9 @@ namespace Whirlwind.Semantic.Visitor
 
         private bool _isValidAnnotation(string annot, bool hasValue)
         {
-            if (hasValue && new[] { "impl", "platform", "static_link", "res_name" }.Contains(annot))
+            if (hasValue && new[] { "impl", "platform", "static_link", "res_name", "friend" }.Contains(annot))
                 return true;
-            else if (new[] { "extern", "intrinsic", "packed" }.Contains(annot))
+            else if (!hasValue && new[] { "extern", "intrinsic", "packed" }.Contains(annot))
                 return true;
 
             return false;
@@ -59,6 +59,10 @@ namespace Whirlwind.Semantic.Visitor
                 case "impl":
                     _wrapsNextAnnotBlock = true;
                     _implName = value;
+                    break;
+                case "friend":
+                    _wrapsNextAnnotBlock = true;
+                    _friendAnnotation = true;
                     break;
                 case "res_name":
                     if (!value.EndsWith(".llvm") || value.Contains("/"))

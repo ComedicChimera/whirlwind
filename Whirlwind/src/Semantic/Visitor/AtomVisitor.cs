@@ -279,35 +279,12 @@ namespace Whirlwind.Semantic.Visitor
                         throw new SemanticException("Unable to directly access special methods outside of runtime core", idPos);
                     else if (!type.GetInterface().GetFunction(name, out symbol))
                     {
-                        if (_enableIntrinsicGet)
+                        if (_friendName != "")
                         {
-                            string typeString = type.ToString();
-                            var matches = _typeImpls.Where(x => typeString.StartsWith(x.Key));
+                            var impl = _getImpl(type);
 
-                            if (matches.Count() > 0)
-                            {
-                                var match = matches.First();
-
-                                // may never be added, but here in case it is :D
-                                if (match.Value is StructType st)
-                                    return _getMember(st.GetInstance(), name, opPos, idPos);
-                                else if (match.Value is GenericType gt)
-                                {
-                                    var dataTypes = new List<DataType>();
-
-                                    if (type is ArrayType at)
-                                        dataTypes.Add(at.ElementType);
-                                    else if (type is ListType lt)
-                                        dataTypes.Add(lt.ElementType);
-                                    else if (type is DictType dt)
-                                        dataTypes.AddRange(new[] { dt.KeyType, dt.ValueType });
-                                    else if (type is PointerType pt)
-                                        dataTypes.Add(pt.DataType);
-
-                                    if (gt.CreateGeneric(dataTypes, out DataType it) && it is StructType ist)
-                                        return _getMember(ist.GetInstance(), name, opPos, idPos);                                    
-                                }
-                            }
+                            if (impl != null)
+                                return _getMember(impl, name, opPos, idPos);
                         }
 
                         throw new SemanticException($"Type has no interface member `{name}`", idPos);
@@ -317,6 +294,65 @@ namespace Whirlwind.Semantic.Visitor
             }
 
             return symbol;
+        }
+
+        private StructType _getImpl(DataType type)
+        {
+            string getMatchString()
+            {
+                if (type is SimpleType st && st.Type == SimpleType.SimpleClassifier.STRING)
+                    return "string";
+
+                if (type is CustomType ct && ct.Instances.Count > 1)
+                    return "alg_type";
+
+                switch (type.Classify())
+                {
+                    case TypeClassifier.ARRAY:
+                        return "array";
+                    case TypeClassifier.LIST:
+                        return "list";
+                    case TypeClassifier.DICT:
+                        return "dict";
+                    case TypeClassifier.FUNCTION:
+                        return "closure";
+                    default:
+                        return "";
+                }
+            }
+
+            string matchString = getMatchString();
+
+            if (matchString != _friendName)
+                return null;
+
+            var matches = _impls.Where(x => x.Key == matchString);
+
+            if (matches.Count() > 0)
+            {
+                var match = matches.First();
+
+                if (match.Value is StructType st)
+                    return st.GetInstance();
+                else if (match.Value is GenericType gt)
+                {
+                    var dataTypes = new List<DataType>();
+
+                    if (type is ArrayType at)
+                        dataTypes.Add(at.ElementType);
+                    else if (type is ListType lt)
+                        dataTypes.Add(lt.ElementType);
+                    else if (type is DictType dt)
+                        dataTypes.AddRange(new[] { dt.KeyType, dt.ValueType });
+                    else if (type is PointerType pt)
+                        dataTypes.Add(pt.DataType);
+
+                    if (gt.CreateGeneric(dataTypes, out DataType it) && it is StructType ist)
+                        return ist.GetInstance();
+                }
+            }
+
+            return null;
         }
 
         private Symbol _getStaticMember(DataType type, string name, TextPosition opPos, TextPosition idPos)

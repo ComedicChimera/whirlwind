@@ -6,14 +6,14 @@ namespace Whirlwind.Types
     {
         public enum SimpleClassifier
         {
-            INTEGER,
-            FLOAT,
-            BOOL,
-            STRING,
+            BOOL, 
             CHAR,
             BYTE,
-            LONG,
-            DOUBLE
+            INTEGER,
+            FLOAT,
+            LONG, 
+            DOUBLE,
+            STRING
         }
 
         public SimpleClassifier Type { get; private set; }

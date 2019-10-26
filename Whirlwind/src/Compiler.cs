@@ -20,9 +20,9 @@ namespace Whirlwind
         private PackageManager _pm;
 
         private bool _compiledMainPackage;
-        private Dictionary<string, DataType> _typeImpls;
+        private Dictionary<string, DataType> _impls;
 
-        private Package _typeImplPkg;
+        private ASTNode _implAST;
         private string _startDirectory;
 
         public Compiler(string tokenPath, string grammarPath)
@@ -35,11 +35,11 @@ namespace Whirlwind
             _pm = new PackageManager();
 
             _compiledMainPackage = false;
-            _typeImpls = new Dictionary<string, DataType>();
+            _impls = new Dictionary<string, DataType>();
 
             ErrorDisplay.InitLoadedFiles();
 
-            _typeImplPkg = _buildRaw("__buildutil__/type_impls.wrl", "type_impls");
+            _implAST = _parseRaw("__buildutil__/impls.wrl");
 
             _startDirectory = Directory.GetCurrentDirectory();
         }
@@ -89,6 +89,9 @@ namespace Whirlwind
                     pkg.Files[fName] = ast;
                 }
 
+                // add in impls
+                pkg.Files[WHIRL_PATH + "lib/std/__core__/__buildutil__/impls.wrl"] = _implAST;
+
                 bool isMainPackage = false;
                 if (!_compiledMainPackage)
                 {
@@ -112,7 +115,7 @@ namespace Whirlwind
                     return false;
                 }
 
-                var visitor = new Visitor(namePrefix, false, _typeImpls);
+                var visitor = new Visitor(namePrefix, false, _impls);
 
                 if (!_runVisitor(visitor, finalAst, pkg))
                 {
@@ -132,7 +135,7 @@ namespace Whirlwind
                 // clear out AST once it is no longer being used
                 _clearPackage(pkg);
 
-                var generator = new Generator(table, visitor.Flags(), _typeImpls, namePrefix);
+                var generator = new Generator(table, visitor.Flags(), _impls, namePrefix);
 
                 if (_runGenerator(generator, sat, pkg.Name + ".llvm"))
                 {
@@ -155,46 +158,6 @@ namespace Whirlwind
                 return false;
         }
 
-        private Package _buildRaw(string corePath, string name)
-        {
-            corePath = WHIRL_PATH + "/lib/std/__core__/" + corePath;
-
-            var pkg = new Package(name);            
-
-            // if exception happens here, we got problems
-            string text = File.ReadAllText(corePath);
-
-            var tokens = _scanner.Scan(text);
-
-            var ast = _runParser(tokens, text, name);
-            if (ast == null)
-                return null;
-
-            pkg.Files.Add(corePath, ast);
-
-            var visitor = new Visitor("", false, _typeImpls);
-
-            if (!_runVisitor(visitor, ast, pkg))
-                return null;
-
-            pkg.Files[pkg.Files.Keys.First()] = null;
-
-            var table = visitor.Table();
-            var generator = new Generator(table, visitor.Flags(), _typeImpls, "");
-
-            if (_runGenerator(generator, visitor.Result(), "type_impls.llvm"))
-            {
-                pkg.Compiled = true;
-
-                var eTable = table.Filter(x => x.Modifiers.Contains(Modifier.EXPORTED));
-                pkg.Type = new PackageType(eTable);
-
-                return pkg;
-            }
-
-            return null;
-        }
-
         public string _convertPathToPrefix(string path)
         {
             path = Path.GetFullPath(path);
@@ -214,6 +177,23 @@ namespace Whirlwind
         {
             for (int i = 0; i < pkg.Files.Count; i++)
                 pkg.Files[pkg.Files.Keys.ElementAt(i)] = null;
+        }
+
+        private ASTNode _parseRaw(string path)
+        {
+            var fullPath = WHIRL_PATH + "lib/std/__core__/" + path;
+
+            // should never fail
+            var text = File.ReadAllText(fullPath);
+
+            var tokens = _scanner.Scan(text);
+
+            var anode = _runParser(tokens, text, path);
+
+            if (anode == null)
+                throw new Exception("Failed to parse type impls");
+
+            return anode;
         }
 
         private bool _buildMainFile(Package mainPkg, SymbolTable fullTable, ITypeNode sat, string namePrefix)
@@ -251,7 +231,7 @@ namespace Whirlwind
             mtAst.Content.Insert(0, new ASTNode("$FILE_NUM$" + mainPkg.Files.Count));
             mainPkg.Files.Add(mainTempPath, mtAst);
 
-            var mtVisitor = new Visitor("", false, _typeImpls);
+            var mtVisitor = new Visitor("", false, _impls);
             mtVisitor.Table().AddSymbol(symbol.Copy());
 
             if (!_runVisitor(mtVisitor, mtAst, mainPkg))

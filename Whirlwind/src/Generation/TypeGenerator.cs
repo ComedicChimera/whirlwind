@@ -31,24 +31,23 @@ namespace Whirlwind.Generation
                         return LLVM.FloatType();
                     case SimpleType.SimpleClassifier.DOUBLE:
                         return LLVM.DoubleType();
-                    // handle strings later
                     default:
-                        return LLVM.VoidType();
+                        return _stringType;
                 }
             }
             else if (dt is ArrayType at)
             {
-                ((GenericType)_typeImpls["array"]).CreateGeneric(new List<DataType> { at.ElementType }, out DataType ast);
+                ((GenericType)_impls["array"]).CreateGeneric(new List<DataType> { at.ElementType }, out DataType ast);
                 return _convertType(ast);
             }
             else if (dt is ListType lt)
             {
-                ((GenericType)_typeImpls["list"]).CreateGeneric(new List<DataType> { lt.ElementType }, out DataType lst);
+                ((GenericType)_impls["list"]).CreateGeneric(new List<DataType> { lt.ElementType }, out DataType lst);
                 return _convertType(lst);
             }
             else if (dt is DictType dct)
             {
-                ((GenericType)_typeImpls["dict"]).CreateGeneric(new List<DataType> { dct.KeyType, dct.ValueType }, out DataType dst);
+                ((GenericType)_impls["dict"]).CreateGeneric(new List<DataType> { dct.KeyType, dct.ValueType }, out DataType dst);
                 return _convertType(dst);
             }
             else if (dt is PointerType pt)
@@ -84,18 +83,110 @@ namespace Whirlwind.Generation
             return LLVM.VoidType();
         }
 
-        private LLVMValueRef _coerce(LLVMValueRef val, DataType start, DataType desired)
+        // any coercion also maps to a cast in this context
+        private LLVMValueRef _cast(LLVMValueRef val, DataType start, DataType desired)
         {
-            if (start is SimpleType st)
+            // interfaces introduce different casting rules
+            if (desired is InterfaceType dInterf)
             {
 
+            }
+
+            if (start is SimpleType sst)
+            {
+                if (desired is SimpleType dst)
+                    return _castSimple(val, sst, dst);
+                else if (desired is PointerType dpt)
+                {
+
+                }
             }
 
             return _ignoreValueRef();
         }
 
-        private LLVMValueRef _cast(LLVMValueRef val, DataType start, DataType desired)
+        private LLVMValueRef _castSimple(LLVMValueRef val, SimpleType sst, SimpleType dst)
         {
+            // either constancy or signed conflict
+            // neither of which result in a cast
+            if (sst.Type == dst.Type)
+                return val;
+
+            byte getLLVMClass(SimpleType st)
+            {
+                switch (st.Type)
+                {
+                    case SimpleType.SimpleClassifier.BOOL:
+                    case SimpleType.SimpleClassifier.BYTE:
+                    case SimpleType.SimpleClassifier.CHAR:
+                    case SimpleType.SimpleClassifier.INTEGER:
+                    case SimpleType.SimpleClassifier.LONG:
+                        return 0;
+                    case SimpleType.SimpleClassifier.FLOAT:
+                    case SimpleType.SimpleClassifier.DOUBLE:
+                        return 1;
+                    // string
+                    default:
+                        return 2;
+                }
+            }
+
+            int lcs = getLLVMClass(sst), lcd = getLLVMClass(dst);
+
+            if (lcs == lcd)
+            {
+                // integral to integral
+                if (lcs == 0)
+                {
+                    // downcast
+                    if ((int)sst.Type > (int)dst.Type)
+                        return LLVM.BuildTrunc(_builder, val, _convertType(dst), "cast_tmp");
+                    // otherwise pick which upcast to use
+                    else if (sst.Unsigned || dst.Unsigned)
+                        return LLVM.BuildZExt(_builder, val, _convertType(dst), "cast_tmp");
+                    else
+                        return LLVM.BuildSExt(_builder, val, _convertType(dst), "cast_tmp");
+                }
+                // floating to floating
+                else if (lcs == 1)
+                {
+                    // know same casts have been eliminated so must be float to double
+                    if (sst.Type == SimpleType.SimpleClassifier.FLOAT)
+                        return LLVM.BuildFPExt(_builder, val, LLVM.DoubleType(), "cast_tmp");
+                    // vice versa
+                    else if (sst.Type == SimpleType.SimpleClassifier.DOUBLE)
+                        return LLVM.BuildFPTrunc(_builder, val, LLVM.FloatType(), "cast_tmp");
+                }
+            }
+            // integral to floating
+            else if (lcs == 0 && lcd == 1)
+            {
+                if (sst.Unsigned)
+                    return LLVM.BuildUIToFP(_builder, val, _convertType(dst), "cast_tmp");
+                else
+                    return LLVM.BuildSIToFP(_builder, val, _convertType(dst), "cast_tmp");
+            }
+            // floating to integral
+            else if (lcs == 1 && lcd == 0)
+            {
+                if (dst.Unsigned)
+                    return LLVM.BuildFPToUI(_builder, val, _convertType(dst), "cast_tmp");
+                else
+                    return LLVM.BuildFPToSI(_builder, val, _convertType(dst), "cast_tmp");
+            }
+            // integral to string
+            else if (lcs == 0 && lcd == 2)
+            {
+                // only integral that works is char
+
+            }
+            // string to integral
+            else
+            {
+
+            }
+
+            // for now
             return _ignoreValueRef();
         }
     }

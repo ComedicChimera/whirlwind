@@ -176,7 +176,12 @@ namespace Whirlwind
                 if (node.Content[i] is ASTNode anode)
                 {
                     if (anode.Name == "annotation")
-                        _annotations[fileName].Add(i);
+                    {
+                        if (_annotations.ContainsKey(fileName))
+                            _annotations[fileName].Add(i);
+                        else
+                            _annotations[fileName] = new List<int> { i };
+                    }                       
                     else
                         _processDecl(anode, fileName, i);
                 }

@@ -50,7 +50,7 @@ namespace Whirlwind.Semantic.Visitor
         private List<ITypeNode> _nodes;
         private SymbolTable _table;
         private Dictionary<string, string> _flags;
-        private Dictionary<string, DataType> _typeImpls;
+        private Dictionary<string, DataType> _impls;
 
         // compiler-provided shared data
         private string _namePrefix;
@@ -60,6 +60,7 @@ namespace Whirlwind.Semantic.Visitor
         private CustomType _typeClassContext;
         private string _implName;
         private string _fileName;
+        private string _friendName;
 
         // visitor state flags
         private bool _couldLambdaContextExist = false, _couldTypeClassContextExist = false;
@@ -71,8 +72,8 @@ namespace Whirlwind.Semantic.Visitor
         private bool _isExprStmt = false;
         private bool _wrapsNextAnnotBlock = false;
         private bool _functionCanHaveNoBody = false;
-        private bool _enableIntrinsicGet = false;
         private bool _allowInternalTypes = true;
+        private bool _friendAnnotation = false;
 
         public Visitor(string namePrefix, bool constexprOptimizerEnabled, Dictionary<string, DataType> typeImpls)
         {
@@ -82,14 +83,14 @@ namespace Whirlwind.Semantic.Visitor
             _table = new SymbolTable();
             _flags = new Dictionary<string, string>();
 
-            _typeImpls = typeImpls;
+            _impls = typeImpls;
 
             _namePrefix = namePrefix;
             _constexprOptimizerEnabled = constexprOptimizerEnabled;
 
             _implName = "";
-
             _fileName = "";
+            _friendName = "";
         }
 
         // ----------------------
@@ -170,6 +171,8 @@ namespace Whirlwind.Semantic.Visitor
                         throw new SemanticException("Invalid application of annotation to block", node.Position);
                     if (_functionCanHaveNoBody)
                         _functionCanHaveNoBody = false;
+                    if (_friendAnnotation)
+                        _friendAnnotation = false;
 
                     MergeToBlock();
                 }
@@ -198,7 +201,7 @@ namespace Whirlwind.Semantic.Visitor
         public Dictionary<string, string> Flags() => _flags;
 
         // returns the type implementations found in any file
-        public Dictionary<string, DataType> Impls() => _typeImpls;
+        public Dictionary<string, DataType> Impls() => _impls;
 
         // ------------------------------------
         // Construction Stack Control Functions

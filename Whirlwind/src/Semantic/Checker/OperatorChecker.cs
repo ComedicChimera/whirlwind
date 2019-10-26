@@ -29,7 +29,12 @@ namespace Whirlwind.Semantic.Checker
                     {
                         var stringType = new SimpleType(SimpleType.SimpleClassifier.STRING);
 
-                        if (Numeric(operandType))
+                        if (rootType is PointerType pt && !pt.IsDynamicPointer && new SimpleType(SimpleType.SimpleClassifier.INTEGER)
+                            .Coerce(operandType))
+                        {
+                            return;
+                        }                           
+                        else if (Numeric(operandType))
                             valid = true;
                         else if (stringType.Coerce(rootType) && stringType.Coerce(operandType))
                         {
@@ -38,8 +43,6 @@ namespace Whirlwind.Semantic.Checker
                         } 
                         else if (new[] { TypeClassifier.ARRAY, TypeClassifier.LIST }.Contains(operandType.Classify()))
                             valid = true;
-                        else if (rootType is PointerType pt && !pt.IsDynamicPointer && new SimpleType(SimpleType.SimpleClassifier.INTEGER).Coerce(operandType))
-                            return;
                     }
                     break;
                 case "*":
@@ -49,13 +52,17 @@ namespace Whirlwind.Semantic.Checker
                 case "%":
                 case "~^":
                     {
+                        if (rootType is PointerType pt && !pt.IsDynamicPointer && new SimpleType(SimpleType.SimpleClassifier.INTEGER)
+                            .Coerce(operandType))
+                        {
+                            return;
+                        }
+                            
                         if (Numeric(operandType))
                         {
                             valid = true;
                             break;
-                        }
-                        if (rootType is PointerType pt && !pt.IsDynamicPointer && new SimpleType(SimpleType.SimpleClassifier.INTEGER).Coerce(operandType))
-                            return;
+                        }                       
                     }
                     break;
                 case ">>":

@@ -165,7 +165,8 @@ namespace Whirlwind.Semantic.Visitor
                     }
 
                     // okay because strings and floats are never unsigned
-                    return new SimpleType(dt, tok.Value.StartsWith("u") && !tok.Value.StartsWith("s"));
+                    return new SimpleType(dt, (tok.Value.StartsWith("u") || tok.Value == "char" || tok.Value == "byte") 
+                        && !tok.Value.StartsWith("s"));
                 }
                 else if (subNode.Name == "collection_types")
                 {

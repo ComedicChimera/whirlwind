@@ -45,7 +45,7 @@ namespace Whirlwind.Generation
                 var g = _generateExpr(node);
 
                 if (!exprType.Equals(node.Type))
-                    results.Add(_coerce(g, node.Type, exprType));
+                    results.Add(_cast(g, node.Type, exprType));
                 else
                     results.Add(g);
             }
@@ -86,9 +86,9 @@ namespace Whirlwind.Generation
                     }
                     break;
                 case "This":
-                    return _getNamedValue("$THIS");
+                    return _getNamedValue("this");
                 case "Value":
-                    return _getNamedValue("$value_tmp");
+                    return _getNamedValue("value_tmp");
                 case "ByteLiteral":
                     {
                         ulong val = node.Value.StartsWith("0x") ? Convert.ToUInt64(node.Value, 16) : Convert.ToUInt64(node.Value, 2);

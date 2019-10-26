@@ -92,6 +92,8 @@ namespace Whirlwind
                 Console.WriteLine(" " + (line + i).ToString().PadLeft(maxSpaces) + " |\t" + errorLines[i].Trim('\t'));
                 Console.WriteLine(padSpace + " |\t" + arrowLines[i].Trim('\t'));
             }
+
+            Console.Write("\n");
         }
 
         static private int _getColumn(string text, int ndx)

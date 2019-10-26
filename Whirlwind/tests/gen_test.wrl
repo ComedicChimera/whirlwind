@@ -1,6 +1,6 @@
-﻿type Test | A | B | C ;
+﻿type Test | A | B | C;
 
 func main() {
-	let t = Test::A;
+	
 
 }

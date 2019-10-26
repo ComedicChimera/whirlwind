@@ -223,9 +223,11 @@ namespace Whirlwind.Semantic.Visitor
                                 _isTypeCast = false;
                             }
                             
-
                             if (!TypeCast(dt, desired))
-                                throw new SemanticException("Invalid type cast", subNode.Position);
+                            {
+                                if (!(dt is StructType && (_getImpl(desired)?.Equals(dt) ?? false)))
+                                    throw new SemanticException("Invalid type cast", subNode.Position);
+                            }                              
 
                             _nodes.Add(new ExprNode("TypeCast", desired));
                             PushForward();
