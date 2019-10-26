@@ -4,6 +4,9 @@
   * "Value-Enumerated Type Class" -> "Algebraic Type Class"
   * "function objectification" -> First Class Functions
   * flip "deductive" and "inductive" type inference (it makes more sense the other way round)
+- mangle everything, reference everything via custom symbol "table"
+  * come up with way to handle overloads (LLVMSymbol class?)
+- add support for type aliases in pattern matching
 - get structs up and running
   * variable initializers
 - make type impls actually work
@@ -20,7 +23,7 @@
 
 # FUTURE
 
-- BE CONCIOUS ABOUT EVERY TRANSLATION: NOTHING IS EVER "THAT" SIMPLE
+- BE CONSCIOUS ABOUT EVERY TRANSLATION: NOTHING IS EVER "THAT" SIMPLE
   * how can this optimized?
   * how can this be condensed?
   * could this cause problems?
@@ -76,7 +79,7 @@
 - add context-based inferencing for lambdas in `case` and `if` expressions
 - add some higher level pattern matching capability
   * more than just tuples and type classes
-  * `[let x, 4, _, ...]`
-  * `struct {y: let t}`
-- separate bitwise and logical operators?
+  * `[x, 4, _, ...]`
+  * `struct {y: t}`
+- separate bitwise and logical operators
 

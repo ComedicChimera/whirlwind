@@ -1,0 +1,11 @@
+﻿type Error (ErrorKind, ErrorData);
+
+type ErrorKind 
+	| ValueError
+	| BoundsError
+	; // add other erros later
+
+struct ErrorData {
+	message: str;
+	// stack trace, memory, etc.
+}
