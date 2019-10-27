@@ -61,6 +61,10 @@ namespace Whirlwind.Semantic.Visitor
             else if (hasAwait)
                 // await always first element
                 throw new SemanticException("The given expression is not awaitable", node.Content[0].Position);
+
+            // check for unconstructed type classes
+            if (_nodes.Last().Type is CustomInstance ci && ci.NeedsConstruction)
+                throw new SemanticException("Type class has uninitialized values", node.Position);
         }
 
         private void _visitTrailer(ASTNode node)
@@ -481,11 +485,14 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     if (cnt.Values.Count == 0)
                         throw new SemanticException("Cannot explicitly construct enumerated type class member",
-                            node.Content[1].Position);
+                            node.Position);
 
                     if (args.NamedArguments.Count > 0)
                         throw new SemanticException("Unable to specify named values in type class value initialization",
                             node.Content[1].Position);
+
+                    if (!cnt.NeedsConstruction)
+                        throw new SemanticException("Unable to initialize a type class multiple times", node.Position);
 
                     var filledGenerics = new List<DataType>();
 
@@ -532,7 +539,10 @@ namespace Whirlwind.Semantic.Visitor
                         ((CustomType)newParent).GetInstanceByName(cnt.Name, out cnt);
                     }
 
-                    _nodes.Add(new ExprNode("InitTCConstructor", rootType));
+                    var newCnt = (CustomNewType)rootType.Copy();
+                    newCnt.NeedsConstruction = false;
+
+                    _nodes.Add(new ExprNode("InitTCConstructor", newCnt));
 
                     PushForward(cnt.Values.Count);
                     PushForward();

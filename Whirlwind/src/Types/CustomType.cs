@@ -111,6 +111,7 @@ namespace Whirlwind.Types
     abstract class CustomInstance : DataType
     {
         public CustomType Parent { get; protected set; }
+        public bool NeedsConstruction = false;
 
         public override TypeClassifier Classify() => TypeClassifier.TYPE_CLASS_INSTANCE;
 
@@ -166,6 +167,8 @@ namespace Whirlwind.Types
             Parent = parent;
             Name = name;
             Values = values;
+
+            NeedsConstruction = Values.Count > 0;
         }
 
         protected override bool _equals(DataType other)

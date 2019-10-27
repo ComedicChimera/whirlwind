@@ -8,7 +8,7 @@ func test() Result<int> {
 
 	f = |x| => Ok(x);
 
-	let t: Result<int> = Ok(10)(5)(76);
+	let t: Result<int> = Ok(56);
 
 	let n = 10 select {
 		0 => 1,
@@ -17,7 +17,7 @@ func test() Result<int> {
 
 	return Ok(f(3) select {
 		Ok(x) => x,
-		Result<int>::Err => 0
+		Err => 0
 	});
 }
 

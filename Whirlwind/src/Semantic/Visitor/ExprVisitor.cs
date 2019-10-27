@@ -456,7 +456,18 @@ namespace Whirlwind.Semantic.Visitor
 
             if (caseContent.Name == "expr")
             {
+                _addContext(caseContent);
                 _visitExpr(caseContent);
+                _clearContext();
+
+                if (_nodes.Last() is IncompleteNode inode)
+                {
+                    _giveContext(inode, rootType);
+
+                    _nodes[_nodes.Count - 2] = _nodes.Last();
+                    _nodes.RemoveLast();
+                }
+                
                 return _nodes.Last().Type.Coerce(rootType);
             }              
             else
