@@ -7,6 +7,7 @@
   * "case expression" -> "select expression"
 - mangle everything, reference everything via custom symbol "table"
   * come up with way to handle overloads (LLVMSymbol class?)
+- prevent strings from being null terminated (LLVM forces global strings to be like this, figure out how to stop it)
 - get structs up and running
   * variable initializers
 - make type impls actually work

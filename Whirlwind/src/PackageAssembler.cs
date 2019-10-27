@@ -105,6 +105,13 @@ namespace Whirlwind
                 }
             }
 
+            // push all dunder names to front (compiler defined symbols)
+            foreach (var item in _resolvingSymbols)
+            {
+                if (item.Key.StartsWith("__") && item.Value.Status == ResolutionStatus.UNRESOLVED)
+                    _resolveSymbol(item.Key, item.Value, result);
+            }
+
             foreach (var item in _resolvingSymbols)
             {
                 if (item.Value.Status == ResolutionStatus.UNRESOLVED)

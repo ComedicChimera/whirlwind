@@ -80,8 +80,18 @@ namespace Whirlwind.Generation
                             case SimpleType.SimpleClassifier.DOUBLE:
                                 return LLVM.ConstRealOfString(_convertType(node.Type), node.Value.TrimEnd('d'));
                             case SimpleType.SimpleClassifier.STRING:
-                                // for now
-                                return _ignoreValueRef();
+                                return LLVM.ConstNamedStruct(_stringType, new[]
+                                {
+                                    LLVM.BuildGEP(_builder, 
+                                        LLVM.BuildGlobalString(_builder, String.Concat(node.Value.Skip(1).SkipLast(1)), "glob_string"),
+                                        new[] {
+                                            LLVM.ConstInt(LLVM.Int64Type(), 0, new LLVMBool(0)),
+                                            LLVM.ConstInt(LLVM.Int64Type(), 0, new LLVMBool(0))
+                                        },
+                                        "string_tmp"
+                                        ),
+                                    LLVM.ConstInt(LLVM.Int32Type(), (uint)node.Value.Length - 2, new LLVMBool(0))
+                                });
                         }
                     }
                     break;

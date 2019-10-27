@@ -1,26 +1,7 @@
-﻿type Result<T>
-	| Ok(T)
-	| Err
-	;
-
-func test() Result<int> {
-	let f: func(int)(Result<int>);
-
-	f = |x| => Ok(x);
-
-	let t: Result<int> = Ok(56);
-
-	let n = 10 select {
-		0 => 1,
-		_ => 3
-	};
-
-	return Ok(f(3) select {
-		Ok(x) => x,
-		Err => 0
-	});
+﻿func test() str {
+	return "test";
 }
 
 func main() {
-
+	
 }

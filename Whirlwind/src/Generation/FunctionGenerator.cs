@@ -11,7 +11,7 @@ namespace Whirlwind.Generation
 {
     partial class Generator
     {
-        private void _generateFunction(BlockNode node, bool external)
+        private void _generateFunction(BlockNode node, bool external, bool global)
         {
             var idNode = (IdentifierNode)node.Nodes[0];
 
@@ -58,6 +58,9 @@ namespace Whirlwind.Generation
                     LLVM.BuildRetVoid(_builder);
 
                 LLVM.VerifyFunction(llvmFn, LLVMVerifierFailureAction.LLVMPrintMessageAction);
+
+                if (global)
+                    _globalScope[sym.Name] = llvmFn;
             }           
         }
 
@@ -77,7 +80,6 @@ namespace Whirlwind.Generation
 
                 arguments[i] = _convertType(param.DataType);
             }
-
 
             var llvmFn = LLVM.AddFunction(_module, name, LLVM.FunctionType(_convertType(ft.ReturnType), arguments, isVarArg));
 
