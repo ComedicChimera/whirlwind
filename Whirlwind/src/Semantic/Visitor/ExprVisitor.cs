@@ -73,8 +73,8 @@ namespace Whirlwind.Semantic.Visitor
                                 op = ((TokenNode)item).Tok.Type;
                             else if (op != ":>" && item.Name == "expr")
                                 _visitExpr((ASTNode)item);
-                            else if (item.Name == "case_extension")
-                                _visitInlineCase((ASTNode)item);
+                            else if (item.Name == "select_extension")
+                                _visitSelectExpr((ASTNode)item);
                             else if (item.Name == "then_extension" && op != "IS")
                                 _visitThen((ASTNode)item, needsSubscope);
                         }
@@ -156,14 +156,19 @@ namespace Whirlwind.Semantic.Visitor
                         else if (op == ":>")
                         {
                             var extractExpr = (ASTNode)subNode;
+                            var mType = _nodes.Last().Type;
 
-                            if (HasOverload(_nodes.Last().Type, "__:>__", out DataType rtType))
+                            if (HasOverload(mType, "__:>__", out DataType rtType))
                             {
                                 _thenExprType = rtType;
 
                                 _visitExpr((ASTNode)extractExpr.Content[1]);
 
-                                _nodes.Add(new ExprNode("ExtractInto", _nodes.Last().Type));
+                                if (!mType.Coerce(_nodes.Last().Type))
+                                    throw new SemanticException("Expression of `:>` operator must return the source type", 
+                                        extractExpr.Content[1].Position);
+
+                                _nodes.Add(new ExprNode("ExtractInto", mType));
                                 PushForward(2);
                             }
                             else
@@ -262,7 +267,7 @@ namespace Whirlwind.Semantic.Visitor
                 _nodes[_nodes.Count - 1] = Evaluator.Evaluate(_nodes.Last());
         }
 
-        private void _visitInlineCase(ASTNode node)
+        private void _visitSelectExpr(ASTNode node)
         {
             DataType dt = new NoneType();
             DataType rootType = _nodes.Last().Type;
@@ -277,19 +282,21 @@ namespace Whirlwind.Semantic.Visitor
                     _table.AddScope();
                     _table.DescendScope();
 
-                    foreach (var elem in ((ASTNode)item).Content)
+                    var caseNode = (ASTNode)item;
+
+                    foreach (var elem in caseNode.Content)
                     {
                         if (elem.Name == "case_expr")
                         {
-                            if (!_visitCaseExpr((ASTNode)elem, rootType))
-                                throw new SemanticException("All conditions of case expression must be similar to the root type",
+                            if (!_visitCaseExpr((ASTNode)elem, rootType, caseNode.Content.Count < 5))
+                                throw new SemanticException("All conditions of select expression must be similar to the root type",
                                     elem.Position);
 
                             exprs++;
                         }
                         else if (elem.Name == "expr")
                         {
-                            _visitExpr((ASTNode)elem, false);
+                            _visitExpr((ASTNode)elem);
 
                             exprs++;
                         }
@@ -306,7 +313,7 @@ namespace Whirlwind.Semantic.Visitor
                             InterfaceType i1 = dt.GetInterface(), i2 = _nodes.Last().Type.GetInterface();
 
                             if (i1.Implements.Count == 0 || i2.Implements.Count == 0)
-                                throw new SemanticException("All values in a collection must be the same type", 
+                                throw new SemanticException("All case results must be of similar types", 
                                     ((ASTNode)item).Content[((ASTNode)item).Content.Count - 2].Position);
 
                             var matches = i1.Implements.Where(x => i2.Implements.Any(y => y.Equals(x)));
@@ -314,7 +321,7 @@ namespace Whirlwind.Semantic.Visitor
                             if (matches.Count() > 0)
                                 dt = matches.First();
                             else
-                                throw new SemanticException("All case types must match",
+                                throw new SemanticException("All case results must be of similar types",
                                         ((ASTNode)item).Content[((ASTNode)item).Content.Count - 2].Position);
                         }
                             
@@ -342,7 +349,7 @@ namespace Whirlwind.Semantic.Visitor
                             InterfaceType i1 = dt.GetInterface(), i2 = _nodes.Last().Type.GetInterface();
 
                             if (i1.Implements.Count == 0 || i2.Implements.Count == 0)
-                                throw new SemanticException("All values in a collection must be the same type", 
+                                throw new SemanticException("All case results must be of similar types", 
                                     ((ASTNode)item).Content.Last().Position);
 
                             var matches = i1.Implements.Where(x => i2.Implements.Contains(x));
@@ -350,7 +357,7 @@ namespace Whirlwind.Semantic.Visitor
                             if (matches.Count() > 0)
                                 dt = matches.First();
                             else
-                                throw new SemanticException("All case types must match", ((ASTNode)item).Content.Last().Position);
+                                throw new SemanticException("All case results must be of similar types", ((ASTNode)item).Content.Last().Position);
                         }            
                     }
 
@@ -361,11 +368,11 @@ namespace Whirlwind.Semantic.Visitor
                     continue;
             }
 
-            _nodes.Add(new ExprNode("InlineCaseExpr", dt));
+            _nodes.Add(new ExprNode("SelectExpr", dt));
             PushForward(caseCount);
         }
 
-        private bool _visitCaseExpr(ASTNode node, DataType rootType)
+        private bool _visitCaseExpr(ASTNode node, DataType rootType, bool allowPatternSymbols)
         {
             var caseContent = (ASTNode)node.Content[0];
 
@@ -453,8 +460,11 @@ namespace Whirlwind.Semantic.Visitor
                                 {
                                     if (_table.Lookup(itkn.Tok.Value, out Symbol sym))
                                         _nodes.Add(new IdentifierNode(sym.Name, sym.DataType));
-                                    else
+                                    else if (allowPatternSymbols)
                                         _nodes.Add(new ValueNode("PatternSymbol", new NoneType(), itkn.Tok.Value));
+                                    else
+                                        throw new SemanticException("Unable to use pattern variables in a case with multiple matches",
+                                            anode.Position);
 
                                     goto loopEnd;
                                 }
@@ -495,7 +505,7 @@ namespace Whirlwind.Semantic.Visitor
                     _nodes.Add(new ExprNode("TuplePattern", dt));
                     PushForward(patternElemCount);
                 }
-                else if (dt is CustomNewType nt && rootType is CustomInstance)
+                else if (dt is CustomNewType nt && rootType is CustomInstance rci && rci.Parent.Equals(nt.Parent))
                 {
                     for (int i = 0; i < patternElemCount; i++)
                     {

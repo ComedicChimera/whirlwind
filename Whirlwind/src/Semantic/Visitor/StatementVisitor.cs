@@ -102,8 +102,27 @@ namespace Whirlwind.Semantic.Visitor
             {
                 if (subNode.Name == "expr")
                 {
+                    var exprNode = (ASTNode)subNode;
+
                     _couldOwnerExist = true;
-                    _visitExpr((ASTNode)subNode);
+
+                    if (_returnContext == null)
+                        _visitExpr(exprNode);
+                    else
+                    {
+                        _addContext(exprNode);
+                        _visitExpr(exprNode);
+                        _clearContext();
+
+                        if (_nodes.Last() is IncompleteNode inode)
+                        {
+                            _giveContext(inode, _returnContext);
+
+                            _nodes[_nodes.Count - 2] = _nodes[_nodes.Count - 1];
+                            _nodes.RemoveLast();
+                        }
+                    }
+
                     _couldOwnerExist = false;
 
                     exprCount++;

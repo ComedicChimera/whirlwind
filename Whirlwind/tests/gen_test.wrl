@@ -1,6 +1,19 @@
-﻿type Test | A | B | C;
+﻿type Result<T>
+	| Ok(T)
+	| Err
+	;
+
+func test() Result<int> {
+	let f: func(int)(Result<int>);
+
+	f = |x| => Ok(x);
+
+	return Ok(f(3) select {
+		Ok(x) => x,
+		_ => 0
+	});
+}
 
 func main() {
-	
 
 }

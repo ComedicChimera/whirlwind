@@ -61,6 +61,7 @@ namespace Whirlwind.Semantic.Visitor
         private string _implName;
         private string _fileName;
         private string _friendName;
+        private DataType _returnContext;
 
         // visitor state flags
         private bool _couldLambdaContextExist = false, _couldTypeClassContextExist = false;
@@ -291,9 +292,9 @@ namespace Whirlwind.Semantic.Visitor
         {
             if (ctx is FunctionType fctx)
                 _visitLambda(inode.AST, fctx);
-            else if (ctx is CustomType tctx)
+            else if (ctx is CustomInstance cictx)
             {
-                _typeClassContext = tctx;
+                _typeClassContext = cictx.Parent;
 
                 _visitExpr(inode.AST);
 

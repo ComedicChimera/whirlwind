@@ -49,12 +49,38 @@ namespace Whirlwind.Semantic.Visitor
 
                         if (((BlockNode)_nodes.Last()).Block.Count == 1)
                         {
-                            _visitFunctionBody(
-                                ((IncompleteNode)((BlockNode)_nodes.Last()).Block[0]).AST, 
-                                (FunctionType)((BlockNode)_nodes.Last()).Nodes[0].Type
-                            );
+                            var fnType = (FunctionType)((BlockNode)_nodes.Last()).Nodes[0].Type;
+                            int scopeDepth = _table.GetScopeDepth();
 
-                            ((BlockNode)_nodes.Last()).Block.RemoveAt(0);
+                            var returnCtx = _returnContext;
+                            _returnContext = fnType.ReturnType;
+
+                            try
+                            {
+                                _visitFunctionBody(
+                                    ((IncompleteNode)((BlockNode)_nodes.Last()).Block[0]).AST,
+                                    fnType
+                                );
+
+                                ((BlockNode)_nodes.Last()).Block.RemoveAt(0);
+                            } 
+                            catch (SemanticException smex)
+                            {
+                                smex.FileName = _fileName;
+                                ErrorQueue.Add(smex);
+
+                                ((BlockNode)_nodes.Last()).Block = new List<ITypeNode>();
+
+                                if (scopeDepth != _table.GetScopeDepth())
+                                    _table.AscendScope();
+
+                                _clearContext();
+                            }
+                            finally
+                            {
+                                _returnContext = returnCtx;
+                            }
+                            
                         }
                         break;
                     case "subscope":
@@ -194,11 +220,13 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     _nodes.Add(new BlockNode("Case"));
 
-                    foreach (var caseItem in ((ASTNode)item).Content)
+                    var caseNode = (ASTNode)item;
+
+                    foreach (var caseItem in caseNode.Content)
                     {
                         if (caseItem.Name == "case_expr")
                         {
-                            if (!_visitCaseExpr((ASTNode)caseItem, exprType))
+                            if (!_visitCaseExpr((ASTNode)caseItem, exprType, caseNode.Content.Count < 5))
                                 throw new SemanticException("The case expressions must be the same type of the select root", caseItem.Position);
 
                             MergeBack();

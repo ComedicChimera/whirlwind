@@ -4,9 +4,9 @@
   * "Value-Enumerated Type Class" -> "Algebraic Type Class"
   * "function objectification" -> First Class Functions
   * flip "deductive" and "inductive" type inference (it makes more sense the other way round)
+  * "case expression" -> "select expression"
 - mangle everything, reference everything via custom symbol "table"
   * come up with way to handle overloads (LLVMSymbol class?)
-- add support for type aliases in pattern matching
 - get structs up and running
   * variable initializers
 - make type impls actually work
@@ -52,10 +52,11 @@
     dereferenced
   * `this as Type` implicitly copies this whereas `this as *Type` does not
 - remove MirrorType and declare builtins in SymbolTable as necessary (via prelude)
-- make sure then functions as a CONDITIONAL CHAINING operator
-  * if the previous expression is a boolean, continue only if true
-  * if the previous expression is not a boolean, continue if there is no error
-  * if the chain is incomplete, it simply returns the null value of the last type
+- make sure then functions as a NON-CONDITIONAL chaining operator
+- `:>` functions as conditional monadic expression bind operator
+  * if bind succeeds, execute the expression with extracted value in `value`
+  * right-hand expression always returns something coercible to the source type
+  * if the bind fails, return the value of the bind operator
 - make sure to process generic binding appropriately
 - when generating code, make sure to add in deletes for dynamically allocated memory
 - make sure to check and apply externals and intrinsics where necessary
@@ -65,6 +66,7 @@
 - make sure to inline expr functions
 - make sure naming conventions are properly handled (ie. should std-lib have prefix lib::std?)
 - make sure includes bring in all of the necessary information (ie. if you import something, you import all of it)
+- 
 
 # THOUGHTS
 
@@ -81,5 +83,6 @@
   * more than just tuples and type classes
   * `[x, 4, _, ...]`
   * `struct {y: t}`
-- separate bitwise and logical operators
+- separate bitwise and logical operators?
+- add support for type aliases in pattern matching?
 

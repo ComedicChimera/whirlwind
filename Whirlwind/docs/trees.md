@@ -152,7 +152,7 @@ A multi-value structure or some form of operation.
 | ExtractInto | Expr, Identifier | Extracts the value from the given expression if possible and stores it in a expr-local |
 | Range | Expr, Expr | Creates a range between the two expressions |
 | TypeCast | Expr, Type | Converts a type class value into a more specific form |
-| InlineCaseExpr | *Cases*, \[Default\] | An inline select-case expression |
+| SelectExpr | *Cases*, \[Default\] | An inline select expression |
 | Then | Expr, Expr | Chains one expr into another |
 | Super | Expr | Gets the parent based on the given name |
 | From | Expr | Extract a value from an algebraic type |

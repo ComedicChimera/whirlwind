@@ -231,6 +231,8 @@ namespace Whirlwind.Semantic.Visitor
                             item.DefaultValue = cDefVal;      
                     }
 
+                    _returnContext = fnType.ReturnType;
+
                     _visitFunctionBody(((IncompleteNode)fn.Block[0]).AST, fnType);
 
                     fn.Block = ((BlockNode)_nodes.Last()).Block;
@@ -250,6 +252,11 @@ namespace Whirlwind.Semantic.Visitor
 
                     _clearContext();
                 }
+                finally
+                {                   
+                    _returnContext = null;
+                }
+
                 
                 _nodes.RemoveAt(1);
             }
@@ -324,12 +331,9 @@ namespace Whirlwind.Semantic.Visitor
 
             try
             {
-                var pctx = _saveContext();
-
                 _addContext(node);
                 _visitExpr(node);
-
-                _restoreContext(pctx);
+                _clearContext();
 
                 if (_nodes.Last() is IncompleteNode inode)
                 {

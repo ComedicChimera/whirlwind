@@ -1,9 +1,17 @@
-﻿type Error (ErrorKind, ErrorData);
+﻿struct Error {
+	kind: ErrorKind;
+	data: ErrorData;
+
+	constructor(kind: ErrorKind, msg: str) {
+		this.kind = kind;
+		this.data = new ErrorData(msg);
+	}
+}
 
 type ErrorKind 
 	| ValueError
 	| BoundsError
-	; // add other erros later
+	; // add other errors later
 
 struct ErrorData {
 	message: str;

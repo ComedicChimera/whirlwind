@@ -16,12 +16,6 @@ namespace Whirlwind.Types
             Constant = true;
         }
 
-        public CustomType(CustomType ct)
-        {
-            Name = ct.Name;
-            Instances = ct.Instances;
-        }
-
         public bool AddInstance(CustomInstance instance)
         {
             if (Instances.Any(x => x.Equals(instance)))
@@ -47,8 +41,8 @@ namespace Whirlwind.Types
             return false;
         }
 
-        // doesn't actually create an instance, just removes the constancy from the type class
-        public CustomType GetInstance() => new CustomType(this);
+        // returns a custom opaque type (used type representing a custom instance)
+        public CustomInstance GetInstance() => new CustomOpaqueType(this);
 
         public bool CreateInstance(string name, List<DataType> values, out CustomNewType cnType)
         {
@@ -138,6 +132,28 @@ namespace Whirlwind.Types
 
         public override string ToString()
             => Parent.Name;
+    }
+
+    // used as CustomInstance without specific value
+    class CustomOpaqueType : CustomInstance
+    {
+        public CustomOpaqueType(CustomType parent)
+        {
+            Parent = parent;
+        }
+
+        public override DataType ConstCopy() 
+            => new CustomOpaqueType(Parent) { Constant = true };
+
+        protected override bool _equals(DataType other)
+        {
+            if (other is CustomType ct)
+                return Parent.Equals(ct);
+            else if (other is CustomInstance)
+                return other is CustomOpaqueType cot && Parent.Equals(cot.Parent);
+
+            return false;
+        }
     }
 
     class CustomNewType : CustomInstance

@@ -303,7 +303,7 @@ namespace Whirlwind.Semantic.Visitor
                 if (type is SimpleType st && st.Type == SimpleType.SimpleClassifier.STRING)
                     return "string";
 
-                if (type is CustomType ct && ct.Instances.Count > 1)
+                if (type is CustomInstance ci && ci.Parent.Instances.Count > 1)
                     return "alg_type";
 
                 switch (type.Classify())

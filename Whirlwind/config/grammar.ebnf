@@ -157,7 +157,7 @@ yield_stmt: 'YIELD' expr (',' expr)* ;
 // EXPRESSIONS - basic unit of statements 
 expr: expr_var | func_op [expr_extension] ;
 expr_extension: 'IF' expr 'ELSE' expr 
-| case_extension+
+| select_extension+
 | 'IS' type_id [then_extension]
 | ':>' expr
 | then_extension
@@ -171,8 +171,8 @@ expr_var: 'IDENTIFIER' '=' func_op then_extension ;
 // then extension
 then_extension: 'THEN' expr ;
 
-// case extension
-case_extension: 'CASE' '{' inline_case+ default_case '}' ;
+// select extension
+select_extension: 'SELECT' '{' inline_case+ default_case '}' ;
 inline_case: case_expr (',' case_expr)* '=>' expr ',' ;
 default_case: '_' '=>' expr ;
 

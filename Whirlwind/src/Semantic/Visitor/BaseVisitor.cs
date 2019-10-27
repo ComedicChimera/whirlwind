@@ -440,6 +440,10 @@ namespace Whirlwind.Semantic.Visitor
                         var vctx = _saveContext();
                         _clearContext();
 
+                        // save and clear return context (slightly different from regular context)
+                        var returnCtx = _returnContext;
+                        _returnContext = ctx?.ReturnType;
+
                         for (int i = 0; i < args.Count; i++)
                         {
                             var arg = args[i];
@@ -451,7 +455,24 @@ namespace Whirlwind.Semantic.Visitor
                             }
                         }
 
-                        rtType = _visitFuncBody((ASTNode)item, args);
+                        try
+                        {
+                            rtType = _visitFuncBody((ASTNode)item, args);
+                        }
+                        catch (SemanticException smex)
+                        {
+                            // if an error happens we still need to ascend out of our scope
+                            _table.AscendScope();
+
+                            throw smex;
+                        }
+                        finally
+                        {
+                            // make sure return context is restored (if it is expression level, it will not bubble high enough
+                            // to negate the body return context and so this context must be restored in all cases)
+                            _returnContext = returnCtx;                            
+                        }
+                        
 
                         // restore context after visiting (if fails, then context is irrelevant anyways :D)
                         _restoreContext(vctx);

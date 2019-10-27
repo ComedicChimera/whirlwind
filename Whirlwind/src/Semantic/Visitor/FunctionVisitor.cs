@@ -158,8 +158,27 @@ namespace Whirlwind.Semantic.Visitor
                     case "expr":
                         _nodes.Add(new StatementNode("ExpressionReturn"));
 
+                        var exprNode = (ASTNode)item;
+
                         _couldOwnerExist = true;
-                        _visitExpr((ASTNode)item);
+
+                        if (_returnContext == null)
+                            _visitExpr(exprNode);
+                        else
+                        {
+                            _addContext(exprNode);
+                            _visitExpr(exprNode);
+                            _clearContext();
+
+                            if (_nodes.Last() is IncompleteNode inode)
+                            {
+                                _giveContext(inode, _returnContext);
+
+                                _nodes[_nodes.Count - 2] = _nodes[_nodes.Count - 1];
+                                _nodes.RemoveLast();
+                            }
+                        }
+
                         _couldOwnerExist = false;
 
                         _dominantPosition = item.Position;

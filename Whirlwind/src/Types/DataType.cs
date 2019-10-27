@@ -94,8 +94,8 @@ namespace Whirlwind.Types
 
             if (lookup is StructType st && other is StructType)
                 return st.Coerce(other);
-            else if (lookup is CustomInstance cnt && other is CustomType)
-                return other.Equals(cnt.Parent);
+            else if (lookup is CustomInstance && other is CustomInstance)
+                return other.Coerce(lookup);
             else if (lookup is ArrayType at && other is ArrayType oat && oat.Size == -1)
                 return oat.ElementType.Equals(at.ElementType);
 
