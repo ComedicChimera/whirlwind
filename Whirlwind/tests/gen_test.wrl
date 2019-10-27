@@ -8,9 +8,16 @@ func test() Result<int> {
 
 	f = |x| => Ok(x);
 
+	let t: Result<int> = Ok(10)(5)(76);
+
+	let n = 10 select {
+		0 => 1,
+		_ => 3
+	};
+
 	return Ok(f(3) select {
 		Ok(x) => x,
-		_ => 0
+		Result<int>::Err => 0
 	});
 }
 

@@ -1,10 +1,8 @@
-﻿using System.Linq;
-using System.Collections.Generic;
-
+﻿using System.Collections.Generic;
+using System.Linq;
+using Whirlwind.Semantic.Constexpr;
 using Whirlwind.Syntax;
 using Whirlwind.Types;
-using Whirlwind.Semantic.Constexpr;
-
 using static Whirlwind.Semantic.Checker.Checker;
 
 namespace Whirlwind.Semantic.Visitor
@@ -272,7 +270,8 @@ namespace Whirlwind.Semantic.Visitor
             DataType dt = new NoneType();
             DataType rootType = _nodes.Last().Type;
 
-            int caseCount = 2;
+            int exprCount = 1;
+            bool noDefaultCase = true;
             foreach (var item in node.Content)
             {
                 if (item.Name == "inline_case")
@@ -330,13 +329,13 @@ namespace Whirlwind.Semantic.Visitor
                     _nodes.Add(new ExprNode("Case", dt));
                     PushForward(exprs);
 
-                    caseCount++;
-
                     _table.AscendScope();
+
+                    exprCount++;
                 }
                 else if (item.Name == "default_case")
                 {
-                    _visitExpr((ASTNode)((ASTNode)item).Content[2]);
+                    _visitExpr((ASTNode)((ASTNode)item).Content[3]);
 
                     if (_isVoid(dt))
                         dt = _nodes.Last().Type;
@@ -363,13 +362,92 @@ namespace Whirlwind.Semantic.Visitor
 
                     _nodes.Add(new ExprNode("Default", dt));
                     PushForward();
+
+                    noDefaultCase = false;
+                    exprCount++;
                 }
                 else
                     continue;
             }
 
+            // no default means need to check exhaustivity
+            if (noDefaultCase)
+            {
+                bool testExhaustivity(ExprNode caseNode)
+                {
+                    if (caseNode.Name == "TypeClassPattern")
+                    {
+                        foreach (var elem in caseNode.Nodes)
+                        {
+                            if (elem.Name != "PatternSymbol" && elem.Name != "_")
+                            {
+                                if (elem is IdentifierNode idNode && idNode.Type is CustomInstance)
+                                    continue;
+
+                                return false;
+                            }
+                        }
+                    }
+                    else if (caseNode.Name == "TuplePattern")
+                    {
+                        foreach (var elem in caseNode.Nodes)
+                        {
+                            if (elem.Name != "PatternSymbol" && elem.Name != "_")
+                                return false;
+                        }
+                    }
+                    else
+                        return false;
+
+                    return true;
+                }
+
+                bool isExhaustive = false;
+                if (rootType is TupleType tt)
+                {                    
+                    for (int i = 1; i < exprCount; i++)
+                    {
+                        if (_nodes[_nodes.Count - i] is ExprNode enode)
+                        {
+                            if (testExhaustivity((ExprNode)enode.Nodes[0]))
+                            {
+                                isExhaustive = true;
+                                break;
+                            }
+                        }                           
+                    }
+                }
+                else if (rootType is CustomInstance ci)
+                {
+                    // if it has a custom new type, then it is algebraic type
+                    if (ci.Parent.Instances.First() is CustomNewType)
+                    {
+                        var instancesMatched = new List<string>();
+
+                        for (int i = 1; i < exprCount; i++)
+                        {
+                            var item = ((ExprNode)_nodes[_nodes.Count - i]).Nodes[0];
+
+                            if (item is ExprNode exprNode)
+                            {
+                                if (item.Type is CustomNewType cnt && (cnt.Values.Count == 0 || testExhaustivity(exprNode)))
+                                {
+                                    if (!instancesMatched.Contains(cnt.Name))
+                                        instancesMatched.Add(cnt.Name);
+                                }
+                            }                                                      
+                        }
+
+                        isExhaustive = instancesMatched.Count == ci.Parent.Instances.Count;
+                    }
+                }
+
+                if (!isExhaustive)
+                    throw new SemanticException("All select expressions must be exhaustive", node.Position);
+            }
+
             _nodes.Add(new ExprNode("SelectExpr", dt));
-            PushForward(caseCount);
+            PushForward(exprCount);
         }
 
         private bool _visitCaseExpr(ASTNode node, DataType rootType, bool allowPatternSymbols)

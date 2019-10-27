@@ -5,6 +5,11 @@
   * "function objectification" -> First Class Functions
   * flip "deductive" and "inductive" type inference (it makes more sense the other way round)
   * "case expression" -> "select expression"
+- fix type class constructors (type classes must be constructed if they have values, but
+may only be constructor once
+  * this shouldn't work: `Ok(16)(12)(56)(10)`
+- add better context based inference to new select statements
+  * should be able to infer even outside of a pattern
 - mangle everything, reference everything via custom symbol "table"
   * come up with way to handle overloads (LLVMSymbol class?)
 - get structs up and running

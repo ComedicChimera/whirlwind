@@ -172,9 +172,9 @@ expr_var: 'IDENTIFIER' '=' func_op then_extension ;
 then_extension: 'THEN' expr ;
 
 // select extension
-select_extension: 'SELECT' '{' inline_case+ default_case '}' ;
-inline_case: case_expr (',' case_expr)* '=>' expr ',' ;
-default_case: '_' '=>' expr ;
+select_extension: 'SELECT' '{' inline_case (',' inline_case)* [default_case] '}' ;
+inline_case: case_expr (',' case_expr)* '=>' expr ;
+default_case: ',' '_' '=>' expr ;
 
 // functional/monadic operators
 func_op: or (('>>=' | '~*') or)* ;
