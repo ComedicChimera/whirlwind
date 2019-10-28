@@ -5,9 +5,13 @@
   * "function objectification" -> First Class Functions
   * flip "deductive" and "inductive" type inference (it makes more sense the other way round)
   * "case expression" -> "select expression"
+- get strings working
+  * implement verify string
+  * make sure verify char works for unicode input (registers as 2 chars instead of 1)
+  * make sure chars compile correctly
+  * implement convertString
 - mangle everything, reference everything via custom symbol "table"
   * come up with way to handle overloads (LLVMSymbol class?)
-- prevent strings from being null terminated (LLVM forces global strings to be like this, figure out how to stop it)
 - get structs up and running
   * variable initializers
 - make type impls actually work

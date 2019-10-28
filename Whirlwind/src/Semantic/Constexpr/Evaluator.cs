@@ -269,10 +269,9 @@ namespace Whirlwind.Semantic.Constexpr
                         return bool.Parse(value);
                     case SimpleType.SimpleClassifier.SHORT:
                         return short.Parse(value);
-                    case SimpleType.SimpleClassifier.CHAR:
-                        return value.Trim('\'');
                     case SimpleType.SimpleClassifier.STRING:
-                        return value.Trim('\"');
+                    case SimpleType.SimpleClassifier.CHAR:
+                        return value.Substring(1, value.Length - 2);
                 }
             }
 
