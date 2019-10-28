@@ -44,6 +44,10 @@ namespace Whirlwind.Semantic.Checker
                     {
                         if (desired.Classify() == TypeClassifier.SIMPLE)
                         {
+                            // allow for unsigned to signed casting
+                            if (((SimpleType)start).Type == ((SimpleType)desired).Type)
+                                return true;
+
                             switch (((SimpleType)start).Type)
                             {
                                 case SimpleType.SimpleClassifier.BOOL:

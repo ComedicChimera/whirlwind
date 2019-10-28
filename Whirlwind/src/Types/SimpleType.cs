@@ -30,15 +30,17 @@ namespace Whirlwind.Types
 
         protected sealed override bool _coerce(DataType other)
         {
-            if (other.Classify() == TypeClassifier.SIMPLE)
+            if (other is SimpleType st)
             {
-                // ok to coerce signed to unsigned and vice-versa because it almost
-                // never fails and if I don't, we get tons of issues
+                // coercing signed to unsigned is legal, but not vice versa
+                // also if the signs are the same we don't care
+                if (!Unsigned && st.Unsigned)
+                    return false;
 
-                if (((SimpleType)other).Type == Type)
+                if (st.Type == Type)
                     return true;
 
-                switch (((SimpleType)other).Type)
+                switch (st.Type)
                 {
                     // short to integer, long, double, float
                     case SimpleClassifier.SHORT:
@@ -53,7 +55,7 @@ namespace Whirlwind.Types
                     // char to string
                     case SimpleClassifier.CHAR:
                         return Type == SimpleClassifier.STRING;
-                    // byte to everything except boolean and data type
+                    // byte to everything except boolean data type
                     case SimpleClassifier.BYTE:
                         return Type != SimpleClassifier.BOOL;
                 }
