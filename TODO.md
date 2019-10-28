@@ -1,12 +1,5 @@
 # TODO
 
-- sort out the character type problem
-  * `char` needs to correspond to a full unicode point (UTF-8 encoded, 32 bits)
-  * `short` needs to become the old char and just be another normal integral type
-  * short has `ushort` as its unsigned form
-  * it is marked with `s` at the end of an integral literal (`42s` would be a short)
-  * or maybe a short is actually the default integral type? (possibly, tho a little weird
-    to most people)
 - get yo naming right in documentation
   * "Value-Enumerated Type Class" -> "Algebraic Type Class"
   * "function objectification" -> First Class Functions

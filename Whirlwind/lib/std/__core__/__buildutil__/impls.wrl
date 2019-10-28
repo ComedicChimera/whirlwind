@@ -39,7 +39,7 @@ struct __algType {
 #impl "closure"
 struct __closure<T> {
 	fp: *T; // possibly need another way to store function pointer
-	data: *any;
+	data: dyn *any;
 }
 
 

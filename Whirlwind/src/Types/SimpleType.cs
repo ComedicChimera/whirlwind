@@ -7,8 +7,9 @@ namespace Whirlwind.Types
         public enum SimpleClassifier
         {
             BOOL, 
-            CHAR,
             BYTE,
+            SHORT,
+            CHAR,
             INTEGER,
             FLOAT,
             LONG, 
@@ -39,13 +40,17 @@ namespace Whirlwind.Types
 
                 switch (((SimpleType)other).Type)
                 {
+                    // short to integer, long, double, float
+                    case SimpleClassifier.SHORT:
+                        return new[] { SimpleClassifier.INTEGER, SimpleClassifier.FLOAT, SimpleClassifier.LONG, SimpleClassifier.DOUBLE }
+                        .Contains(Type);
                     // integer to long, double, and float
                     case SimpleClassifier.INTEGER:
                         return new[] { SimpleClassifier.FLOAT, SimpleClassifier.LONG, SimpleClassifier.DOUBLE }.Contains(Type);
                     // float to double
                     case SimpleClassifier.FLOAT:
                         return Type == SimpleClassifier.DOUBLE;
-                    // char to integer and string
+                    // char to string
                     case SimpleClassifier.CHAR:
                         return Type == SimpleClassifier.STRING;
                     // byte to everything except boolean and data type
@@ -86,6 +91,10 @@ namespace Whirlwind.Types
                 case SimpleClassifier.CHAR:
                     baseString = "char";
                     qualifierStatus = 2;
+                    break;
+                case SimpleClassifier.SHORT:
+                    baseString = "short";
+                    qualifierStatus = 1;
                     break;
                 case SimpleClassifier.DOUBLE:
                     baseString = "double";

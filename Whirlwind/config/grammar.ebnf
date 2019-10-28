@@ -312,6 +312,7 @@ simple_types: 'BOOL_TYPE'
 | 'BYTE_TYPE'
 | 'LONG_TYPE'
 | 'DOUBLE_TYPE'
+| 'SHORT_TYPE'
 | 'ANY_TYPE'
 ;
 

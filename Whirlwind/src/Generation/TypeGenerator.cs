@@ -21,8 +21,9 @@ namespace Whirlwind.Generation
                         return LLVM.Int1Type();
                     case SimpleType.SimpleClassifier.BYTE:
                         return LLVM.Int8Type();
-                    case SimpleType.SimpleClassifier.CHAR:
+                    case SimpleType.SimpleClassifier.SHORT:
                         return LLVM.Int16Type();
+                    case SimpleType.SimpleClassifier.CHAR:
                     case SimpleType.SimpleClassifier.INTEGER:
                         return LLVM.Int32Type();
                     case SimpleType.SimpleClassifier.LONG:
@@ -119,6 +120,7 @@ namespace Whirlwind.Generation
                     case SimpleType.SimpleClassifier.BOOL:
                     case SimpleType.SimpleClassifier.BYTE:
                     case SimpleType.SimpleClassifier.CHAR:
+                    case SimpleType.SimpleClassifier.SHORT:
                     case SimpleType.SimpleClassifier.INTEGER:
                     case SimpleType.SimpleClassifier.LONG:
                         return 0;

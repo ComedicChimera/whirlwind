@@ -3,5 +3,18 @@
 }
 
 func main() {
-	
+	let s = 12 as short;
+
+	let i = 13;
+	i = s;
+
+	let p: ushort;
+	p = s;
+
+	let c = '12';
+
+	let st = "as";
+	st += c;
+
+	i = c as int;
 }

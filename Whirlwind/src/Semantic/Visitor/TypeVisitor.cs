@@ -152,6 +152,9 @@ namespace Whirlwind.Semantic.Visitor
                         case "LONG_TYPE":
                             dt = SimpleType.SimpleClassifier.LONG;
                             break;
+                        case "SHORT_TYPE":
+                            dt = SimpleType.SimpleClassifier.SHORT;
+                            break;
                         case "BYTE_TYPE":
                             dt = SimpleType.SimpleClassifier.BYTE;
                             break;
@@ -165,8 +168,7 @@ namespace Whirlwind.Semantic.Visitor
                     }
 
                     // okay because strings and floats are never unsigned
-                    return new SimpleType(dt, (tok.Value.StartsWith("u") || tok.Value == "char" || tok.Value == "byte") 
-                        && !tok.Value.StartsWith("s"));
+                    return new SimpleType(dt, tok.Value.StartsWith("u") || tok.Value == "char" || tok.Value == "byte");
                 }
                 else if (subNode.Name == "collection_types")
                 {

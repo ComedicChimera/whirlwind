@@ -50,7 +50,7 @@ namespace Whirlwind.Semantic.Checker
                                     return ((SimpleType)desired).Type != SimpleType.SimpleClassifier.STRING;
                                 case SimpleType.SimpleClassifier.BYTE:
                                 case SimpleType.SimpleClassifier.CHAR:
-                                    return ((SimpleType)desired).Type != SimpleType.SimpleClassifier.BOOL;
+                                    return ((SimpleType)desired).Type == SimpleType.SimpleClassifier.INTEGER;
                             }
 
                             // possibly add extra guard logic here
@@ -81,8 +81,9 @@ namespace Whirlwind.Semantic.Checker
                                 case SimpleType.SimpleClassifier.BOOL:
                                 case SimpleType.SimpleClassifier.BYTE:
                                     return at.Size == 1;
-                                case SimpleType.SimpleClassifier.CHAR:
+                                case SimpleType.SimpleClassifier.SHORT:
                                     return at.Size == 2;
+                                case SimpleType.SimpleClassifier.CHAR:
                                 case SimpleType.SimpleClassifier.FLOAT:
                                 case SimpleType.SimpleClassifier.INTEGER:
                                     return at.Size == 4;

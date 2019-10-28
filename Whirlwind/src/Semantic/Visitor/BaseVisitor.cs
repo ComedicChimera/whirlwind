@@ -310,7 +310,7 @@ namespace Whirlwind.Semantic.Visitor
                 if (tokenCount <= 2)
                     sc = SimpleType.SimpleClassifier.BYTE;
                 else if (tokenCount <= 4)
-                    sc = SimpleType.SimpleClassifier.CHAR;
+                    sc = SimpleType.SimpleClassifier.SHORT;
                 else if (tokenCount <= 8)
                     sc = SimpleType.SimpleClassifier.INTEGER;
                 else
@@ -321,7 +321,7 @@ namespace Whirlwind.Semantic.Visitor
                 if (tokenCount <= 8)
                     sc = SimpleType.SimpleClassifier.BYTE;
                 else if (tokenCount <= 16)
-                    sc = SimpleType.SimpleClassifier.CHAR;
+                    sc = SimpleType.SimpleClassifier.SHORT;
                 else if (tokenCount <= 32)
                     sc = SimpleType.SimpleClassifier.INTEGER;
                 else
