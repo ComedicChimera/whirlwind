@@ -42,8 +42,10 @@
 - add operator overloading during generation
 - add strict group overload matching during compilation
 - ensure compiled code handles coercion properly (particularly on tuples)
-- closures must obey the behavior described in the docs
-  * they share their state, don't copy it
+- closures must obey the following behavior
+  * each closure copies its current state, but when it is copied, it does not copy its shared local state
+  * the closure's state is dynamically allocated for this reason and managed by the compiler directly
+  * update docs as necesssary
 - ensure null initialization is pervasive
   * this should work: `func f() int => x; let x = f();`
 - account for out of order variable declaration if necessary
