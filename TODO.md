@@ -40,7 +40,7 @@
 - add strict group overload matching during compilation
 - ensure compiled code handles coercion properly (particularly on tuples)
 - closures must obey the following behavior
-  * each closure copies its current state, but when it is copied, it does not copy its shared local state
+  * each closure copies its current state and whenever it is copied, so is its state
   * the closure's state is dynamically allocated for this reason and managed by the compiler directly
   * update docs as necesssary
 - ensure null initialization is pervasive

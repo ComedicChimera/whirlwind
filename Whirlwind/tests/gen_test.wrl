@@ -11,7 +11,7 @@ func main() {
 	let p: ushort;
 	p = s;
 
-	let c = '12';
+	let c = 'a';
 
 	let st = "as";
 	st += c;

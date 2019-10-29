@@ -27,9 +27,9 @@ namespace Whirlwind.Semantic.Checker
             {
                 case "+":
                     {
-                        var stringType = new SimpleType(SimpleType.SimpleClassifier.STRING);
+                        var stringType = new SimpleType(SimpleType.SimpleClassifier.STRING, true);
 
-                        if (rootType is PointerType pt && !pt.IsDynamicPointer && new SimpleType(SimpleType.SimpleClassifier.INTEGER)
+                        if (rootType is PointerType pt && !pt.IsDynamicPointer && new SimpleType(SimpleType.SimpleClassifier.INTEGER, true)
                             .Coerce(operandType))
                         {
                             return;
@@ -52,7 +52,7 @@ namespace Whirlwind.Semantic.Checker
                 case "%":
                 case "~^":
                     {
-                        if (rootType is PointerType pt && !pt.IsDynamicPointer && new SimpleType(SimpleType.SimpleClassifier.INTEGER)
+                        if (rootType is PointerType pt && !pt.IsDynamicPointer && new SimpleType(SimpleType.SimpleClassifier.INTEGER, true)
                             .Coerce(operandType))
                         {
                             return;
@@ -68,7 +68,7 @@ namespace Whirlwind.Semantic.Checker
                 case ">>":
                 case "<<":
                     {
-                        if (rootType.Classify() == TypeClassifier.SIMPLE && new SimpleType(SimpleType.SimpleClassifier.INTEGER).Coerce(operandType))
+                        if (rootType.Classify() == TypeClassifier.SIMPLE && new SimpleType(SimpleType.SimpleClassifier.INTEGER, true).Coerce(operandType))
                             return;
                     }
                     break;

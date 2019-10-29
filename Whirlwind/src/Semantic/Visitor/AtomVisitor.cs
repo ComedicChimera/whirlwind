@@ -130,7 +130,7 @@ namespace Whirlwind.Semantic.Visitor
 
                                     if (tupleNdx < dataTypes.Count)
                                     {
-                                        _nodes.Add(new ValueNode("IntegerMember", new SimpleType(SimpleType.SimpleClassifier.INTEGER), token.Value));
+                                        _nodes.Add(new ValueNode("IntegerMember", new SimpleType(SimpleType.SimpleClassifier.INTEGER, true), token.Value));
                                         _nodes.Add(new ExprNode("GetTupleMember", dataTypes[tupleNdx]));
 
                                         PushForward(2);
@@ -744,7 +744,7 @@ namespace Whirlwind.Semantic.Visitor
                         
                 }
 
-                var intType = new SimpleType(SimpleType.SimpleClassifier.INTEGER) { Constant = true };
+                var intType = new SimpleType(SimpleType.SimpleClassifier.INTEGER, true) { Constant = true };
                 if (!types.All(x => intType.Coerce(x)))
                 {
                     throw new SemanticException($"Invalid index type for {(expressionCount == 1 && hasStartingExpr ? "subscript" : "slice")}",
@@ -822,7 +822,7 @@ namespace Whirlwind.Semantic.Visitor
                 if (!hasSizeExpr)
                     _nodes.Add(new ValueNode("Literal", new SimpleType(SimpleType.SimpleClassifier.INTEGER, true), "1"));
                 else if (!new SimpleType(SimpleType.SimpleClassifier.INTEGER, true).Coerce(_nodes.Last().Type))
-                    throw new SemanticException("Size of heap allocated type must be an unsigned integer", allocBody.Content[2].Position);
+                    throw new SemanticException("Size of heap allocated type must be an integer or a short", allocBody.Content[2].Position);
 
                 _nodes.Add(new ExprNode("HeapAllocType", new PointerType(dt, true)));
                 PushForward(2);
@@ -830,7 +830,7 @@ namespace Whirlwind.Semantic.Visitor
             else
             {
                 if (!new SimpleType(SimpleType.SimpleClassifier.INTEGER, true).Coerce(_nodes.Last().Type))
-                    throw new SemanticException("Size of allocated space must be an unsigned integer", allocBody.Content[0].Position);
+                    throw new SemanticException("Size of allocated space must be an integer or a short", allocBody.Content[0].Position);
 
                 _nodes.Add(new ExprNode("HeapAllocSize", new PointerType(new AnyType(), true)));
                 PushForward();

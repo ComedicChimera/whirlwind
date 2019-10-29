@@ -175,7 +175,7 @@ namespace Whirlwind.Semantic.Visitor
                         }
                         else if (op == ".")
                         {
-                            var intType = new SimpleType(SimpleType.SimpleClassifier.INTEGER);
+                            var intType = new SimpleType(SimpleType.SimpleClassifier.INTEGER, true);
 
                             if (!intType.Coerce(_nodes[_nodes.Count - 2].Type))
                             {

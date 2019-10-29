@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Globalization;
 
 using LLVMSharp;
 
@@ -35,7 +36,7 @@ namespace Whirlwind.Generation
                                 return LLVM.ConstRealOfString(_convertType(node.Type), node.Value.TrimEnd('d'));
                             case SimpleType.SimpleClassifier.STRING:
                                 {
-                                    var arrType = LLVM.ArrayType(LLVM.Int32Type(), (uint)node.Value.Length - 1);
+                                    var arrType = LLVM.ArrayType(LLVM.Int32Type(), (uint)node.Value.Length - 2);
 
                                     return LLVM.ConstNamedStruct(_stringType, new[]
                                     {
@@ -90,7 +91,38 @@ namespace Whirlwind.Generation
         {
             string stringData = stringLit.Substring(1, stringLit.Length - 2);
 
-            return new LLVMValueRef[1];
+            var intData = new List<uint>();
+
+            TextElementEnumerator e = StringInfo.GetTextElementEnumerator(stringData);
+            byte[] bytes;
+            while (e.MoveNext())
+            {
+                bytes = Encoding.UTF8.GetBytes(stringData, e.ElementIndex, e.Current.ToString().Length);
+
+                byte[] intBytes = new byte[sizeof(int)];
+                Array.Copy(bytes, intBytes, bytes.Length);
+
+                intData.Add(BitConverter.ToUInt32(intBytes));
+            }
+
+            bool escapeNext = false;
+            for (int i = intData.Count - 1; i >= 0; i--)
+            {
+                if (escapeNext)
+                {
+                    if (_charTranslationDict.ContainsKey(intData[i]))
+                        intData[i] = _charTranslationDict[intData[i]];
+
+                    escapeNext = false;
+                }
+                else if (intData[i] == 92)
+                {
+                    intData.RemoveAt(i);
+                    escapeNext = true;
+                }
+            }
+
+            return intData.Select(x => LLVM.ConstInt(LLVM.Int32Type(), x, new LLVMBool(0))).ToArray();
         }
 
         private uint _convertCharLiteral(string charLit)

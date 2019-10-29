@@ -81,6 +81,8 @@ namespace Whirlwind.Semantic.Visitor
 
                         if (!VerifyString(((TokenNode)node.Content[0]).Tok.Value))
                             throw new SemanticException("Malformed string literal", node.Content[0].Position);
+
+                        unsigned = true;
                         break;
                     case "CHAR_LITERAL":
                         dt = SimpleType.SimpleClassifier.CHAR;

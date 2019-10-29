@@ -168,7 +168,7 @@ namespace Whirlwind.Semantic.Visitor
                     }
 
                     // okay because strings and floats are never unsigned
-                    return new SimpleType(dt, tok.Value.StartsWith("u") || tok.Value == "char" || tok.Value == "byte");
+                    return new SimpleType(dt, tok.Value.StartsWith("u") || new[] { "byte", "char", "str" }.Contains(tok.Value));
                 }
                 else if (subNode.Name == "collection_types")
                 {
@@ -192,7 +192,7 @@ namespace Whirlwind.Semantic.Visitor
 
                                     var val = Evaluator.Evaluate(_nodes.Last());
 
-                                    if (!new SimpleType(SimpleType.SimpleClassifier.INTEGER).Coerce(val.Type))
+                                    if (!new SimpleType(SimpleType.SimpleClassifier.INTEGER, true).Coerce(val.Type))
                                     {
                                         throw new SemanticException("Invalid data type for array bound", component.Position);
                                     }
