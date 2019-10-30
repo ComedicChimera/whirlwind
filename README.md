@@ -29,7 +29,7 @@ language I aimed for an "85% solution" which effectively means close enough, but
 - Algebraic Data Types
 - Dynamic Pointer Types
 - Chaining (Complex Expressions)
-- Inline Case Statement
+- Inline Select Statement
 - Captures
 - Shadowing
 - Constexpr Evaluation
@@ -85,7 +85,7 @@ Whirlwind also features pattern matching in a number of situations that can prov
        let (x, y, _) = t;
        
        // case pattern matching
-       let res = t case {
+       let res = t select {
           (_, "abc", z) => z,
           (4, _, _) => 1,
           _ => 0
