@@ -1,5 +1,5 @@
 ﻿func test() str {
-	return "test";
+	return "test😀";
 }
 
 func main() {

@@ -97,7 +97,7 @@ namespace Whirlwind.Generation
             byte[] bytes;
             while (e.MoveNext())
             {
-                bytes = Encoding.UTF8.GetBytes(stringData, e.ElementIndex, e.Current.ToString().Length);
+                bytes = Encoding.UTF8.GetBytes(stringData, e.ElementIndex, 1);
 
                 byte[] intBytes = new byte[sizeof(int)];
                 Array.Copy(bytes, intBytes, bytes.Length);
