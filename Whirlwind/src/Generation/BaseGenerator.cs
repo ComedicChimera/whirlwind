@@ -36,14 +36,15 @@ namespace Whirlwind.Generation
                                 return LLVM.ConstRealOfString(_convertType(node.Type), node.Value.TrimEnd('d'));
                             case SimpleType.SimpleClassifier.STRING:
                                 {
-                                    var arrType = LLVM.ArrayType(LLVM.Int32Type(), (uint)node.Value.Length - 2);
+                                    var arrData = _convertString(node.Value);
+                                    var arrType = LLVM.ArrayType(LLVM.Int32Type(), (uint)arrData.Length);
 
                                     return LLVM.ConstNamedStruct(_stringType, new[]
                                     {
                                         LLVM.BuildGEP(_builder,
                                             LLVM.BuildArrayAlloca(
                                                 _builder, arrType,
-                                                LLVM.ConstArray(LLVM.Int32Type(), _convertString(node.Value)),
+                                                LLVM.ConstArray(LLVM.Int32Type(), arrData),
                                                 "string_arr_tmp"
                                             ),
                                             new[] {
@@ -99,27 +100,57 @@ namespace Whirlwind.Generation
             {
                 bytes = Encoding.UTF8.GetBytes(stringData, e.ElementIndex, 1);
 
+                if (bytes.Length == 1)
+                {
+                    byte c = bytes[0];
+                    int take = 0;
+
+                    if (c == 92)
+                    {
+                        e.MoveNext();
+
+                        // should always be good
+                        c = Encoding.UTF8.GetBytes(stringData, e.ElementIndex, 1)[0];
+
+                        int unicodeInt = 0;
+                        if (c == 85)
+                            take = 8;
+                        else if (c == 117)
+                            take = 4;
+                        else
+                        {
+                            if (_charTranslationDict.ContainsKey(c))
+                                unicodeInt = (int)_charTranslationDict[c];
+                            else
+                                unicodeInt = c;
+                        }
+                        
+                        for(; take > 0; take--)
+                        {
+                            unicodeInt *= 16;
+
+                            e.MoveNext();
+
+                            c = Encoding.UTF8.GetBytes(stringData, e.ElementIndex, 1)[0];
+
+                            if (c < 58)
+                                unicodeInt += c - 48;
+                            else
+                                unicodeInt += c - 55;
+                        }
+
+                        if (unicodeInt > 1114112)
+                            throw new GeneratorException("Invalid unicode point: " + stringData);
+
+                        intData.Add((uint)unicodeInt);
+                        continue;
+                    }
+                }
+
                 byte[] intBytes = new byte[sizeof(int)];
                 Array.Copy(bytes, intBytes, bytes.Length);
 
                 intData.Add(BitConverter.ToUInt32(intBytes));
-            }
-
-            bool escapeNext = false;
-            for (int i = intData.Count - 1; i >= 0; i--)
-            {
-                if (escapeNext)
-                {
-                    if (_charTranslationDict.ContainsKey(intData[i]))
-                        intData[i] = _charTranslationDict[intData[i]];
-
-                    escapeNext = false;
-                }
-                else if (intData[i] == 92)
-                {
-                    intData.RemoveAt(i);
-                    escapeNext = true;
-                }
             }
 
             return intData.Select(x => LLVM.ConstInt(LLVM.Int32Type(), x, new LLVMBool(0))).ToArray();
