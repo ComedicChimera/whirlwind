@@ -112,7 +112,7 @@ namespace Whirlwind.Generation
                         // should always be good
                         c = Encoding.UTF8.GetBytes(stringData, e.ElementIndex, 1)[0];
 
-                        int unicodeInt = 0;
+                        uint unicodeInt = 0;
                         if (c == 85)
                             take = 8;
                         else if (c == 117)
@@ -120,7 +120,7 @@ namespace Whirlwind.Generation
                         else
                         {
                             if (_charTranslationDict.ContainsKey(c))
-                                unicodeInt = (int)_charTranslationDict[c];
+                                unicodeInt = _charTranslationDict[c];
                             else
                                 unicodeInt = c;
                         }
@@ -134,15 +134,15 @@ namespace Whirlwind.Generation
                             c = Encoding.UTF8.GetBytes(stringData, e.ElementIndex, 1)[0];
 
                             if (c < 58)
-                                unicodeInt += c - 48;
+                                unicodeInt += (uint)(c - 48);
                             else
-                                unicodeInt += c - 55;
+                                unicodeInt += (uint)(c - 55);
                         }
 
                         if (unicodeInt > 1114112)
                             throw new GeneratorException("Invalid unicode point: " + stringData);
 
-                        intData.Add((uint)unicodeInt);
+                        intData.Add(unicodeInt);
                         continue;
                     }
                 }
