@@ -1,5 +1,5 @@
 ﻿func test() str {
-	return "\U0011FFFF";
+	return "";
 }
 
 func main() {
