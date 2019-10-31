@@ -6,11 +6,30 @@ namespace Whirlwind.Semantic.Checker
 {
     static partial class Checker
     {
+        // handle unicode in accordance with table
+        // (https://lemire.me/blog/2018/05/09/how-quickly-can-you-check-that-a-string-is-valid-unicode-utf-8/)
+        private static byte[][][] _threeByteCharRanges = 
+        {
+            new[] { new byte[] { 0xE0, 0xFF }, new byte[] { 0xA0, 0xBF }, new byte[] { 0x80, 0xBF } },
+            new[] { new byte[] { 0xE1, 0xEC }, new byte[] { 0x80, 0xBF }, new byte[] { 0x80, 0xBF } },
+            new[] { new byte[] { 0xED, 0xFF }, new byte[] { 0x80, 0x9F }, new byte[] { 0x80, 0xBF } },
+            new[] { new byte[] { 0xEE, 0xEF }, new byte[] { 0x80, 0xBF }, new byte[] { 0x80, 0xBF } }
+        };
+
+        private static byte[][][] _fourByteCharRanges =
+        {
+            new[] { new byte[] { 0xF0, 0xFF }, new byte[] { 0x90, 0xBF }, new byte[] { 0x80, 0xBF}, new byte[] { 0x80, 0xBF }},
+            new[] { new byte[] { 0xF1, 0xF3 }, new byte[] { 0x80, 0xBF }, new byte[] { 0x80, 0xBF}, new byte[] { 0x80, 0xBF }},
+            new[] { new byte[] { 0xF4, 0xFF }, new byte[] { 0x80, 0x8F }, new byte[] { 0x80, 0xBF}, new byte[] { 0x80, 0xBF }}
+        };
+
         public static bool VerifyChar(string charLit)
         {
             string charData = charLit.Substring(1, charLit.Length - 2);
 
-            if (charData.StartsWith("\\"))
+            if (charData.Length == 1)
+                return true;
+            else if (charData.StartsWith("\\"))
             {
                 if (charData.StartsWith("\\u"))
                     return charData.Length == 6;
@@ -20,21 +39,36 @@ namespace Whirlwind.Semantic.Checker
                     return "abftvnr0s\"\'\\".Contains(charData[1]);
                 else
                     return false;
-            }
-            else
+            }            
+            else if (charData.Length == 2)
             {
                 byte[] bytes = Encoding.UTF8.GetBytes(charData);
 
-                if (bytes.Length == 1)
-                    return true;
-                else if (bytes.Length == 2)
-                    return bytes[0] >= 0xC2;
-                
-                // handle unicode in accordance with table
-                // (https://lemire.me/blog/2018/05/09/how-quickly-can-you-check-that-a-string-is-valid-unicode-utf-8/)
+                if (bytes.Length == 3)
+                {
+                    foreach (var arr in _threeByteCharRanges)
+                    {
+                        for (int i = 0; i < 3; i++)
+                        {
+                            if (arr[i][0] <= bytes[i] && bytes[i] <= arr[i][1])
+                                return true;
+                        }
+                    }
+                }
                 else
-                    return false;
+                {
+                    foreach (var arr in _fourByteCharRanges)
+                    {
+                        for (int i = 0; i < 4; i++)
+                        {
+                            if (arr[i][0] <= bytes[i] || bytes[i] <= arr[i][1])
+                                return true;
+                        }
+                    }
+                }
             }
+            
+            return false;
         }
 
         public static bool VerifyString(string stringLit)
