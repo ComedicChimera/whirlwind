@@ -70,6 +70,7 @@ namespace Whirlwind.Semantic.Visitor
                                                     break;
                                                 case "extension":
                                                     DataType dt = _generateType((ASTNode)((ASTNode)elem).Content[1]);
+                                                    dt.Category = ValueCategory.LValue;
                                                     variables[currentIdentifier] = new Variable(dt, variables[currentIdentifier].Position);
                                                     break;
                                                 case "variable_initializer":
@@ -130,7 +131,10 @@ namespace Whirlwind.Semantic.Visitor
                                                             _nodes.RemoveAt(_nodes.Count - 1);
                                                         }
 
-                                                        variables[currentIdentifier] = new Variable(initializer.Type, 
+                                                        var initType = initializer.Type.Copy();
+                                                        initType.Category = ValueCategory.LValue;
+
+                                                        variables[currentIdentifier] = new Variable(initType, 
                                                             variables[currentIdentifier].Position);
 
                                                         initializers[currentIdentifier]
@@ -147,6 +151,7 @@ namespace Whirlwind.Semantic.Visitor
                         break;
                     case "extension":
                         mainType = _generateType((ASTNode)((ASTNode)item).Content[1]);
+                        mainType.Category = ValueCategory.LValue;
                         hasType = true;
                         break;
                     case "variable_initializer":
@@ -190,7 +195,9 @@ namespace Whirlwind.Semantic.Visitor
                             throw new SemanticException("Unable to infer type of a variable from initializer", item.Position);
                         else if (!hasType)
                         {
-                            mainType = _nodes.Last().Type;
+                            mainType = _nodes.Last().Type.Copy();
+                            mainType.Category = ValueCategory.LValue;
+
                             hasType = true;
                         }
                         else if (!mainType.Coerce(_nodes.Last().Type))

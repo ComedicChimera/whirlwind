@@ -1016,6 +1016,10 @@ namespace Whirlwind.Semantic.Visitor
                         TypeClassifier.FUNCTION, TypeClassifier.FUNCTION_GROUP
                     }.Contains(rootType.Classify()))
                         throw new SemanticException("Unable to reference type of " + rootType.ToString(), node.Content[0].Position);
+
+                    if (rootType.Category == ValueCategory.RValue)
+                        throw new SemanticException("Unable to reference an r-value", node.Content[0].Position);
+
                     treeName = "Indirect";
                     dt = new PointerType(rootType, false);
                     break;
@@ -1024,7 +1028,9 @@ namespace Whirlwind.Semantic.Visitor
                     if (rootType is PointerType pt)
                     {
                         treeName = op == "*?" ? "NullableDereference" : "Dereference";
-                        dt = pt.DataType;
+
+                        dt = pt.DataType.Copy();
+                        dt.Category = ValueCategory.LValue;
 
                         if (_isVoid(dt))
                             throw new SemanticException("Unable to dereference a pointer to none", node.Content[node.Content.Count - 1].Position);

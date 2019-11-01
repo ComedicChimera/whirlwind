@@ -103,10 +103,21 @@ namespace Whirlwind.Types
         }
     }
 
+    enum ValueCategory
+    {
+        LValue,
+        RValue,
+        DValue,
+        UValue
+    }
+
     abstract class DataType
     {
         // store constancy
         public bool Constant = false;
+
+        // store the current value category
+        public ValueCategory Category = ValueCategory.RValue;
 
         // check if another data type can be coerced to this type
         public virtual bool Coerce(DataType other)

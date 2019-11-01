@@ -50,7 +50,6 @@ namespace Whirlwind.Semantic.Checker
                 case "/":
                 case "~/":
                 case "%":
-                case "~^":
                     {
                         if (rootType is PointerType pt && !pt.IsDynamicPointer && new SimpleType(SimpleType.SimpleClassifier.INTEGER, true)
                             .Coerce(operandType))
@@ -63,6 +62,12 @@ namespace Whirlwind.Semantic.Checker
                             valid = true;
                             break;
                         }                       
+                    }
+                    break;
+                case "~^":
+                    {
+                        if (Numeric(rootType) || rootType is PointerType pt && !pt.IsDynamicPointer)
+                            valid = new SimpleType(SimpleType.SimpleClassifier.INTEGER, true).Coerce(operandType);
                     }
                     break;
                 case ">>":

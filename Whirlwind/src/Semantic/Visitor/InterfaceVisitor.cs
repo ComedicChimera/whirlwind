@@ -230,7 +230,7 @@ namespace Whirlwind.Semantic.Visitor
 
                         var genNode = (IdentifierNode)((BlockNode)_nodes.Last()).Nodes[0];
 
-                        if (new[] { "__finalize__", "__copy__", "__get__", "__set__" }.Contains(genNode.IdName))
+                        if (new[] { "__finalize__", "__copy__", "__move__", "__get__", "__set__" }.Contains(genNode.IdName))
                             throw new SemanticException("Special methods cannot be generic", func.Content[2].Position);
 
                         if (!interfaceType.AddMethod(new Symbol(genNode.IdName, genNode.Type, memberModifiers),
@@ -372,7 +372,7 @@ namespace Whirlwind.Semantic.Visitor
                 if (fn.Async || fn.Parameters.Count > 0 || fn.ReturnType.Classify() != TypeClassifier.NONE)
                     throw new SemanticException("Invalid definition for finalizer", namePos);
             }
-            else if (fnNode.IdName == "__copy__")
+            else if (fnNode.IdName == "__copy__" || fnNode.IdName == "__move__")
             {
                 if (fn.Async || fn.Parameters.Count != 0 || !selfType.Equals(fn.ReturnType))
                     throw new SemanticException("Invalid definition for copier", namePos);
