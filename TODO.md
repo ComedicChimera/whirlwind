@@ -15,6 +15,8 @@
   * deleting anything on the current, certain code path makes that type a dvalue
   * transfer of ownership on current, certain code path makes that type a dvalue
   * uvalue - value category is unclear (could be lvalue, could be dvalue)
+  * all expression unless ended by a deref convert to lvalues
+  * deref accepts all non-rvalues (deleted caught earlier)
 - ownership
   * compiler deletes all lvalue heap memory when scope closes
   * unless that memory is returned or its value category is not well defined (uvalue)
