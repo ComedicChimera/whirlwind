@@ -124,7 +124,7 @@ namespace Whirlwind.Semantic.Visitor
                     modifiers.Add(Modifier.OWNED);
 
                 _table.AddSymbol(new Symbol(arg.Name,
-                        arg.Indefinite ? new ListType(arg.DataType) : arg.DataType,
+                        arg.Indefinite ? new ListType(arg.DataType) { Category = ValueCategory.LValue } : arg.DataType.LValueCopy(),
                         modifiers
                     ));
             }
