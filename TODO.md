@@ -6,7 +6,7 @@
   * flip "deductive" and "inductive" type inference (it makes more sense the other way round)
   * "case expression" -> "select expression"
 - get strings working
-  * test al of the conversion functions
+  * test all of the conversion functions
   * make sure verify char works for unicode input (registers as 2 chars instead of 1)
   * make sure chars compile correctly
 - mangle everything, reference everything via custom symbol "table"
@@ -39,8 +39,10 @@
 - add strict group overload matching during compilation
 - ensure compiled code handles coercion properly (particularly on tuples)
 - closures must obey the following behavior
-  * each closure copies its current state and whenever it is copied, so is its state
+  * each closure created in the same state shares its state unless overridden by a captures
+  * value captured state is unique to that closure and is not copied when closure is
   * the closure's state is dynamically allocated for this reason and managed by the compiler directly
+  * reference counted (b/c it is technically a value type the compiler can manage it completely)
   * update docs as necesssary
 - ensure null initialization is pervasive
   * this should work: `func f() int => x; let x = f();`
