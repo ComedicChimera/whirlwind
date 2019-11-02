@@ -376,12 +376,18 @@ namespace Whirlwind.Semantic.Visitor
         }
 
         private void _visitAssignVar(ASTNode assignVar)
-        {
-            _isSetContext = true;
-            int derefCount = 0;
-
-            foreach (var node in assignVar.Content)
+        {          
+            if (assignVar.Content[0] is TokenNode)
             {
+                _nodes.Add(new IdentifierNode("_", new NoneType()));
+                return;
+            }
+            else
+            {
+                _isSetContext = true;
+
+                _visitExpr((ASTNode)assignVar.Content[0]);
+
                 // check the get operator overload for all of the nodes
                 // the use set overload where it is not the terminating
                 // operation to as to ensure that when we need pass a
@@ -399,62 +405,14 @@ namespace Whirlwind.Semantic.Visitor
                             throw new SemanticException("Unable to use set overload with an incompatable get overload", assignVar.Position);
                     }
                     else
-                        throw new SemanticException("In order to utilize set overload in this context, a get overload must also be defined", 
+                        throw new SemanticException("In order to utilize set overload in this context, a get overload must also be defined",
                             assignVar.Position);
                 }
+                else if (!Mutable(_nodes.Last()))
+                    throw new SemanticException("Unable to assign to an immutable value", assignVar.Position);
 
-                if (node.Name == "TOKEN")
-                {
-                    var token = ((TokenNode)node).Tok;
-
-                    if (token.Type == "IDENTIFIER")
-                    {
-                        if (_table.Lookup(token.Value, out Symbol symbol))
-                        {
-                            if (symbol.Modifiers.Contains(Modifier.CONSTEXPR) || symbol.DataType.Constant)
-                                throw new SemanticException("Unable to assign to immutable value", node.Position);
-                            else
-                                _nodes.Add(new IdentifierNode(symbol.Name, symbol.DataType));
-                        }
-                        else
-                            throw new SemanticException($"Undefined symbol: `{token.Value}`", node.Position);
-                    }
-                    else if (token.Type == "_")
-                        _nodes.Add(new IdentifierNode("_", new NoneType()));
-                    else if (token.Type == "*")
-                        derefCount++;
-                    // this
-                    else
-                    {
-                        if (_table.Lookup("$THIS", out Symbol instance))
-                            _nodes.Add(new IdentifierNode("$THIS", instance.DataType));
-                        else
-                            throw new SemanticException("Use of `this` outside of property", node.Position);
-                    }
-                }
-                else if (node.Name == "trailer")
-                    _visitTrailer((ASTNode)node);
+                _isSetContext = false;
             }
-
-            if (!Modifiable(_nodes.Last()))
-                throw new SemanticException("Unable to assign to immutable value", assignVar.Position);
-
-            if (derefCount > 0)
-            {
-                if (_nodes.Last().Type is PointerType pType)
-                {
-                    if (_isVoid(pType.DataType))
-                        throw new SemanticException("Unable to dereference pointer to none", assignVar.Position);
-                    else
-                    _nodes.Add(new ExprNode("Dereference", pType.DataType));
-
-                PushForward();
-                }
-                else
-                    throw new SemanticException("Unable to dereference a type of " + _nodes.Last().Type.ToString(), assignVar.Position);
-            }
-
-            _isSetContext = false;
         }
 
         private void _inferLambdaAssignContext(DataType pctx, List<DataType> exprTypes, int pos)

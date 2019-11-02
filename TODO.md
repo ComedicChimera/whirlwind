@@ -5,22 +5,6 @@
   * "function objectification" -> First Class Functions
   * flip "deductive" and "inductive" type inference (it makes more sense the other way round)
   * "case expression" -> "select expression"
-- add value categories
-  * lvalue - well-defined place in memory (variables, constants, heap memory, etc.)
-  * rvalue - unclear place in memory (rhs of expressions in many cases, literal constants, etc.)
-  * dvalue - no place in memory, deleted (deleted heap pointers)
-  * can assign to, reference, or dereference any lvalue
-  * dereference (and get item) automatically converts expression to lvalue (if valid)
-  * all expressions (besides deref) convert expression to rvalue
-  * deleting anything on the current, certain code path makes that type a dvalue
-  * transfer of ownership on current, certain code path makes that type a dvalue
-  * uvalue - value category is unclear (could be lvalue, could be dvalue)
-  * all expression unless ended by a deref convert to lvalues
-  * deref accepts all non-rvalues (deleted caught earlier)
-- ownership
-  * compiler deletes all lvalue heap memory when scope closes
-  * unless that memory is returned or its value category is not well defined (uvalue)
-  * warnings about uvalue references?
 - get strings working
   * test al of the conversion functions
   * make sure verify char works for unicode input (registers as 2 chars instead of 1)

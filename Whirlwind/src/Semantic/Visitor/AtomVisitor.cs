@@ -811,7 +811,7 @@ namespace Whirlwind.Semantic.Visitor
                 if (dt.Classify() != TypeClassifier.STRUCT_INSTANCE)
                     throw new SemanticException("Invalid dynamic allocation call", node.Content.Last().Position);
 
-                _nodes.Add(new ExprNode("HeapAllocStruct", new PointerType(dt, true)));
+                _nodes.Add(new ExprNode("HeapAllocStruct", new PointerType(dt, true) { Category = ValueCategory.LValue }));
                 PushForward();
             }
             else if (isTypeAlloc)
@@ -824,7 +824,7 @@ namespace Whirlwind.Semantic.Visitor
                 else if (!new SimpleType(SimpleType.SimpleClassifier.INTEGER, true).Coerce(_nodes.Last().Type))
                     throw new SemanticException("Size of heap allocated type must be an integer or a short", allocBody.Content[2].Position);
 
-                _nodes.Add(new ExprNode("HeapAllocType", new PointerType(dt, true)));
+                _nodes.Add(new ExprNode("HeapAllocType", new PointerType(dt, true) { Category = ValueCategory.LValue }));
                 PushForward(2);
             }
             else
@@ -832,7 +832,7 @@ namespace Whirlwind.Semantic.Visitor
                 if (!new SimpleType(SimpleType.SimpleClassifier.INTEGER, true).Coerce(_nodes.Last().Type))
                     throw new SemanticException("Size of allocated space must be an integer or a short", allocBody.Content[0].Position);
 
-                _nodes.Add(new ExprNode("HeapAllocSize", new PointerType(new AnyType(), true)));
+                _nodes.Add(new ExprNode("HeapAllocSize", new PointerType(new AnyType(), true) { Category = ValueCategory.LValue }));
                 PushForward();
             }
         }

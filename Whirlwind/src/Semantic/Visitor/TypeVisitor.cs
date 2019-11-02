@@ -25,7 +25,7 @@ namespace Whirlwind.Semantic.Visitor
             return dataTypes;
         }
 
-        public DataType _generateType(ASTNode node)
+        public DataType _generateType(ASTNode node, ValueCategory category = ValueCategory.RValue)
         {
             DataType dt = new NoneType();
             bool constant = false;
@@ -120,6 +120,7 @@ namespace Whirlwind.Semantic.Visitor
             if (dt is PackageType)
                 throw new SemanticException("Unable to package as data type", node.Position);
 
+            dt.Category = category;
             return dt;
         }
 

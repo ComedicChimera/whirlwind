@@ -69,8 +69,7 @@ namespace Whirlwind.Semantic.Visitor
                                                     }
                                                     break;
                                                 case "extension":
-                                                    DataType dt = _generateType((ASTNode)((ASTNode)elem).Content[1]);
-                                                    dt.Category = ValueCategory.LValue;
+                                                    DataType dt = _generateType((ASTNode)((ASTNode)elem).Content[1], ValueCategory.LValue);
                                                     variables[currentIdentifier] = new Variable(dt, variables[currentIdentifier].Position);
                                                     break;
                                                 case "variable_initializer":
@@ -131,8 +130,7 @@ namespace Whirlwind.Semantic.Visitor
                                                             _nodes.RemoveAt(_nodes.Count - 1);
                                                         }
 
-                                                        var initType = initializer.Type.Copy();
-                                                        initType.Category = ValueCategory.LValue;
+                                                        var initType = initializer.Type.LValueCopy();
 
                                                         variables[currentIdentifier] = new Variable(initType, 
                                                             variables[currentIdentifier].Position);
@@ -150,8 +148,7 @@ namespace Whirlwind.Semantic.Visitor
                         }
                         break;
                     case "extension":
-                        mainType = _generateType((ASTNode)((ASTNode)item).Content[1]);
-                        mainType.Category = ValueCategory.LValue;
+                        mainType = _generateType((ASTNode)((ASTNode)item).Content[1], ValueCategory.LValue);
                         hasType = true;
                         break;
                     case "variable_initializer":
@@ -195,8 +192,7 @@ namespace Whirlwind.Semantic.Visitor
                             throw new SemanticException("Unable to infer type of a variable from initializer", item.Position);
                         else if (!hasType)
                         {
-                            mainType = _nodes.Last().Type.Copy();
-                            mainType.Category = ValueCategory.LValue;
+                            mainType = _nodes.Last().Type.LValueCopy();
 
                             hasType = true;
                         }

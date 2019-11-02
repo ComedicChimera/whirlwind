@@ -1,0 +1,19 @@
+﻿func iota(n, start, spacing: int) [int] {
+    let l: [int];
+
+    for (i = 0; i < n; i++) {
+        l.push(start + spacing * i);
+    }
+
+    return l;
+}
+
+func floor(n: double) double
+    => n - n % 1;
+
+func ceil(n: double) double
+    => n - n % 1 + 1;
+
+func abs<T>(n: T) T
+    => n if n >= 0 else -n;
+

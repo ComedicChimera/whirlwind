@@ -7,9 +7,8 @@ namespace Whirlwind.Semantic.Checker
     // check all special type interfaces
     static partial class Checker
     {
-        static string[] _modifiableNodes =
+        static string[] _lValueNodes =
         {
-                "Dereference",
                 "Subscript",
                 "Slice",
                 "SliceBegin",
@@ -19,7 +18,11 @@ namespace Whirlwind.Semantic.Checker
                 "SliceBeginStep",
                 "SliceEndStep",
                 "GetMember",
-                "StaticGet"
+                "NullableGetMember",
+                "StaticGet",
+                "HeapAllocSize",
+                "HeapAllocType",
+                "HeapAllocStruct"
         };
 
         public static bool Hashable(DataType dt)
@@ -47,34 +50,36 @@ namespace Whirlwind.Semantic.Checker
             return false;
         }
 
-        /* Check if a given node is modifiable
+        /* Check if a given node is mutable
          * not a direct inferface mirror and really more predicated on checking constants
          * but it somewhat fits with the rest of these
          */
-        public static bool Modifiable(ITypeNode node)
+        public static bool Mutable(ITypeNode node)
         {
-            if (node.Name == "Identifier")
-                return !((IdentifierNode)node).Type.Constant;
+            return LValueExpr(node) && !node.Type.Constant;
+        }
 
-            if (node.Name.EndsWith("SetOverload") || _modifiableNodes.Contains(node.Name))
+        // Check is a given expression is a valid l-valued expression
+        public static bool LValueExpr(ITypeNode node)
+        {
+            if (node is IdentifierNode || node is ConstexprNode)
+                return node.Type.Category == ValueCategory.LValue;
+            else if (node is ExprNode enode)
             {
-                if (node.Name == "GetMember" && ((IdentifierNode)((ExprNode)node).Nodes[1]).Type.Constant)
+                if (node.Type.Category == ValueCategory.RValue)
                     return false;
 
-                var rootNode = ((ExprNode)node).Nodes[0];
-
-                // only subscriptable simple type is string
-                // check for string immutability
-                if ((node.Name == "Subscript" || node.Name.Contains("Slice")) && rootNode.Type.Classify() == TypeClassifier.SIMPLE)
-                    return false;
-
-                // this pointer is immutable, but its members might not be, so we don't bubble this pointer constancy
-                if (rootNode.Name == "Identifier" && ((IdentifierNode)rootNode).IdName == "$THIS")
+                if (node.Name == "Dereference" || node.Name == "NullableDereference")
                     return true;
 
-                return Modifiable(rootNode);
+                if (_lValueNodes.Contains(node.Name))
+                {
+                    if (node.Name.EndsWith("GetMember") && enode.Nodes[0] is IdentifierNode idNode && idNode.IdName == "$THIS")
+                        return LValueExpr(enode.Nodes[1]);
+
+                    return enode.Nodes.All(x => LValueExpr(x));
+                }
             }
-                
 
             return false;
         }

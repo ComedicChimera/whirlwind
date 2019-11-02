@@ -106,9 +106,7 @@ namespace Whirlwind.Types
     enum ValueCategory
     {
         LValue,
-        RValue,
-        DValue,
-        UValue
+        RValue
     }
 
     abstract class DataType
@@ -192,6 +190,16 @@ namespace Whirlwind.Types
         {
             var newDt = ConstCopy();
             newDt.Constant = Constant;
+
+            return newDt;
+        }
+
+        public DataType LValueCopy()
+        {
+            var newDt = Copy();
+            
+            if (newDt.Category == ValueCategory.RValue)
+                newDt.Category = ValueCategory.LValue;
 
             return newDt;
         }

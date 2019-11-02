@@ -3,6 +3,7 @@ using System.Linq;
 using Whirlwind.Semantic.Constexpr;
 using Whirlwind.Syntax;
 using Whirlwind.Types;
+
 using static Whirlwind.Semantic.Checker.Checker;
 
 namespace Whirlwind.Semantic.Visitor
@@ -32,34 +33,38 @@ namespace Whirlwind.Semantic.Visitor
                         if (_isVoid(_nodes.Last().Type))
                             throw new SemanticException("Unable to determine type of variable", exprVarDecl.Content[0].Position);
 
-                        var copyType = _nodes.Last().Type.ConstCopy();
+                        var copyType = _nodes.Last().Type.LValueCopy();
                         // clear out constancy
                         copyType.Constant = false;
 
                         _nodes.Add(new IdentifierNode(name, copyType));
 
-                        if (needsSubscope)
+                        try
                         {
-                            _table.AddScope();
-                            _table.DescendScope();
-                        }
+                            if (needsSubscope)
+                            {
+                                _table.AddScope();
+                                _table.DescendScope();
+                            }
 
-                        if (!_table.AddSymbol(new Symbol(name, copyType)))
+                            if (!_table.AddSymbol(new Symbol(name, copyType)))
+                            {
+                                if (needsSubscope)
+                                    _table.AscendScope();
+
+                                throw new SemanticException("Unable to redeclare symbol in scope", exprVarDecl.Content[0].Position);
+                            }
+
+                            _nodes.Add(new ExprNode("ExprVarDecl", new NoneType()));
+                            PushForward(2);
+                        
+                            _visitThen((ASTNode)exprVarDecl.Content[3], false);
+                        }
+                        finally
                         {
                             if (needsSubscope)
                                 _table.AscendScope();
-
-                            throw new SemanticException("Unable to redeclare symbol in scope", exprVarDecl.Content[0].Position);
                         }
-
-                        _nodes.Add(new ExprNode("ExprVarDecl", new NoneType()));
-                        PushForward(2);
-
-                        _visitThen((ASTNode)exprVarDecl.Content[3], false);
-
-                        if (needsSubscope)
-                            _table.AscendScope();
-
                     }
                     else if (subNode.Name == "expr_extension")
                     {
@@ -263,6 +268,15 @@ namespace Whirlwind.Semantic.Visitor
             // apply constexpr optimization
             if (_constexprOptimizerEnabled && Evaluator.TryEval(_nodes.Last()))
                 _nodes[_nodes.Count - 1] = Evaluator.Evaluate(_nodes.Last());
+
+            // make r-value if necessary
+            if (!LValueExpr(_nodes.Last()))
+            {
+                var nodeDt = _nodes.Last().Type.Copy();
+                nodeDt.Category = ValueCategory.RValue;
+
+                _nodes.Last().Type = nodeDt;
+            }
         }
 
         private void _visitSelectExpr(ASTNode node)
@@ -457,6 +471,8 @@ namespace Whirlwind.Semantic.Visitor
             if (caseContent.Name == "expr")
             {
                 _addContext(caseContent);
+                _couldOwnerExist = false;
+
                 _visitExpr(caseContent);
                 _clearContext();
 
@@ -953,7 +969,7 @@ namespace Whirlwind.Semantic.Visitor
                 case "++":
                     if (Numeric(rootType) || rootType.Classify() == TypeClassifier.POINTER)
                     {
-                        if (!Modifiable(_nodes.Last()))
+                        if (!Mutable(_nodes.Last()))
                             throw new SemanticException("Unable to mutate constant value", node.Content[postfix ? 1 : 0].Position);
 
                         treeName = (postfix ? "Postfix" : "Prefix") + "Increment";
@@ -966,7 +982,7 @@ namespace Whirlwind.Semantic.Visitor
                 case "--":
                     if (Numeric(rootType) || rootType.Classify() == TypeClassifier.POINTER)
                     {
-                        if (!Modifiable(_nodes.Last()))
+                        if (!Mutable(_nodes.Last()))
                             throw new SemanticException("Unable to mutate constant value", node.Content[postfix ? 1 : 0].Position);
 
                         treeName = (postfix ? "Postfix" : "Prefix") + "Decrement";
@@ -1029,8 +1045,7 @@ namespace Whirlwind.Semantic.Visitor
                     {
                         treeName = op == "*?" ? "NullableDereference" : "Dereference";
 
-                        dt = pt.DataType.Copy();
-                        dt.Category = ValueCategory.LValue;
+                        dt = pt.DataType.LValueCopy();
 
                         if (_isVoid(dt))
                             throw new SemanticException("Unable to dereference a pointer to none", node.Content[node.Content.Count - 1].Position);

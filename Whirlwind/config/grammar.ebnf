@@ -139,7 +139,7 @@ variable_initializer: [ '=' expr
 
 // variable assignment
 assignment: assign_var (',' assign_var)* assign_op expr (',' expr)* ;
-assign_var: '*'* ( 'IDENTIFIER' | 'THIS' | '_' ) trailer* ;
+assign_var: '_' | expr ;
 
 assign_op: [ operator ] '=' ;
 

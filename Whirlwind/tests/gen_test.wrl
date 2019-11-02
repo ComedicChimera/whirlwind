@@ -1,20 +1,15 @@
-﻿func test() str {
-	return "";
+﻿struct Point {
+	x, y: int;
+
+	constructor(x, y: int) {
+		this.x = x;
+		this.y = y;
+	}
 }
 
 func main() {
-	let s = 12 as short;
+	let x = 14;
+	let p = &x;
 
-	let i = 13;
-	i = s;
-
-	let p: ushort;
-	p = s;
-
-	let c = 'a';
-
-	let st = "as";
-	st += c;
-
-	i = c as int;
+	*(p + 4) = 10;
 }

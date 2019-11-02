@@ -62,7 +62,7 @@ namespace Whirlwind.Semantic.Visitor
                         }                          
                         else if (item.Name == "types")
                         {
-                            type = _generateType((ASTNode)item);
+                            type = _generateType((ASTNode)item, ValueCategory.LValue);
 
                             if (memberModifiers.Contains(Modifier.OWNED) && !(type is PointerType pt && pt.IsDynamicPointer))
                                 throw new SemanticException("Own modifier must be used on a dynamic pointer",
