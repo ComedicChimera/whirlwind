@@ -77,6 +77,9 @@ namespace Whirlwind.Semantic.Visitor
 
                 dt = _generateType((ASTNode)node.Content[2]);
 
+                if (dt is InterfaceType)
+                    throw new SemanticException("Unable to bind type interface to another interface", node.Content[2].Position);
+
                 var interfaceType = new InterfaceType("TypeInterf:" + dt.ToString());
 
                 _collectInterfaceMethods(interfaceType, (ASTNode)node.Content[node.Content.Count - 2], true, dt);
@@ -137,6 +140,9 @@ namespace Whirlwind.Semantic.Visitor
                 delegate (ASTNode ifBind, List<Modifier> modifiers)
                 {
                     var newDt = _generateType((ASTNode)ifBind.Content[2]);
+
+                    if (newDt is InterfaceType)
+                        throw new SemanticException("Unable to bind type interface to another interface", ifBind.Content[2].Position);
 
                     var newType = new InterfaceType("TypeInterf:" + newDt.ToString());
 

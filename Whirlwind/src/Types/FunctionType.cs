@@ -78,7 +78,7 @@ namespace Whirlwind.Types
         public FunctionType(List<Parameter> parameters, DataType returnType, bool async)
         {
             Parameters = parameters;
-            ReturnType = async ? MirrorType.Future(returnType) : returnType;
+            ReturnType = returnType;
             Async = async;
         }
 

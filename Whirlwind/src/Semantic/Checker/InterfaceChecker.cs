@@ -32,22 +32,12 @@ namespace Whirlwind.Semantic.Checker
             return true;
         }
 
-        public static bool Iterable(DataType dt)
+        public static bool Iterable(DataType dt, InterfaceType iterableInterf)
         {
             if (dt is IIterable)
                 return true;
 
-            if (HasOverload(dt, "__<-__", out DataType returnType))
-            {
-                if (returnType.Classify() == TypeClassifier.STRUCT_INSTANCE)
-                {
-                    // only one element struct
-                    if (((StructType)returnType).Name == "Element")
-                        return true;
-                }
-            }
-
-            return false;
+            return iterableInterf.Coerce(dt);
         }
 
         /* Check if a given node is mutable

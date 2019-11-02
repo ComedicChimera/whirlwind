@@ -408,13 +408,36 @@ namespace Whirlwind.Semantic.Visitor
                         throw new SemanticException(paramData.ErrorMessage, paramData.ParameterPosition == -1 ? node.Position : 
                             ((ASTNode)node.Content[1]).Content.Where(x => x.Name == "arg").ToArray()[paramData.ParameterPosition].Position
                         );
+
+                    DataType returnType = ft.ReturnType;
+
+                    if (ft.Async)
+                    {
+                        if (!_getImpl("fiber", out DataType _))
+                            throw new SemanticException("Missing implementation for type `fiber`", node.Content[1].Position);
+
+                        if (_getImpl("future", out DataType futType))
+                        {
+                            // future may not be properly defined
+                            if (futType is GenericType gft && gft.CreateGeneric(new List<DataType> { returnType }, out returnType))
+                                _nodes.Add(new ExprNode("CallAsync", returnType));
+                            else
+                                throw new SemanticException("Unusable implementation for type `future`", node.Content[1].Position);
+                        }
+                        else
+                            throw new SemanticException("Missing implementation for type `future`", node.Content[1].Position);
+                    }
+                    else
+                        _nodes.Add(new ExprNode("Call", returnType));
                 }
-                else if (!isFunction && !((StructType)rootType).GetConstructor(args, out ft))
-                    throw new SemanticException($"Struct named `{((StructType)rootType).Name}` has no constructor the accepts the given parameters", node.Position);
+                else
+                {
+                    if (!((StructType)rootType).GetConstructor(args, out ft))
+                        throw new SemanticException($"Struct named `{((StructType)rootType).Name}` has no constructor the accepts the given parameters", 
+                            node.Position);
 
-                DataType returnType = isFunction ? ((FunctionType)rootType).ReturnType : ((StructType)rootType).GetInstance();
-
-                _nodes.Add(new ExprNode(isFunction ? (((FunctionType)rootType).Async ? "CallAsync" : "Call") : "CallConstructor", returnType));
+                    _nodes.Add(new ExprNode("CallConstructor", ((StructType)rootType).GetInstance()));
+                }
 
                 if (args.Count() == 0)
                     PushForward();

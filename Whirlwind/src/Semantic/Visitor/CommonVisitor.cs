@@ -18,12 +18,26 @@ namespace Whirlwind.Semantic.Visitor
             var iterable = _nodes.Last().Type;
             DataType iteratorType;
 
-            if (Iterable(iterable))
+            if (_getImpl("iterable", out DataType iterableDt))
             {
-                iteratorType = _getIterableElementType(iterable);
+                if (iterableDt is InterfaceType iterableInterf)
+                {
+                    if (Iterable(iterable, iterableInterf))
+                    {
+                        iteratorType = _getIterableElementType(iterable);
+
+                        if (iteratorType is NoneType)
+                            throw new SemanticException("Unusable iterator type; check validity of iterable implementation", node.Position);
+                    }
+                    else
+                        throw new SemanticException("Unable to create iterator over type of " + iterable.ToString(), node.Position);
+                }
+                else
+                    throw new SemanticException("Unusable implementation for type `iterable`", node.Position);
             }
             else
-                throw new SemanticException("Unable to create iterator over type of " + iterable.ToString(), node.Position);
+                throw new SemanticException("Missing implementation for type `iterable`", node.Position);
+            
 
             string[] identifiers = node.Content
                 .Where(x => x.Name == "iter_var")
@@ -66,20 +80,31 @@ namespace Whirlwind.Semantic.Visitor
             if (iterable is IIterable)
                 return (iterable as IIterable).GetIterator();
             // should never fail - not a true overload so check not required
-            else if (iterable.GetInterface().GetFunction("__<-__", out Symbol method))
+            else if (iterable.GetInterface().GetFunction("iter", out Symbol method))
             {
-                DataType mdt = method.DataType;
+                DataType getMethodDataType(DataType dt)
+                {
+                    if (dt is FunctionGroup fg && fg.GetFunction(new ArgumentList(), out FunctionType ft))
+                        return ft;
+                    else if (!(dt is FunctionType))
+                        return new NoneType();
 
-                if (mdt is FunctionGroup fg && fg.GetFunction(new ArgumentList(), out FunctionType ft))
-                    mdt = ft;
-                else
-                    return new NoneType();                   
+                    return dt;
+                }
 
-                // all iterable __next__ methods return a specific element type (T, bool)
-                var elementType = ((FunctionType)method.DataType).ReturnType;
+                DataType mdt = getMethodDataType(method.DataType);
+
+                if (!((FunctionType)mdt).ReturnType.GetInterface().GetFunction("next", out method))
+                    return new NoneType();
+
+                mdt = getMethodDataType(method.DataType);
+
+                // all iterable next methods return a specific element type (T, bool)
+                var elementType = ((FunctionType)mdt).ReturnType;
 
                 return ((TupleType)elementType).Types[0];
             }
+
             return new NoneType();
         }
 
@@ -168,6 +193,18 @@ namespace Whirlwind.Semantic.Visitor
             }
 
             return capture;
+        }
+
+        private bool _getImpl(string implName, out DataType implDt)
+        {
+            if (_impls.ContainsKey(implName))
+            {
+                implDt = _impls[implName];
+                return true;
+            }
+
+            implDt = null;
+            return false;
         }
     }
 }

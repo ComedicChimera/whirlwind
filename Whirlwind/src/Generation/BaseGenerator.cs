@@ -88,6 +88,8 @@ namespace Whirlwind.Generation
             { 48, 0 }
         };
 
+        private uint _maxUnicodePoint = 1114112;
+
         private LLVMValueRef[] _convertString(string stringLit)
         {
             string stringData = stringLit.Substring(1, stringLit.Length - 2);
@@ -137,9 +139,10 @@ namespace Whirlwind.Generation
                                 unicodeInt += (uint)(c - 48);
                             else
                                 unicodeInt += (uint)(c - 55);
+                           
                         }
 
-                        if (unicodeInt > 1114112)
+                        if (unicodeInt > _maxUnicodePoint)
                             throw new GeneratorException("Invalid unicode point: " + stringData);
 
                         intData.Add(unicodeInt);
@@ -187,7 +190,14 @@ namespace Whirlwind.Generation
                         return 92;
                     case 'u':
                     case 'U':
-                        return Convert.ToUInt32(String.Concat(charData.Skip(2)), 16);
+                        {
+                            var unicodeInt = Convert.ToUInt32(String.Concat(charData.Skip(2)), 16);
+
+                            if (unicodeInt > _maxUnicodePoint)
+                                throw new GeneratorException("Invalid unicode point: " + charData);
+
+                            return unicodeInt;
+                        }
                     // null terminator (\0)
                     default:
                         return 0;

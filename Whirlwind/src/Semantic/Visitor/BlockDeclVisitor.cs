@@ -58,7 +58,7 @@ namespace Whirlwind.Semantic.Visitor
             if (genericVars.Count > 0)
                 _makeGeneric(root, genericVars, modifiers, _table.GetScope().Last(), namePosition);
 
-            if (_wrapsNextAnnotBlock && (root.Name == "struct_decl" || root.Name == "func_decl" || _friendAnnotation))
+            if (_wrapsNextAnnotBlock && (root.Name == "struct_decl" || root.Name == "func_decl" || _friendAnnotation || _implName != ""))
             {
                 if (_implName != "")
                 {             

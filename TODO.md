@@ -5,11 +5,6 @@
   * "function objectification" -> First Class Functions
   * flip "deductive" and "inductive" type inference (it makes more sense the other way round)
   * "case expression" -> "select expression"
-- remove `<-` operator overload; just have compiler look at whether or not it is iterable
-- find some way of binding interfaces to types with intrinsic operator definitions
-  * how to make `int` Numeric (for example)
-  * `type int is Numeric`?
-  * intrinsic methods?
 - get strings working
   * test all of the conversion functions
   * make sure verify char works for unicode input (registers as 2 chars instead of 1)
@@ -99,4 +94,4 @@
   * `struct {y: t}`
 - separate bitwise and logical operators?
 - add support for type aliases in pattern matching?
-
+- add different types of type restrictors (strict and lax)

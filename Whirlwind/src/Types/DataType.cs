@@ -147,15 +147,15 @@ namespace Whirlwind.Types
         // returns the types interface
         public virtual InterfaceType GetInterface()
         {
+            if (this is InterfaceType it)
+                return it;
+
             if (InterfaceRegistry.GetTypeInterface(this, out InterfaceType ift))
                 return ift;
 
+            // don't create entries for invalid bind types
             if (new[] { TypeClassifier.GENERIC_ALIAS, TypeClassifier.GENERIC, TypeClassifier.GENERIC_PLACEHOLDER ,
-                TypeClassifier.GENERIC_GROUP, TypeClassifier.FUNCTION_GROUP }.Contains(Classify()))
-                return new InterfaceType("TypeInterf:" + ToString());
-
-            // don't create entries for nulls and voids
-            if (this is NoneType || this is NullType)
+                TypeClassifier.GENERIC_GROUP, TypeClassifier.FUNCTION_GROUP, TypeClassifier.NONE, TypeClassifier.NULL }.Contains(Classify()))
                 return new InterfaceType("TypeInterf:" + ToString());
 
             InterfaceRegistry.StandardInterfaces[this] = new InterfaceType("TypeInterf:" + ToString());

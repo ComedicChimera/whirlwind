@@ -1,4 +1,20 @@
-﻿func iota(n, start, spacing: int) [int] {
+﻿type Ord
+    | Less
+    | Greater
+    | Equal
+    ;
+
+type Option<T>
+    | Some(T)
+    | None
+    ;
+
+type Result<T>
+    | Ok(T)
+    | Err(Error)
+    ;
+
+func iota(n, start, spacing: int) [int] {
     let l: [int];
 
     for (i = 0; i < n; i++) {
@@ -14,6 +30,54 @@ func floor(n: double) double
 func ceil(n: double) double
     => n - n % 1 + 1;
 
-func abs<T>(n: T) T
+func abs<T: double>(n: T) T
     => n if n >= 0 else -n;
 
+func filled(n, v: int) [int]
+    => [v | _ <- 1..n];
+
+func clamp<T: double>(n, l, u: T) T {
+    if (n < l)
+        return l;
+    elif (n > u)
+        return u;
+    
+    return n;
+}
+
+func normalize(n, m: double) float
+    => n / m as float;
+
+func transmute(n, l, u, nl, nu: double) double {
+    let pN = n / (u - l);
+
+    return pN * (nu - nl) + nl;
+}
+
+func min<T: double>(a, b: T) T 
+    => a if a <= b else b;
+
+func max<T: double>(a, b: T) T
+    => a if a >= b else b;
+
+func compare(a, b) Ord {
+    if (a < b)
+        return Less;
+    elif (a > b)
+        return Greater;
+    else
+        return Equal;
+}
+
+func assert(b: bool) {
+    if (b) die(AssertionError);
+}
+
+func round(n: double) double {
+    let nDec = n % 1;
+
+    if (nDec < 0.5)
+        return n - nDec;
+    else
+        return n - nDec + 1;
+}

@@ -11,9 +11,22 @@
 type ErrorKind 
 	| ValueError
 	| BoundsError
+    | AssertionError
 	; // add other errors later
 
 struct ErrorData {
 	message: str;
 	// stack trace, memory, etc.
+}
+
+func die(err: Error) {
+
+}
+
+func die(err: ErrorKind) {
+
+}
+
+func die(msg: str) {
+    
 }
