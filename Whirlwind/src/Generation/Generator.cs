@@ -26,6 +26,8 @@ namespace Whirlwind.Generation
         private readonly List<Dictionary<string, LLVMValueRef>> _scopes;
         // store the global scope of the program
         private readonly Dictionary<string, LLVMValueRef> _globalScope;
+        // store globally declared structures
+        private readonly Dictionary<string, LLVMTypeRef> _globalStructs;
 
         // store global string type
         private LLVMTypeRef _stringType;

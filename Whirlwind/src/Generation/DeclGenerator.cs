@@ -16,10 +16,10 @@ namespace Whirlwind.Generation
             var name = ((IdentifierNode)node.Nodes[0]).IdName;
             var st = (StructType)node.Nodes[0].Type;
 
-            name = _namePrefix + name;
-
             var llvmStruct = LLVM.StructCreateNamed(_ctx, name);
             llvmStruct.StructSetBody(st.Members.Select(x => _convertType(x.Value.DataType)).ToArray(), packed);
+
+            _globalStructs[name] = llvmStruct;
 
             var memberDict = new Dictionary<string, ITypeNode>();
             bool needsInitMembers = false;
@@ -47,6 +47,7 @@ namespace Whirlwind.Generation
                         suffix += "." + string.Join(",", cft.Parameters.Select(x => x.DataType.LLVMName()));
 
                     var llvmConstructor = _generateFunctionPrototype(name + suffix, cft, exported);
+                    _globalScope[name + suffix] = llvmConstructor;
 
                     if (constructor.Block.Count > 0)
                     {
