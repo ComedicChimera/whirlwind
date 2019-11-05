@@ -1,15 +1,7 @@
-﻿struct Point {
-	x, y: int;
-
-	constructor(x, y: int) {
-		this.x = x;
-		this.y = y;
-	}
+﻿func test() []int {
+	return { 0, 2, 3 };
 }
 
 func main() {
-	let x = 14;
-	let p = &x;
-
-	*(p + 4) = 10;
+	let a = test();
 }

@@ -28,9 +28,37 @@ namespace Whirlwind.Generation
 
                 switch (expr.Name)
                 {
-                    case "Add":
-                        
-                        break;
+                    case "Array":
+                        {
+                            var elemType = ((ArrayType)expr.Type).ElementType;
+                            var arrNodes = new List<LLVMValueRef>();
+
+                            foreach (var item in enode.Nodes)
+                            {
+                                var vRef = _generateExpr(item);
+
+                                if (!elemType.Equals(item.Type))
+                                    vRef = _cast(vRef, item.Type, elemType);
+
+                                arrNodes.Add(vRef);
+                            }
+
+                            var llvmElementType = _convertType(elemType);
+                            var llvmArrayType = LLVM.ArrayType(llvmElementType, (uint)arrNodes.Count);
+
+                            var arrLit = LLVM.BuildArrayAlloca(_builder,
+                                llvmArrayType,
+                                LLVM.ConstArray(llvmElementType, arrNodes.ToArray()),
+                                "array_lit"
+                                );
+
+                            var arrPtr = LLVM.BuildInBoundsGEP(_builder, arrLit,
+                                new[] { LLVM.ConstInt(LLVM.Int32Type(), 0, new LLVMBool(0)) },
+                                "arr_ptr");
+
+                            // create struct first!
+                            return arrPtr;
+                        }
                 }
             }
 

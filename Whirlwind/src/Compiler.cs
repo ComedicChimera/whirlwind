@@ -129,8 +129,8 @@ namespace Whirlwind
                 var table = visitor.Table();
                 var sat = visitor.Result();
 
-                if (isMainPackage)
-                    _buildMainFile(pkg, table, sat, namePrefix);
+                if (isMainPackage && !_buildMainFile(pkg, table, sat, namePrefix))
+                    return false;
 
                 // clear out AST once it is no longer being used
                 _clearPackage(pkg);

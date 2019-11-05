@@ -53,7 +53,7 @@ interface_bind: 'INTERF' [generic_tag] 'FOR' types ['IS' implements] '{' interfa
 implements: types (',' types)* ;
 
 // operator overload
-operator_decl: 'OPERATOR' ( operator | ext_op ) [generic_tag] '(' args_decl_list ')' [types] (func_body | ';') ;
+operator_decl: 'OPERATOR' '(' ( operator | ext_op ) ')' [generic_tag] '(' args_decl_list ')' [types] (func_body | ';') ;
 ext_op: '[' [ ':' ] ']' | ':>' | '.' '.' ;
 
 // type class declaration

@@ -47,6 +47,7 @@ namespace Whirlwind.Generation
             // setup generator state data
             _scopes = new List<Dictionary<string, LLVMValueRef>>();
             _globalScope = new Dictionary<string, LLVMValueRef>();
+            _globalStructs = new Dictionary<string, LLVMTypeRef>();
         }
 
         public void Generate(ITypeNode tree, string outputFile)
@@ -75,7 +76,7 @@ namespace Whirlwind.Generation
                         _generateTopDecl(annotBlock.Block[1]);
 
                         if (annotName == "impl" && ((ValueNode)annotation.Nodes[1]).Value == "string")
-                            _stringType = _convertType(_impls["string"]);
+                            _stringType = _globalStructs["__string"];
 
                         // add more annotation logic later...
                     }

@@ -62,7 +62,7 @@ namespace Whirlwind.Generation
                     _table.Lookup(item, out symbol);
 
                 if (symbol.DataType is StructType)
-                    return LLVM.GetTypeByName(_module, st.Name);
+                    return _globalStructs[lName];
                 // only other option is generic type
                 else
                     return _processGeneric((GenericType)symbol.DataType, dt);

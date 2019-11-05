@@ -226,9 +226,9 @@ namespace Whirlwind.Semantic.Visitor
                         throw new SemanticException("All methods of type interface must define a body",
                             func.Content[func.Content.Count - 2].Position);
 
-                    if (func.Content[2].Name == "generic_tag")
+                    if (func.Content[4].Name == "generic_tag")
                     {
-                        var genericVars = _primeGeneric((ASTNode)func.Content[2]);
+                        var genericVars = _primeGeneric((ASTNode)func.Content[4]);
 
                         _visitFunction(func, memberModifiers);
 
