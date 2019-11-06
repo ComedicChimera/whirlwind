@@ -31,8 +31,13 @@ namespace Whirlwind.Generation
                     case "Array":
                         {
                             var elemType = ((ArrayType)expr.Type).ElementType;
-                            var arrNodes = new List<LLVMValueRef>();
 
+                            var llvmElementType = _convertType(elemType);
+                            var llvmArrayType = LLVM.ArrayType(llvmElementType, (uint)enode.Nodes.Count);
+
+                            var arrLit = LLVM.BuildAlloca(_builder, llvmArrayType, "array_lit");
+
+                            uint i = 0;
                             foreach (var item in enode.Nodes)
                             {
                                 var vRef = _generateExpr(item);
@@ -40,17 +45,18 @@ namespace Whirlwind.Generation
                                 if (!elemType.Equals(item.Type))
                                     vRef = _cast(vRef, item.Type, elemType);
 
-                                arrNodes.Add(vRef);
+                                var elemPtr = LLVM.BuildGEP(_builder, arrLit,
+                                    new[] {
+                                        LLVM.ConstInt(LLVM.Int32Type(), 0, new LLVMBool(0)),
+                                        LLVM.ConstInt(LLVM.Int32Type(), i, new LLVMBool(0))
+                                    },
+                                    "elem_ptr"
+                                    );
+
+                                LLVM.BuildStore(_builder, vRef, elemPtr);
+
+                                i++;
                             }
-
-                            var llvmElementType = _convertType(elemType);
-                            var llvmArrayType = LLVM.ArrayType(llvmElementType, (uint)arrNodes.Count);
-
-                            var arrLit = LLVM.BuildArrayAlloca(_builder,
-                                llvmArrayType,
-                                LLVM.ConstArray(llvmElementType, arrNodes.ToArray()),
-                                "array_lit"
-                                );
 
                             var arrPtr = LLVM.BuildInBoundsGEP(_builder, arrLit,
                                 new[] { LLVM.ConstInt(LLVM.Int32Type(), 0, new LLVMBool(0)) },

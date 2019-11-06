@@ -1,5 +1,5 @@
-﻿func test() []int {
-	return { 0, 2, 3 };
+﻿func test() []float {
+	return { 0, 2, 3.3 };
 }
 
 func main() {
