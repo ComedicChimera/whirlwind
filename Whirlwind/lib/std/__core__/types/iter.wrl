@@ -4,4 +4,33 @@
 
 interf Iterable<T> {
 	func iter() Iterator<T>;
+
+	func map<R>(f: func(T)(R)) Iterable<R> {
+		return new MapIterator(this.iter(), f) as IterableMask<T>;
+	}
+}
+
+type IterableMask<T> Iterator<T>;
+
+interf<T> for IterableMask<T> is Iterable<T> {
+	func iter() Iterator<T>
+		=> this as Iterator<T>
+}
+
+struct MapIterator<T, R> {
+	base: Iterator<T>;
+	fn: func(T)(R);
+
+	constructor(b: Iterator<T>, f: func(T)(R)) {
+		this.base = b;
+		this.fn = f;
+	}
+}
+
+interf<T, R> for MapIterator<T, R> is Iterator<R> {
+	func next() (R, bool) {
+		let (v, b) = this.base.next();
+
+		return this.f(v), b;
+	}
 }
