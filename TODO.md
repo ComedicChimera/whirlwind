@@ -41,11 +41,9 @@
 - add strict group overload matching during compilation
 - ensure compiled code handles coercion properly (particularly on tuples)
 - closures must obey the following behavior
-  * each closure created in the same state shares its state unless overridden by a captures
-  * value captured state is unique to that closure and is not copied when closure is
-  * the closure's state is dynamically allocated for this reason and managed by the compiler directly
-  * reference counted (b/c it is technically a value type the compiler can manage it completely)
-  * update docs as necesssary
+  * each closure creates a dynamically allocated copy of its state (that it stores between calls)
+  * its state is not copied between calls or when the closure itself is copied
+  * closure's state must be carefully watched
 - ensure null initialization is pervasive
   * this should work: `func f() int => x; let x = f();`
 - account for out of order variable declaration if necessary
