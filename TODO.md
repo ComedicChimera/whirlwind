@@ -5,6 +5,8 @@
   * "function objectification" -> First Class Functions
   * flip "deductive" and "inductive" type inference (it makes more sense the other way round)
   * "case expression" -> "select expression"
+- figure out what to do about dynamically sized arrays 
+  * needs `dyn` tag?
 - get strings working
   * test all of the conversion functions
   * make sure verify char works for unicode input (registers as 2 chars instead of 1)

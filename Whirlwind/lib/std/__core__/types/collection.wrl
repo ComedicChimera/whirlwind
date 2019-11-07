@@ -20,7 +20,7 @@ struct CollectionIterator<T> {
 interf<T> for CollectionIterator<T> is Iterator<T> {
 	func next() (T, bool) {
 		if (this.pos < this.col.len())
-			return this.col[this.pos], this.pos++ < this.col.len();
+			return this.col.at(this.pos), ++this.pos < this.col.len();
 
 		return null, false;
 	}
