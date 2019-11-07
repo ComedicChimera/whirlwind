@@ -30,6 +30,24 @@ interf Iterable<T> {
 
 	func enumerate() Iterable<T>
 		=> new EnumeratedIterator(this.iter) as IterableMask<T>;
+
+	func any(f: func(T)(bool)) bool {
+		for (item <- this) {
+			if (f(item))
+				return true;
+		}
+
+		return false;
+	}
+
+	func all(f: func(T)(bool)) bool {
+		for (item <- this) {
+			if (!f(item))
+				return false;
+		}
+
+		return true;
+	}
 }
 
 type IterableMask<T> Iterator<T>;
