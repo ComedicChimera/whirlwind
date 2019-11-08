@@ -65,3 +65,10 @@ func __concatA<T>(a, b: []T) {
 func __concatL<T>(a, b: [T]) {
 
 }
+
+// INTRINSIC FUNCTIONS
+#intrinsic
+func __malloca(size: uint) *any;
+
+#intrinsic
+func __sizeof(data: any) uint;

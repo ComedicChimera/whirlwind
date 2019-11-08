@@ -33,7 +33,10 @@ func ceil(n: double) double
 func abs<T: double>(n: T) T
     => n if n >= 0 else -n;
 
-func filled(n, v: int) [int]
+func arrayOf<T>(n: int, v: T) []T
+	=> {v | _ <- 1..n};
+
+func listOf<T>(n: int, v: T) [T]
     => [v | _ <- 1..n];
 
 func clamp<T: double>(n, l, u: T) T {
@@ -81,3 +84,10 @@ func round(n: double) double {
     else
         return n - nDec + 1;
 }
+
+func malloca<T>(n: uint) *T
+	=> __malloca(n * sizeof<T>()) as *T;
+
+// simplified by compiler
+func sizeof<T>() uint
+	=> __sizeof(null as T);

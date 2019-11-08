@@ -5,10 +5,6 @@
   * "function objectification" -> First Class Functions
   * flip "deductive" and "inductive" type inference (it makes more sense the other way round)
   * "case expression" -> "select expression"
-- add variable sized stack allocaton
-  * `new (int, 5)`
-  * `new 10`
-  * returns stack pointers
 - get strings working
   * test all of the conversion functions
   * make sure verify char works for unicode input (registers as 2 chars instead of 1)
@@ -78,6 +74,7 @@
 - make sure includes bring in all of the necessary information (ie. if you import something, you import all of it)
 - lists and dicts must cleanup after themselves
   * both are dynamically allocated and need to handle that appropriately
+- add implementations for intrinsics
 
 # THOUGHTS
 
