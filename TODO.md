@@ -1,3 +1,19 @@
+# PLAN
+
+- Build the MVP sans-runtime (everything you can without any runtime/OS support)
+  * all basic instructions, intrinsics, constructs, interface (etc)
+- Build DLL Loader (to bind to OS) and all the stuff needed for that
+- Implement Abstract Concurrency Interface (concurrency without any actual behavior)
+- Implement Dynamic Memory (Heap Allocator)
+- Implement Core Concurrency (Fibers, Futures, Mutex, etc.)
+- Implement Any Remaining Elements of Core Library
+- Implement Most Basic Packages
+  * `io`, `math`, `encoding`, `strconv`, `os`, `time`, `random`
+  * implement `math` in pieces (do the small, simple stuff first, then the big stuff)
+  * same for `random` (no need to do anything ridiculously complicated until later)
+- Implement Remaining "Non-Essential" Packages
+  * see `std-lib.txt`
+
 # TODO
 
 - get yo naming right in documentation
