@@ -88,6 +88,9 @@ namespace Whirlwind.Generation
                 case "Struct":
                     _generateStruct((BlockNode)node, false, false);
                     break;
+                case "Interface":
+                    _generateInterf((BlockNode)node);
+                    break;
             }
         }
 

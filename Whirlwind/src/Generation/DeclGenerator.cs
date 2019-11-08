@@ -104,9 +104,12 @@ namespace Whirlwind.Generation
             var interfStruct = LLVM.StructCreateNamed(_ctx, idNode.Name);
             interfStruct.StructSetBody(new[]
             {
+                LLVM.PointerType(interfStruct, 0),
                 LLVM.Int16Type(),
                 vtableStruct
             }, false);
+
+            _globalStructs[idNode.IdName] = interfStruct;
         }
 
         private void _generateTypeClass(BlockNode node, bool packed)

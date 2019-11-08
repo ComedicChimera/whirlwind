@@ -260,9 +260,9 @@ namespace Whirlwind.Semantic.Visitor
 
                 // add function to interface block
                 MergeToBlock();
-
-                _functionCanHaveNoBody = false;
             }
+
+            _functionCanHaveNoBody = false;
         }
 
         private void _visitOperatorOverload(InterfaceType interfType, ASTNode node, bool typeInterface)
