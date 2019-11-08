@@ -1,4 +1,10 @@
-﻿func test() []float {
+﻿interf Test {
+	func test() int;
+
+	func test2(x: float) double;
+}
+
+func test() []float {
 	return { 0, 2, 3.3 };
 }
 

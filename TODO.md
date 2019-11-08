@@ -21,6 +21,8 @@
   * "function objectification" -> First Class Functions
   * flip "deductive" and "inductive" type inference (it makes more sense the other way round)
   * "case expression" -> "select expression"
+- fix interface checking (empty method bodies?)
+- make sure interfaces actually declare their vtable as full of methods
 - get strings working
   * test all of the conversion functions
   * make sure verify char works for unicode input (registers as 2 chars instead of 1)

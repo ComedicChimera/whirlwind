@@ -85,6 +85,30 @@ namespace Whirlwind.Generation
             }
         }
 
+        private void _generateInterf(BlockNode node)
+        {
+            var idNode = (IdentifierNode)node.Nodes[0];
+            var interfType = (InterfaceType)idNode.Type;
+
+            var methods = new List<LLVMTypeRef>();
+
+            foreach (var method in interfType.Methods)
+            {
+                if (method.Key.DataType is FunctionType ftType)
+                    methods.Add(_convertType(ftType));
+            }
+
+            var vtableStruct = LLVM.StructCreateNamed(_ctx, idNode.Name + ".__vtable");
+            vtableStruct.StructSetBody(methods.ToArray(), false);
+
+            var interfStruct = LLVM.StructCreateNamed(_ctx, idNode.Name);
+            interfStruct.StructSetBody(new[]
+            {
+                LLVM.Int16Type(),
+                vtableStruct
+            }, false);
+        }
+
         private void _generateTypeClass(BlockNode node, bool packed)
         {
 
