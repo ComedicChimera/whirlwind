@@ -71,8 +71,8 @@ namespace Whirlwind.Generation
 
             if (needsInitMembers)
             {
-                var initFn = _generateFunctionPrototype(name + ".$_initMembers", new FunctionType(new List<Parameter>
-                            { new Parameter("$THIS", new PointerType(st, false), false, false, false, false) },
+                var initFn = _generateFunctionPrototype(name + ".__initMembers", new FunctionType(new List<Parameter>
+                            { new Parameter("this", new PointerType(st, false), false, false, false, false) },
                            new NoneType(), false), false);
 
                 LLVM.PositionBuilderAtEnd(_builder, LLVM.AppendBasicBlockInContext(_ctx, initFn, "entry"));
@@ -94,6 +94,7 @@ namespace Whirlwind.Generation
 
             foreach (var method in interfType.Methods)
             {
+                // build method if necessary
                 if (method.Key.DataType is FunctionType ftType)
                     methods.Add(_convertType(ftType));
             }
@@ -104,7 +105,7 @@ namespace Whirlwind.Generation
             var interfStruct = LLVM.StructCreateNamed(_ctx, idNode.Name);
             interfStruct.StructSetBody(new[]
             {
-                LLVM.PointerType(interfStruct, 0),
+                LLVM.PointerType(LLVM.Int8Type(), 0),
                 LLVM.Int16Type(),
                 vtableStruct
             }, false);

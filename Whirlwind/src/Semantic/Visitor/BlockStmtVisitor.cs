@@ -271,15 +271,27 @@ namespace Whirlwind.Semantic.Visitor
 
                 foreach (var subNode in body.Content)
                 {
-                    if (subNode.Name == "expr")
+                    if (subNode.Name == "for_expr")
                     {
                         _nodes.Add(new BlockNode("ForCondition"));
-                        _visitExpr((ASTNode)subNode);
 
-                        if (!new SimpleType(SimpleType.SimpleClassifier.BOOL).Coerce(_nodes.Last().Type))
-                            throw new SemanticException("Condition of for loop must be a boolean", subNode.Position);
+                        foreach (var elem in ((ASTNode)subNode).Content)
+                        {
+                            if (elem.Name == "expr")
+                            {
+                                _visitExpr((ASTNode)subNode);
 
-                        MergeBack();
+                                if (!new SimpleType(SimpleType.SimpleClassifier.BOOL).Coerce(_nodes.Last().Type))
+                                    throw new SemanticException("Condition of for loop must be a boolean", subNode.Position);
+
+                                MergeBack();
+                            }
+                            else if (elem.Name == "variable_decl")
+                            {
+                                _visitVarDecl((ASTNode)elem, new List<Modifier>());
+                                MergeBack();
+                            }
+                        }                       
                     }
                     else if (subNode.Name == "iterator")
                     {

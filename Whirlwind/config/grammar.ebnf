@@ -100,8 +100,9 @@ default: 'DEFAULT' ':' main ;
 
 // for loop
 for_loop: 'FOR' [for_body] block [after_clause] ;
-for_body: '(' (c_for | iterator | expr) ')' ;
+for_body: '(' (c_for | iterator | for_expr) ')' ;
 c_for: ['IDENTIFIER' '=' expr] ';' [expr] ';' [expr | assignment] ;
+for_expr: [ variable_decl ';' ] expr ;
 
 // context manager
 context_block: 'WITH' context_body [after_clause] ;

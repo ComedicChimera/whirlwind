@@ -17,11 +17,13 @@ styles are possible to help make the resultant code as unambiguous as possible.
 
 ## <a name="packages"> Packages
 
-Every global variable within a package will be prefixed with
-its package's path so as the prevent naming conflicts between
-packages.  This will be accounted for in the forward declarations.
+Every exported member of a package is given a random 16 character alphanumeric prefix when
+it is compiled to prevent naming clashes in the global namespace between translation units.
+However, in Whirlwind's global symbol table, no such change occurs; rather, for each package,
+any symbols included as part of a package are given that package's **named** prefix.
 
-*Eg.* in package `pkg`, `init()` becomes `pkg::init()`
+*Eg.* for the exported symbol `init`, in LLVM's symbol table it might appear as `10ac6_aD78b7bcfA54.init`,
+and in Whirlwind's symbol table, it would appear as `pkg::init` (assuming the package's name is `pkg`).
 
 ## <a name="groups"> Group Overloading
 
@@ -63,9 +65,10 @@ is replaced with `operator` and the special operator function name is used inste
 name.
 
 *Eg.* for an interface named `IExample` with an add overload and multiply overload, the corresponding
-operator overloads would appear like: `IExample.operator.__add__` and `IExample.operator.__mul__`
+operator overloads would appear like: `IExample.operator.__+__` and `IExample.operator.__*__`
 
-Notably, each operator overload function is named for its corresponding expression node (except is some rare cases).
+Notably, each operator overload function is named for its corresponding operator node, not its expression
+node since semantically a `+` overload does not need to be an "add" overload in the traditional sense.
 This transformation happens in the operator overload declaration at the generation level.
 
 Additionally, the same convention is used with type interfaces.

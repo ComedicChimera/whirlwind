@@ -186,11 +186,11 @@ ExprNodes made specifically for use in certain block statements and/or declarati
 | CForCondition | Expr | The end condition of a C-style for loop |
 | CForUpdateExpr | Expr | The expression to be called each cycle of a C-style for loop |
 | CForUpdateAssignment | Assignment | The assignment statement to evaluated after each cycle of a C-Style for loop |
-| NewType | *none* | The new type value in a type class |
-| AliasType | \[Identifier, Expr\] | Indicates an alias value in a type class |
+| NewType | *Values*, \[ValueRestrictor\] | The new type value in a type class |
+| AliasType | \[Identifier\], \[ValueRestrictor\] | Indicates an alias value in a type class |
 | BindInterface | Interface, Type | Binds an interface to the given data type |
 | Implements | *Types* | A list of interfaces implemented by a given type interface |
-| MemberInitializer | Expr | The initializer for any struct member that has one |
+| MemberInitializer | Identifier, Expr | The initializer for any struct member that has one |
 | DecoratorCall | Expr | Used in processing a decorator expression; represents a call to the decorator |
 | ValueRestrictor | Expr | Restricts the value of any type class enumerated value |
 | Case | Represents a case in a case expression |
@@ -278,7 +278,7 @@ All block declaration containing identifiers are using the identifier to represe
 | BindInterface | TypeInterface, Type, [Implements] | An interface bind |
 | BindGenericInterface | GenericTypeInterface, Type, [Implements] | A generic interface bind |
 | Decorator | *Expr* | A function declared with one or more decorators |
-| TypeClass | Identifier, *Implements* | A type class declaration |
+| TypeClass | Identifier, *Members* | A type class declaration |
 | Constructor | Identifier | A constructor within a struct |
 | Generic | Identifier | A generic declaration |
 | Variant | VariantGenerate, Identifier | A variant declaration |

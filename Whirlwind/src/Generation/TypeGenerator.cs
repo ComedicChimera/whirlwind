@@ -67,6 +67,21 @@ namespace Whirlwind.Generation
                 else
                     return _processGeneric((GenericType)symbol.DataType, dt);
             }
+            else if (dt is InterfaceType it)
+            {
+                // interface types are effectively structs from llvm's perspective
+                string lName = _getLookupName(it.Name);
+
+                Symbol symbol = null;
+                foreach (var item in lName.Split("::"))
+                    _table.Lookup(item, out symbol);
+
+                if (symbol.DataType is InterfaceType)
+                    return _globalStructs[lName];
+                // only other option is generic type
+                else
+                    return _processGeneric((GenericType)symbol.DataType, dt);
+            }
             else if (dt is TupleType tt)
                 return LLVM.StructType(tt.Types.Select(x => _convertType(x)).ToArray(), true);
             else if (dt is FunctionType ft)

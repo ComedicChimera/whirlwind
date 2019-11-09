@@ -16,6 +16,11 @@
 
 # TODO
 
+- fix none and null checking
+  * results of expressions should not contain none (unless ExprStmt or Function)
+  * inferred types of case expressions, if expressions, 
+    and return types (of lambdas) should never be null
+  * check any other case (we know anything that uses `_coerceSet` works)
 - get yo naming right in documentation
   * "Value-Enumerated Type Class" -> "Algebraic Type Class"
   * "function objectification" -> First Class Functions
