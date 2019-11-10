@@ -28,6 +28,8 @@ namespace Whirlwind.Generation
         private readonly Dictionary<string, LLVMValueRef> _globalScope;
         // store globally declared structures
         private readonly Dictionary<string, LLVMTypeRef> _globalStructs;
+        // store the randomly generated package prefix
+        private readonly string _randPrefix;
 
         // store global string type
         private LLVMTypeRef _stringType;
@@ -48,6 +50,16 @@ namespace Whirlwind.Generation
             _scopes = new List<Dictionary<string, LLVMValueRef>>();
             _globalScope = new Dictionary<string, LLVMValueRef>();
             _globalStructs = new Dictionary<string, LLVMTypeRef>();
+
+            string randPrefixVals = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+            var randGenerator = new Random();
+            _randPrefix = String.Concat(Enumerable.Repeat(0, 16).Select(x =>
+            {
+                int rand = randGenerator.Next() % randPrefixVals.Length;
+
+                return randPrefixVals[rand];
+            }));
         }
 
         public void Generate(ITypeNode tree, string outputFile)

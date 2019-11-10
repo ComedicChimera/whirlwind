@@ -11,24 +11,28 @@ namespace Whirlwind.Generation
 {
     partial class Generator
     {
-        private void _generateFunction(BlockNode node, bool external, bool global)
+        private void _generateFunction(BlockNode node, bool external, bool global, string prefix="")
         {
             var idNode = (IdentifierNode)node.Nodes[0];
 
             string name = idNode.IdName;
 
             _table.Lookup(name, out Symbol sym);
-            bool externLink = external || sym.Modifiers.Contains(Modifier.EXPORTED);
 
-            // add in the package prefix
-            name = _namePrefix + name;
+            bool exported = sym.Modifiers.Contains(Modifier.EXPORTED);
+            bool externLink = external || exported;
+
+            // update prefix as necessary
+            /*if (exported)
+                prefix = _randPrefix + prefix;*/
 
             LLVMValueRef llvmFn;
 
             if (sym.DataType is FunctionGroup fg)
             {
                 var fn = (FunctionType)idNode.Type;
-                llvmFn = _generateFunctionPrototype(name + "." + string.Join(",", fn.Parameters.Select(x => x.DataType.LLVMName())), fn, externLink);
+                llvmFn = _generateFunctionPrototype(prefix + name + "." 
+                    + string.Join(",", fn.Parameters.Select(x => x.DataType.LLVMName())), fn, externLink);
 
                 if (!external)
                 {
@@ -47,7 +51,7 @@ namespace Whirlwind.Generation
             {
                 FunctionType fn = (FunctionType)sym.DataType;
 
-                llvmFn = _generateFunctionPrototype(name, fn, externLink);
+                llvmFn = _generateFunctionPrototype(prefix + name, fn, externLink);
 
                 LLVM.PositionBuilderAtEnd(_builder, LLVM.AppendBasicBlockInContext(_ctx, llvmFn, "entry"));
 
@@ -60,7 +64,7 @@ namespace Whirlwind.Generation
                 LLVM.VerifyFunction(llvmFn, LLVMVerifierFailureAction.LLVMPrintMessageAction);
 
                 if (global)
-                    _globalScope[sym.Name] = llvmFn;
+                    _globalScope[name] = llvmFn;
             }           
         }
 
