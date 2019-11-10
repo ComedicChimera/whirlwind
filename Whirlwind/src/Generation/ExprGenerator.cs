@@ -12,6 +12,9 @@ namespace Whirlwind.Generation
 {
     partial class Generator
     {
+        private delegate LLVMValueRef BinopBuilder(LLVMBuilderRef builder, LLVMValueRef vRef, LLVMValueRef rRef, string name);
+        private delegate BinopBuilder NumericBinopBuilderFactory(int category);
+
         private LLVMValueRef _generateExpr(ITypeNode expr)
         {
             if (expr is ValueNode vnode)
@@ -69,6 +72,41 @@ namespace Whirlwind.Generation
             }
 
             return _ignoreValueRef();
+        }
+
+        private LLVMValueRef _buildNumericBinop(NumericBinopBuilderFactory nbbfactory, ExprNode node)
+        {
+            // check for overloads
+
+            int instrCat = 0;
+
+            if (((SimpleType)node.Type).Unsigned)
+                instrCat = 1;
+            else if (new[] { SimpleType.SimpleClassifier.FLOAT, SimpleType.SimpleClassifier.DOUBLE}
+                .Contains(((SimpleType)node.Type).Type))
+            {
+                instrCat = 2;
+            }
+
+            var binopBuilder = nbbfactory(instrCat);
+
+            return _buildBinop(binopBuilder, node, true);
+        }
+
+        private LLVMValueRef _buildBinop(BinopBuilder bbuilder, ExprNode node, bool noOverloads = false)
+        {
+            var operands = _buildOperands(node.Nodes, node.Type);
+
+            var leftOperand = operands[0];
+
+            foreach (var rightOperand in operands.Skip(1))
+            {
+                // check for overloads
+
+                leftOperand = bbuilder(_builder, leftOperand, rightOperand, node.Name.ToLower() + "_tmp");
+            }
+
+            return leftOperand;
         }
 
         private List<LLVMValueRef> _buildOperands(List<ITypeNode> nodes, DataType exprType)

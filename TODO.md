@@ -21,6 +21,11 @@
   * inferred types of case expressions, if expressions, 
     and return types (of lambdas) should never be null
   * check any other case (we know anything that uses `_coerceSet` works)
+- fix symbol lookups in generator
+  * make sure they don't occur when an artificial prefix or suffix has been added
+- fix interfaces to allow generic overloading and mixed implementation overloading
+  * some overloads have implementations, others don't
+  * generic overloads are important to
 - get yo naming right in documentation
   * "Value-Enumerated Type Class" -> "Algebraic Type Class"
   * "function objectification" -> First Class Functions

@@ -59,7 +59,7 @@ namespace Whirlwind.Generation
                 int rand = randGenerator.Next() % randPrefixVals.Length;
 
                 return randPrefixVals[rand];
-            }));
+            })) + ".";
         }
 
         public void Generate(ITypeNode tree, string outputFile)

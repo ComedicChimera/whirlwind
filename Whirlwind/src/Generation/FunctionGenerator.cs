@@ -22,17 +22,16 @@ namespace Whirlwind.Generation
             bool exported = sym.Modifiers.Contains(Modifier.EXPORTED);
             bool externLink = external || exported;
 
-            // update prefix as necessary
-            /*if (exported)
-                prefix = _randPrefix + prefix;*/
+            string llvmPrefix = exported ? _randPrefix + prefix : prefix;
 
             LLVMValueRef llvmFn;
 
             if (sym.DataType is FunctionGroup fg)
             {
                 var fn = (FunctionType)idNode.Type;
-                llvmFn = _generateFunctionPrototype(prefix + name + "." 
-                    + string.Join(",", fn.Parameters.Select(x => x.DataType.LLVMName())), fn, externLink);
+                string fgSuffix = "." + string.Join(",", fn.Parameters.Select(x => x.DataType.LLVMName()));
+
+                llvmFn = _generateFunctionPrototype(llvmPrefix + name + fgSuffix, fn, externLink);
 
                 if (!external)
                 {
@@ -46,12 +45,15 @@ namespace Whirlwind.Generation
                 }
 
                 LLVM.VerifyFunction(llvmFn, LLVMVerifierFailureAction.LLVMPrintMessageAction);
+
+                if (global)
+                    _globalScope[prefix + name + fgSuffix] = llvmFn;
             }
             else
             {
                 FunctionType fn = (FunctionType)sym.DataType;
 
-                llvmFn = _generateFunctionPrototype(prefix + name, fn, externLink);
+                llvmFn = _generateFunctionPrototype(llvmPrefix + name, fn, externLink);
 
                 LLVM.PositionBuilderAtEnd(_builder, LLVM.AppendBasicBlockInContext(_ctx, llvmFn, "entry"));
 
@@ -64,7 +66,7 @@ namespace Whirlwind.Generation
                 LLVM.VerifyFunction(llvmFn, LLVMVerifierFailureAction.LLVMPrintMessageAction);
 
                 if (global)
-                    _globalScope[name] = llvmFn;
+                    _globalScope[prefix + name] = llvmFn;
             }           
         }
 

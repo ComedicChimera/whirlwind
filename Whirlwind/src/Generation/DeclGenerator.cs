@@ -85,24 +85,54 @@ namespace Whirlwind.Generation
             }
         }
 
-        private void _generateInterf(BlockNode node)
+        private void _generateInterf(BlockNode node, string suffix="")
         {
             var idNode = (IdentifierNode)node.Nodes[0];
             var interfType = (InterfaceType)idNode.Type;
 
+            string name = idNode.IdName + suffix;
+
+            _table.Lookup(idNode.IdName, out Symbol interfSymbol);
+            bool exported = interfSymbol.Modifiers.Contains(Modifier.EXPORTED);
+            string llvmPrefix = exported ? _randPrefix : "";
+
             var methods = new List<LLVMTypeRef>();
 
+            int methodNdx = 0;
             foreach (var method in interfType.Methods)
             {
                 // build method if necessary
-                if (method.Key.DataType is FunctionType ftType)
-                    methods.Add(_convertType(ftType));
+                if (method.Key.DataType is FunctionType fnType)
+                {
+                    methods.Add(_convertType(fnType));
+
+                    if (method.Value)
+                    {
+                        var llvmMethod = _generateFunctionPrototype(name + "." + method.Key.Name, fnType, exported);
+
+                        LLVM.PositionBuilderAtEnd(_builder, LLVM.AppendBasicBlockInContext(_ctx, llvmMethod, "entry"));
+
+                        _generateBlock(((BlockNode)node.Block[methodNdx]).Block);
+
+                        if (fnType.ReturnType.Classify() == TypeClassifier.NONE)
+                            LLVM.BuildRetVoid(_builder);
+                    }
+                }
+                else if (method.Key.DataType is FunctionGroup fgType)
+                {
+                    foreach (var item in fgType.Functions)
+                        methods.Add(_convertType(item));
+
+                    
+                }    
             }
 
-            var vtableStruct = LLVM.StructCreateNamed(_ctx, idNode.Name + ".__vtable");
+            var vtableStruct = LLVM.StructCreateNamed(_ctx, llvmPrefix + name + ".__vtable");
             vtableStruct.StructSetBody(methods.ToArray(), false);
 
-            var interfStruct = LLVM.StructCreateNamed(_ctx, idNode.Name);
+            _globalStructs[name + ".__vtable"] = vtableStruct;
+
+            var interfStruct = LLVM.StructCreateNamed(_ctx, llvmPrefix + name);
             interfStruct.StructSetBody(new[]
             {
                 LLVM.PointerType(LLVM.Int8Type(), 0),
@@ -110,7 +140,7 @@ namespace Whirlwind.Generation
                 vtableStruct
             }, false);
 
-            _globalStructs[idNode.IdName] = interfStruct;
+            _globalStructs[name] = interfStruct;
         }
 
         private void _generateTypeClass(BlockNode node, bool packed)

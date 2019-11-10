@@ -1,3 +1,9 @@
-﻿func main() {
+﻿interf Test {
+	func myFunc(x: int) {
+	
+	}
+}
+
+func main() {
 	let l = |x: int| => x if x >= 0 else null;
 }
