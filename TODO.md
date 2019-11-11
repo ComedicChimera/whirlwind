@@ -21,11 +21,19 @@
   * inferred types of case expressions, if expressions, 
     and return types (of lambdas) should never be null
   * check any other case (we know anything that uses `_coerceSet` works)
-- fix symbol lookups in generator
-  * make sure they don't occur when an artificial prefix or suffix has been added
 - fix interfaces to allow generic overloading and mixed implementation overloading
   * some overloads have implementations, others don't
   * generic overloads are important to
+- revamp/change captures
+  * replace `with []` with `mut`
+  * `mut` allows you to access anything normally
+  * a function without `mut` cannot mutate global state,
+    everything is const (including `this`)
+  * a function without `mut` also cannot call a function with `mut` (no side effects)
+- remove context managers (like what even do they do)
+  * entails removing `with` keyword completely (I think)
+- fix symbol lookups in generator
+  * make sure they don't occur when an artificial prefix or suffix has been added
 - get yo naming right in documentation
   * "Value-Enumerated Type Class" -> "Algebraic Type Class"
   * "function objectification" -> First Class Functions
