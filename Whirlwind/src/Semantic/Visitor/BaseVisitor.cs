@@ -165,7 +165,7 @@ namespace Whirlwind.Semantic.Visitor
                         }
                     case "VALUE":
                         {
-                            if (_isVoid(_thenExprType))
+                            if (_isVoidOrNull(_thenExprType))
                                 throw new SemanticException("No valid chained value is accessible", node.Content[0].Position);
 
                             _nodes.Add(new ValueNode("Value", _thenExprType));
@@ -280,7 +280,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             DataType newType = _nodes.Last().Type;
 
-            if (_isVoid(baseType))
+            if (_isVoidOrNull(baseType))
             {
                 baseType = newType;
                 return;

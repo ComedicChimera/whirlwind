@@ -356,10 +356,27 @@ namespace Whirlwind.Semantic.Visitor
         // Utility Function(s)
         // -------------------
 
-        // checks to see if a type is void
-        private bool _isVoid(DataType type)
+        // checks to see if a type is none or null
+        private bool _isVoidOrNull(DataType type)
         {
             if (type.Classify() == TypeClassifier.NONE || type.Classify() == TypeClassifier.NULL)
+                return true;
+            else if (type.Classify() == TypeClassifier.DICT)
+            {
+                var dictType = (DictType)type;
+
+                return _isVoidOrNull(dictType.KeyType) || _isVoidOrNull(dictType.ValueType);
+            }
+            else if (type is IIterable)
+                return _isVoidOrNull(((IIterable)type).GetIterator());
+            else
+                return false;
+        }
+
+        // checks to see if a type is none
+        private bool _isVoid(DataType type)
+        {
+            if (type.Classify() == TypeClassifier.NONE)
                 return true;
             else if (type.Classify() == TypeClassifier.DICT)
             {

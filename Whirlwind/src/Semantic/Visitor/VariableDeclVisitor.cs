@@ -188,7 +188,7 @@ namespace Whirlwind.Semantic.Visitor
                         _nodes.Add(new ExprNode(constexpr ? "ConstExprInitializer" : "Initializer", _nodes.Last().Type));
                         PushForward();
 
-                        if (!hasType && _isVoid(_nodes.Last().Type))
+                        if (!hasType && _isVoidOrNull(_nodes.Last().Type))
                             throw new SemanticException("Unable to infer type of a variable from initializer", item.Position);
                         else if (!hasType)
                         {
@@ -232,7 +232,7 @@ namespace Whirlwind.Semantic.Visitor
 
                         if (initializers.ContainsKey(id))
                             throw new SemanticException("Unable to perform tuple based initialization on pre-initialized values", variables[id].Position);
-                        else if (_isVoid(variables.Values.ElementAt(i).Type))
+                        else if (_isVoidOrNull(variables.Values.ElementAt(i).Type))
                             variables[id] = new Variable(dt, variables[id].Position);
                         else if (!variables[id].Type.Coerce(dt))
                             throw new SemanticException("Tuple types and variable types must match", variables[id].Position);
@@ -249,7 +249,7 @@ namespace Whirlwind.Semantic.Visitor
                 for (int i = 0; i < variables.Count; i++)
                 {
                     var key = variables.Keys.ToList()[i];
-                    if (_isVoid(variables[key].Type))
+                    if (_isVoidOrNull(variables[key].Type))
                     {
                         if (hasType)
                             variables[key] = new Variable(mainType, variables[key].Position);

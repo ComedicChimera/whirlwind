@@ -30,7 +30,7 @@ namespace Whirlwind.Semantic.Visitor
                         string name = ((TokenNode)exprVarDecl.Content[0]).Tok.Value;
                         _visitFuncOp((ASTNode)exprVarDecl.Content[2]);
 
-                        if (_isVoid(_nodes.Last().Type))
+                        if (_isVoidOrNull(_nodes.Last().Type))
                             throw new SemanticException("Unable to determine type of variable", exprVarDecl.Content[0].Position);
 
                         var copyType = _nodes.Last().Type.LValueCopy();
@@ -84,7 +84,13 @@ namespace Whirlwind.Semantic.Visitor
 
                         if (op == "IF")
                         {
-                            _nodes.Add(new ExprNode("InlineCompare", _nodes.Last().Type));
+                            var dt = _nodes.Last().Type;
+
+                            // avoid null
+                            if (_isVoidOrNull(dt))
+                                dt = _nodes[_nodes.Count - 3].Type;
+
+                            _nodes.Add(new ExprNode("InlineCompare", dt));
                             PushForward(3);
 
                             var content = ((ExprNode)_nodes.Last()).Nodes;
@@ -315,7 +321,7 @@ namespace Whirlwind.Semantic.Visitor
                         }
                     }
 
-                    if (_isVoid(dt))
+                    if (_isVoidOrNull(dt))
                         dt = _nodes.Last().Type;
                     else if (!dt.Coerce(_nodes.Last().Type))
                     {
@@ -351,7 +357,7 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     _visitExpr((ASTNode)((ASTNode)item).Content[3]);
 
-                    if (_isVoid(dt))
+                    if (_isVoidOrNull(dt))
                         dt = _nodes.Last().Type;
                     else if (!dt.Coerce(_nodes.Last().Type))
                     {
@@ -1047,7 +1053,7 @@ namespace Whirlwind.Semantic.Visitor
 
                         dt = pt.DataType.LValueCopy();
 
-                        if (_isVoid(dt))
+                        if (_isVoidOrNull(dt))
                             throw new SemanticException("Unable to dereference a pointer to none", node.Content[node.Content.Count - 1].Position);
                     }
                     else

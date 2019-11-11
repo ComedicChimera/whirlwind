@@ -16,11 +16,6 @@
 
 # TODO
 
-- fix none and null checking
-  * results of expressions should not contain none (unless ExprStmt or Function)
-  * inferred types of case expressions, if expressions, 
-    and return types (of lambdas) should never be null
-  * check any other case (we know anything that uses `_coerceSet` works)
 - fix interfaces to allow generic overloading and mixed implementation overloading
   * some overloads have implementations, others don't
   * generic overloads are important to

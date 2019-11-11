@@ -251,8 +251,10 @@ namespace Whirlwind.Semantic.Visitor
                                 else
                                     throw new SemanticException("Inconsistent return types", positions[pos]);
                             }
-                                
+
                         }
+                        else if (_isVoidOrNull(rtType))
+                            rtType = dt;
 
                         returnsValue = true;
                     }
@@ -299,8 +301,10 @@ namespace Whirlwind.Semantic.Visitor
                             else
                                 throw new SemanticException("Inconsistent return type", positions[savedPos]);
                         }
-                            
+
                     }
+                    else if (_isVoidOrNull(rtType))
+                        rtType = blockReturn.Item2;
 
                     if (!terminatingReturn && blockReturn.Item1)
                         terminatingReturn = true;

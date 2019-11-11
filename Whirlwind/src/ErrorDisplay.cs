@@ -67,7 +67,7 @@ namespace Whirlwind
 
             int showFrom = Enumerable.Range(0, position).Reverse().Where(i => text[i] == '\n').FirstOrDefault();
             int showCount = text.Skip(showFrom).Select((ch, i) => new { ch, i })
-                .SkipWhile(x => x.i < length || x.ch != '\n').First().i;
+                .SkipWhile(x => x.i < length || x.ch != '\n').FirstOrDefault()?.i ?? (text.Length - showFrom);
 
             int startArrowPos = position - showFrom, endArrowPos = startArrowPos + length;
 
