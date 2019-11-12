@@ -11,7 +11,8 @@ namespace Whirlwind.Semantic
         CONSTEXPR,
         VOLATILE,
         STATIC,
-        OWNED
+        OWNED,
+        MUTABLE
     }
 
     class PackageType : DataType

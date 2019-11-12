@@ -10,11 +10,9 @@ main: ( func_decl
 | block_stmt 
 | stmt
 | subscope
-| capture_block
 )+ ;
 
 subscope: '{' main '}' ;
-capture_block: capture subscope ;
 
 // compiler annotation
 annotation: '#' 'IDENTIFIER' ['STRING_LITERAL'] ;
@@ -80,11 +78,10 @@ decor_decl: decor func_decl ;
 decor: '@' ( '[' decor_expr (',' decor_expr)* ']' | decor_expr ) ;
 decor_expr: 'IDENTIFIER' static_get* [ generic_spec ] [ '(' args_list ')' ];
 
-// BLOCK STATEMENTS (control flow and context managers)
+// BLOCK STATEMENTS (control flow)
 block_stmt: if_stmt
 | select_stmt
 | for_loop
-| context_block
 ;
 
 // if statement
@@ -103,10 +100,6 @@ for_loop: 'FOR' [for_body] block [after_clause] ;
 for_body: '(' (c_for | iterator | for_expr) ')' ;
 c_for: ['IDENTIFIER' '=' expr] ';' [expr] ';' [expr | assignment] ;
 for_expr: [ variable_decl ';' ] expr ;
-
-// context manager
-context_block: 'WITH' context_body [after_clause] ;
-context_body: '(' variable_decl ')' block ;
 
 // after clause
 after_clause: 'AFTER' block ;
@@ -353,7 +346,7 @@ iter_var: 'IDENTIFIER' | '_' ;
 extension: [':' types] ;
 
 // function body
-func_body: [capture] ('{' [main] '}'
+func_body: ['MUT'] ('{' [main] '}'
 | '=>' expr (',' expr)* ';'
 )
 ;
@@ -366,14 +359,6 @@ block: '{' [main] '}'
 // operator (wherever any operator can be used)
 operator: '+' | '-' | '*' | '/' | '%' | '<' | '>' | '<=' | '>=' | '==' | '!='
 | '>>=' | '~^' | '~*' | '~/' | '<' '<' | '>' '>' | 'AND' | 'OR' | 'XOR' | '~' ;
-
-// capture (the standard capture block header)
-capture: 'WITH' '[' [ capture_symbol (',' capture_symbol)* ] ']' ;
-capture_symbol: ['CONST'] ['OWN'] 'IDENTIFIER' 
-| '!' 'IDENTIFIER'
-| 'VAL' 'IDENTIFIER'
-| 'THIS'
-;
 
 // generic tag (placed after several block declarations)
 generic_tag: '<' generic (',' generic)* '>' ;

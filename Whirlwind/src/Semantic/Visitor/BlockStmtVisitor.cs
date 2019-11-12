@@ -36,9 +36,6 @@ namespace Whirlwind.Semantic.Visitor
                             case "for_loop":
                                 _visitForLoop(blockStatement, context);
                                 break;
-                            case "context_block":
-                                _visitContextManager(blockStatement, context);
-                                break;
                         }
 
                         _table.AscendScope();
@@ -75,6 +72,7 @@ namespace Whirlwind.Semantic.Visitor
                                     _table.AscendScope();
 
                                 _clearContext();
+                                _isMutableContext = false;
                             }
                             finally
                             {
@@ -92,21 +90,6 @@ namespace Whirlwind.Semantic.Visitor
                         _visitBlockNode(stmt, context);
 
                         _table.AscendScope();
-                        break;
-                    case "capture_block":
-                        {
-                            _nodes.Add(new BlockNode("CaptureBlock"));
-
-                            var capture = _generateCapture((ASTNode)stmt.Content[0]);
-
-                            // capture data stored in table so not necessary to bundle with tree
-                            _table.AddScope(capture);
-                            _table.DescendScope();
-
-                            _visitBlockNode((ASTNode)stmt.Content[1], context);
-
-                            _table.AscendScope();
-                        }
                         break;
                 }
 
@@ -396,32 +379,6 @@ namespace Whirlwind.Semantic.Visitor
                     PushForward();
 
                     MergeBack();
-                }
-            }
-        }
-
-        private void _visitContextManager(ASTNode blockStmt, StatementContext context)
-        {
-            foreach (var item in blockStmt.Content)
-            {
-                switch (item.Name)
-                {
-                    case "context_body":
-                        _nodes.Add(new BlockNode("ContextManager"));
-
-                        _table.AddScope();
-                        _table.DescendScope();
-
-                        _visitVarDecl((ASTNode)((ASTNode)item).Content[1], new List<Modifier>());
-                        MergeBack();
-
-                        _visitBlockNode((ASTNode)((ASTNode)item).Content[3], context);
-
-                        _table.AscendScope();
-                        break;
-                    case "after_clause":
-                        _visitAfterClause((ASTNode)item, context);
-                        break;
                 }
             }
         }

@@ -20,13 +20,10 @@
   * some overloads have implementations, others don't
   * generic overloads are important to
 - revamp/change captures
-  * replace `with []` with `mut`
-  * `mut` allows you to access anything normally
-  * a function without `mut` cannot mutate global state,
-    everything is const (including `this`)
+  * `this` is also pure `const` in non-mut block
   * a function without `mut` also cannot call a function with `mut` (no side effects)
-- remove context managers (like what even do they do)
-  * entails removing `with` keyword completely (I think)
+  * add `mut` to function data type?
+  * debug lack of `mut` (make sure it doesn't effect too much)
 - fix symbol lookups in generator
   * make sure they don't occur when an artificial prefix or suffix has been added
 - get yo naming right in documentation
@@ -34,17 +31,13 @@
   * "function objectification" -> First Class Functions
   * flip "deductive" and "inductive" type inference (it makes more sense the other way round)
   * "case expression" -> "select expression"
-- fix interface checking (empty method bodies?)
 - make sure interfaces actually declare their vtable as full of methods
 - get strings working
   * test all of the conversion functions
   * make sure verify char works for unicode input (registers as 2 chars instead of 1)
   * make sure chars compile correctly
-- mangle everything, reference everything via custom symbol "table"
-  * come up with way to handle overloads (LLVMSymbol class?)
 - get structs up and running
   * variable initializers
-- make type impls actually work
 - finish functions
   * deal with multifile overloading
   * any other problems that could come up

@@ -108,11 +108,20 @@ namespace Whirlwind.Semantic
         public DataType Type { get; set; }
 
         public readonly string IdName;
+        public readonly bool Mutable;
 
         public IdentifierNode(string name, DataType type)
         {
             IdName = name;
             Type = type;
+            Mutable = false;
+        }
+
+        public IdentifierNode(string name, DataType type, bool mutable)
+        {
+            IdName = name;
+            Type = type;
+            Mutable = true;
         }
 
         public override string ToString()

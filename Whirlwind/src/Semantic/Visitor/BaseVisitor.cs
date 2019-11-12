@@ -125,7 +125,7 @@ namespace Whirlwind.Semantic.Visitor
                             if (sym.Modifiers.Contains(Modifier.CONSTEXPR))
                                 _nodes.Add(new ConstexprNode(sym.Name, symDt, sym.Value));
                             else
-                                _nodes.Add(new IdentifierNode(sym.Name, symDt));
+                                _nodes.Add(new IdentifierNode(sym.Name, symDt, sym.Modifiers.Contains(Modifier.MUTABLE)));
 
                             return;
                         }
@@ -446,6 +446,7 @@ namespace Whirlwind.Semantic.Visitor
 
                         // save and clear context
                         var vctx = _saveContext();
+                        _isMutableContext = false;
                         _clearContext();
 
                         // save and clear return context (slightly different from regular context)
@@ -478,12 +479,11 @@ namespace Whirlwind.Semantic.Visitor
                         {
                             // make sure return context is restored (if it is expression level, it will not bubble high enough
                             // to negate the body return context and so this context must be restored in all cases)
-                            _returnContext = returnCtx;                            
-                        }
-                        
+                            _returnContext = returnCtx;
 
-                        // restore context after visiting (if fails, then context is irrelevant anyways :D)
-                        _restoreContext(vctx);
+                            // restore context after visiting
+                            _restoreContext(vctx);
+                        }
 
                         if (ctx != null && !ctx.ReturnType.Coerce(rtType))
                             throw new SemanticException("Invalid return type for the given the context", item.Position);

@@ -134,14 +134,13 @@ namespace Whirlwind.Semantic.Visitor
         {
             DataType rtType = new NoneType();
 
-            if (node.Content[0].Name == "capture")
+            if (node.Content[0] is TokenNode tkNode && tkNode.Tok.Type == "MUT")
             {
-                var capture = _generateCapture((ASTNode)node.Content[0]);
-
-                _table.AddScope(capture);
-            }
-            else
                 _table.AddScope();
+                _isMutableContext = true;
+            }             
+            else
+                _table.AddImmutScope();
 
             _table.DescendScope();
 
@@ -192,6 +191,9 @@ namespace Whirlwind.Semantic.Visitor
             }
 
             _table.AscendScope();
+
+            if (_isMutableContext)
+                _isMutableContext = false;
 
             return rtType;
         }

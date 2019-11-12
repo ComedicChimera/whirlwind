@@ -251,6 +251,7 @@ namespace Whirlwind.Semantic.Visitor
                         _table.AscendScope();
 
                     _clearContext();
+                    _isMutableContext = false;
                 }
                 finally
                 {                   
