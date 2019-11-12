@@ -117,14 +117,7 @@ namespace Whirlwind.Generation
                         if (fnType.ReturnType.Classify() == TypeClassifier.NONE)
                             LLVM.BuildRetVoid(_builder);
                     }
-                }
-                else if (method.Key.DataType is FunctionGroup fgType)
-                {
-                    foreach (var item in fgType.Functions)
-                        methods.Add(_convertType(item));
-
-                    
-                }    
+                }   
             }
 
             var vtableStruct = LLVM.StructCreateNamed(_ctx, llvmPrefix + name + ".__vtable");
