@@ -170,9 +170,6 @@ namespace Whirlwind.Semantic
             bool forceConst = false;
             foreach (Scope scope in visibleScopes)
             {
-                if (scope.Immutable)
-                    forceConst = true;
-
                 if (scope.Symbols.ContainsKey(name))
                 {
                     symbol = scope.Symbols[name];
@@ -185,6 +182,9 @@ namespace Whirlwind.Semantic
 
                     return allowInternal || symbol.Modifiers.Contains(Modifier.EXPORTED);
                 }
+
+                if (scope.Immutable)
+                    forceConst = true;
             }
 
             symbol = null;

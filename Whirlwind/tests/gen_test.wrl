@@ -7,11 +7,17 @@
 func fn() int
 	=> 5;
 
-func main() {
+func test() {
+	// -- mutate global state (scary) -- 
+}
+
+func main() mut {
 	let l = |x: int| {
 		if (x % 2 == 0)
 			return null;
 		else
 			return x ~^ 2;
 	};
+
+	test();
 }

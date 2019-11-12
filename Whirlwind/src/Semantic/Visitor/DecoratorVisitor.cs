@@ -19,7 +19,7 @@ namespace Whirlwind.Semantic.Visitor
 
             _visitFunction(fnNode, modifiers);
 
-            FunctionType startFn = ((FunctionType)((TreeNode)_nodes.Last()).Nodes[0].Type).MutableCopy();
+            FunctionType startFn = ((FunctionType)((TreeNode)_nodes.Last()).Nodes[0].Type).NonConstCopy();
 
             _nodes.Add(new BlockNode("Decorator"));
 

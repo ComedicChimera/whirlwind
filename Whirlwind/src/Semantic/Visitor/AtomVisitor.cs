@@ -404,6 +404,9 @@ namespace Whirlwind.Semantic.Visitor
                     var paramData = CheckArguments((FunctionType)rootType, args);
                     ft = ((FunctionType)rootType);
 
+                    if (ft.Mutable && !_isMutableContext)
+                        throw new SemanticException("Unable to call a mutable function in an immutable context", node.Position);
+
                     if (paramData.IsError)
                         throw new SemanticException(paramData.ErrorMessage, paramData.ParameterPosition == -1 ? node.Position : 
                             ((ASTNode)node.Content[1]).Content.Where(x => x.Name == "arg").ToArray()[paramData.ParameterPosition].Position

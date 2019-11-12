@@ -6,7 +6,7 @@
 // and terminates the program.  This function
 // is the function that is actually called first
 // in program execution
-func __main() {
+func __main() mut {
 	let args: []str;
 	let exitCode: int;
 

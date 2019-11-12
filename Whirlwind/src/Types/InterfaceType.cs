@@ -50,26 +50,25 @@ namespace Whirlwind.Types
 
         public bool AddMethod(Symbol fn, bool hasBody)
         {
-            if (!Methods.Any(x => x.Key.Name == fn.Name))
+            if (Methods.All(x => x.Key.Name != fn.Name && _distinguish(x.Key.DataType, fn.DataType)))
             {
                 Methods.Add(fn, hasBody);
 
                 return true;
             }
-            else if (fn.DataType is FunctionType fta)
-            {
-                Symbol symbol = Methods.Where(x => x.Key.Name == fn.Name).First().Key;
-
-                if (symbol.DataType is FunctionType ftb && FunctionGroup.CanDistinguish(fta, ftb))
-                {
-                    symbol.DataType = new FunctionGroup(symbol.Name, new List<FunctionType> { fta, ftb });
-                    return true;
-                }
-                else if (symbol.DataType is FunctionGroup)
-                    return ((FunctionGroup)symbol.DataType).AddFunction((FunctionType)fn.DataType);
-            }
 
             return false;
+        }
+
+        private bool _distinguish(DataType a, DataType b)
+        {
+            if (a is FunctionType fta && b is FunctionType ftb)
+                return FunctionGroup.CanDistinguish(fta, ftb);
+            else if (a is GenericType gta && b is GenericType gtb)
+                // we know gta and gtb are both generic functions (cast is always valid)
+                return FunctionGroup.CanDistinguish((FunctionType)gta.DataType, (FunctionType)gtb.DataType);
+
+            return true;
         }
 
         public bool GetFunction(string fnName, out Symbol symbol)

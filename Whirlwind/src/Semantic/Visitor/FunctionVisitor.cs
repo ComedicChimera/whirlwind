@@ -39,7 +39,7 @@ namespace Whirlwind.Semantic.Visitor
                                     break;
                                 case ";":
                                     {
-                                        _createFunction(arguments, dataType, name, namePosition, isAsync, modifiers);
+                                        _createFunction(arguments, dataType, name, namePosition, isAsync, modifiers, false);
 
                                         if (!_functionCanHaveNoBody)
                                             throw new SemanticException("Unable to declare function without body", item.Position);
@@ -56,7 +56,9 @@ namespace Whirlwind.Semantic.Visitor
                         break;
                     case "func_body":
                         {
-                            _createFunction(arguments, dataType, name, namePosition, isAsync, modifiers);
+                            bool isMutable = ((ASTNode)item).Content.FirstOrDefault() is TokenNode tkNode && tkNode.Tok.Type == "MUT";
+
+                            _createFunction(arguments, dataType, name, namePosition, isAsync, modifiers, isMutable);
 
                             _nodes.Add(new IncompleteNode((ASTNode)item));
                             MergeToBlock();
@@ -67,12 +69,13 @@ namespace Whirlwind.Semantic.Visitor
         }
 
         private void _createFunction(
-            List<Parameter> parameters, DataType dataType, string name, TextPosition namePosition, bool isAsync, List<Modifier> modifiers
+            List<Parameter> parameters, DataType dataType, string name, TextPosition namePosition, 
+            bool isAsync, List<Modifier> modifiers, bool isMutable
             )
         {
             _nodes.Add(new BlockNode(isAsync ? "AsyncFunction" : "Function"));
 
-            var fnType = new FunctionType(parameters, dataType, isAsync) { Constant = true };
+            var fnType = new FunctionType(parameters, dataType, isAsync, isMutable) { Constant = true };
 
             _nodes.Add(new IdentifierNode(name, fnType));
 

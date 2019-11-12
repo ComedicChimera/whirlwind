@@ -125,7 +125,7 @@ namespace Whirlwind.Semantic.Visitor
                             if (sym.Modifiers.Contains(Modifier.CONSTEXPR))
                                 _nodes.Add(new ConstexprNode(sym.Name, symDt, sym.Value));
                             else
-                                _nodes.Add(new IdentifierNode(sym.Name, symDt, sym.Modifiers.Contains(Modifier.MUTABLE)));
+                                _nodes.Add(new IdentifierNode(sym.Name, symDt));
 
                             return;
                         }

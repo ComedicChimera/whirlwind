@@ -16,14 +16,6 @@
 
 # TODO
 
-- fix interfaces to allow generic overloading and mixed implementation overloading
-  * some overloads have implementations, others don't
-  * generic overloads are important to
-- revamp/change captures
-  * `this` is also pure `const` in non-mut block
-  * a function without `mut` also cannot call a function with `mut` (no side effects)
-  * add `mut` to function data type?
-  * debug lack of `mut` (make sure it doesn't effect too much)
 - fix symbol lookups in generator
   * make sure they don't occur when an artificial prefix or suffix has been added
 - get yo naming right in documentation
