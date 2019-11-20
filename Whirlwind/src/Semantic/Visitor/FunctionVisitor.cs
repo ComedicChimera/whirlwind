@@ -39,7 +39,7 @@ namespace Whirlwind.Semantic.Visitor
                                     break;
                                 case ";":
                                     {
-                                        _createFunction(arguments, dataType, name, namePosition, isAsync, modifiers, false);
+                                        _createFunction(arguments, dataType, name, namePosition, isAsync, modifiers);
 
                                         if (!_functionCanHaveNoBody)
                                             throw new SemanticException("Unable to declare function without body", item.Position);
@@ -56,9 +56,7 @@ namespace Whirlwind.Semantic.Visitor
                         break;
                     case "func_body":
                         {
-                            bool isMutable = ((ASTNode)item).Content.FirstOrDefault() is TokenNode tkNode && tkNode.Tok.Type == "MUT";
-
-                            _createFunction(arguments, dataType, name, namePosition, isAsync, modifiers, isMutable);
+                            _createFunction(arguments, dataType, name, namePosition, isAsync, modifiers);
 
                             _nodes.Add(new IncompleteNode((ASTNode)item));
                             MergeToBlock();
@@ -70,12 +68,12 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _createFunction(
             List<Parameter> parameters, DataType dataType, string name, TextPosition namePosition, 
-            bool isAsync, List<Modifier> modifiers, bool isMutable
+            bool isAsync, List<Modifier> modifiers
             )
         {
             _nodes.Add(new BlockNode(isAsync ? "AsyncFunction" : "Function"));
 
-            var fnType = new FunctionType(parameters, dataType, isAsync, isMutable) { Constant = true };
+            var fnType = new FunctionType(parameters, dataType, isAsync) { Constant = true };
 
             _nodes.Add(new IdentifierNode(name, fnType));
 
@@ -137,14 +135,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             DataType rtType = new NoneType();
 
-            if (node.Content[0] is TokenNode tkNode && tkNode.Tok.Type == "MUT")
-            {
-                _table.AddScope();
-                _isMutableContext = true;
-            }             
-            else
-                _table.AddImmutScope();
-
+            _table.AddScope();
             _table.DescendScope();
 
             _declareArgs(args);
@@ -194,9 +185,6 @@ namespace Whirlwind.Semantic.Visitor
             }
 
             _table.AscendScope();
-
-            if (_isMutableContext)
-                _isMutableContext = false;
 
             return rtType;
         }

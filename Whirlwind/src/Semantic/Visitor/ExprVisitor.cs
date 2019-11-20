@@ -103,10 +103,11 @@ namespace Whirlwind.Semantic.Visitor
                         }
                         else if (op == "IS")
                         {
-                            ASTNode typeId = (ASTNode)((ASTNode)subNode).Content[1];
-                            DataType dt;
+                            ASTNode rOperand = (ASTNode)((ASTNode)subNode).Content[1];
+                            bool createdScope = false;
 
-                            var typeNode = ((ASTNode)typeId.Content.Last());
+                            DataType dt;
+                            var typeNode = ((ASTNode)rOperand.Content.Last());
                             if (typeNode.Content[0] is TokenNode tk && tk.Tok.Type == "IDENTIFIER"
                                 && _table.Lookup(tk.Tok.Value, out Symbol sym) && sym.DataType is CustomNewType)
                             {
@@ -115,12 +116,9 @@ namespace Whirlwind.Semantic.Visitor
                             else
                                 dt = _generateType(typeNode);
 
-                            var boolType = new SimpleType(SimpleType.SimpleClassifier.BOOL);
-                            bool createdScope = false;
-
-                            if (typeId.Content.Count > 1)
+                            if (rOperand.Content.Count > 1)
                             {
-                                var tkNode = ((TokenNode)typeId.Content[0]);
+                                var tkNode = ((TokenNode)rOperand.Content[0]);
 
                                 if (needsSubscope)
                                 {
@@ -142,6 +140,8 @@ namespace Whirlwind.Semantic.Visitor
                             }
                             else
                                 _nodes.Add(new ValueNode("Type", dt));
+
+                            var boolType = new SimpleType(SimpleType.SimpleClassifier.BOOL);
 
                             _nodes.Add(new ExprNode("Is", boolType));
 
@@ -489,156 +489,159 @@ namespace Whirlwind.Semantic.Visitor
                     _nodes[_nodes.Count - 2] = _nodes.Last();
                     _nodes.RemoveLast();
                 }
-                
+
                 return _nodes.Last().Type.Coerce(rootType);
-            }              
+            }
             else
+                return _visitPattern(caseContent, rootType, allowPatternSymbols);
+        }
+
+        private bool _visitPattern(ASTNode pattern, DataType rootType, bool allowPatternSymbols)
+        {
+            int patternElemCount = 0;
+            DataType dt = new TupleType(new List<DataType>());
+
+            foreach (var item in pattern.Content)
             {
-                int patternElemCount = 0;
-                DataType dt = new TupleType(new List<DataType>());
-
-                foreach (var item in caseContent.Content)
+                if (item is TokenNode tk)
                 {
-                    if (item is TokenNode tk)
+                    if (tk.Tok.Type == "IDENTIFIER")
                     {
-                        if (tk.Tok.Type == "IDENTIFIER")
+                        if (_table.Lookup(tk.Tok.Value, out Symbol sym))
                         {
-                            if (_table.Lookup(tk.Tok.Value, out Symbol sym))
+                            if (sym.DataType is CustomType || sym.DataType is CustomNewType || sym.DataType is PackageType)
                             {
-                                if (sym.DataType is CustomType || sym.DataType is CustomNewType || sym.DataType is PackageType)
-                                {
-                                    _nodes.Add(new IdentifierNode(sym.Name, sym.DataType));
-                                    dt = sym.DataType;
-                                }                                    
-                                else
-                                    throw new SemanticException("Unable to pattern match over type of " + sym.DataType.ToString(), tk.Position);
+                                _nodes.Add(new IdentifierNode(sym.Name, sym.DataType));
+                                dt = sym.DataType;
                             }
-                            else if (rootType is CustomInstance ci)
+                            else
+                                throw new SemanticException("Unable to pattern match over type of " + sym.DataType.ToString(), tk.Position);
+                        }
+                        else if (rootType is CustomInstance ci)
+                        {
+                            var instanceMatches = ci.Parent.Instances
+                                .Where(x => x is CustomNewType)
+                                .Select(x => (CustomNewType)x)
+                                .Where(x => x.Name == tk.Tok.Value);
+
+                            if (instanceMatches.Count() > 0)
                             {
-                                var instanceMatches = ci.Parent.Instances
-                                    .Where(x => x is CustomNewType)
-                                    .Select(x => (CustomNewType)x)
-                                    .Where(x => x.Name == tk.Tok.Value);
+                                var match = instanceMatches.First();
 
-                                if (instanceMatches.Count() > 0)
-                                {
-                                    var match = instanceMatches.First();
-
-                                    _nodes.Add(new IdentifierNode(match.Name, match));
-                                    dt = match;
-                                }
-                                else
-                                    throw new SemanticException($"Undefined symbol: `{tk.Tok.Value}`", tk.Position);                               
+                                _nodes.Add(new IdentifierNode(match.Name, match));
+                                dt = match;
                             }
                             else
                                 throw new SemanticException($"Undefined symbol: `{tk.Tok.Value}`", tk.Position);
                         }
-                    }
-                    else if (item.Name == "static_get")
-                    {
-                        var name = (TokenNode)((ASTNode)item).Content[1];
-
-                        var sym = _getStaticMember(dt, name.Tok.Value, ((ASTNode)item).Content[0].Position, name.Position);
-
-                        if (sym.DataType is CustomType || sym.DataType is CustomNewType || sym.DataType is PackageType)
-                        {
-                            _nodes.Add(new IdentifierNode(sym.Name, sym.DataType));
-
-                            _nodes.Add(new ExprNode("StaticGet", sym.DataType));
-
-                            PushForward(2);
-
-                            dt = sym.DataType;
-                        }
                         else
-                            throw new SemanticException("Unable to pattern match over type of " + sym.DataType.ToString(), name.Position);
+                            throw new SemanticException($"Undefined symbol: `{tk.Tok.Value}`", tk.Position);
                     }
-                    else if (item.Name == "pattern_elem")
-                    {
-                        var patternElem = (ASTNode)item;
-                        
-                        // _ case
-                        if (patternElem.Content.First() is TokenNode)
-                            _nodes.Add(new ValueNode("_", new NoneType()));
-                        // expr or identifier
-                        else
-                        {
-                            INode iNode = patternElem.Content[0];
+                }
+                else if (item.Name == "static_get")
+                {
+                    var name = (TokenNode)((ASTNode)item).Content[1];
 
-                            while (iNode is ASTNode anode && anode.Content.Count == 1)
+                    var sym = _getStaticMember(dt, name.Tok.Value, ((ASTNode)item).Content[0].Position, name.Position);
+
+                    if (sym.DataType is CustomType || sym.DataType is CustomNewType || sym.DataType is PackageType)
+                    {
+                        _nodes.Add(new IdentifierNode(sym.Name, sym.DataType));
+
+                        _nodes.Add(new ExprNode("StaticGet", sym.DataType));
+
+                        PushForward(2);
+
+                        dt = sym.DataType;
+                    }
+                    else
+                        throw new SemanticException("Unable to pattern match over type of " + sym.DataType.ToString(), name.Position);
+                }
+                else if (item.Name == "pattern_elem")
+                {
+                    var patternElem = (ASTNode)item;
+
+                    // _ case
+                    if (patternElem.Content.First() is TokenNode)
+                        _nodes.Add(new ValueNode("_", new NoneType()));
+                    // expr or identifier
+                    else
+                    {
+                        INode iNode = patternElem.Content[0];
+
+                        while (iNode is ASTNode anode && anode.Content.Count == 1)
+                        {
+                            if (anode.Content[0] is TokenNode itkn && itkn.Tok.Type == "IDENTIFIER")
                             {
-                                if (anode.Content[0] is TokenNode itkn && itkn.Tok.Type == "IDENTIFIER")
-                                {
-                                    if (_table.Lookup(itkn.Tok.Value, out Symbol sym))
-                                        _nodes.Add(new IdentifierNode(sym.Name, sym.DataType));
-                                    else if (allowPatternSymbols)
-                                        _nodes.Add(new ValueNode("PatternSymbol", new NoneType(), itkn.Tok.Value));
-                                    else
-                                        throw new SemanticException("Unable to use pattern variables in a case with multiple matches",
-                                            anode.Position);
+                                if (_table.Lookup(itkn.Tok.Value, out Symbol sym))
+                                    _nodes.Add(new IdentifierNode(sym.Name, sym.DataType));
+                                else if (allowPatternSymbols)
+                                    _nodes.Add(new ValueNode("PatternSymbol", new NoneType(), itkn.Tok.Value));
+                                else
+                                    throw new SemanticException("Unable to use pattern variables in a case with multiple matches",
+                                        anode.Position);
 
-                                    goto loopEnd;
-                                }
-
-                                iNode = anode.Content[0];
+                                goto loopEnd;
                             }
 
-                            // no id found
-                            _visitExpr((ASTNode)patternElem.Content.First());
+                            iNode = anode.Content[0];
                         }
 
-                        loopEnd:
-
-                        patternElemCount++;
-
-                        if (dt is TupleType ttc)
-                            ttc.Types.Add(_nodes.Last().Type);
-                        else if (dt is CustomNewType ntc)
-                            ntc.Values.Add(_nodes.Last().Type);
-                    }
-                }
-
-                if (dt is TupleType tt && rootType is TupleType rt)
-                {
-                    for (int i = 0; i < patternElemCount; i++)
-                    {
-                        var cNode = _nodes[_nodes.Count - patternElemCount + i];
-
-                        if (cNode is ValueNode vn)
-                        {
-                            if (vn.Name == "PatternSymbol")
-                                _table.AddSymbol(new Symbol(vn.Value, rt.Types[i]));
-                        }
-                        else if (!cNode.Type.Coerce(tt.Types[i]))
-                            return false;
+                        // no id found
+                        _visitExpr((ASTNode)patternElem.Content.First());
                     }
 
-                    _nodes.Add(new ExprNode("TuplePattern", dt));
-                    PushForward(patternElemCount);
+                    loopEnd:
+
+                    patternElemCount++;
+
+                    if (dt is TupleType ttc)
+                        ttc.Types.Add(_nodes.Last().Type);
+                    else if (dt is CustomNewType ntc)
+                        ntc.Values.Add(_nodes.Last().Type);
                 }
-                else if (dt is CustomNewType nt && rootType is CustomInstance rci && rci.Parent.Equals(nt.Parent))
-                {
-                    for (int i = 0; i < patternElemCount; i++)
-                    {
-                        var cNode = _nodes[_nodes.Count - patternElemCount + i];
-
-                        if (cNode is ValueNode vn)
-                        {
-                            if (vn.Name == "PatternSymbol")
-                                _table.AddSymbol(new Symbol(vn.Value, nt.Values[i]));
-                        }
-                        else if (!cNode.Type.Coerce(nt.Values[i]))
-                            return false;
-                    }
-
-                    _nodes.Add(new ExprNode("TypeClassPattern", dt));
-                    PushForward(patternElemCount + 1);
-                }
-                else
-                    return false;               
-
-                return true;
             }
+
+            if (dt is TupleType tt && rootType is TupleType rt)
+            {
+                for (int i = 0; i < patternElemCount; i++)
+                {
+                    var cNode = _nodes[_nodes.Count - patternElemCount + i];
+
+                    if (cNode is ValueNode vn)
+                    {
+                        if (vn.Name == "PatternSymbol")
+                            _table.AddSymbol(new Symbol(vn.Value, rt.Types[i]));
+                    }
+                    else if (!cNode.Type.Coerce(tt.Types[i]))
+                        return false;
+                }
+
+                _nodes.Add(new ExprNode("TuplePattern", dt));
+                PushForward(patternElemCount);
+            }
+            else if (dt is CustomNewType nt && rootType is CustomInstance rci && rci.Parent.Equals(nt.Parent))
+            {
+                for (int i = 0; i < patternElemCount; i++)
+                {
+                    var cNode = _nodes[_nodes.Count - patternElemCount + i];
+
+                    if (cNode is ValueNode vn)
+                    {
+                        if (vn.Name == "PatternSymbol")
+                            _table.AddSymbol(new Symbol(vn.Value, nt.Values[i]));
+                    }
+                    else if (!cNode.Type.Coerce(nt.Values[i]))
+                        return false;
+                }
+
+                _nodes.Add(new ExprNode("TypeClassPattern", dt));
+                PushForward(patternElemCount + 1);
+            }
+            else
+                return false;
+
+            return true;
         }
 
         private void _visitThen(ASTNode node, bool needsSubscope)

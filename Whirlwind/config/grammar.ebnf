@@ -346,7 +346,7 @@ iter_var: 'IDENTIFIER' | '_' ;
 extension: [':' types] ;
 
 // function body
-func_body: ['MUT'] ('{' [main] '}'
+func_body: ('{' [main] '}'
 | '=>' expr (',' expr)* ';'
 )
 ;

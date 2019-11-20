@@ -16,8 +16,15 @@
 
 # TODO
 
+- implement 5 rules of ownership
+  1. Ownership is the obligation to delete.
+  2. Each resource may only have one owner.
+  3. Ownership transfers must be explicit.
+  4. Deletion is only valid on owned references.
+  5. Assignment is only valid on unowned references.
 - fix symbol lookups in generator
   * make sure they don't occur when an artificial prefix or suffix has been added
+  * allow for symbol lookups to be out of order (as in accomodate for multi-pass compilation)
 - get yo naming right in documentation
   * "Value-Enumerated Type Class" -> "Algebraic Type Class"
   * "function objectification" -> First Class Functions

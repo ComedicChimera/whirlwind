@@ -12,13 +12,11 @@ namespace Whirlwind.Semantic
         {
             public Dictionary<string, Symbol> Symbols;
             public List<Scope> SubScopes;
-            public bool Immutable;
 
-            public Scope(bool immut = false)
+            public Scope()
             {
                 Symbols = new Dictionary<string, Symbol>();
                 SubScopes = new List<Scope>();
-                Immutable = immut;
             }
 
             public bool AddSymbol(Symbol symbol)
@@ -42,12 +40,12 @@ namespace Whirlwind.Semantic
                 Symbols[name] = newSymbol;
             }
 
-            public void AddScope(int[] scopePath, bool immut)
+            public void AddScope(int[] scopePath)
             {
                 if (scopePath.Length == 1)
-                    SubScopes[scopePath[0]].SubScopes.Add(new Scope(immut));
+                    SubScopes[scopePath[0]].SubScopes.Add(new Scope());
                 else
-                    SubScopes[scopePath[0]].AddScope(scopePath.Skip(1).ToArray(), immut);
+                    SubScopes[scopePath[0]].AddScope(scopePath.Skip(1).ToArray());
             }
         }
 
@@ -83,15 +81,7 @@ namespace Whirlwind.Semantic
             if (_scopePath.Length == 0)
                 _table.SubScopes.Add(new Scope());
             else
-                _table.AddScope(_scopePath, false);
-        }
-
-        public void AddImmutScope()
-        {
-            if (_scopePath.Length == 0)
-                _table.SubScopes.Add(new Scope(true));
-            else
-                _table.AddScope(_scopePath, true);
+                _table.AddScope(_scopePath);
         }
 
         public void DescendScope()
@@ -167,24 +157,14 @@ namespace Whirlwind.Semantic
 
             visibleScopes.Reverse();
 
-            bool forceConst = false;
             foreach (Scope scope in visibleScopes)
             {
                 if (scope.Symbols.ContainsKey(name))
                 {
-                    symbol = scope.Symbols[name];
-
-                    if (forceConst)
-                    {
-                        symbol = symbol.Copy();
-                        symbol.DataType.Constant = true;
-                    }                       
+                    symbol = scope.Symbols[name];                  
 
                     return allowInternal || symbol.Modifiers.Contains(Modifier.EXPORTED);
                 }
-
-                if (scope.Immutable)
-                    forceConst = true;
             }
 
             symbol = null;

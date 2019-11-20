@@ -72,7 +72,6 @@ namespace Whirlwind.Types
     {
         public DataType ReturnType;
         public readonly bool Async;
-        public readonly bool Mutable;
 
         public List<Parameter> Parameters;
 
@@ -81,14 +80,6 @@ namespace Whirlwind.Types
             Parameters = parameters;
             ReturnType = returnType;
             Async = async;
-        }
-
-        public FunctionType(List<Parameter> parameters, DataType returnType, bool async, bool mutable)
-        {
-            Parameters = parameters;
-            ReturnType = returnType;
-            Async = async;
-            Mutable = mutable;
         }
 
         public override TypeClassifier Classify() => TypeClassifier.FUNCTION;
@@ -133,7 +124,7 @@ namespace Whirlwind.Types
         }
 
         public override DataType ConstCopy()
-            => new FunctionType(Parameters, ReturnType, Async, Mutable) { Constant = true };
+            => new FunctionType(Parameters, ReturnType, Async) { Constant = true };
 
         public FunctionType NonConstCopy()
             => new FunctionType(Parameters, ReturnType, Async) { Constant = false };

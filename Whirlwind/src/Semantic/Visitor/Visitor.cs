@@ -14,22 +14,20 @@ namespace Whirlwind.Semantic.Visitor
     // of the above context
     struct VisitorContext
     {
-        public readonly bool 
-            CouldLambdaContextExist, 
+        public readonly bool
+            CouldLambdaContextExist,
             CouldTypeClassContextExist,
             CouldOwnerExist,
-            IsSetContext,
-            IsMutableContext;
+            IsSetContext;
 
         public readonly CustomType TypeClassContext;
 
-        public VisitorContext(bool clc, bool ctcc, bool co, bool isc, bool imc, CustomType tcc)
+        public VisitorContext(bool clc, bool ctcc, bool co, bool isc, CustomType tcc)
         {
             CouldLambdaContextExist = clc;
             CouldTypeClassContextExist = ctcc;
             CouldOwnerExist = co;
             IsSetContext = isc;
-            IsMutableContext = imc;
             TypeClassContext = tcc;
         }
     }
@@ -77,7 +75,6 @@ namespace Whirlwind.Semantic.Visitor
         private bool _functionCanHaveNoBody = false;
         private bool _allowInternalTypes = true;
         private bool _friendAnnotation = false;
-        private bool _isMutableContext = false;
 
         public Visitor(string namePrefix, bool constexprOptimizerEnabled, Dictionary<string, DataType> typeImpls)
         {
@@ -341,7 +338,6 @@ namespace Whirlwind.Semantic.Visitor
                    _couldTypeClassContextExist,
                    _couldOwnerExist,
                    _isSetContext,
-                   _isMutableContext,
                    _typeClassContext
                );
 
@@ -353,7 +349,6 @@ namespace Whirlwind.Semantic.Visitor
             _couldTypeClassContextExist = vctx.CouldTypeClassContextExist;
             _couldOwnerExist = vctx.CouldOwnerExist;
             _isSetContext = vctx.IsSetContext;
-            _isMutableContext = vctx.IsMutableContext;
             _typeClassContext = vctx.TypeClassContext;
         }
 

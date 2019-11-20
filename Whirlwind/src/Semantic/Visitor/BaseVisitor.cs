@@ -446,7 +446,6 @@ namespace Whirlwind.Semantic.Visitor
 
                         // save and clear context
                         var vctx = _saveContext();
-                        _isMutableContext = false;
                         _clearContext();
 
                         // save and clear return context (slightly different from regular context)
