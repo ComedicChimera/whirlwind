@@ -14,41 +14,7 @@
 - Implement Remaining "Non-Essential" Packages
   * see `std-lib.txt`
 
-# TODO
-
-- implement 5 rules of ownership
-  1. Ownership is the obligation to delete.
-  2. Each resource may only have one owner.
-  3. Ownership transfers must be explicit.
-  4. Deletion is only valid on owned references.
-  5. Assignment is only valid on unowned references.
-- fix symbol lookups in generator
-  * make sure they don't occur when an artificial prefix or suffix has been added
-  * allow for symbol lookups to be out of order (as in accomodate for multi-pass compilation)
-- get yo naming right in documentation
-  * "Value-Enumerated Type Class" -> "Algebraic Type Class"
-  * "function objectification" -> First Class Functions
-  * flip "deductive" and "inductive" type inference (it makes more sense the other way round)
-  * "case expression" -> "select expression"
-- make sure interfaces actually declare their vtable as full of methods
-- get strings working
-  * test all of the conversion functions
-  * make sure verify char works for unicode input (registers as 2 chars instead of 1)
-  * make sure chars compile correctly
-- get structs up and running
-  * variable initializers
-- finish functions
-  * deal with multifile overloading
-  * any other problems that could come up
-- add all the types
-- WORK ON GENERATOR
-
-# TESTING
-
-- ALL DE NEW STUFF
-- PACKAGE SYSTEM
-
-# FUTURE
+# NOTES
 
 - BE CONSCIOUS ABOUT EVERY TRANSLATION: NOTHING IS EVER "THAT" SIMPLE
   * how can this optimized?
@@ -99,7 +65,7 @@
   * both are dynamically allocated and need to handle that appropriately
 - add implementations for intrinsics
 
-# THOUGHTS
+# IDEAS TO CONSIDER
 
 - add string interpolation
   * $"Hello, my name is: {name}."
