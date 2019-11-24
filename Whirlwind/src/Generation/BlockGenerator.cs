@@ -15,6 +15,14 @@ namespace Whirlwind.Generation
             {
                 switch (node.Name)
                 {
+                    case "ExpressionReturn":
+                        {
+                            var ertNode = (StatementNode)node;
+
+                            // build first arg for now
+                            LLVM.BuildRet(_builder, _generateExpr(ertNode.Nodes[0]));
+                        }
+                        break;
                     case "Return":
                         {
                             var rtNode = (StatementNode)node;

@@ -13,6 +13,12 @@ namespace Whirlwind.Generation
     partial class Generator
     {
         private delegate LLVMValueRef BinopBuilder(LLVMBuilderRef builder, LLVMValueRef vRef, LLVMValueRef rRef, string name);
+
+        private delegate LLVMValueRef IntCompareBinopBuilder(LLVMBuilderRef builder, LLVMIntPredicate pred,
+            LLVMValueRef vRef, LLVMValueRef rRef, string name);
+        private delegate LLVMValueRef RealCompareBinopBuilder(LLVMBuilderRef builder, LLVMRealPredicate pred,
+            LLVMValueRef vRef, LLVMValueRef rRef, string name);
+
         private delegate BinopBuilder NumericBinopBuilderFactory(int category);
 
         private LLVMValueRef _generateExpr(ITypeNode expr)
@@ -70,42 +76,50 @@ namespace Whirlwind.Generation
                         }
                     case "Add":
                         {
-                            if (expr.Type is SimpleType st && st.Type == SimpleType.SimpleClassifier.STRING)
+                            if (expr.Type is ArrayType at)
+                            {
+
+                            }
+                            else if (expr.Type is ListType lt)
+                            {
+
+                            }
+                            else if (expr.Type is SimpleType st && st.Type == SimpleType.SimpleClassifier.STRING)
                             {
 
                             }
                             else
                             {
-                                _buildNumericBinop(category =>
+                                return _buildNumericBinop(category =>
                                 {
                                     if (category == 2)
                                         return LLVM.BuildFAdd;
                                     else
                                         return LLVM.BuildAdd;
-                                }, (ExprNode)expr);
+                                }, enode);
                             }
                         }
                         break;
                     case "Sub":
-                        _buildNumericBinop(category =>
+                        return _buildNumericBinop(category =>
                         {
                             if (category == 2)
                                 return LLVM.BuildFSub;
                             else
                                 return LLVM.BuildSub;
-                        }, (ExprNode)expr);                     
-                        break;
+                        }, enode);                     
                     case "Mul":
-                        _buildNumericBinop(category =>
+                        return _buildNumericBinop(category =>
                         {
                             if (category == 2)
                                 return LLVM.BuildFMul;
                             else
                                 return LLVM.BuildMul;
-                        }, (ExprNode)expr);
-                        break;
+                        }, enode);
                     case "Div":
-                        _buildNumericBinop(category =>
+                    case "Floordiv":
+                        // add NaN checking
+                        return _buildNumericBinop(category =>
                         {
                             if (category == 2)
                                 return LLVM.BuildFDiv;
@@ -113,12 +127,68 @@ namespace Whirlwind.Generation
                                 return LLVM.BuildUDiv;
                             else
                                 return LLVM.BuildSDiv;
-                        }, (ExprNode)expr);
-                        break;
+                        }, enode);
+                    case "Mod":
+                        return _buildNumericBinop(category =>
+                        {
+                            if (category == 2)
+                                return LLVM.BuildFRem;
+                            else if (category == 1)
+                                return LLVM.BuildSRem;
+                            else
+                                return LLVM.BuildURem;
+                        }, enode);
+                    // add power operator implementation
+                    case "LShift":
+                        return _buildBinop(LLVM.BuildShl, enode);
+                    case "RShift":
+                        {
+                            if (expr.Type is SimpleType st && !st.Unsigned && _getSimpleClass(st) == 0)
+                                return _buildBinop(LLVM.BuildAShr, enode);
+
+                            return _buildBinop(LLVM.BuildLShr, enode);
+                        }
+                    case "Eq":
+                        return _buildNumericBinop(category =>
+                        {
+                            if (category == 2)
+                                return _buildCompareBinop(LLVM.BuildFCmp, LLVMRealPredicate.LLVMRealOEQ);
+
+                            return _buildCompareBinop(LLVM.BuildICmp, LLVMIntPredicate.LLVMIntEQ);
+
+                        }, enode);
+                    case "Neq":
+                        return _buildNumericBinop(category =>
+                        {
+                            if (category == 2)
+                                return _buildCompareBinop(LLVM.BuildFCmp, LLVMRealPredicate.LLVMRealONE);
+
+                            return _buildCompareBinop(LLVM.BuildICmp, LLVMIntPredicate.LLVMIntNE);
+
+                        }, enode);
+                        /*
+                        case "Neq":
+                            return _buildBinop((b, v1, v2, name) => LLVM.BuildICmp(b, LLVMIntPredicate.LLVMIntNE, v1, v2, name), enode);
+                        case "Gt":
+                            return _buildNumericBinop(category =>
+                            {
+                                if (category == 2)
+                                    return 
+                            }, enode);*/
                 }
             }
 
             return _ignoreValueRef();
+        }
+
+        private BinopBuilder _buildCompareBinop(IntCompareBinopBuilder cbb, LLVMIntPredicate predicate)
+        {
+            return (b, lv, rv, name) => cbb(b, predicate, lv, rv, name);
+        }
+
+        private BinopBuilder _buildCompareBinop(RealCompareBinopBuilder rcbb, LLVMRealPredicate predicate)
+        {
+            return (b, lv, rv, name) => rcbb(b, predicate, lv, rv, name);
         }
 
         private LLVMValueRef _buildNumericBinop(NumericBinopBuilderFactory nbbfactory, ExprNode node)

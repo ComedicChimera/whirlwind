@@ -1,6 +1,4 @@
-﻿func f() int {
-	return 56 + 12;
-}
+﻿func f() int => 56 ~/ 16.2;
 
 func main() {
 	f();

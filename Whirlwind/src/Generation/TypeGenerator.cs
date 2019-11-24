@@ -121,34 +121,34 @@ namespace Whirlwind.Generation
             return _ignoreValueRef();
         }
 
+        private byte _getSimpleClass(SimpleType st)
+        {
+            switch (st.Type)
+            {
+                case SimpleType.SimpleClassifier.BOOL:
+                case SimpleType.SimpleClassifier.BYTE:
+                case SimpleType.SimpleClassifier.CHAR:
+                case SimpleType.SimpleClassifier.SHORT:
+                case SimpleType.SimpleClassifier.INTEGER:
+                case SimpleType.SimpleClassifier.LONG:
+                    return 0;
+                case SimpleType.SimpleClassifier.FLOAT:
+                case SimpleType.SimpleClassifier.DOUBLE:
+                    return 1;
+                // string
+                default:
+                    return 2;
+            }
+        }
+
         private LLVMValueRef _castSimple(LLVMValueRef val, SimpleType sst, SimpleType dst)
         {
             // either constancy or signed conflict
             // neither of which result in a cast
             if (sst.Type == dst.Type)
-                return val;
+                return val;         
 
-            byte getLLVMClass(SimpleType st)
-            {
-                switch (st.Type)
-                {
-                    case SimpleType.SimpleClassifier.BOOL:
-                    case SimpleType.SimpleClassifier.BYTE:
-                    case SimpleType.SimpleClassifier.CHAR:
-                    case SimpleType.SimpleClassifier.SHORT:
-                    case SimpleType.SimpleClassifier.INTEGER:
-                    case SimpleType.SimpleClassifier.LONG:
-                        return 0;
-                    case SimpleType.SimpleClassifier.FLOAT:
-                    case SimpleType.SimpleClassifier.DOUBLE:
-                        return 1;
-                    // string
-                    default:
-                        return 2;
-                }
-            }
-
-            int lcs = getLLVMClass(sst), lcd = getLLVMClass(dst);
+            int lcs = _getSimpleClass(sst), lcd = _getSimpleClass(dst);
 
             if (lcs == lcd)
             {
