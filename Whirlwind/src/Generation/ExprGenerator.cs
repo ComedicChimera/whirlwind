@@ -68,6 +68,53 @@ namespace Whirlwind.Generation
                             // create struct first!
                             return arrPtr;
                         }
+                    case "Add":
+                        {
+                            if (expr.Type is SimpleType st && st.Type == SimpleType.SimpleClassifier.STRING)
+                            {
+
+                            }
+                            else
+                            {
+                                _buildNumericBinop(category =>
+                                {
+                                    if (category == 2)
+                                        return LLVM.BuildFAdd;
+                                    else
+                                        return LLVM.BuildAdd;
+                                }, (ExprNode)expr);
+                            }
+                        }
+                        break;
+                    case "Sub":
+                        _buildNumericBinop(category =>
+                        {
+                            if (category == 2)
+                                return LLVM.BuildFSub;
+                            else
+                                return LLVM.BuildSub;
+                        }, (ExprNode)expr);                     
+                        break;
+                    case "Mul":
+                        _buildNumericBinop(category =>
+                        {
+                            if (category == 2)
+                                return LLVM.BuildFMul;
+                            else
+                                return LLVM.BuildMul;
+                        }, (ExprNode)expr);
+                        break;
+                    case "Div":
+                        _buildNumericBinop(category =>
+                        {
+                            if (category == 2)
+                                return LLVM.BuildFDiv;
+                            else if (category == 1)
+                                return LLVM.BuildUDiv;
+                            else
+                                return LLVM.BuildSDiv;
+                        }, (ExprNode)expr);
+                        break;
                 }
             }
 
