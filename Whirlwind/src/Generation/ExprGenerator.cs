@@ -139,7 +139,8 @@ namespace Whirlwind.Generation
                             else
                                 return LLVM.BuildSRem;
                         }, enode);
-                    // add power operator implementation
+                    // TODO: add power operator implementation
+                    // TODO: look at your binary shift implementation (might not want to coerce all to same type) 
                     case "LShift":
                         return _buildBinop(LLVM.BuildShl, enode, _getCommonType(enode));
                     case "RShift":
