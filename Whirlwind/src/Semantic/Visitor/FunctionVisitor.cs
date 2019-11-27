@@ -149,7 +149,7 @@ namespace Whirlwind.Semantic.Visitor
                         rtType = _extractReturnType((ASTNode)item);
                         break;
                     case "expr":
-                        _nodes.Add(new StatementNode("ExpressionReturn"));
+                        _nodes.Add(new StatementNode("ExprReturn"));
 
                         var exprNode = (ASTNode)item;
 

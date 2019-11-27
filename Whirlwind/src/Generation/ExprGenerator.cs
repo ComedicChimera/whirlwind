@@ -129,24 +129,25 @@ namespace Whirlwind.Generation
                                 return LLVM.BuildSDiv;
                         }, enode);
                     case "Mod":
+                        // add NaN checking
                         return _buildNumericBinop(category =>
                         {
                             if (category == 2)
                                 return LLVM.BuildFRem;
                             else if (category == 1)
-                                return LLVM.BuildSRem;
-                            else
                                 return LLVM.BuildURem;
+                            else
+                                return LLVM.BuildSRem;
                         }, enode);
                     // add power operator implementation
                     case "LShift":
-                        return _buildBinop(LLVM.BuildShl, enode);
+                        return _buildBinop(LLVM.BuildShl, enode, _getCommonType(enode));
                     case "RShift":
                         {
                             if (expr.Type is SimpleType st && !st.Unsigned && _getSimpleClass(st) == 0)
-                                return _buildBinop(LLVM.BuildAShr, enode);
+                                return _buildBinop(LLVM.BuildAShr, enode, _getCommonType(enode));
 
-                            return _buildBinop(LLVM.BuildLShr, enode);
+                            return _buildBinop(LLVM.BuildLShr, enode, _getCommonType(enode));
                         }
                     case "Eq":
                         return _buildNumericBinop(category =>
@@ -166,6 +167,17 @@ namespace Whirlwind.Generation
                             return _buildCompareBinop(LLVM.BuildICmp, LLVMIntPredicate.LLVMIntNE);
 
                         }, enode);
+                    case "Gt":
+                        return _buildNumericBinop(category =>
+                        {
+                            if (category == 2)
+                                return _buildCompareBinop(LLVM.BuildFCmp, LLVMRealPredicate.LLVMRealOGT);
+                            else if (category == 1)
+                                return _buildCompareBinop(LLVM.BuildICmp, LLVMIntPredicate.LLVMIntUGT);
+
+                            return _buildCompareBinop(LLVM.BuildICmp, LLVMIntPredicate.LLVMIntSGT);
+                        }, enode);
+                    
                         /*
                         case "Neq":
                             return _buildBinop((b, v1, v2, name) => LLVM.BuildICmp(b, LLVMIntPredicate.LLVMIntNE, v1, v2, name), enode);
@@ -195,24 +207,26 @@ namespace Whirlwind.Generation
         {
             // check for overloads
 
+            var commonType = _getCommonType(node);
             int instrCat = 0;
 
-            if (((SimpleType)node.Type).Unsigned)
+            // we assume the common type is a simple type if it is being interpreted as numeric
+            if (((SimpleType)commonType).Unsigned)
                 instrCat = 1;
             else if (new[] { SimpleType.SimpleClassifier.FLOAT, SimpleType.SimpleClassifier.DOUBLE}
-                .Contains(((SimpleType)node.Type).Type))
+                .Contains(((SimpleType)commonType).Type))
             {
                 instrCat = 2;
             }
 
             var binopBuilder = nbbfactory(instrCat);
 
-            return _buildBinop(binopBuilder, node, true);
+            return _buildBinop(binopBuilder, node, commonType, true);
         }
 
-        private LLVMValueRef _buildBinop(BinopBuilder bbuilder, ExprNode node, bool noOverloads = false)
+        private LLVMValueRef _buildBinop(BinopBuilder bbuilder, ExprNode node, DataType commonType, bool noOverloads = false)
         {
-            var operands = _buildOperands(node.Nodes, node.Type);
+            var operands = _buildOperands(node.Nodes, commonType);
 
             var leftOperand = operands[0];
 
@@ -226,7 +240,20 @@ namespace Whirlwind.Generation
             return leftOperand;
         }
 
-        private List<LLVMValueRef> _buildOperands(List<ITypeNode> nodes, DataType exprType)
+        private DataType _getCommonType(ExprNode node)
+        {
+            var commonType = node.Nodes[0].Type;
+
+            foreach (var item in node.Nodes)
+            {
+                if (!commonType.Coerce(item.Type) && item.Type.Coerce(commonType))
+                    commonType = item.Type;
+            }
+
+            return commonType;
+        }
+
+        private List<LLVMValueRef> _buildOperands(List<ITypeNode> nodes, DataType commonType)
         {
             var results = new List<LLVMValueRef>();
 
@@ -234,8 +261,8 @@ namespace Whirlwind.Generation
             {
                 var g = _generateExpr(node);
 
-                if (!exprType.Equals(node.Type))
-                    results.Add(_cast(g, node.Type, exprType));
+                if (!commonType.Equals(node.Type))
+                    results.Add(_cast(g, node.Type, commonType));
                 else
                     results.Add(g);
             }

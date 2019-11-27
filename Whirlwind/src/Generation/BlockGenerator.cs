@@ -15,7 +15,7 @@ namespace Whirlwind.Generation
             {
                 switch (node.Name)
                 {
-                    case "ExpressionReturn":
+                    case "ExprReturn":
                         {
                             var ertNode = (StatementNode)node;
 
@@ -37,6 +37,9 @@ namespace Whirlwind.Generation
                                 LLVM.BuildRet(_builder, exprRes);
                             }
                         }
+                        break;
+                    case "ExprStmt":
+                        _generateExpr(((StatementNode)node).Nodes[0]);
                         break;
                 }
             }

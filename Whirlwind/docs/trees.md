@@ -219,7 +219,7 @@ Represents a single Whirlwind statement.
 | Return | *Value* | Return a value from a function | **BLOCK** |
 | Yield | *Value* | Yield-return a value from a function | **BLOCK** |
 | ExprStmt | Expr | Represents an expression acting as a statement | **STATEMENT** |
-| ExpressionReturn | Expr | Represents an implicit return in an expression function | **BLOCK** |
+| ExprReturn | Expr | Represents an implicit return in an expression function | **BLOCK** |
 | Assignment | Variables, Initializers | Assign a set of variables to a new value | **STATEMENT** |
 | Annotation | AnnotationName, \[ AnnotationValue \] | A compiler annotation | **BLOCK** |
 | Include | Package, \[ Rename \] | Include a package | **BLOCK** |
