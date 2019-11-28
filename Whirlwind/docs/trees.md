@@ -102,7 +102,7 @@ A multi-value structure or some form of operation.
 | DerefGetMember | Root, Identifier | Performs a dereference and gets a member |
 | NullableDerefGetMember | Root, Identifier | Performs a nullable dereference and a nullable get member |
 | InitList | *Initializers* | Create an instance from an initializer list |
-| Intializer | Identifier, expr | Initializer a given value in an initializer list |
+| Initializer | Identifier, expr | Initializer a given value in an initializer list |
 | Call | Function, *Arguments* | Call a normal function with given arguments |
 | CallAsync | AsyncFunction, *Arguments* | Call an async function with the given arguments |
 | CallConstructor | Struct, *Arguments* | Call a struct constructor |

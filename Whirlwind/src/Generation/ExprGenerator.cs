@@ -117,6 +117,7 @@ namespace Whirlwind.Generation
                                 return LLVM.BuildMul;
                         }, enode);
                     case "Div":
+                    // TODO: give floordiv its own generation algo
                     case "Floordiv":
                         // add NaN checking
                         return _buildNumericBinop(category =>
@@ -178,7 +179,36 @@ namespace Whirlwind.Generation
 
                             return _buildCompareBinop(LLVM.BuildICmp, LLVMIntPredicate.LLVMIntSGT);
                         }, enode);
-                    
+                    case "Lt":
+                        return _buildNumericBinop(category =>
+                        {
+                            if (category == 2)
+                                return _buildCompareBinop(LLVM.BuildFCmp, LLVMRealPredicate.LLVMRealOLT);
+                            else if (category == 1)
+                                return _buildCompareBinop(LLVM.BuildICmp, LLVMIntPredicate.LLVMIntULT);
+
+                            return _buildCompareBinop(LLVM.BuildICmp, LLVMIntPredicate.LLVMIntSLT);
+                        }, enode);
+                    case "GtEq":
+                        return _buildNumericBinop(category =>
+                        {
+                            if (category == 2)
+                                return _buildCompareBinop(LLVM.BuildFCmp, LLVMRealPredicate.LLVMRealOGE);
+                            else if (category == 1)
+                                return _buildCompareBinop(LLVM.BuildICmp, LLVMIntPredicate.LLVMIntUGE);
+
+                            return _buildCompareBinop(LLVM.BuildICmp, LLVMIntPredicate.LLVMIntSGE);
+                        }, enode);
+                    case "LtEq":
+                        return _buildNumericBinop(category =>
+                        {
+                            if (category == 2)
+                                return _buildCompareBinop(LLVM.BuildFCmp, LLVMRealPredicate.LLVMRealOLE);
+                            else if (category == 1)
+                                return _buildCompareBinop(LLVM.BuildICmp, LLVMIntPredicate.LLVMIntULE);
+
+                            return _buildCompareBinop(LLVM.BuildICmp, LLVMIntPredicate.LLVMIntSLE);
+                        }, enode);
                         /*
                         case "Neq":
                             return _buildBinop((b, v1, v2, name) => LLVM.BuildICmp(b, LLVMIntPredicate.LLVMIntNE, v1, v2, name), enode);
