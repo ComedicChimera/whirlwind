@@ -73,7 +73,8 @@ namespace Whirlwind.Semantic.Checker
                 case ">>":
                 case "<<":
                     {
-                        if (rootType.Classify() == TypeClassifier.SIMPLE && new SimpleType(SimpleType.SimpleClassifier.INTEGER, true).Coerce(operandType))
+                        if (new SimpleType(SimpleType.SimpleClassifier.LONG).Coerce(rootType) && 
+                            new SimpleType(SimpleType.SimpleClassifier.INTEGER, true).Coerce(operandType))
                             return;
                     }
                     break;
@@ -139,7 +140,8 @@ namespace Whirlwind.Semantic.Checker
                     rootType = new SimpleType(((SimpleType)rootType).Type);
             }       
             else
-                throw new SemanticException($"Invalid operands for '{op}' operator", position);
+                throw new SemanticException($"Unable to apply `{op}` to types of {rootType.ToString()} and {operandType.ToString()}",
+                            position);
         }
 
         static private bool _large(SimpleType rootType)

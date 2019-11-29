@@ -116,10 +116,8 @@ namespace Whirlwind.Generation
                             else
                                 return LLVM.BuildMul;
                         }, enode);
+                    // TODO: add NaN checking to both div and floordiv
                     case "Div":
-                    // TODO: give floordiv its own generation algo
-                    case "Floordiv":
-                        // add NaN checking
                         return _buildNumericBinop(category =>
                         {
                             if (category == 2)
@@ -129,8 +127,28 @@ namespace Whirlwind.Generation
                             else
                                 return LLVM.BuildSDiv;
                         }, enode);
-                    case "Mod":
-                        // add NaN checking
+                    // TODO: see note on NaN checking
+                    // TODO: make sure floor div is compatable with overload capability
+                    case "Floordiv":
+                        {
+                            var result = _buildNumericBinop(category =>
+                            {
+                                if (category == 2)
+                                    return LLVM.BuildFDiv;
+                                else if (category == 1)
+                                    return LLVM.BuildUDiv;
+                                else
+                                    return LLVM.BuildSDiv;
+                            }, enode);
+
+                            var commonType = _getCommonType(enode);
+                            if (!enode.Type.Equals(commonType))
+                                return _cast(result, commonType, enode.Type);
+
+                            return result;
+                        }
+                    // TODO: add NaN checking
+                    case "Mod":                        
                         return _buildNumericBinop(category =>
                         {
                             if (category == 2)
@@ -141,12 +159,12 @@ namespace Whirlwind.Generation
                                 return LLVM.BuildSRem;
                         }, enode);
                     // TODO: add power operator implementation
-                    // TODO: look at your binary shift implementation (might not want to coerce all to same type) 
                     case "LShift":
                         return _buildBinop(LLVM.BuildShl, enode, _getCommonType(enode));
+                    // TODO: test binary right shift operation to make sure it is on signed integral types
                     case "RShift":
                         {
-                            if (expr.Type is SimpleType st && !st.Unsigned && _getSimpleClass(st) == 0)
+                            if (expr.Type is SimpleType st && !st.Unsigned)
                                 return _buildBinop(LLVM.BuildAShr, enode, _getCommonType(enode));
 
                             return _buildBinop(LLVM.BuildLShr, enode, _getCommonType(enode));

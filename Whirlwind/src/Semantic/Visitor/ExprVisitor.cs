@@ -855,7 +855,7 @@ namespace Whirlwind.Semantic.Visitor
                         _nodes[_nodes.Count - 1].Type = rootType;
                     }
                     else
-                        rootType = _nodes.Last().Type;
+                        rootType = _nodes.Last().Type;                        
                 }
             }
         }
