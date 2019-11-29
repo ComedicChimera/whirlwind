@@ -227,6 +227,12 @@ namespace Whirlwind.Generation
 
                             return _buildCompareBinop(LLVM.BuildICmp, LLVMIntPredicate.LLVMIntSLE);
                         }, enode);
+                    case "And":
+                        return _buildBinop(LLVM.BuildAnd, enode, _getCommonType(enode));
+                    case "Or":
+                        return _buildBinop(LLVM.BuildOr, enode, _getCommonType(enode));
+                    case "Xor":
+                        return _buildBinop(LLVM.BuildXor, enode, _getCommonType(enode));
                         /*
                         case "Neq":
                             return _buildBinop((b, v1, v2, name) => LLVM.BuildICmp(b, LLVMIntPredicate.LLVMIntNE, v1, v2, name), enode);
