@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 using LLVMSharp;
 
 using Whirlwind.Semantic;
 using Whirlwind.Types;
+
+using static Whirlwind.Semantic.Checker.Checker;
 
 namespace Whirlwind.Generation
 {
@@ -233,15 +234,21 @@ namespace Whirlwind.Generation
                         return _buildBinop(LLVM.BuildOr, enode, _getCommonType(enode));
                     case "Xor":
                         return _buildBinop(LLVM.BuildXor, enode, _getCommonType(enode));
-                        /*
-                        case "Neq":
-                            return _buildBinop((b, v1, v2, name) => LLVM.BuildICmp(b, LLVMIntPredicate.LLVMIntNE, v1, v2, name), enode);
-                        case "Gt":
-                            return _buildNumericBinop(category =>
-                            {
-                                if (category == 2)
-                                    return 
-                            }, enode);*/
+                    // TODO: check for overloads on complement, not, and change sign
+                    case "Complement":
+                        return LLVM.BuildXor(_builder, _generateExpr(enode.Nodes[0]),
+                            _generateExprValue(new ValueNode("Literal", enode.Type, "-1")), "compl_tmp");
+                    case "Not":
+                        return LLVM.BuildXor(_builder, _generateExpr(enode.Nodes[0]),
+                            LLVM.ConstInt(LLVM.Int1Type(), 1, new LLVMBool(0)), "not_tmp");
+                    case "ChangeSign":
+                        {
+                            if (_getSimpleClass((SimpleType)enode.Type) == 0)
+                                return LLVM.BuildSub(_builder, _generateExprValue(new ValueNode("Literal", enode.Type, "-1")),
+                                    _generateExpr(enode.Nodes[0]), "cs_tmp");
+                            else
+                                return LLVM.BuildFNeg(_builder, _generateExpr(enode), "cs_tmp");
+                        }
                 }
             }
 
@@ -325,10 +332,52 @@ namespace Whirlwind.Generation
             return results;
         }
 
-        private bool _buildOperOverload(ITypeNode expr, out LLVMValueRef res)
+        // Note: generates as many overloads as it can of a single operator; returns depth it reached
+        private int _generateOperatorOverload(ExprNode expr, int startDepth, out LLVMValueRef res)
         {
+            if (expr.Nodes.Count - startDepth == 1)
+            {
+                var opType = expr.Nodes[startDepth].Type;
+                var opMethod = _convertOverloadTreeToOpMethod(expr.Name);
+
+                if (HasOverload(opType, opMethod, out DataType _))
+                {
+                    /*res = LLVM.BuildCall(_builder, _getNamedValue(opType.ToString() + ".operator." + opMethod),
+                        _generateExpr();*/
+                }
+
+                res = _ignoreValueRef();
+                return startDepth;
+            }
+            else
+            {
+
+            }
+
+
             res = _ignoreValueRef();
-            return false;
+            return 0;
         } 
+
+        private string _convertOverloadTreeToOpMethod(string name)
+        {
+            switch (name)
+            {
+                case "Add":
+                    return "__+__";
+                case "Neg":
+                case "Sub":
+                    return "__-__";
+                case "Mul":
+                    return "__*__";
+                case "Div":
+                    return "__/__";
+                case "Floordiv":
+                    return "__~/__";
+                // TODO: add other overload conversions
+                default:
+                    return "__~^__";
+            }
+        }
     }
 }
