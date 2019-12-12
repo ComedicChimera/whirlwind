@@ -256,9 +256,9 @@ namespace Whirlwind.Generation
 
                             // node layout: then, if, else
 
-                            if (enode.Type.Equals(enode.Nodes[0].Type))
+                            if (enode.Type.Equals(enode.Nodes[0].Type) && !enode.Type.Equals(enode.Nodes[2]))
                                 elements[2] = _cast(elements[2], enode.Nodes[2].Type, enode.Nodes[0].Type);
-                            else
+                            else if (enode.Type.Equals(enode.Nodes[2].Type) && !enode.Type.Equals(enode.Nodes[0]))
                                 elements[0] = _cast(elements[0], enode.Nodes[0].Type, enode.Nodes[2].Type);
 
                             return LLVM.BuildSelect(_builder, elements[1], elements[0], elements[2], "inline_cmp_res");

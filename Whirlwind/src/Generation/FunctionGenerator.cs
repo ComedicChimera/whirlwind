@@ -11,7 +11,7 @@ namespace Whirlwind.Generation
 {
     partial class Generator
     {
-        private void _generateFunction(BlockNode node, bool external, bool global, string prefix="")
+        private void _generateFunction(BlockNode node, bool external, bool global, bool shouldMakeBody=false, string prefix="")
         {
             var idNode = (IdentifierNode)node.Nodes[0];
 
@@ -33,7 +33,7 @@ namespace Whirlwind.Generation
 
                 llvmFn = _generateFunctionPrototype(llvmPrefix + name + fgSuffix, fn, externLink);
 
-                if (!external)
+                if (!external && shouldMakeBody)
                 {
                     LLVM.PositionBuilderAtEnd(_builder, LLVM.AppendBasicBlockInContext(_ctx, llvmFn, "entry"));
 
@@ -58,10 +58,13 @@ namespace Whirlwind.Generation
                 LLVM.PositionBuilderAtEnd(_builder, LLVM.AppendBasicBlockInContext(_ctx, llvmFn, "entry"));
 
                 // include arguments!
-                _generateBlock(node.Block);
+                if (!external && shouldMakeBody)
+                {
+                    _generateBlock(node.Block);
 
-                if (fn.ReturnType.Classify() == TypeClassifier.NONE)
-                    LLVM.BuildRetVoid(_builder);
+                    if (fn.ReturnType.Classify() == TypeClassifier.NONE)
+                        LLVM.BuildRetVoid(_builder);
+                }                
 
                 LLVM.VerifyFunction(llvmFn, LLVMVerifierFailureAction.LLVMPrintMessageAction);
 

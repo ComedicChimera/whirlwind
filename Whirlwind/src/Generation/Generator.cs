@@ -62,11 +62,24 @@ namespace Whirlwind.Generation
             })) + ".";
         }
 
-        public void Generate(ITypeNode tree, string outputFile)
+        public void Generate(BlockNode tree, string outputFile)
         {
             // first node is Package
-            foreach (var node in ((BlockNode)tree).Block)
+            foreach (var node in tree.Block)
                 _generateTopDecl(node);
+
+            foreach (var node in tree.Block)
+            {
+                if (node.Name.EndsWith("Function"))
+                {
+                    // build function bodies here
+                    _generateFunction((BlockNode)node, false, true, shouldMakeBody: true);
+                }
+
+                // add in cases for annotations that need blocks built as will as other things such as inteface bodies
+            }
+
+            // add in any special functions / post generation code here
 
             if (LLVM.VerifyModule(_module, LLVMVerifierFailureAction.LLVMPrintMessageAction, out var error) != new LLVMBool(0))
                 Console.WriteLine("LLVM Build Errors");
@@ -93,8 +106,10 @@ namespace Whirlwind.Generation
                         // add more annotation logic later...
                     }
                     break;
+                // function bodies visited later
                 case "Function":
                 case "AsyncFunction":
+                    // only generated function tops
                     _generateFunction((BlockNode)node, false, true);
                     break;
                 case "Struct":
