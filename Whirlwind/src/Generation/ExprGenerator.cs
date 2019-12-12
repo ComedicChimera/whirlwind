@@ -249,6 +249,20 @@ namespace Whirlwind.Generation
                             else
                                 return LLVM.BuildFNeg(_builder, _generateExpr(enode), "cs_tmp");
                         }
+                    case "InlineComparison":
+                        {
+                            List<LLVMValueRef> elements = enode.Nodes
+                                .Select(x => _generateExpr(x)).ToList();
+
+                            // node layout: then, if, else
+
+                            if (enode.Type.Equals(enode.Nodes[0].Type))
+                                elements[2] = _cast(elements[2], enode.Nodes[2].Type, enode.Nodes[0].Type);
+                            else
+                                elements[0] = _cast(elements[0], enode.Nodes[0].Type, enode.Nodes[2].Type);
+
+                            return LLVM.BuildSelect(_builder, elements[1], elements[0], elements[2], "inline_cmp_res");
+                        }
                 }
             }
 

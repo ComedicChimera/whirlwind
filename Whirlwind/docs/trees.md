@@ -147,7 +147,7 @@ A multi-value structure or some form of operation.
 | And | *Values* | Perform an and/bitwise and logical operation |
 | Bind | Value, *Functions* | Binds each expression to the one on its right |
 | Compose | *Functions* | Composes the functions sequentially |
-| InlineComparison |  Option1, Comparison Expr, Option2 | Perform an inline comparison |
+| InlineComparison |  Option1, ComparisonExpr, Option2 | Perform an inline comparison |
 | Is | Expr, Type | Tests if an object is a given data type |
 | ExtractInto | Expr, Identifier | Extracts the value from the given expression if possible and stores it in a expr-local |
 | Range | Expr, Expr | Creates a range between the two expressions |

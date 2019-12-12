@@ -36,14 +36,8 @@ struct __algType {
 	values: *any;
 }
 
-#impl "closure"
-struct __closure<T> {
-	fp: *T; // possibly need another way to store function pointer
-	data: dyn *any;
-}
 
-
-// FUNCTIONS
+// FRIEND FUNCTIONS
 #friend "string"
 func __concat(a, b: str) str {
 	let np: *char;
@@ -62,6 +56,20 @@ func __concatA<T>(a, b: []T) {
 #friend "list"
 func __concatL<T>(a, b: [T]) {
 
+}
+
+// HELPER FUNCTIONS
+func __range(l, h, step: int) []int {
+	let arr = h - l if step == 1 else l - h then
+		malloca(4 * value) as []int;		
+
+	let n = l;
+	for (i = 0; i < size; i++) {
+		arr[i] = n;
+		n += step;
+	}
+
+	return arr;
 }
 
 // INTRINSIC FUNCTIONS
