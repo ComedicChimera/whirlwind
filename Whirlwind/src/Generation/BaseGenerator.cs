@@ -39,12 +39,31 @@ namespace Whirlwind.Generation
                                     var arrData = _convertString(node.Value);
                                     var arrType = LLVM.ArrayType(LLVM.Int32Type(), (uint)arrData.Length);
 
+                                    var strLit = LLVM.BuildAlloca(_builder, arrType, "string_lit");
+
+                                    uint i = 0;
+                                    foreach (var elem in arrData)
+                                    {
+                                        var elemPtr = LLVM.BuildGEP(_builder, strLit,
+                                            new[] {
+                                        LLVM.ConstInt(LLVM.Int32Type(), 0, new LLVMBool(0)),
+                                        LLVM.ConstInt(LLVM.Int32Type(), i, new LLVMBool(0))
+                                            },
+                                            "elem_ptr"
+                                            );
+
+                                        LLVM.BuildStore(_builder, elem, elemPtr);
+
+                                        i++;
+                                    }
+
                                     return LLVM.ConstNamedStruct(_stringType, new[]
                                     {
+                                        // fix array allocation
                                         LLVM.BuildGEP(_builder,
                                             LLVM.BuildArrayAlloca(
                                                 _builder, arrType,
-                                                LLVM.ConstArray(LLVM.Int32Type(), arrData),
+                                                strLit,
                                                 "string_arr_tmp"
                                             ),
                                             new[] {
