@@ -11,7 +11,7 @@ namespace Whirlwind.Generation
 {
     partial class Generator
     {
-        private void _generateFunction(BlockNode node, bool external, bool global, bool shouldMakeBody=false, string prefix="")
+        private void _generateFunction(BlockNode node, bool external, bool global, string prefix="")
         {
             var idNode = (IdentifierNode)node.Nodes[0];
 
@@ -33,16 +33,8 @@ namespace Whirlwind.Generation
 
                 llvmFn = _generateFunctionPrototype(llvmPrefix + name + fgSuffix, fn, externLink);
 
-                if (!external && shouldMakeBody)
-                {
-                    LLVM.PositionBuilderAtEnd(_builder, LLVM.AppendBasicBlockInContext(_ctx, llvmFn, "entry"));
-
-                    // include arguments!
-                    _generateBlock(node.Block);
-
-                    if (fn.ReturnType.Classify() == TypeClassifier.NONE)
-                        LLVM.BuildRetVoid(_builder);
-                }
+                if (!external)
+                    _appendFunctionBlock(llvmFn, node);
 
                 LLVM.VerifyFunction(llvmFn, LLVMVerifierFailureAction.LLVMPrintMessageAction);
 
@@ -55,16 +47,8 @@ namespace Whirlwind.Generation
 
                 llvmFn = _generateFunctionPrototype(llvmPrefix + name, fn, externLink);
 
-                LLVM.PositionBuilderAtEnd(_builder, LLVM.AppendBasicBlockInContext(_ctx, llvmFn, "entry"));
-
-                // include arguments!
-                if (!external && shouldMakeBody)
-                {
-                    _generateBlock(node.Block);
-
-                    if (fn.ReturnType.Classify() == TypeClassifier.NONE)
-                        LLVM.BuildRetVoid(_builder);
-                }                
+                if (!external)
+                    _appendFunctionBlock(llvmFn, node);
 
                 LLVM.VerifyFunction(llvmFn, LLVMVerifierFailureAction.LLVMPrintMessageAction);
 
@@ -102,6 +86,27 @@ namespace Whirlwind.Generation
             }
 
             return llvmFn;
+        }
+
+        private void _appendFunctionBlock(LLVMValueRef vref, BlockNode block)
+        {
+            _fnBlocks.Add(new Tuple<LLVMValueRef, BlockNode>(vref, block));
+        }
+
+        private void _buildFunctionBlock(LLVMValueRef vref, BlockNode block)
+        {
+            LLVM.PositionBuilderAtEnd(_builder, LLVM.AppendBasicBlockInContext(_ctx, vref, "entry"));
+
+            if (_generateBlock(block.Block))
+                LLVM.BuildRetVoid(_builder);
+        }
+
+        private void _buildFunctionBlock(LLVMValueRef vref, FnBodyBuilder fbb)
+        {
+            LLVM.PositionBuilderAtEnd(_builder, LLVM.AppendBasicBlockInContext(_ctx, vref, "entry"));
+
+            if (fbb(vref))
+                LLVM.BuildRetVoid(_builder);
         }
     }
 }

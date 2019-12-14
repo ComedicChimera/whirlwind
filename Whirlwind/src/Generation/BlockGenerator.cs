@@ -9,7 +9,8 @@ namespace Whirlwind.Generation
 {
     partial class Generator
     {
-        private void _generateBlock(List<ITypeNode> block)
+        // bool says whether or not block contains a definite return (needs void or no)
+        private bool _generateBlock(List<ITypeNode> block)
         {
             foreach (var node in block)
             {
@@ -43,6 +44,8 @@ namespace Whirlwind.Generation
                         break;
                 }
             }
+
+            return false;
         }
     }
 }

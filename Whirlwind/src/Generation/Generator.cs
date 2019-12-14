@@ -11,6 +11,9 @@ namespace Whirlwind.Generation
 {
     partial class Generator
     {
+        // globally used delegates
+        private delegate bool FnBodyBuilder(LLVMValueRef vref);
+
         // visitor extracted data
         private readonly SymbolTable _table;
         private readonly Dictionary<string, string> _flags;
@@ -28,9 +31,13 @@ namespace Whirlwind.Generation
         private readonly Dictionary<string, LLVMValueRef> _globalScope;
         // store globally declared structures
         private readonly Dictionary<string, LLVMTypeRef> _globalStructs;
+        // store function blocks that are awaiting generation
+        private readonly List<Tuple<LLVMValueRef, BlockNode>> _fnBlocks;
+        // store function blocks with special generation algorithms that are awaiting generation (delayed)
+        private readonly List<Tuple<LLVMValueRef, FnBodyBuilder>> _fnSpecialBlocks;
+
         // store the randomly generated package prefix
         private readonly string _randPrefix;
-
         // store global string type
         private LLVMTypeRef _stringType;
 
@@ -68,16 +75,13 @@ namespace Whirlwind.Generation
             foreach (var node in tree.Block)
                 _generateTopDecl(node);
 
-            foreach (var node in tree.Block)
-            {
-                if (node.Name.EndsWith("Function"))
-                {
-                    // build function bodies here
-                    _generateFunction((BlockNode)node, false, true, shouldMakeBody: true);
-                }
+            // build each fn block awaiting completion
+            foreach (var fb in _fnBlocks)
+                _buildFunctionBlock(fb.Item1, fb.Item2);
 
-                // add in cases for annotations that need blocks built as will as other things such as inteface bodies
-            }
+            // build each fn block with a special generation algo (like a constructor, etc.)
+            foreach (var fsb in _fnSpecialBlocks)
+                _buildFunctionBlock(fsb.Item1, fsb.Item2);
 
             // add in any special functions / post generation code here
 

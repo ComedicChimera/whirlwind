@@ -11,6 +11,8 @@ namespace Whirlwind.Generation
 {
     partial class Generator
     {
+        private delegate bool InternalBuilderAlgo(LLVMValueRef vref, BlockNode block);
+
         private void _generateStruct(BlockNode node, bool exported, bool packed)
         {
             var name = ((IdentifierNode)node.Nodes[0]).IdName;
@@ -51,26 +53,14 @@ namespace Whirlwind.Generation
 
                     if (constructor.Block.Count > 0)
                     {
-                        LLVM.PositionBuilderAtEnd(_builder, LLVM.AppendBasicBlockInContext(_ctx, llvmConstructor, "entry"));
-
-                        // build new struct here
-
-                        // build init members call
-                        if (needsInitMembers)
-                        {
-
-                        }
-
-                        // generate block with declared arguments
-                        _generateBlock(node.Block);
-
-                        LLVM.VerifyFunction(llvmConstructor, LLVMVerifierFailureAction.LLVMPrintMessageAction);
+                        // add custom constructor build algo
                     }
                 }
             }
 
             if (needsInitMembers)
             {
+                // add custom init members build algo and append
                 var initFn = _generateFunctionPrototype(name + ".__initMembers", new FunctionType(new List<Parameter>
                             { new Parameter("this", new PointerType(st, false), false, false, false, false) },
                            new NoneType(), false), false);
@@ -110,12 +100,7 @@ namespace Whirlwind.Generation
                     {
                         var llvmMethod = _generateFunctionPrototype(name + "." + method.Key.Name, fnType, exported);
 
-                        LLVM.PositionBuilderAtEnd(_builder, LLVM.AppendBasicBlockInContext(_ctx, llvmMethod, "entry"));
-
-                        _generateBlock(((BlockNode)node.Block[methodNdx]).Block);
-
-                        if (fnType.ReturnType.Classify() == TypeClassifier.NONE)
-                            LLVM.BuildRetVoid(_builder);
+                        _appendFunctionBlock(llvmMethod, ((BlockNode)node.Block[methodNdx]));
                     }
                 }   
             }
@@ -139,6 +124,14 @@ namespace Whirlwind.Generation
         private void _generateTypeClass(BlockNode node, bool packed)
         {
 
+        }
+
+        private FnBodyBuilder _wrapBuilderFunc(BlockNode block, InternalBuilderAlgo ibo)
+        {
+            return delegate (LLVMValueRef vref)
+            {
+                return ibo(vref, block);
+            };
         }
     }
 }
