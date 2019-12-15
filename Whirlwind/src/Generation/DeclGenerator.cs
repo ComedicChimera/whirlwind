@@ -121,7 +121,7 @@ namespace Whirlwind.Generation
             _globalStructs[name] = interfStruct;
         }
 
-        private void _generateTypeClass(BlockNode node, bool packed)
+        private void _generateTypeClass(BlockNode node)
         {
 
         }
