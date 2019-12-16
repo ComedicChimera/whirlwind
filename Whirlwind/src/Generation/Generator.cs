@@ -36,6 +36,9 @@ namespace Whirlwind.Generation
         // store function blocks with special generation algorithms that are awaiting generation (delayed)
         private readonly List<Tuple<LLVMValueRef, FnBodyBuilder>> _fnSpecialBlocks;
 
+        // store the current generic suffix (will be appended to everything that is visited)
+        private string _genericSuffix = "";
+
         // store the randomly generated package prefix
         private readonly string _randPrefix;
         // store global string type
@@ -61,7 +64,7 @@ namespace Whirlwind.Generation
             string randPrefixVals = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
             var randGenerator = new Random();
-            _randPrefix = String.Concat(Enumerable.Repeat(0, 16).Select(x =>
+            _randPrefix = string.Concat(Enumerable.Repeat(0, 16).Select(x =>
             {
                 int rand = randGenerator.Next() % randPrefixVals.Length;
 

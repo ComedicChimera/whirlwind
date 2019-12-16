@@ -61,11 +61,7 @@ namespace Whirlwind.Generation
                                     {
                                         // fix array allocation
                                         LLVM.BuildGEP(_builder,
-                                            LLVM.BuildArrayAlloca(
-                                                _builder, arrType,
-                                                strLit,
-                                                "string_arr_tmp"
-                                            ),
+                                            strLit,
                                             new[] {
                                                 LLVM.ConstInt(LLVM.Int64Type(), 0, new LLVMBool(0)),
                                                 LLVM.ConstInt(LLVM.Int64Type(), 0, new LLVMBool(0))
