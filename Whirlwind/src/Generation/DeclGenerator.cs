@@ -94,6 +94,8 @@ namespace Whirlwind.Generation
                 // build method if necessary
                 if (method.Key.DataType is FunctionType fnType)
                 {
+                    // check for operator overloads
+
                     methods.Add(_convertType(fnType));
 
                     if (method.Value)
