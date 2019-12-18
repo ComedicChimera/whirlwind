@@ -1,5 +1,6 @@
-﻿func f() int => "test" - 5;
+﻿func f<T>(x: T) T => 4;
 
 func main() {
-	
+	f(56);
+	f(4.5);
 }

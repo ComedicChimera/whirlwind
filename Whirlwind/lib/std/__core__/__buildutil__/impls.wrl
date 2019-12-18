@@ -59,9 +59,9 @@ func __concatL<T>(a, b: [T]) {
 }
 
 // HELPER FUNCTIONS
-func __range(l, h, step: int) []int {
-	let arr = h - l if step == 1 else l - h then
-		malloca(4 * value) as []int;		
+/*func __range(l, h, step: int) []int {
+	let size = h - l if step == 1 else l - h;
+	let arr = __malloca(4 * size) as []int;		
 
 	let n = l;
 	for (i = 0; i < size; i++) {
@@ -70,7 +70,7 @@ func __range(l, h, step: int) []int {
 	}
 
 	return arr;
-}
+}*/
 
 // INTRINSIC FUNCTIONS
 #intrinsic

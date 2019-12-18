@@ -23,6 +23,7 @@ namespace Whirlwind.Generation
             bool externLink = external || exported;
 
             string llvmPrefix = exported ? _randPrefix + prefix : prefix;
+            name += _genericSuffix;
 
             LLVMValueRef llvmFn;
 
@@ -43,7 +44,7 @@ namespace Whirlwind.Generation
             }
             else
             {
-                FunctionType fn = (FunctionType)sym.DataType;
+                FunctionType fn = (FunctionType)idNode.Type;
 
                 llvmFn = _generateFunctionPrototype(llvmPrefix + name, fn, externLink);
 

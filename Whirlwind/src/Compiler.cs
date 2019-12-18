@@ -288,7 +288,7 @@ namespace Whirlwind
         {
             try
             {
-                generator.Generate(sat, outputFile);
+                generator.Generate((BlockNode)sat, outputFile);
                 return true;
             }
             catch (GeneratorException ge)

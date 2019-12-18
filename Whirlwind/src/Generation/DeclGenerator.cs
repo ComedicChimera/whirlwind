@@ -15,7 +15,7 @@ namespace Whirlwind.Generation
 
         private void _generateStruct(BlockNode node, bool exported, bool packed)
         {
-            var name = ((IdentifierNode)node.Nodes[0]).IdName;
+            var name = ((IdentifierNode)node.Nodes[0]).IdName + _genericSuffix;
             var st = (StructType)node.Nodes[0].Type;
 
             var llvmStruct = LLVM.StructCreateNamed(_ctx, name);
@@ -75,16 +75,18 @@ namespace Whirlwind.Generation
             }
         }
 
-        private void _generateInterf(BlockNode node, string suffix="")
+        private void _generateInterf(BlockNode node)
         {
             var idNode = (IdentifierNode)node.Nodes[0];
             var interfType = (InterfaceType)idNode.Type;
 
-            string name = idNode.IdName + suffix;
+            string name = idNode.IdName;
 
             _table.Lookup(idNode.IdName, out Symbol interfSymbol);
             bool exported = interfSymbol.Modifiers.Contains(Modifier.EXPORTED);
+
             string llvmPrefix = exported ? _randPrefix : "";
+            name += _genericSuffix;
 
             var methods = new List<LLVMTypeRef>();
 

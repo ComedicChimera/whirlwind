@@ -775,6 +775,9 @@ namespace Whirlwind.Semantic.Visitor
                         );
                 }
 
+                if (rootType.Category == ValueCategory.LValue)
+                    elementType = elementType.LValueCopy();
+
                 _nodes.Add(new ExprNode(name, name == "Subscript" ? elementType : rootType));
                 // capture root as well
                 PushForward(expressionCount + 1);
