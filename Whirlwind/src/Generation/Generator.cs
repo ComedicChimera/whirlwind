@@ -60,6 +60,8 @@ namespace Whirlwind.Generation
             _scopes = new List<Dictionary<string, LLVMValueRef>>();
             _globalScope = new Dictionary<string, LLVMValueRef>();
             _globalStructs = new Dictionary<string, LLVMTypeRef>();
+            _fnBlocks = new List<Tuple<LLVMValueRef, BlockNode>>();
+            _fnSpecialBlocks = new List<Tuple<LLVMValueRef, FnBodyBuilder>>();
 
             string randPrefixVals = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -124,6 +126,9 @@ namespace Whirlwind.Generation
                     break;
                 case "Interface":
                     _generateInterf((BlockNode)node);
+                    break;
+                case "Generic":
+                    _generateGeneric((BlockNode)node);
                     break;
             }
         }
