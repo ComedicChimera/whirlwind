@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 
 using LLVMSharp;
@@ -123,9 +122,32 @@ namespace Whirlwind.Generation
             _globalStructs[name] = interfStruct;
         }
 
-        private void _generateTypeClass(BlockNode node)
+        private void _generateTypeClass(BlockNode node, string suffix="")
         {
+            var tc = (CustomType)(node.Nodes[0].Type);
 
+            IEnumerable<int> cntFields = tc.Instances
+                .Where(x => x is CustomNewType)
+                .Select(x => ((CustomNewType)x).Values.Count);
+
+            if (cntFields.Count() > 0 && cntFields.Max() > 0)
+            {
+                string name = ((IdentifierNode)node.Nodes[0]).IdName;
+
+                _table.Lookup(name, out Symbol symbol);
+                name += suffix;
+
+                bool exported = symbol.Modifiers.Contains(Modifier.EXPORTED);                
+
+                var tcStruct = LLVM.StructCreateNamed(_ctx, exported ? _randPrefix + name : name);
+                tcStruct.StructSetBody(new[]
+                {
+                    LLVM.Int32Type(),
+                    LLVM.PointerType(LLVM.Int8Type(), 0)
+                }, true);
+
+                _globalStructs[name] = tcStruct;
+            }
         }
 
         private FnBodyBuilder _wrapBuilderFunc(BlockNode block, InternalBuilderAlgo ibo)
