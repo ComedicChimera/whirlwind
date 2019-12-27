@@ -22,7 +22,8 @@ namespace Whirlwind.Semantic.Checker
                 "StaticGet",
                 "HeapAllocSize",
                 "HeapAllocType",
-                "HeapAllocStruct"
+                "HeapAllocStruct",
+                "TypeCast"
         };
 
         public static bool Hashable(DataType dt)

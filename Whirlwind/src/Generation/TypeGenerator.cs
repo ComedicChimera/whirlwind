@@ -90,8 +90,26 @@ namespace Whirlwind.Generation
                     ft.Parameters.Select(x => _convertType(x.DataType)).ToArray(),
                     ft.Parameters.Count > 0 && ft.Parameters.Last().Indefinite), 0);
             }
-            else
-                return LLVM.VoidType();
+            else if (dt is CustomInstance ci)
+            {
+                var parent = ci.Parent;
+
+                if (parent.Instances.Count == 1)
+                {
+                    var onlyInstance = parent.Instances[0];
+
+                    if (onlyInstance is CustomAlias ca)
+                        return _convertType(ca.Type);
+                    else if (onlyInstance is CustomNewType cnt)
+                        return cnt.Values.Count == 0 ? LLVM.Int16Type() : _globalStructs[parent.Name];
+                }
+                else if (parent.Instances.All(x => x is CustomNewType cnt && cnt.Values.Count == 0))
+                    return LLVM.Int16Type();
+                else
+                    return _globalStructs[parent.Name];
+            }
+            
+            return LLVM.VoidType();
         }
 
         private LLVMTypeRef _processGeneric(GenericType gt, DataType ot)

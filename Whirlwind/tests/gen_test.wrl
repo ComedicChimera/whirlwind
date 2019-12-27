@@ -1,6 +1,16 @@
-﻿func f<T>(x: T) T => 4;
+﻿type Test 
+	| V(int) 
+	| str
+	;
+
+func f<T>(x: T) T => 4;
+
+func ttTest(t: Test) str => (t as str) + "asdf";
 
 func main() {
 	f(56);
 	f(4.5);
+
+	ttTest(V(45));
+	ttTest("test");
 }

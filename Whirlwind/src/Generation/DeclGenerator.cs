@@ -127,12 +127,32 @@ namespace Whirlwind.Generation
         private void _generateTypeClass(BlockNode node, string suffix="")
         {
             var tc = (CustomType)(node.Nodes[0].Type);
+            int buildType = 0;
 
-            IEnumerable<int> cntFields = tc.Instances
-                .Where(x => x is CustomNewType)
-                .Select(x => ((CustomNewType)x).Values.Count);
+            if (tc.Instances.Count == 1)
+            {
+                if (tc.Instances.First() is CustomNewType cnt)
+                {
+                    if (cnt.Values.Count == 1)
+                        buildType = 1;
+                    else if (cnt.Values.Count > 1)
+                        buildType = 2;
+                }                   
+            }
+            else
+            {
+                IEnumerable<int> cntFields = tc.Instances
+                    .Where(x => x is CustomNewType)
+                    .Select(x => ((CustomNewType)x).Values.Count);
+                
+                // if there are not new types, then we have a type union => type 1
+                if (cntFields.Count() == 0 || cntFields.Max() == 1)
+                    buildType = 1;
+                else if (cntFields.Max() > 1)
+                    buildType = 2;
+            }
 
-            if (cntFields.Count() > 0 && cntFields.Max() > 0)
+            if (buildType > 0)
             {
                 string name = ((IdentifierNode)node.Nodes[0]).IdName;
 
@@ -142,10 +162,15 @@ namespace Whirlwind.Generation
                 bool exported = symbol.Modifiers.Contains(Modifier.EXPORTED);                
 
                 var tcStruct = LLVM.StructCreateNamed(_ctx, exported ? _randPrefix + name : name);
+
+                var valueHolder = LLVM.PointerType(LLVM.Int8Type(), 0);
+                if (buildType == 2)
+                    valueHolder = LLVM.PointerType(valueHolder, 0);
+
                 tcStruct.StructSetBody(new[]
                 {
                     LLVM.Int32Type(),
-                    LLVM.PointerType(LLVM.Int8Type(), 0)
+                    valueHolder
                 }, true);
 
                 _globalStructs[name] = tcStruct;
