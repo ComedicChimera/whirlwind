@@ -13,6 +13,10 @@ namespace Whirlwind.Generation
 {
     partial class Generator
     {
+        // -----------------------
+        // BINOP BUILDER DELEGATES
+        // -----------------------
+
         private delegate LLVMValueRef BinopBuilder(LLVMBuilderRef builder, LLVMValueRef vRef, LLVMValueRef rRef, string name);
 
         private delegate LLVMValueRef IntCompareBinopBuilder(LLVMBuilderRef builder, LLVMIntPredicate pred,
@@ -21,6 +25,10 @@ namespace Whirlwind.Generation
             LLVMValueRef vRef, LLVMValueRef rRef, string name);
 
         private delegate BinopBuilder NumericBinopBuilderFactory(int category);
+
+        // -------------------------
+        // MAIN EXPRESSION GENERATOR 
+        // -------------------------
 
         private LLVMValueRef _generateExpr(ITypeNode expr)
         {
@@ -39,42 +47,29 @@ namespace Whirlwind.Generation
                 switch (expr.Name)
                 {
                     case "Array":
+                        return _generateArrayLiteral(enode);
+                    case "StaticGet":
                         {
-                            var elemType = ((ArrayType)expr.Type).ElementType;
+                            var rootType = enode.Nodes[0].Type;
 
-                            var llvmElementType = _convertType(elemType);
-                            var llvmArrayType = LLVM.ArrayType(llvmElementType, (uint)enode.Nodes.Count);
-
-                            var arrLit = LLVM.BuildAlloca(_builder, llvmArrayType, "array_lit");
-
-                            uint i = 0;
-                            foreach (var item in enode.Nodes)
+                            if (rootType is CustomType ct)
                             {
-                                var vRef = _generateExpr(item);
+                                // the CallTCConstructor handler will compile with values as necessary (overrides this logic)
+                                var idPos = ct.Instances.IndexOf((CustomInstance)enode.Type);
 
-                                if (!elemType.Equals(item.Type))
-                                    vRef = _cast(vRef, item.Type, elemType);
-
-                                var elemPtr = LLVM.BuildGEP(_builder, arrLit,
-                                    new[] {
-                                        LLVM.ConstInt(LLVM.Int32Type(), 0, new LLVMBool(0)),
-                                        LLVM.ConstInt(LLVM.Int32Type(), i, new LLVMBool(0))
-                                    },
-                                    "elem_ptr"
-                                    );
-
-                                LLVM.BuildStore(_builder, vRef, elemPtr);
-
-                                i++;
+                                // interpret as pure enum (pure alises don't make it this far)
+                                return LLVM.ConstInt(LLVM.Int16Type(), (ulong)idPos, new LLVMBool(0));
                             }
-
-                            var arrPtr = LLVM.BuildInBoundsGEP(_builder, arrLit,
-                                new[] { LLVM.ConstInt(LLVM.Int32Type(), 0, new LLVMBool(0)) },
-                                "arr_ptr");
-
-                            // create struct first!
-                            return arrPtr;
+                            else if (rootType is PackageType pt)
+                            {
+                                // TODO: package stuff
+                            }
                         }
+                        break;
+                    case "CallTCConstructor":
+                        return _generateCallTCConstructor(enode);
+                    case "From":
+                        return _generateFromExpr(enode);
                     case "Add":
                         {
                             if (expr.Type is ArrayType at)
@@ -269,6 +264,10 @@ namespace Whirlwind.Generation
             return _ignoreValueRef();
         }
 
+        // ---------------------------------
+        // BINOP EXPRESSION GENERATION UTILS
+        // ---------------------------------
+
         private BinopBuilder _buildCompareBinop(IntCompareBinopBuilder cbb, LLVMIntPredicate predicate)
         {
             return (b, lv, rv, name) => cbb(b, predicate, lv, rv, name);
@@ -346,6 +345,10 @@ namespace Whirlwind.Generation
             return results;
         }
 
+        // ------------------
+        // GENERATION HELPERS
+        // ------------------
+
         // Note: generates as many overloads as it can of a single operator; returns depth it reached
         private int _generateOperatorOverload(ExprNode expr, int startDepth, out LLVMValueRef res)
         {
@@ -391,6 +394,152 @@ namespace Whirlwind.Generation
                 // TODO: add other overload conversions
                 default:
                     return "__~^__";
+            }
+        }
+
+        private LLVMValueRef _generateArrayLiteral(ExprNode enode)
+        {
+            var elemType = ((ArrayType)enode.Type).ElementType;
+
+            var llvmElementType = _convertType(elemType);
+
+            var arrLit = LLVM.BuildArrayAlloca(
+                _builder,
+                llvmElementType,
+                LLVM.ConstInt(LLVM.Int32Type(), (ulong)enode.Nodes.Count, new LLVMBool(0)),
+                "array_lit");
+
+            uint i = 0;
+            foreach (var item in enode.Nodes)
+            {
+                var vRef = _generateExpr(item);
+
+                if (!elemType.Equals(item.Type))
+                    vRef = _cast(vRef, item.Type, elemType);
+
+                var elemPtr = LLVM.BuildGEP(_builder, arrLit,
+                    new[] {
+                        LLVM.ConstInt(LLVM.Int32Type(), 0, new LLVMBool(0)),
+                        LLVM.ConstInt(LLVM.Int32Type(), i, new LLVMBool(0))
+                    },
+                    "elem_ptr"
+                    );
+
+                LLVM.BuildStore(_builder, vRef, elemPtr);
+
+                i++;
+            }
+
+            var arrPtr = LLVM.BuildInBoundsGEP(_builder, arrLit,
+                new[] { LLVM.ConstInt(LLVM.Int32Type(), 0, new LLVMBool(0)) },
+                "arr_ptr");
+
+            // create struct first!
+            return arrPtr;
+        }
+
+        private LLVMValueRef _generateFromExpr(ExprNode enode)
+        {
+            var rootType = (CustomNewType)enode.Nodes[0].Type;
+
+            var gepRes = LLVM.BuildStructGEP(
+                _builder,
+                _generateExpr(enode.Nodes[0]),
+                1,
+                "from_tmp");
+
+            if (rootType.Values.Count > 1)
+            {
+                var tupleElements = new LLVMValueRef[rootType.Values.Count];
+
+                for (int i = 0; i < rootType.Values.Count; i++)
+                {
+                    var elemGepRes = LLVM.BuildInBoundsGEP(
+                        _builder,
+                        gepRes,
+                        new[] { LLVM.ConstInt(LLVM.Int16Type(), (ulong)i, new LLVMBool(0)) },
+                        "from_elem_gep_tmp"
+                        );
+
+                    var elemCastRes = LLVM.BuildBitCast(
+                        _builder,
+                        elemGepRes,
+                        LLVM.PointerType(_convertType(((TupleType)enode.Type).Types[i]), 0),
+                        "from_elem_cast_tmp"
+                        );
+
+                    tupleElements[i] = LLVM.BuildLoad(
+                        _builder,
+                        elemCastRes,
+                        "from_elem_deref_tmp"
+                        );
+                }
+
+                return LLVM.ConstStructInContext(_ctx, tupleElements, true);
+            }
+            else
+            {
+                var castRes = LLVM.BuildBitCast(
+                    _builder,
+                    gepRes,
+                    LLVM.PointerType(_convertType(enode.Type), 0),
+                    "from_cast_tmp"
+                    );
+
+                return LLVM.BuildLoad(
+                    _builder,
+                    castRes,
+                    "from_deref_tmp"
+                    );
+            }
+        }
+
+        private LLVMValueRef _generateCallTCConstructor(ExprNode enode)
+        {
+            var cnt = (CustomNewType)enode.Nodes[0].Type;
+
+            if (cnt.Values.Count == 1)
+            {
+                var valPtr = LLVM.BuildAlloca(_builder, _convertType(cnt.Values[0]), "tc_valptr_tmp");
+
+                LLVM.BuildStore(_builder, _generateExpr(enode.Nodes[1]), valPtr);
+
+                return LLVM.ConstNamedStruct(_convertType(cnt), new[]
+                {
+                    LLVM.ConstInt(LLVM.Int16Type(), (ulong)cnt.Parent.Instances.IndexOf(cnt), new LLVMBool(0)),
+                    valPtr
+                });
+            }
+            else
+            {
+                var valArrPtr = LLVM.BuildArrayAlloca(
+                    _builder,
+                    LLVM.PointerType(LLVM.Int8Type(), 0),
+                    LLVM.ConstInt(LLVM.Int32Type(), (ulong)cnt.Values.Count, new LLVMBool(0)),
+                    "tc_valarr_tmp"
+                    );
+
+                for (int i = 0; i < cnt.Values.Count; i++)
+                {
+                    var valPtr = LLVM.BuildAlloca(_builder, _convertType(cnt.Values[i]), "tc_elem_valptr_tmp");
+                    LLVM.BuildStore(_builder, _generateExpr(enode.Nodes[i + 1]), valPtr);
+
+                    var valArrElemPtr = LLVM.BuildGEP(_builder, valArrPtr,
+                        new[] {
+                            LLVM.ConstInt(LLVM.Int32Type(), (ulong)i, new LLVMBool(0))
+                        }, "tc_valarr_elem_tmp");
+
+                    var i8ValPtr = LLVM.BuildBitCast(_builder, valPtr,
+                        LLVM.PointerType(LLVM.Int8Type(), 0), "tc_valarr_elem_val_tmp");
+
+                    LLVM.BuildStore(_builder, i8ValPtr, valArrElemPtr);
+                }
+
+                return LLVM.ConstNamedStruct(_convertType(cnt), new[]
+                {
+                    LLVM.ConstInt(LLVM.Int16Type(), (ulong)cnt.Parent.Instances.IndexOf(cnt), new LLVMBool(0)),
+                    valArrPtr
+                });
             }
         }
     }

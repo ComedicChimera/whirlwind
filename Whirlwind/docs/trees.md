@@ -108,7 +108,7 @@ A multi-value structure or some form of operation.
 | CallConstructor | Struct, *Arguments* | Call a struct constructor |
 | CallFunctionOverload | FunctionGroup, *Arguments* | Call an overloaded function |
 | CallGenericOverload | GenericGroup, *Arguments* | Call a generic overloaded function |
-| InitTCConstructor | NewType, *Arguments* | Creates a new type for an algebraic data type |
+| CallTCConstructor | NewType, *Arguments* | Creates a new type for an algebraic data type |
 | Subscript | Collection, Index | Get the element at a given index |
 | Slice | Collection, Begin, End | Create a slice between two indices |
 | SliceBegin | Collection, Begin | Create a slice from the beginning onward |

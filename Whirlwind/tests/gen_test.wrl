@@ -13,4 +13,6 @@ func main() {
 
 	ttTest(V(45));
 	ttTest("test");
+
+	let t = Test::V(10);
 }

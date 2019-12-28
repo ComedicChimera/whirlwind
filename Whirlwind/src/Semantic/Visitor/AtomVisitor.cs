@@ -13,7 +13,7 @@ namespace Whirlwind.Semantic.Visitor
     {
         private void _visitAtom(ASTNode node)
         {
-            bool hasAwait = false, hasNew = false;
+            bool hasAwait = false, hasNew = false, needCheckTC = false;
             foreach (INode subNode in node.Content)
             {
                 switch (subNode.Name)
@@ -24,6 +24,11 @@ namespace Whirlwind.Semantic.Visitor
                         break;
                     case "trailer":
                         _visitTrailer((ASTNode)subNode);
+
+                        if (_nodes.Last().Name == "StaticGet")
+                            needCheckTC = true;
+                        else
+                            needCheckTC = false;
                         break;
                     case "heap_alloc":
                         _visitHeapAlloc((ASTNode)subNode);
@@ -62,8 +67,8 @@ namespace Whirlwind.Semantic.Visitor
                 // await always first element
                 throw new SemanticException("The given expression is not awaitable", node.Content[0].Position);
 
-            // check for unconstructed type classes
-            if (_nodes.Last().Type is CustomInstance ci && ci.NeedsConstruction)
+            // check for unconstructed type classes (in case not caught in trailer)
+            if (needCheckTC && _nodes.Last().Type is CustomInstance ci && ci.NeedsConstruction)
                 throw new SemanticException("Type class has uninitialized values", node.Position);
         }
 
@@ -96,6 +101,9 @@ namespace Whirlwind.Semantic.Visitor
                 _nodes.Add(new ExprNode("StaticGet", symbol.DataType));
 
                 PushForward(2);
+
+                // avoid end check after static-get
+                return;
             }
             // all other first elements are tokens
             else
@@ -263,6 +271,10 @@ namespace Whirlwind.Semantic.Visitor
                         break;
                 }
             }
+
+            // check for unconstructed type classes (in subsequent trailers)
+            if (_nodes.Last().Type is CustomInstance ci && ci.NeedsConstruction)
+                throw new SemanticException("Type class has uninitialized values", node.Position);
         }
 
         private Symbol _getMember(DataType type, string name, TextPosition opPos, TextPosition idPos)
@@ -565,7 +577,7 @@ namespace Whirlwind.Semantic.Visitor
                     var newCnt = (CustomNewType)rootType.Copy();
                     newCnt.NeedsConstruction = false;
 
-                    _nodes.Add(new ExprNode("InitTCConstructor", newCnt));
+                    _nodes.Add(new ExprNode("CallTCConstructor", newCnt));
 
                     PushForward(cnt.Values.Count);
                     PushForward();
