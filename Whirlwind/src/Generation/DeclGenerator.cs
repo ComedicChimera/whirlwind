@@ -41,7 +41,8 @@ namespace Whirlwind.Generation
                 {
                     BlockNode constructor = (BlockNode)item;
                     FunctionType cft = (FunctionType)(constructor.Nodes[0].Type);
-                    cft.ReturnType = st;
+                    cft.Parameters.Insert(0, _buildThisParameter(st));
+
                     string suffix = ".constructor";
 
                     if (hasMultipleConstructors)
@@ -51,28 +52,46 @@ namespace Whirlwind.Generation
                     _globalScope[name + suffix] = llvmConstructor;
 
                     if (constructor.Block.Count > 0)
-                    {
-                        // add custom constructor build algo
-                    }
+                        _appendFunctionBlock(llvmConstructor, constructor);
                 }
             }
 
             if (needsInitMembers)
             {
                 // add custom init members build algo and append
-                var initFn = _generateFunctionPrototype(name + ".__initMembers", new FunctionType(new List<Parameter>
-                            { new Parameter("this", new PointerType(st, false), false, false, false, false) },
+                var initFn = _generateFunctionPrototype(name + "._$initMembers", new FunctionType(new List<Parameter>
+                            { _buildThisParameter(st) },
                            new NoneType(), false), false);
+
+                _declareFnArgs(initFn);
 
                 LLVM.PositionBuilderAtEnd(_builder, LLVM.AppendBasicBlockInContext(_ctx, initFn, "entry"));
 
                 // build init members content
+                for (int i = 0; i < st.Members.Count; i++)
+                {
+                    var memberPtr = LLVM.BuildStructGEP(_builder, _getNamedValue("this"), (uint)i, "get_member_tmp");
+
+                    string memberName = st.Members.ElementAt(i).Key;
+                    var memberValue = memberDict.ContainsKey(memberName) ? 
+                        _generateExpr(memberDict[memberName]) : 
+                        _getNullValue(st.Members.ElementAt(i).Value.DataType);
+
+                    LLVM.BuildStore(_builder, memberValue, memberPtr);
+                }
 
                 LLVM.BuildRetVoid(_builder);
+
+                _scopes.RemoveLast();
+
+                _globalScope[name + "._$initMembers"] = initFn;
 
                 LLVM.VerifyFunction(initFn, LLVMVerifierFailureAction.LLVMPrintMessageAction);
             }
         }
+
+        private Parameter _buildThisParameter(DataType dt)
+            => new Parameter("this", new PointerType(dt, false), false, false, false, false);
 
         private void _generateInterf(BlockNode node)
         {

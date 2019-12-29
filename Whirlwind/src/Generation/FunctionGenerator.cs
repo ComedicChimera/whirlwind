@@ -98,16 +98,39 @@ namespace Whirlwind.Generation
         {
             LLVM.PositionBuilderAtEnd(_builder, LLVM.AppendBasicBlockInContext(_ctx, vref, "entry"));
 
+            _declareFnArgs(vref);
+
             if (_generateBlock(block.Block))
                 LLVM.BuildRetVoid(_builder);
+
+            _scopes.RemoveLast();
         }
 
         private void _buildFunctionBlock(LLVMValueRef vref, FnBodyBuilder fbb)
         {
             LLVM.PositionBuilderAtEnd(_builder, LLVM.AppendBasicBlockInContext(_ctx, vref, "entry"));
 
+            _declareFnArgs(vref);
+
             if (fbb(vref))
                 LLVM.BuildRetVoid(_builder);
+
+            _scopes.RemoveLast();
+        }
+
+        private void _declareFnArgs(LLVMValueRef fnRef)
+        {
+            var fnScope = new Dictionary<string, LLVMValueRef>();
+
+            var paramCount = LLVM.CountParams(fnRef);
+            for (uint i = 0; i < paramCount; i++)
+            {
+                var param = LLVM.GetParam(fnRef, i);
+
+                fnScope[param.GetValueName()] = param;
+            }
+
+            _scopes.Add(fnScope);            
         }
     }
 }

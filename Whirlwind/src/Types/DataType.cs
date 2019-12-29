@@ -130,7 +130,13 @@ namespace Whirlwind.Types
             if (other is InterfaceType it && it.SuperForm)
                 return false;
 
-            if (other.Classify() == TypeClassifier.NULL || other.Classify() == TypeClassifier.GENERIC_PLACEHOLDER)
+            if (other is NullType nt)
+            {
+                nt.SetEvaluatedType(this);
+                return true;
+            }
+
+            if (other.Classify() == TypeClassifier.GENERIC_PLACEHOLDER)
                 return true;
 
             if (other is GenericAlias gp)
@@ -249,6 +255,17 @@ namespace Whirlwind.Types
     // this is still considered a "void type", but it isn't really
     class NullType : DataType
     {
+        public DataType EvaluatedType { get; private set; }
+
+        public void SetEvaluatedType(DataType dt)
+        {
+            if (EvaluatedType == null)
+                EvaluatedType = dt;
+
+            if (dt.Coerce(EvaluatedType) && !EvaluatedType.Coerce(dt))
+                EvaluatedType = dt;
+        }
+
         public override bool Coerce(DataType other) => true;
 
         public override TypeClassifier Classify() => TypeClassifier.NULL;

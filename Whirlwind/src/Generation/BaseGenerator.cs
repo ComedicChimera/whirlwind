@@ -84,6 +84,8 @@ namespace Whirlwind.Generation
 
                         return LLVM.ConstInt(_convertType(node.Type), val, new LLVMBool(0));
                     }
+                case "Null":
+                    return _getNullValue(((NullType)node.Type).EvaluatedType);
             }
 
             // other values a bit more complicated
@@ -223,6 +225,11 @@ namespace Whirlwind.Generation
             byte[] numBytes = new byte[sizeof(int)];
             Array.Copy(textBytes, numBytes, textBytes.Length);
             return BitConverter.ToUInt32(numBytes, 0);
+        }
+
+        private LLVMValueRef _getNullValue(DataType dt)
+        {
+            return _ignoreValueRef();
         }
     }
 }
