@@ -266,6 +266,23 @@ namespace Whirlwind.Generation
 
                             return LLVM.BuildSelect(_builder, elements[1], elements[0], elements[2], "inline_cmp_res");
                         }
+                    case "Then":
+                        {
+                            var valRes = _generateExpr(enode.Nodes[0]);
+                            _scopes.Last()["value_tmp"] = valRes;
+
+                            return _generateExpr(enode.Nodes[1]);
+                        }
+                    case "Indirect":
+                        {
+                            var ptr = LLVM.BuildAlloca(_builder, _convertType(enode.Nodes[0].Type), "indirect_tmp");
+                            LLVM.BuildStore(_builder, _generateExpr(enode.Nodes[0]), ptr);
+
+                            return ptr;
+                        }
+                    case "Dereference":
+                        return LLVM.BuildLoad(_builder, _generateExpr(enode.Nodes[0]), "deref_tmp");
+                    
                 }
             }
 

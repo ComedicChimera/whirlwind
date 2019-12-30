@@ -123,7 +123,6 @@ A multi-value structure or some form of operation.
 | PostfixIncrement | Numeric | Postfix increment a value |
 | Decrement | Numeric | Decrement a value |
 | PostfixDecrement | Numeric | Postfix decrement a value |
-| Reference | Value | Create a reference to the given value |
 | Indirect | Value | Get a pointer to the given value |
 | Dereference | Value | Dereference a pointer a certain number of times equivalent to the **pointer difference** |
 | Pow | *Values* | Perform an exponent operation |
