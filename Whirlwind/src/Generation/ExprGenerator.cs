@@ -66,10 +66,18 @@ namespace Whirlwind.Generation
                             }
                         }
                         break;
+                    case "Call":
+                        {
+                            
+
+                            return LLVM.BuildCall(_builder, _generateExpr(enode.Nodes[0]), _buildArgArray(enode), "call_tmp");
+                        }                        
                     case "CallTCConstructor":
                         return _generateCallTCConstructor(enode);
                     case "From":
                         return _generateFromExpr(enode);
+                    case "TypeCast":
+                        return _cast(_generateExpr(enode.Nodes[0]), enode.Nodes[0].Type, enode.Type);
                     case "Add":
                         {
                             if (expr.Type is ArrayType at)
@@ -541,6 +549,41 @@ namespace Whirlwind.Generation
                     valArrPtr
                 });
             }
+        }
+
+        private LLVMValueRef[] _buildArgArray(ExprNode enode)
+        {
+            var ft = (FunctionType)enode.Nodes[0].Type;
+            var argArray = new LLVMValueRef[ft.Parameters.Count];
+
+            int i = 1;
+            for (; i < enode.Nodes.Count; i++)
+            {
+                var item = enode.Nodes[i];
+
+                if (item.Name == "NamedArgument")
+                    break;
+
+                argArray[i - 1] = _generateExpr(item);
+            }
+
+            if (i == enode.Nodes.Count - 1)
+            {
+                // encountered named values
+                for (; i < enode.Nodes.Count; i++)
+                {
+                    var item = (ExprNode)enode.Nodes[i];
+                    string itemName = ((IdentifierNode)item.Nodes[0]).IdName;
+                    int ftNdx = ft.Parameters
+                        .Select((x, ndx) => new { Param = x, Ndx = ndx })
+                        .Where(x => x.Param.Name == itemName)
+                        .First().Ndx;
+
+                    argArray[ftNdx] = _generateExpr(item.Nodes[1]);
+                }
+            }
+
+            return argArray;
         }
     }
 }
