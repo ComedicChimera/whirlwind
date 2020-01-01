@@ -26,7 +26,7 @@ namespace Whirlwind.Generation
             bool needsInitMembers = false;
 
             // process constructor
-            bool hasMultipleConstructors = node.Block.Where(x => x is BlockNode).Count() > 1;
+            bool hasMultipleConstructors = st.HasMultipleConstructors();
             foreach (var item in node.Block)
             {
                 if (item is ExprNode eNode)
@@ -143,7 +143,7 @@ namespace Whirlwind.Generation
             _globalStructs[name] = interfStruct;
         }
 
-        private void _generateTypeClass(BlockNode node, string suffix="")
+        private void _generateTypeClass(BlockNode node)
         {
             var tc = (CustomType)(node.Nodes[0].Type);
             int buildType = 0;
@@ -176,7 +176,7 @@ namespace Whirlwind.Generation
                 string name = ((IdentifierNode)node.Nodes[0]).IdName;
 
                 _table.Lookup(name, out Symbol symbol);
-                name += suffix;
+                name += _genericSuffix;
 
                 bool exported = symbol.Modifiers.Contains(Modifier.EXPORTED);                
 

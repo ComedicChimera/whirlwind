@@ -67,11 +67,10 @@ namespace Whirlwind.Generation
                         }
                         break;
                     case "Call":
-                        {
-                            
-
-                            return LLVM.BuildCall(_builder, _generateExpr(enode.Nodes[0]), _buildArgArray(enode), "call_tmp");
-                        }                        
+                        // apply call transformation where necessary here
+                        return LLVM.BuildCall(_builder, _generateExpr(enode.Nodes[0]), _buildArgArray(enode), "call_tmp");
+                    case "CallConstructor":
+                        return _generateCallConstructor(enode);
                     case "CallTCConstructor":
                         return _generateCallTCConstructor(enode);
                     case "From":
@@ -517,6 +516,50 @@ namespace Whirlwind.Generation
                     "from_deref_tmp"
                     );
             }
+        }
+
+        private LLVMValueRef _generateCallConstructor(ExprNode enode)
+        {
+            var newStruct = LLVM.BuildAlloca(
+                _builder,
+                _convertType(enode.Type),
+                "nstruct_tmp"
+                );
+
+            var st = (StructType)enode.Nodes[0].Type;
+            string lookupName = st.Name;
+
+            // check for _$initMembers
+            string initMembersLookup = lookupName + "._$initMembers";
+            if (_globalScope.ContainsKey(initMembersLookup))
+            {
+                LLVM.BuildCall(_builder, _globalScope[initMembersLookup],
+                    new[] { newStruct }, "");
+            }
+
+            string constructorLookup = lookupName + ".constructor";
+
+            if (st.HasMultipleConstructors())
+            {
+                var args = new ArgumentList(
+                    enode.Nodes.Skip(1).Where(x => x.Name != "NamedArgument")
+                        .Select(x => x.Type).ToList(),
+                    enode.Nodes.Skip(1).Where(x => x.Name == "NamedArgument")
+                        .ToDictionary(
+                        x => ((IdentifierNode)((ExprNode)x).Nodes[0]).IdName,
+                        x => x.Type)
+                    );
+
+                // determine how to select constructor
+                st.GetConstructor(args, out FunctionType constr);
+
+                constructorLookup += "." + string.Join(",", constr.Parameters.Select(x => x.DataType.LLVMName()));
+            }
+
+            var baseArgsArray = _buildArgArray(enode);
+            LLVM.BuildCall(_builder, _globalScope[constructorLookup], _insertFront(baseArgsArray, newStruct), "");
+
+            return newStruct;
         }
 
         private LLVMValueRef _generateCallTCConstructor(ExprNode enode)

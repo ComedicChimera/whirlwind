@@ -163,6 +163,15 @@ namespace Whirlwind.Generation
         {
             return LLVM.ConstInt(LLVM.Int32Type(), 0, new LLVMBool(0));
         }
+
+        private LLVMValueRef[] _insertFront(LLVMValueRef[] arr, LLVMValueRef val)
+        {
+            var newArr = new LLVMValueRef[arr.Length + 1];
+            newArr[0] = val;
+            arr.CopyTo(newArr, 1);
+
+            return newArr;
+        }
     }
 
     class GeneratorException : Exception

@@ -70,6 +70,8 @@ namespace Whirlwind.Types
             return false;
         }
 
+        public bool HasMultipleConstructors() => _constructors.Count > 0;
+
         protected sealed override bool _coerce(DataType other)
         {
             if (other is StructType st)
