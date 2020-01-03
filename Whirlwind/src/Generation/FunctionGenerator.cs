@@ -40,7 +40,7 @@ namespace Whirlwind.Generation
                 LLVM.VerifyFunction(llvmFn, LLVMVerifierFailureAction.LLVMPrintMessageAction);
 
                 if (global)
-                    _globalScope[prefix + name + fgSuffix] = llvmFn;
+                    _addGlobalDecl(prefix + name + fgSuffix, llvmFn);
             }
             else
             {
@@ -54,7 +54,7 @@ namespace Whirlwind.Generation
                 LLVM.VerifyFunction(llvmFn, LLVMVerifierFailureAction.LLVMPrintMessageAction);
 
                 if (global)
-                    _globalScope[prefix + name] = llvmFn;
+                    _addGlobalDecl(prefix + name, llvmFn);
             }           
         }
 
@@ -120,14 +120,14 @@ namespace Whirlwind.Generation
 
         private void _declareFnArgs(LLVMValueRef fnRef)
         {
-            var fnScope = new Dictionary<string, LLVMValueRef>();
+            var fnScope = new Dictionary<string, GeneratorSymbol>();
 
             var paramCount = LLVM.CountParams(fnRef);
             for (uint i = 0; i < paramCount; i++)
             {
                 var param = LLVM.GetParam(fnRef, i);
 
-                fnScope[param.GetValueName()] = param;
+                fnScope[param.GetValueName()] = new GeneratorSymbol(param);
             }
 
             _scopes.Add(fnScope);            

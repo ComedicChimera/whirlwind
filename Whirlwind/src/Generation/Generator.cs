@@ -9,6 +9,24 @@ using Whirlwind.Types;
 
 namespace Whirlwind.Generation
 {
+    struct GeneratorSymbol
+    {
+        public LLVMValueRef Vref;
+        public bool IsPointer;
+
+        public GeneratorSymbol(LLVMValueRef vref)
+        {
+            Vref = vref;
+            IsPointer = false;
+        }
+
+        public GeneratorSymbol(LLVMValueRef vref, bool isPtr)
+        {
+            Vref = vref;
+            IsPointer = isPtr;
+        }
+    }
+
     partial class Generator
     {
         // globally used delegates
@@ -26,9 +44,9 @@ namespace Whirlwind.Generation
         private readonly LLVMContextRef _ctx;
 
         // keeps track of current scope hierarchy (starting from upper level function scope, not global scope)
-        private readonly List<Dictionary<string, LLVMValueRef>> _scopes;
+        private readonly List<Dictionary<string, GeneratorSymbol>> _scopes;
         // store the global scope of the program
-        private readonly Dictionary<string, LLVMValueRef> _globalScope;
+        private readonly Dictionary<string, GeneratorSymbol> _globalScope;
         // store globally declared structures
         private readonly Dictionary<string, LLVMTypeRef> _globalStructs;
         // store function blocks that are awaiting generation
@@ -38,8 +56,8 @@ namespace Whirlwind.Generation
 
         // store the current generic suffix (will be appended to everything that is visited)
         private string _genericSuffix = "";
-        // tell whether or not the compiler should load id pointers automatically
-        private bool _loadRawPtrs = false;
+        // tells how the compiler should handle id pointers (as pointers for assignment or values for computation)
+        // private bool _allowRawVarPtrs = false;
 
         // store the randomly generated package prefix
         private readonly string _randPrefix;
@@ -59,8 +77,8 @@ namespace Whirlwind.Generation
             _builder = LLVM.CreateBuilderInContext(_ctx);
 
             // setup generator state data
-            _scopes = new List<Dictionary<string, LLVMValueRef>>();
-            _globalScope = new Dictionary<string, LLVMValueRef>();
+            _scopes = new List<Dictionary<string, GeneratorSymbol>>();
+            _globalScope = new Dictionary<string, GeneratorSymbol>();
             _globalStructs = new Dictionary<string, LLVMTypeRef>();
             _fnBlocks = new List<Tuple<LLVMValueRef, BlockNode>>();
             _fnSpecialBlocks = new List<Tuple<LLVMValueRef, FnBodyBuilder>>();
@@ -147,9 +165,9 @@ namespace Whirlwind.Generation
             return string.Join("", name.Skip(i));
         }
 
-        private LLVMValueRef _getNamedValue(string name)
+        private GeneratorSymbol _getNamedValue(string name)
         {
-            IEnumerable<Dictionary<string, LLVMValueRef>> localScopes = _scopes;
+            IEnumerable<Dictionary<string, GeneratorSymbol>> localScopes = _scopes;
 
             foreach (var scope in localScopes.Reverse())
             {
@@ -173,6 +191,22 @@ namespace Whirlwind.Generation
             arr.CopyTo(newArr, 1);
 
             return newArr;
+        }
+
+        private void _addGlobalDecl(string name, LLVMValueRef vref)
+        {
+            _globalScope[name] = new GeneratorSymbol(vref);
+        }
+
+        private LLVMValueRef _loadGlobalValue(string name)
+            => _loadValue(_globalScope[name]);
+
+        private LLVMValueRef _loadValue(GeneratorSymbol genSym)
+        {
+            if (genSym.IsPointer)
+                return LLVM.BuildLoad(_builder, genSym.Vref, "load_tmp");
+
+            return genSym.Vref;
         }
     }
 

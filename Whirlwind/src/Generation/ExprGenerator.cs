@@ -30,13 +30,20 @@ namespace Whirlwind.Generation
         // MAIN EXPRESSION GENERATOR 
         // -------------------------
 
-        private LLVMValueRef _generateExpr(ITypeNode expr)
+        private LLVMValueRef _generateExpr(ITypeNode expr, bool mutableExpr=false)
         {
             if (expr is ValueNode vnode)
                 return _generateExprValue(vnode);
             // hopefully this is ok
             else if (expr is IdentifierNode inode)
-                return _getNamedValue(inode.IdName);
+            {
+                var genSym = _getNamedValue(inode.IdName);
+
+                if (mutableExpr)
+                    return genSym.Vref;
+
+                return _loadValue(genSym);
+            }
             else if (expr is ConstexprNode cnode)
                 return _generateExpr(cnode.ConstValue);
             // only other option is expr node
@@ -74,9 +81,13 @@ namespace Whirlwind.Generation
                             var fg = (FunctionGroup)enode.Nodes[0];
                             fg.GetFunction(_createArgsList(enode), out FunctionType ft);
 
-                            // return _generateFnCall(ft, enode);
+                            // we know function groups can be used in any other capacity so
+                            // we can assume that the base node here is an identifier node
+                            string name = ((IdentifierNode)enode.Nodes[0]).IdName;
+                            name += "." + string.Join(",", ft.Parameters.Select(x => x.DataType.LLVMName()));
+
+                            return LLVM.BuildCall(_builder, _loadGlobalValue(name), _buildArgArray(ft, enode), "call_tmp");
                         }
-                        break;
                     case "CallConstructor":
                         return _generateCallConstructor(enode);
                     case "CallTCConstructor":
@@ -276,7 +287,7 @@ namespace Whirlwind.Generation
                     case "Then":
                         {
                             var valRes = _generateExpr(enode.Nodes[0]);
-                            _scopes.Last()["value_tmp"] = valRes;
+                            _scopes.Last()["value_tmp"] = new GeneratorSymbol(valRes);
 
                             return _generateExpr(enode.Nodes[1]);
                         }
@@ -559,7 +570,7 @@ namespace Whirlwind.Generation
             string initMembersLookup = lookupName + "._$initMembers";
             if (_globalScope.ContainsKey(initMembersLookup))
             {
-                LLVM.BuildCall(_builder, _globalScope[initMembersLookup],
+                LLVM.BuildCall(_builder, _globalScope[initMembersLookup].Vref,
                     new[] { newStruct }, "");
             }
 
@@ -578,7 +589,7 @@ namespace Whirlwind.Generation
                 constr = st.GetFirstConstructor();
 
             var baseArgsArray = _buildArgArray(constr, enode);
-            LLVM.BuildCall(_builder, _globalScope[constructorLookup], _insertFront(baseArgsArray, newStruct), "");
+            LLVM.BuildCall(_builder, _globalScope[constructorLookup].Vref, _insertFront(baseArgsArray, newStruct), "");
 
             return newStruct;
         }

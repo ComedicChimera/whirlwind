@@ -49,7 +49,7 @@ namespace Whirlwind.Generation
                         suffix += "." + string.Join(",", cft.Parameters.Select(x => x.DataType.LLVMName()));
 
                     var llvmConstructor = _generateFunctionPrototype(name + suffix, cft, exported);
-                    _globalScope[name + suffix] = llvmConstructor;
+                    _addGlobalDecl(name + suffix, llvmConstructor);
 
                     if (constructor.Block.Count > 0)
                         _appendFunctionBlock(llvmConstructor, constructor);
@@ -70,7 +70,7 @@ namespace Whirlwind.Generation
                 // build init members content
                 for (int i = 0; i < st.Members.Count; i++)
                 {
-                    var memberPtr = LLVM.BuildStructGEP(_builder, _getNamedValue("this"), (uint)i, "get_member_tmp");
+                    var memberPtr = LLVM.BuildStructGEP(_builder, _getNamedValue("this").Vref, (uint)i, "get_member_tmp");
 
                     string memberName = st.Members.ElementAt(i).Key;
                     var memberValue = memberDict.ContainsKey(memberName) ? 
@@ -84,7 +84,7 @@ namespace Whirlwind.Generation
 
                 _scopes.RemoveLast();
 
-                _globalScope[name + "._$initMembers"] = initFn;
+                _addGlobalDecl(name + "._$initMembers", initFn);
 
                 LLVM.VerifyFunction(initFn, LLVMVerifierFailureAction.LLVMPrintMessageAction);
             }
