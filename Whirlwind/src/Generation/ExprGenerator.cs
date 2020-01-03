@@ -67,8 +67,16 @@ namespace Whirlwind.Generation
                         }
                         break;
                     case "Call":
-                        // apply call transformation where necessary here
-                        return LLVM.BuildCall(_builder, _generateExpr(enode.Nodes[0]), _buildArgArray(enode), "call_tmp");
+                        return LLVM.BuildCall(_builder, _generateExpr(enode),
+                            _buildArgArray((FunctionType)enode.Nodes[0], enode), "call_tmp");
+                    case "CallOverload":
+                        {
+                            var fg = (FunctionGroup)enode.Nodes[0];
+                            fg.GetFunction(_createArgsList(enode), out FunctionType ft);
+
+                            // return _generateFnCall(ft, enode);
+                        }
+                        break;
                     case "CallConstructor":
                         return _generateCallConstructor(enode);
                     case "CallTCConstructor":
@@ -281,7 +289,25 @@ namespace Whirlwind.Generation
                         }
                     case "Dereference":
                         return LLVM.BuildLoad(_builder, _generateExpr(enode.Nodes[0]), "deref_tmp");
-                    
+                    // check for overloads on increment and decrement operators
+                    /*case "Increment":
+                        return LLVM.BuildAdd(_builder,
+                            _generateExpr(enode.Nodes[0]),
+                            _getOne(enode.Type),
+                            "increm_tmp");
+                    case "Decrement":
+                        return LLVM.BuildSub(_builder,
+                            _generateExpr(enode.Nodes[0]),
+                            _getOne(enode.Type),
+                            "decrem_tmp");
+                    case "PostfixIncrement":
+                        {
+                            var incRes = LLVM.BuildAdd(_builder,
+                            _generateExpr(enode.Nodes[0]),
+                            _getOne(enode.Type),
+                            "increm_tmp");
+                        }
+                        break;*/
                 }
             }
 
@@ -539,24 +565,19 @@ namespace Whirlwind.Generation
 
             string constructorLookup = lookupName + ".constructor";
 
+            FunctionType constr;
             if (st.HasMultipleConstructors())
             {
-                var args = new ArgumentList(
-                    enode.Nodes.Skip(1).Where(x => x.Name != "NamedArgument")
-                        .Select(x => x.Type).ToList(),
-                    enode.Nodes.Skip(1).Where(x => x.Name == "NamedArgument")
-                        .ToDictionary(
-                        x => ((IdentifierNode)((ExprNode)x).Nodes[0]).IdName,
-                        x => x.Type)
-                    );
+                var args = _createArgsList(enode);
 
-                // determine how to select constructor
-                st.GetConstructor(args, out FunctionType constr);
+                st.GetConstructor(args, out constr);
 
                 constructorLookup += "." + string.Join(",", constr.Parameters.Select(x => x.DataType.LLVMName()));
             }
+            else
+                constr = st.GetFirstConstructor();
 
-            var baseArgsArray = _buildArgArray(enode);
+            var baseArgsArray = _buildArgArray(constr, enode);
             LLVM.BuildCall(_builder, _globalScope[constructorLookup], _insertFront(baseArgsArray, newStruct), "");
 
             return newStruct;
@@ -611,9 +632,9 @@ namespace Whirlwind.Generation
             }
         }
 
-        private LLVMValueRef[] _buildArgArray(ExprNode enode)
+        // TODO: handle indefinites
+        private LLVMValueRef[] _buildArgArray(FunctionType ft, ExprNode enode)
         {
-            var ft = (FunctionType)enode.Nodes[0].Type;
             var argArray = new LLVMValueRef[ft.Parameters.Count];
 
             int i = 1;
@@ -644,6 +665,16 @@ namespace Whirlwind.Generation
             }
 
             return argArray;
+        }
+
+        private LLVMValueRef _getOne(DataType dt)
+        {
+            byte sClass = _getSimpleClass((SimpleType)dt);
+
+            if (sClass == 0)
+                return LLVM.ConstInt(_convertType(dt), 1, new LLVMBool(0));
+            else
+                return LLVM.ConstReal(_convertType(dt), 1);
         }
     }
 }

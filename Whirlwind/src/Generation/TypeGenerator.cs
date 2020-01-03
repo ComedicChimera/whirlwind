@@ -114,6 +114,7 @@ namespace Whirlwind.Generation
 
         private LLVMTypeRef _processGeneric(GenericType gt, DataType ot)
         {
+            
             return LLVM.VoidType();
         }
 

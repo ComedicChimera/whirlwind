@@ -38,6 +38,8 @@ namespace Whirlwind.Generation
 
         // store the current generic suffix (will be appended to everything that is visited)
         private string _genericSuffix = "";
+        // tell whether or not the compiler should load id pointers automatically
+        private bool _loadRawPtrs = false;
 
         // store the randomly generated package prefix
         private readonly string _randPrefix;

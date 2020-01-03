@@ -132,5 +132,20 @@ namespace Whirlwind.Generation
 
             _scopes.Add(fnScope);            
         }
+
+        /*private bool _returnsAsArgPtr(FunctionType ft)
+            => new[] { TypeClassifier.STRUCT_INSTANCE, TypeClassifier.TYPE_CLASS_INSTANCE,
+                       TypeClassifier.INTERFACE_INSTANCE, TypeClassifier.ARRAY, TypeClassifier.LIST,
+                       TypeClassifier.DICT, TypeClassifier.TUPLE }.Contains(ft.ReturnType.Classify());*/
+        
+        private ArgumentList _createArgsList(ExprNode enode)
+            => new ArgumentList(
+                    enode.Nodes.Skip(1).Where(x => x.Name != "NamedArgument")
+                        .Select(x => x.Type).ToList(),
+                    enode.Nodes.Skip(1).Where(x => x.Name == "NamedArgument")
+                        .ToDictionary(
+                        x => ((IdentifierNode)((ExprNode)x).Nodes[0]).IdName,
+                        x => x.Type)
+                    );
     }
 }
