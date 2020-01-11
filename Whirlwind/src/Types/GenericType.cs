@@ -97,7 +97,7 @@ namespace Whirlwind.Types
     class GenericType : DataType
     {
         private readonly GenericEvaluator _evaluator;
-        private readonly List<List<DataType>> _variants;
+        private readonly Dictionary<List<DataType>, BlockNode> _variants;
 
         public DataType DataType { get; private set; }
         public List<GenericGenerate> Generates { get; private set; }
@@ -111,7 +111,7 @@ namespace Whirlwind.Types
 
             _evaluator = evaluator;
 
-            _variants = new List<List<DataType>>();
+            _variants = new Dictionary<List<DataType>, BlockNode>();
 
             Generates = new List<GenericGenerate>();
 
@@ -141,6 +141,10 @@ namespace Whirlwind.Types
                 }
 
                 var generate = _evaluator(aliases, this);
+
+                // add the variant in place of the regular generate block if it exists (inefficient, but effective)
+                if (_variants.Any(x => x.Key.EnumerableEquals(dataTypes)))
+                    generate.Block =  _variants.Where(x => x.Key.EnumerableEquals(dataTypes)).First().Value;
 
                 // prevent generic placeholders from creating unnecessary generates
                 // and prevent duplicate generates from being creates
@@ -235,12 +239,12 @@ namespace Whirlwind.Types
             return false;
         }
 
-        public bool AddVariant(List<DataType> dataTypes)
+        public bool AddVariant(List<DataType> dataTypes, BlockNode node)
         {
             if (dataTypes.Count != GenericVariables.Count)
                 return false;
 
-            if (_variants.Contains(dataTypes))
+            if (_variants.Any(x => x.Key.EnumerableEquals(dataTypes)))
                 return false;
 
             using (var e1 = GenericVariables.Select(x => x.Restrictors).GetEnumerator())
@@ -255,7 +259,7 @@ namespace Whirlwind.Types
                 }
             }
 
-            _variants.Add(dataTypes);
+            _variants.Add(dataTypes, node);
             return true;
         }
 
@@ -271,7 +275,7 @@ namespace Whirlwind.Types
             }; // implicit const
 
             foreach (var variant in _variants)
-                tt._variants.Add(variant);
+                tt._variants.Add(variant.Key, variant.Value);
 
             return tt;
         }

@@ -191,9 +191,6 @@ namespace Whirlwind.Semantic.Visitor
                     var types = _generateTypeList((ASTNode)((ASTNode)node.Content[1]).Content[1]);
                     var gt = (GenericType)symbol.DataType;
 
-                    if (!gt.AddVariant(types))
-                        throw new SemanticException("The variant type list is not valid for the base generic", node.Content[1].Position);
-
                     if (gt.DataType.Classify() == TypeClassifier.INTERFACE)
                     {
                         if (!((InterfaceType)gt.DataType).GetFunction(id.Tok.Value, out Symbol _))
@@ -213,6 +210,10 @@ namespace Whirlwind.Semantic.Visitor
                     _nodes.Add(new IncompleteNode((ASTNode)node.Content.Last()));
                     MergeToBlock();
 
+                    if (!gt.AddVariant(types, (BlockNode)_nodes.Last()))
+                        throw new SemanticException("The variant type list is not valid for the base generic", node.Content[1].Position);
+
+                    _nodes.RemoveLast();
                 }
                 else
                     throw new SemanticException("Unable to implement multilevel variance with a variant depth of one", node.Content[1].Position);

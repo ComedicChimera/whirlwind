@@ -258,14 +258,14 @@ namespace Whirlwind.Generation
                     // TODO: check for overloads on complement, not, and change sign
                     case "Complement":
                         return LLVM.BuildXor(_builder, _generateExpr(enode.Nodes[0]),
-                            _generateExprValue(new ValueNode("Literal", enode.Type, "-1")), "compl_tmp");
+                            _getOne(enode.Type), "compl_tmp");
                     case "Not":
                         return LLVM.BuildXor(_builder, _generateExpr(enode.Nodes[0]),
                             LLVM.ConstInt(LLVM.Int1Type(), 1, new LLVMBool(0)), "not_tmp");
                     case "ChangeSign":
                         {
                             if (_getSimpleClass((SimpleType)enode.Type) == 0)
-                                return LLVM.BuildSub(_builder, _generateExprValue(new ValueNode("Literal", enode.Type, "-1")),
+                                return LLVM.BuildSub(_builder, _generateExprValue(new ValueNode("Literal", enode.Type, "0")),
                                     _generateExpr(enode.Nodes[0]), "cs_tmp");
                             else
                                 return LLVM.BuildFNeg(_builder, _generateExpr(enode), "cs_tmp");
