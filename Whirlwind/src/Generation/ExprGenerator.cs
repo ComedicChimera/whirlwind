@@ -73,6 +73,7 @@ namespace Whirlwind.Generation
                             }
                         }
                         break;
+                    // TODO: calling logic for methods
                     case "Call":
                         return LLVM.BuildCall(_builder, _generateExpr(enode),
                             _buildArgArray((FunctionType)enode.Nodes[0], enode), "call_tmp");
@@ -293,32 +294,75 @@ namespace Whirlwind.Generation
                         }
                     case "Indirect":
                         {
+                            // nullify indirect if it is just referencing a variable (just use varRef)
+                            if (enode.Nodes[0] is IdentifierNode idNode)
+                            {
+                                var genSym = _getNamedValue(idNode.IdName);
+
+                                if (genSym.IsPointer)
+                                    return genSym.Vref;
+                            }
+
                             var ptr = LLVM.BuildAlloca(_builder, _convertType(enode.Nodes[0].Type), "indirect_tmp");
                             LLVM.BuildStore(_builder, _generateExpr(enode.Nodes[0]), ptr);
 
                             return ptr;
                         }
                     case "Dereference":
+                        // deref compiles as no-op if expression is supposed to mutable (at top level)
+                        if (mutableExpr)
+                            return _generateExpr(enode.Nodes[0]);
+
                         return LLVM.BuildLoad(_builder, _generateExpr(enode.Nodes[0]), "deref_tmp");
-                    // check for overloads on increment and decrement operators
-                    /*case "Increment":
-                        return LLVM.BuildAdd(_builder,
-                            _generateExpr(enode.Nodes[0]),
-                            _getOne(enode.Type),
-                            "increm_tmp");
-                    case "Decrement":
-                        return LLVM.BuildSub(_builder,
-                            _generateExpr(enode.Nodes[0]),
-                            _getOne(enode.Type),
-                            "decrem_tmp");
-                    case "PostfixIncrement":
+                    // TODO: check for overloads on increment and decrement operators
+                    case "Increment":
                         {
                             var incRes = LLVM.BuildAdd(_builder,
-                            _generateExpr(enode.Nodes[0]),
-                            _getOne(enode.Type),
-                            "increm_tmp");
+                                _generateExpr(enode.Nodes[0]),
+                                _getOne(enode.Type),
+                                "increm_tmp");
+
+                            LLVM.BuildStore(_builder, incRes, _generateExpr(enode.Nodes[0], true));
+
+                            return incRes;
                         }
-                        break;*/
+                    case "Decrement":
+                        {
+                            var decRes = LLVM.BuildSub(_builder,
+                                _generateExpr(enode.Nodes[0]),
+                                _getOne(enode.Type),
+                                "decrem_tmp");
+
+                            LLVM.BuildStore(_builder, decRes, _generateExpr(enode.Nodes[0], true));
+
+                            return decRes;
+                        }
+                    case "PostfixIncrement":
+                        {
+                            var oriVal = _generateExpr(enode.Nodes[0]);
+
+                            var incRes = LLVM.BuildAdd(_builder,
+                                oriVal,
+                                _getOne(enode.Type),
+                                "p_increm_tmp");
+
+                            LLVM.BuildStore(_builder, incRes, _generateExpr(enode.Nodes[0], true));
+
+                            return oriVal;
+                        }
+                    case "PostfixDecrement":
+                        {
+                            var oriVal = _generateExpr(enode.Nodes[0]);
+
+                            var decRes = LLVM.BuildSub(_builder,
+                                oriVal,
+                                _getOne(enode.Type),
+                                "p_decrem_tmp");
+
+                            LLVM.BuildStore(_builder, decRes, _generateExpr(enode.Nodes[0], true));
+
+                            return oriVal;
+                        }
                 }
             }
 
@@ -341,7 +385,7 @@ namespace Whirlwind.Generation
 
         private LLVMValueRef _buildNumericBinop(NumericBinopBuilderFactory nbbfactory, ExprNode node)
         {
-            // check for overloads
+            // TODO: check for overloads
 
             var commonType = _getCommonType(node);
             int instrCat = 0;
@@ -368,7 +412,7 @@ namespace Whirlwind.Generation
 
             foreach (var rightOperand in operands.Skip(1))
             {
-                // check for overloads
+                // TODO: check for overloads
 
                 leftOperand = bbuilder(_builder, leftOperand, rightOperand, node.Name.ToLower() + "_tmp");
             }
@@ -597,18 +641,24 @@ namespace Whirlwind.Generation
         private LLVMValueRef _generateCallTCConstructor(ExprNode enode)
         {
             var cnt = (CustomNewType)enode.Nodes[0].Type;
+            LLVMValueRef tcRef;
 
             if (cnt.Values.Count == 1)
             {
-                var valPtr = LLVM.BuildAlloca(_builder, _convertType(cnt.Values[0]), "tc_valptr_tmp");
-
+                var valPtr = LLVM.BuildAlloca(_builder, _convertType(cnt.Values[0]), "tc_valptr_tmp");                
                 LLVM.BuildStore(_builder, _generateExpr(enode.Nodes[1]), valPtr);
 
-                return LLVM.ConstNamedStruct(_convertType(cnt), new[]
-                {
-                    LLVM.ConstInt(LLVM.Int16Type(), (ulong)cnt.Parent.Instances.IndexOf(cnt), new LLVMBool(0)),
-                    valPtr
-                });
+                valPtr = LLVM.BuildBitCast(_builder, valPtr, LLVM.PointerType(LLVM.Int8Type(), 0), "tc_valptr_i8_tmp");
+
+                tcRef = LLVM.BuildAlloca(_builder, LLVM.StructType(
+                    new[] { LLVM.Int32Type(), valPtr.TypeOf() }, false), "tc_tmp");
+
+                var firstElem = LLVM.BuildBitCast(_builder, tcRef, LLVM.PointerType(LLVM.Int16Type(), 0), "tc_enum_ptr_tmp");
+                LLVM.BuildStore(_builder, firstElem, 
+                    LLVM.ConstInt(LLVM.Int16Type(), (ulong)cnt.Parent.Instances.IndexOf(cnt), new LLVMBool(0)));
+
+                var valPtrElem = LLVM.BuildStructGEP(_builder, tcRef, 1, "tc_val_ptr_tmp");
+                LLVM.BuildStore(_builder, valPtr, valPtrElem);
             }
             else
             {
@@ -635,12 +685,18 @@ namespace Whirlwind.Generation
                     LLVM.BuildStore(_builder, i8ValPtr, valArrElemPtr);
                 }
 
-                return LLVM.ConstNamedStruct(_convertType(cnt), new[]
-                {
-                    LLVM.ConstInt(LLVM.Int16Type(), (ulong)cnt.Parent.Instances.IndexOf(cnt), new LLVMBool(0)),
-                    valArrPtr
-                });
+                tcRef = LLVM.BuildAlloca(_builder, LLVM.StructType(
+                    new[] { LLVM.Int32Type(), valArrPtr.TypeOf() }, false), "tc_tmp");
+
+                var firstElem = LLVM.BuildBitCast(_builder, tcRef, LLVM.PointerType(LLVM.Int16Type(), 0), "tc_enum_ptr_tmp");
+                LLVM.BuildStore(_builder, firstElem,
+                    LLVM.ConstInt(LLVM.Int16Type(), (ulong)cnt.Parent.Instances.IndexOf(cnt), new LLVMBool(0)));
+
+                var valArrPtrElem = LLVM.BuildStructGEP(_builder, tcRef, 1, "tc_valarr_ptr_tmp");
+                LLVM.BuildStore(_builder, valArrPtr, valArrPtrElem);
             }
+
+            return tcRef;
         }
 
         // TODO: handle indefinites

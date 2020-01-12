@@ -41,7 +41,7 @@ namespace Whirlwind.Semantic.Visitor
                                     {
                                         _createFunction(arguments, dataType, name, namePosition, isAsync, modifiers);
 
-                                        if (!_functionCanHaveNoBody)
+                                        if (!_functionCanHaveNoBody && !_isInterfBody)
                                             throw new SemanticException("Unable to declare function without body", item.Position);
                                     }
                                     break;
@@ -73,7 +73,7 @@ namespace Whirlwind.Semantic.Visitor
         {
             _nodes.Add(new BlockNode(isAsync ? "AsyncFunction" : "Function"));
 
-            var fnType = new FunctionType(parameters, dataType, isAsync) { Constant = true };
+            var fnType = new FunctionType(parameters, dataType, isAsync, _isInterfBody) { Constant = true };
 
             _nodes.Add(new IdentifierNode(name, fnType));
 

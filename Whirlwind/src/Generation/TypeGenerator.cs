@@ -11,7 +11,7 @@ namespace Whirlwind.Generation
 {
     partial class Generator
     {
-        private LLVMTypeRef _convertType(DataType dt)
+        private LLVMTypeRef _convertType(DataType dt, bool _usePtrTypes=false)
         {
             if (dt is SimpleType simt)
             {
@@ -36,6 +36,7 @@ namespace Whirlwind.Generation
                         return _stringType;
                 }
             }
+            // TODO: fix broken type impls (none of the collections generate properly)
             else if (dt is ArrayType at)
             {
                 ((GenericType)_impls["array"]).CreateGeneric(new List<DataType> { at.ElementType }, out DataType ast);
@@ -62,10 +63,10 @@ namespace Whirlwind.Generation
                     _table.Lookup(item, out symbol);
 
                 if (symbol.DataType is StructType)
-                    return _globalStructs[lName];
+                    return _getGlobalStruct(lName, _usePtrTypes);
                 // only other option is generic type
                 else
-                    return _processGeneric((GenericType)symbol.DataType, dt);
+                    return _processGeneric((GenericType)symbol.DataType, dt, _usePtrTypes);
             }
             else if (dt is InterfaceType it)
             {
@@ -77,13 +78,17 @@ namespace Whirlwind.Generation
                     _table.Lookup(item, out symbol);
 
                 if (symbol.DataType is InterfaceType)
-                    return _globalStructs[lName];
+                    return _getGlobalStruct(lName, _usePtrTypes);
                 // only other option is generic type
                 else
-                    return _processGeneric((GenericType)symbol.DataType, dt);
+                    return _processGeneric((GenericType)symbol.DataType, dt, _usePtrTypes);
             }
             else if (dt is TupleType tt)
-                return LLVM.StructType(tt.Types.Select(x => _convertType(x)).ToArray(), true);
+            {
+                var tStruct = LLVM.StructType(tt.Types.Select(x => _convertType(x)).ToArray(), true);
+
+                return _usePtrTypes ? LLVM.PointerType(tStruct, 0) : tStruct;
+            }               
             else if (dt is FunctionType ft)
             {
                 return LLVM.PointerType(LLVM.FunctionType(_convertType(ft.ReturnType),
@@ -101,18 +106,28 @@ namespace Whirlwind.Generation
                     if (onlyInstance is CustomAlias ca)
                         return _convertType(ca.Type);
                     else if (onlyInstance is CustomNewType cnt)
-                        return cnt.Values.Count == 0 ? LLVM.Int16Type() : _globalStructs[parent.Name];
+                        return cnt.Values.Count == 0 ? LLVM.Int16Type() : _getGlobalStruct(parent.Name, _usePtrTypes);
                 }
                 else if (parent.Instances.All(x => x is CustomNewType cnt && cnt.Values.Count == 0))
                     return LLVM.Int16Type();
                 else
-                    return _globalStructs[parent.Name];
+                    return _getGlobalStruct(parent.Name, _usePtrTypes);
             }
             
             return LLVM.VoidType();
         }
 
-        private LLVMTypeRef _processGeneric(GenericType gt, DataType ot)
+        private LLVMTypeRef _getGlobalStruct(string name, bool usePtrTypes)
+        {
+            var gStruct = _globalStructs[name];
+
+            if (usePtrTypes)
+                return LLVM.PointerType(gStruct, 0);
+
+            return gStruct;
+        }
+
+        private LLVMTypeRef _processGeneric(GenericType gt, DataType ot, bool usePtrTypes)
         {
             
             return LLVM.VoidType();

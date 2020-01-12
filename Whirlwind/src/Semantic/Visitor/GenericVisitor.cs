@@ -45,6 +45,19 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _makeGeneric(ASTNode root, List<GenericVariable> genericVars, List<Modifier> modifiers, Symbol sym, TextPosition position)
         {
+            void _evalInterfMethod(ASTNode body, List<Modifier> mods)
+            {
+                try
+                {
+                    _isInterfBody = true;
+                    _visitFunction(body, mods);
+                }
+                finally
+                {
+                    _isInterfBody = false;
+                }
+            }
+
             _nodes.Add(new BlockNode("Generic"));
 
             Action<ASTNode, List<Modifier>> vfn;
@@ -52,7 +65,10 @@ namespace Whirlwind.Semantic.Visitor
             switch (sym.DataType.Classify())
             {
                 case TypeClassifier.FUNCTION:
-                    vfn = _visitFunction;
+                    if (_isInterfBody)
+                        vfn = _evalInterfMethod;
+                    else
+                        vfn = _visitFunction;
                     break;
                 case TypeClassifier.INTERFACE:
                     vfn = _visitInterface;
@@ -190,12 +206,6 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     var types = _generateTypeList((ASTNode)((ASTNode)node.Content[1]).Content[1]);
                     var gt = (GenericType)symbol.DataType;
-
-                    if (gt.DataType.Classify() == TypeClassifier.INTERFACE)
-                    {
-                        if (!((InterfaceType)gt.DataType).GetFunction(id.Tok.Value, out Symbol _))
-                            throw new SemanticException("Unable to create sub variant of non-existent method", id.Position);
-                    }
 
                     _nodes.Add(new BlockNode("Variant"));
                     // won't fail because add variant succeeded

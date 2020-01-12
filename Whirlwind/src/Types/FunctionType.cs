@@ -72,14 +72,16 @@ namespace Whirlwind.Types
     {
         public DataType ReturnType;
         public readonly bool Async;
+        public readonly bool IsMethod;
 
         public List<Parameter> Parameters;
 
-        public FunctionType(List<Parameter> parameters, DataType returnType, bool async)
+        public FunctionType(List<Parameter> parameters, DataType returnType, bool async, bool isMethod=false)
         {
             Parameters = parameters;
             ReturnType = returnType;
             Async = async;
+            IsMethod = isMethod;
         }
 
         public override TypeClassifier Classify() => TypeClassifier.FUNCTION;
@@ -124,10 +126,10 @@ namespace Whirlwind.Types
         }
 
         public override DataType ConstCopy()
-            => new FunctionType(Parameters, ReturnType, Async) { Constant = true };
+            => new FunctionType(Parameters, ReturnType, Async, IsMethod) { Constant = true };
 
         public FunctionType NonConstCopy()
-            => new FunctionType(Parameters, ReturnType, Async) { Constant = false };
+            => new FunctionType(Parameters, ReturnType, Async, IsMethod) { Constant = false };
 
         public override string ToString()
         {

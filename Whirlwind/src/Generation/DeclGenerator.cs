@@ -18,7 +18,7 @@ namespace Whirlwind.Generation
             var st = (StructType)node.Nodes[0].Type;
 
             var llvmStruct = LLVM.StructCreateNamed(_ctx, name);
-            llvmStruct.StructSetBody(st.Members.Select(x => _convertType(x.Value.DataType)).ToArray(), packed);
+            llvmStruct.StructSetBody(st.Members.Select(x => _convertType(x.Value.DataType, true)).ToArray(), packed);
 
             _globalStructs[name] = llvmStruct;
 
@@ -114,13 +114,13 @@ namespace Whirlwind.Generation
                 // build method if necessary
                 if (method.Key.DataType is FunctionType fnType)
                 {
-                    // check for operator overloads
+                    // TODO: check for operator overloads
 
                     methods.Add(_convertType(fnType));
 
                     if (method.Value)
                     {
-                        var llvmMethod = _generateFunctionPrototype(name + "." + method.Key.Name, fnType, exported);
+                        var llvmMethod = _generateFunctionPrototype(name + ".interf." + method.Key.Name, fnType, exported);
 
                         _appendFunctionBlock(llvmMethod, ((BlockNode)node.Block[methodNdx]));
                     }

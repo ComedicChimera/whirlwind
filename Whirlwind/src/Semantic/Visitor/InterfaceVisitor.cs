@@ -208,7 +208,7 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _collectInterfaceMethods(InterfaceType interfaceType, ASTNode block, bool typeInterface, DataType selfType)
         {
-            _functionCanHaveNoBody = true;
+            _isInterfBody = true;
 
             foreach (var method in block.Content)
             {
@@ -262,7 +262,7 @@ namespace Whirlwind.Semantic.Visitor
                 MergeToBlock();
             }
 
-            _functionCanHaveNoBody = false;
+            _isInterfBody = false;
         }
 
         private void _visitOperatorOverload(InterfaceType interfType, ASTNode node, bool typeInterface)
@@ -314,7 +314,7 @@ namespace Whirlwind.Semantic.Visitor
             else if ((op != "-" || args.Count != 0) && args.Count != 1)
                 throw new SemanticException("Binary operator overload must take exactly 1 argument", node.Content[3].Position);
 
-            var ft = new FunctionType(args, rtType, false);
+            var ft = new FunctionType(args, rtType, false, true);
 
             _nodes.Add(new ValueNode("Operator", ft, op));
             MergeBack();

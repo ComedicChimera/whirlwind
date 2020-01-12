@@ -72,7 +72,7 @@ namespace Whirlwind.Generation
                 if (param.Indefinite)
                     isVarArg = true;
 
-                arguments[i] = _convertType(param.DataType);
+                arguments[i] = _convertType(param.DataType, true);
             }
 
             var llvmFn = LLVM.AddFunction(_module, name, LLVM.FunctionType(_convertType(ft.ReturnType), arguments, isVarArg));

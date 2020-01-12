@@ -75,6 +75,7 @@ namespace Whirlwind.Semantic.Visitor
         private bool _functionCanHaveNoBody = false;
         private bool _allowInternalTypes = true;
         private bool _friendAnnotation = false;
+        private bool _isInterfBody = false;
 
         public Visitor(string namePrefix, bool constexprOptimizerEnabled, Dictionary<string, DataType> typeImpls)
         {
