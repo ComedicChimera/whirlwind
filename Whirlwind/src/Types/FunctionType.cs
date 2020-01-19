@@ -71,17 +71,18 @@ namespace Whirlwind.Types
     class FunctionType : DataType
     {
         public DataType ReturnType;
-        public readonly bool Async;
-        public readonly bool IsMethod;
+        public readonly bool Async, IsMethod;
+        public bool IsBoxed;
 
         public List<Parameter> Parameters;
 
-        public FunctionType(List<Parameter> parameters, DataType returnType, bool async, bool isMethod=false)
+        public FunctionType(List<Parameter> parameters, DataType returnType, bool async, bool isMethod=false, bool isBoxed=false)
         {
             Parameters = parameters;
             ReturnType = returnType;
             Async = async;
             IsMethod = isMethod;
+            IsBoxed = isBoxed || isMethod;
         }
 
         public override TypeClassifier Classify() => TypeClassifier.FUNCTION;
@@ -130,6 +131,14 @@ namespace Whirlwind.Types
 
         public FunctionType NonConstCopy()
             => new FunctionType(Parameters, ReturnType, Async, IsMethod) { Constant = false };
+
+        public FunctionType BoxedCopy()
+        {
+            var copy = (FunctionType)Copy();
+            copy.IsBoxed = true;
+
+            return copy;
+        }
 
         public override string ToString()
         {

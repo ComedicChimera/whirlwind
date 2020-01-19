@@ -286,6 +286,10 @@ namespace Whirlwind.Semantic.Visitor
 
                 _nodes.Last().Type = nodeDt;
             }
+
+            // box functions if necessary
+            if (_nodes.Last().Type is FunctionType ft && !ft.IsBoxed)
+                _nodes.Last().Type = ft.BoxedCopy();
         }
 
         private void _visitSelectExpr(ASTNode node)
@@ -689,7 +693,7 @@ namespace Whirlwind.Semantic.Visitor
                                 throw new SemanticException("Composition cannot result in duplicate parameters", node.Content[opPos].Position);
 
                             _nodes.Add(new ExprNode("Compose", new FunctionType(rft.Parameters.Skip(1).Concat(oft.Parameters).ToList(),
-                                rft.ReturnType, rft.Async)));
+                                rft.ReturnType, rft.Async, rft.IsMethod, isBoxed: true)));
                         }
                         else if (HasOverload(rootType, "__~*__", new ArgumentList(new List<DataType> { _nodes.Last().Type}), 
                             out DataType rtType))

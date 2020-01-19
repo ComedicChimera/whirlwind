@@ -297,7 +297,7 @@ namespace Whirlwind.Semantic.Visitor
                             break;
                     }
 
-                    return new FunctionType(args, returnType, async);
+                    return new FunctionType(args, returnType, async, isBoxed: true);
                 }
                 // assume pointer type
                 else

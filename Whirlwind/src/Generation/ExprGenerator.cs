@@ -598,6 +598,11 @@ namespace Whirlwind.Generation
                     );
             }
         }
+        
+        private LLVMValueRef _generateCall(ExprNode enode)
+        {
+            return _ignoreValueRef();
+        }
 
         private LLVMValueRef _generateCallConstructor(ExprNode enode)
         {

@@ -490,7 +490,7 @@ namespace Whirlwind.Semantic.Visitor
                 }
             }
 
-            var fType = new FunctionType(args, rtType, async); 
+            var fType = new FunctionType(args, rtType, async, isBoxed: true); 
 
             _nodes.Add(new ExprNode("Lambda", fType));
             PushForward();
@@ -559,7 +559,7 @@ namespace Whirlwind.Semantic.Visitor
                 newParameters.RemoveAt(item.Value - item.Index);
             }            
 
-            _nodes.Add(new ExprNode("PartialFunction", new FunctionType(newParameters, fnType.ReturnType, fnType.Async)));
+            _nodes.Add(new ExprNode("PartialFunction", new FunctionType(newParameters, fnType.ReturnType, fnType.Async, fnType.IsMethod, true)));
 
             // push forward root and args
             PushForward(removedArgs.Count + 1);

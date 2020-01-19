@@ -111,7 +111,7 @@ namespace Whirlwind.Generation
             // add in any special functions / post generation code here
 
             if (LLVM.VerifyModule(_module, LLVMVerifierFailureAction.LLVMPrintMessageAction, out var error) != new LLVMBool(0))
-                Console.WriteLine("LLVM Build Errors");
+                Console.WriteLine("LLVM Build Errors!");
 
             LLVM.DumpModule(_module);
         }
@@ -163,6 +163,26 @@ namespace Whirlwind.Generation
             }
 
             return string.Join("", name.Skip(i));
+        }
+
+        private string _getLookupName(DataType dt)
+        {
+            string rawName;
+
+            if (dt is StructType st)
+                rawName = st.Name;
+            else if (dt is InterfaceType it)
+                rawName = it.Name;
+            else if (dt is GenericType gt)
+                return _getLookupName(gt.DataType);
+            else if (dt is CustomType ct)
+                rawName = ct.Name;
+            else if (dt is CustomInstance cit)
+                rawName = cit.Parent.Name;
+            else
+                rawName = dt.LLVMName();
+
+            return _getLookupName(rawName);
         }
 
         private GeneratorSymbol _getNamedValue(string name)
