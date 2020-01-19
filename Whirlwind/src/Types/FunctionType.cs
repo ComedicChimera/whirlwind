@@ -121,7 +121,8 @@ namespace Whirlwind.Types
         protected override bool _equals(DataType other)
         {
             if (other is FunctionType otherFn)
-                return Async == otherFn.Async && ReturnType.Equals(otherFn.ReturnType) && Parameters.EnumerableEquals(otherFn.Parameters);
+                return Async == otherFn.Async && ReturnType.Equals(otherFn.ReturnType) && Parameters.EnumerableEquals(otherFn.Parameters)
+                    && IsMethod == otherFn.IsMethod && IsBoxed == otherFn.IsBoxed; // TODO: check and see if this introduces problems
 
             return false;
         }
