@@ -121,9 +121,9 @@ namespace Whirlwind.Semantic.Visitor
                             {
                                 string identifier = ((TokenNode)node.Content[1]).Tok.Value;
 
-                                var symbol = _getMember(root.Type, identifier, node.Content[0].Position, node.Content[1].Position);
+                                var symbol = _getMember(root.Type, identifier, node.Content[0].Position, node.Content[1].Position, out bool getInterf);
 
-                                _nodes.Add(new ExprNode("GetMember", symbol.DataType));
+                                _nodes.Add(new ExprNode(getInterf ? "GetTIMethod" : "GetMember", symbol.DataType));
 
                                 PushForward();
                                 _nodes.Add(new IdentifierNode(identifier, symbol.DataType));
@@ -158,8 +158,9 @@ namespace Whirlwind.Semantic.Visitor
                         {
                             string pointerIdentifier = ((TokenNode)node.Content[1]).Tok.Value;
 
-                            var symbol = _getMember(((PointerType)root.Type).DataType, pointerIdentifier, node.Content[0].Position, node.Content[1].Position);
-                            _nodes.Add(new ExprNode("DerefGetMember", symbol.DataType));
+                            var symbol = _getMember(((PointerType)root.Type).DataType, pointerIdentifier, node.Content[0].Position, 
+                                node.Content[1].Position, out bool getInterf);
+                            _nodes.Add(new ExprNode(getInterf ? "DerefGetTIMethod" : "DerefGetMember", symbol.DataType));
 
                             PushForward();
                             _nodes.Add(new IdentifierNode(pointerIdentifier, symbol.DataType));
@@ -174,8 +175,8 @@ namespace Whirlwind.Semantic.Visitor
                         {
                             string pointerIdentifier = ((TokenNode)node.Content[2]).Tok.Value;
 
-                            var symbol = _getMember(pt.DataType, pointerIdentifier, node.Content[0].Position, node.Content[2].Position);
-                            _nodes.Add(new ExprNode("NullableDerefGetMember", symbol.DataType));
+                            var symbol = _getMember(pt.DataType, pointerIdentifier, node.Content[0].Position, node.Content[2].Position, out bool getInterf);
+                            _nodes.Add(new ExprNode("NullableDerefGetTIMethod", symbol.DataType));
 
                             PushForward();
                             _nodes.Add(new IdentifierNode(pointerIdentifier, symbol.DataType));
@@ -277,20 +278,26 @@ namespace Whirlwind.Semantic.Visitor
                 throw new SemanticException("Type class has uninitialized values", node.Position);
         }
 
-        private Symbol _getMember(DataType type, string name, TextPosition opPos, TextPosition idPos)
+        private Symbol _getMember(DataType type, string name, TextPosition opPos, TextPosition idPos, out bool interfGet)
         {
             Symbol symbol;
             switch (type.Classify())
             {
                 case TypeClassifier.STRUCT_INSTANCE:
                     if (((StructType)type).Members.ContainsKey(name))
+                    {
+                        interfGet = false;
                         return new Symbol(name, ((StructType)type).Members[name].DataType);
+                    }
+                        
                     goto default;
                 case TypeClassifier.INTERFACE_INSTANCE:
                     if (!((InterfaceType)type).GetFunction(name, out symbol))
                         throw new SemanticException($"Interface has no function `{name}`", idPos);
                     break;
                 default:
+                    interfGet = true;
+
                     if (!_flags.ContainsKey("core") && new[] { "__finalize__", "__copy__", "__get__", "__set__" }.Contains(name))
                         throw new SemanticException("Unable to directly access special methods outside of runtime core", idPos);
                     else if (!type.GetInterface().GetFunction(name, out symbol))
@@ -300,7 +307,7 @@ namespace Whirlwind.Semantic.Visitor
                             var impl = _getImpl(type);
 
                             if (impl != null)
-                                return _getMember(impl, name, opPos, idPos);
+                                return _getMember(impl, name, opPos, idPos, out bool _);
                         }
 
                         throw new SemanticException($"Type has no interface member `{name}`", idPos);
@@ -309,6 +316,7 @@ namespace Whirlwind.Semantic.Visitor
                     break;
             }
 
+            interfGet = false;
             return symbol;
         }
 

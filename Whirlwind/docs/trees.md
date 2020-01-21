@@ -98,9 +98,12 @@ A multi-value structure or some form of operation.
 | Iterator | Root, *Identifiers* | Create an iterator over the some iterable |
 | CreateGeneric | Generic | Converts a generic to a value, return type is generic type |
 | GetMember | Root, Identifier | Gets a member of a struct or other type |
+| GetTIMethod | Root, Identifier | Get a method of an item's type interface |
 | StaticGet | Root, Identifier | Gets a static member of the given type |
 | DerefGetMember | Root, Identifier | Performs a dereference and gets a member |
+| DerefGetTIMethod | Root, Identifier | Performs a dereference and gets a type interface method |
 | NullableDerefGetMember | Root, Identifier | Performs a nullable dereference and a nullable get member |
+| NullableDerefGetTIMethod | Root, Identifier | Performs a nullable dereference and gets a type interface method |
 | InitList | *Initializers* | Create an instance from an initializer list |
 | Initializer | Identifier, expr | Initializer a given value in an initializer list |
 | Call | Function, *Arguments* | Call a normal function with given arguments |

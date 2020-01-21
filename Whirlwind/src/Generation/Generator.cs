@@ -7,6 +7,11 @@ using LLVMSharp;
 using Whirlwind.Semantic;
 using Whirlwind.Types;
 
+// NOTE TO READER:
+// All code in the Generation namespace that treats dictionaries as if they were ordered
+// does so in the knowledge that because no new elements are being added to those dictionaries,
+// the current order will be preserved (eg. the Members dictionary of a struct will stay in order)
+
 namespace Whirlwind.Generation
 {
     struct GeneratorSymbol
@@ -108,7 +113,7 @@ namespace Whirlwind.Generation
             foreach (var fsb in _fnSpecialBlocks)
                 _buildFunctionBlock(fsb.Item1, fsb.Item2);
 
-            // add in any special functions / post generation code here
+            // TODO: add in any special functions / post generation code here
 
             if (LLVM.VerifyModule(_module, LLVMVerifierFailureAction.LLVMPrintMessageAction, out var error) != new LLVMBool(0))
                 Console.WriteLine("LLVM Build Errors!");
@@ -228,6 +233,43 @@ namespace Whirlwind.Generation
 
             return genSym.Vref;
         }
+
+        private bool _isVTableMethod(InterfaceType it, string name)
+        {
+            foreach (var item in it.Implements)
+            {
+                if (item.GetFunction(name, out Symbol _))
+                    return true;
+            }
+
+            return false;
+        }
+
+        private string _getLookupName(ITypeNode node)
+        {
+            switch (node.Name)
+            {
+                case "CreateGeneric":
+                    {
+                        var enode = (ExprNode)node;
+                        var generate = ((GenericType)enode.Nodes[0]).Generates.Where(x => enode.Type.Equals(x.Type)).First();
+
+                        return _getLookupName(enode.Nodes[0]) + ".variant." + generate.GenericAliases.Select(x => x.ToString()).First();
+                    }
+                case "GetMember":
+                    {
+                        var enode = (ExprNode)node;
+                        string memberName = ((IdentifierNode)enode.Nodes[1]).IdName;
+
+                        if (enode.Nodes[0].Type is InterfaceType it && !_isVTableMethod(it, memberName))
+                            return _getLookupName(enode.Nodes[0]) + ".interf." + memberName;
+                    }
+                    break;
+                // TODO: static get and deref get (nullable version too)
+            }
+
+            return _getLookupName(node.Type);
+        }     
     }
 
     class GeneratorException : Exception

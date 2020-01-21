@@ -55,6 +55,46 @@ namespace Whirlwind.Generation
                 {
                     case "Array":
                         return _generateArrayLiteral(enode);
+                    case "GetMember":
+                        {
+                            string memberName = ((IdentifierNode)enode.Nodes[1]).IdName;
+
+                            if (enode.Nodes[0].Type is StructType st)
+                            {
+                                int memberNdx = st.Members.Keys.ToList().IndexOf(memberName);
+
+                                return LLVM.BuildStructGEP(_builder, _generateExpr(enode.Nodes[0]), (uint)memberNdx, "struct_gep_tmp");
+                            }
+                            else if (enode.Nodes[0].Type is InterfaceType it)
+                            {
+                                string rootName = _getLookupName(enode.Nodes[0]);
+                                var baseInterf = _generateExpr(enode.Nodes[0]);
+
+                                if (_isVTableMethod(it, memberName))
+                                {
+
+                                    var vtable = LLVM.BuildStructGEP(_builder, baseInterf, 1, "vtable_tmp");
+
+                                    int vtableNdx = _getVTableNdx(it, memberName);
+
+                                    var gepRes = LLVM.BuildStructGEP(_builder, vtable,
+                                        (uint)vtableNdx, "vtable_gep_tmp");
+
+                                    return _boxFunction(gepRes, baseInterf);
+                                }
+                                else
+                                    return _boxFunction(_globalScope[rootName + ".interf." + memberName].Vref, baseInterf);
+                            }
+                        }
+                        break;
+                    case "CreateGeneric":
+                        {
+                            var generateName = _getLookupName(enode.Nodes[0]);                           
+
+                            // structs are handled in the CallConstructor handler
+                            // and interfaces are never used this way
+                            return _globalScope[generateName].Vref;
+                        }
                     case "StaticGet":
                         {
                             var rootType = enode.Nodes[0].Type;
@@ -606,11 +646,7 @@ namespace Whirlwind.Generation
 
         private LLVMValueRef _generateCallConstructor(ExprNode enode)
         {
-            var newStruct = LLVM.BuildAlloca(
-                _builder,
-                _convertType(enode.Type),
-                "nstruct_tmp"
-                );
+            var newStruct = LLVM.BuildAlloca(_builder, _convertType(enode.Type), "nstruct_tmp");
 
             var st = (StructType)enode.Nodes[0].Type;
             string lookupName = st.Name;
@@ -747,6 +783,43 @@ namespace Whirlwind.Generation
                 return LLVM.ConstInt(_convertType(dt), 1, new LLVMBool(0));
             else
                 return LLVM.ConstReal(_convertType(dt), 1);
+        }
+
+        private LLVMValueRef _boxFunction(LLVMValueRef fn, LLVMValueRef state)
+        {
+            var i8PtrType = LLVM.PointerType(LLVM.Int8Type(), 0);
+
+            var i8StatePtr = LLVM.BuildBitCast(_builder, state, i8PtrType, "state_ptr_tmp");
+
+            var boxedFunctionStruct = LLVM.BuildAlloca(_builder, LLVM.StructType(new[] { fn.TypeOf(), i8PtrType }, false), "boxed_fn_tmp");
+
+            var fnElem = LLVM.BuildStructGEP(_builder, boxedFunctionStruct, 0, "boxed_fn_fnptr_tmp");
+            LLVM.BuildStore(_builder, fn, fnElem);
+
+            var stateElem = LLVM.BuildStructGEP(_builder, boxedFunctionStruct, 1, "boxed_fn_stateptr_tmp");
+            LLVM.BuildStore(_builder, state, stateElem);
+
+            return boxedFunctionStruct;
+        }
+
+        private int _getVTableNdx(InterfaceType it, string name)
+        {
+            int vtableNdx = 0;
+            foreach (var method in it.Methods)
+            {
+                if (!it.Implements.Any(x => x.GetFunction(name, out Symbol _)))
+                    continue;
+
+                if (method.Key.Name == name)
+                    break;
+
+                if (method.Key.DataType is GenericType gt)
+                    vtableNdx += gt.Generates.Count;
+                else
+                    vtableNdx++;
+            }
+
+            return vtableNdx;
         }
     }
 }

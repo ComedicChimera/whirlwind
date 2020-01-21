@@ -91,9 +91,11 @@ namespace Whirlwind.Generation
             }               
             else if (dt is FunctionType ft)
             {
-                return LLVM.PointerType(LLVM.FunctionType(_convertType(ft.ReturnType),
+                var fp = LLVM.PointerType(LLVM.FunctionType(_convertType(ft.ReturnType),
                     ft.Parameters.Select(x => _convertType(x.DataType)).ToArray(),
                     ft.Parameters.Count > 0 && ft.Parameters.Last().Indefinite), 0);
+
+                return LLVM.StructType(new[] { fp, LLVM.PointerType(LLVM.Int8Type(), 0) }, false);
             }
             else if (dt is CustomInstance ci)
             {
