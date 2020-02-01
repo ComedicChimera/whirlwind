@@ -265,7 +265,28 @@ namespace Whirlwind.Generation
                             return _getLookupName(enode.Nodes[0]) + ".interf." + memberName;
                     }
                     break;
-                // TODO: static get and deref get (nullable version too)
+                case "DerefGetMemeber":
+                case "NullableDerefGetMember":
+                    {
+                        var enode = (ExprNode)node;
+                        string memberName = ((IdentifierNode)enode.Nodes[1]).IdName;
+
+                        var ept = (PointerType)enode.Nodes[0].Type;
+                        if (ept.DataType is InterfaceType it && !_isVTableMethod(it, memberName))
+                            return _getLookupName(enode.Nodes[0]) + ".interf." + memberName;
+                    }
+                    break;
+                case "GetTIMethod":
+                case "DerefGetTIMethod":
+                case "NullableDerefGetTIMethod":
+                    {
+                        var enode = (ExprNode)node;
+
+                        return _getLookupName(enode.Nodes[0]) + ".interf." + ((IdentifierNode)enode.Nodes[1]).IdName;
+                    }
+                case "StaticGet":
+                    // TODO: implement get lookup name for static get
+                    break;
             }
 
             return _getLookupName(node.Type);

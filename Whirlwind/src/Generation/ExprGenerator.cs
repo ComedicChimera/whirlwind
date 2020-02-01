@@ -63,7 +63,12 @@ namespace Whirlwind.Generation
                             {
                                 int memberNdx = st.Members.Keys.ToList().IndexOf(memberName);
 
-                                return LLVM.BuildStructGEP(_builder, _generateExpr(enode.Nodes[0]), (uint)memberNdx, "struct_gep_tmp");
+                                var memberPtr = LLVM.BuildStructGEP(_builder, _generateExpr(enode.Nodes[0]), (uint)memberNdx, "struct_gep_tmp");
+
+                                if (mutableExpr)
+                                    return memberPtr;
+                                else
+                                    return LLVM.BuildLoad(_builder, memberPtr, "struct_member." + memberName);
                             }
                             else if (enode.Nodes[0].Type is InterfaceType it)
                             {
@@ -87,6 +92,14 @@ namespace Whirlwind.Generation
                             }
                         }
                         break;
+                    case "GetTIMethod":
+                        {
+                            string rootName = _getLookupName(enode.Nodes[0]);
+                            var baseInterf = _generateExpr(enode.Nodes[0]);
+                            string memberName = ((IdentifierNode)enode.Nodes[1]).IdName;
+
+                            return _boxFunction(_globalScope[rootName + ".interf." + memberName].Vref, baseInterf);
+                        }   
                     case "CreateGeneric":
                         {
                             var generateName = _getLookupName(enode.Nodes[0]);                           
@@ -114,6 +127,7 @@ namespace Whirlwind.Generation
                         }
                         break;
                     // TODO: calling logic for methods
+                    // TODO: update calling logic
                     case "Call":
                         return LLVM.BuildCall(_builder, _generateExpr(enode),
                             _buildArgArray((FunctionType)enode.Nodes[0], enode), "call_tmp");
@@ -122,8 +136,7 @@ namespace Whirlwind.Generation
                             var fg = (FunctionGroup)enode.Nodes[0];
                             fg.GetFunction(_createArgsList(enode), out FunctionType ft);
 
-                            // we know function groups can be used in any other capacity so
-                            // we can assume that the base node here is an identifier node
+                            // TODO: fix this logic, get member can be a fg root node as well
                             string name = ((IdentifierNode)enode.Nodes[0]).IdName;
                             name += "." + string.Join(",", ft.Parameters.Select(x => x.DataType.LLVMName()));
 
