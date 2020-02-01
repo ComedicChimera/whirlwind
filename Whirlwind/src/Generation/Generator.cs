@@ -290,7 +290,12 @@ namespace Whirlwind.Generation
             }
 
             return _getLookupName(node.Type);
-        }     
+        }   
+        
+        private LLVMValueRef _copy(LLVMValueRef vref)
+        {
+            return _ignoreValueRef();
+        }
     }
 
     class GeneratorException : Exception

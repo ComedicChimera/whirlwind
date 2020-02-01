@@ -75,9 +75,9 @@ namespace Whirlwind.Generation
                     }
                     break;
                 case "This":
-                    return _getNamedValue("this");
+                    return _getNamedValue("this").Vref;
                 case "Value":
-                    return _getNamedValue("value_tmp");
+                    return _getNamedValue("value_tmp").Vref;
                 case "ByteLiteral":
                     {
                         ulong val = node.Value.StartsWith("0x") ? Convert.ToUInt64(node.Value, 16) : Convert.ToUInt64(node.Value, 2);

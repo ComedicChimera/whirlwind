@@ -11,7 +11,7 @@ namespace Whirlwind.Generation
 {
     partial class Generator
     {
-        private LLVMTypeRef _convertType(DataType dt, bool _usePtrTypes=false)
+        private LLVMTypeRef _convertType(DataType dt, bool usePtrTypes=false)
         {
             if (dt is SimpleType simt)
             {
@@ -63,10 +63,10 @@ namespace Whirlwind.Generation
                     _table.Lookup(item, out symbol);
 
                 if (symbol.DataType is StructType)
-                    return _getGlobalStruct(lName, _usePtrTypes);
+                    return _getGlobalStruct(lName, usePtrTypes);
                 // only other option is generic type
                 else
-                    return _processGeneric((GenericType)symbol.DataType, dt, _usePtrTypes);
+                    return _processGeneric((GenericType)symbol.DataType, dt, usePtrTypes);
             }
             else if (dt is InterfaceType it)
             {
@@ -78,16 +78,16 @@ namespace Whirlwind.Generation
                     _table.Lookup(item, out symbol);
 
                 if (symbol.DataType is InterfaceType)
-                    return _getGlobalStruct(lName, _usePtrTypes);
+                    return _getGlobalStruct(lName, usePtrTypes);
                 // only other option is generic type
                 else
-                    return _processGeneric((GenericType)symbol.DataType, dt, _usePtrTypes);
+                    return _processGeneric((GenericType)symbol.DataType, dt, usePtrTypes);
             }
             else if (dt is TupleType tt)
             {
                 var tStruct = LLVM.StructType(tt.Types.Select(x => _convertType(x)).ToArray(), true);
 
-                return _usePtrTypes ? LLVM.PointerType(tStruct, 0) : tStruct;
+                return usePtrTypes ? LLVM.PointerType(tStruct, 0) : tStruct;
             }               
             else if (dt is FunctionType ft)
             {
@@ -108,12 +108,12 @@ namespace Whirlwind.Generation
                     if (onlyInstance is CustomAlias ca)
                         return _convertType(ca.Type);
                     else if (onlyInstance is CustomNewType cnt)
-                        return cnt.Values.Count == 0 ? LLVM.Int16Type() : _getGlobalStruct(parent.Name, _usePtrTypes);
+                        return cnt.Values.Count == 0 ? LLVM.Int16Type() : _getGlobalStruct(parent.Name, usePtrTypes);
                 }
                 else if (parent.Instances.All(x => x is CustomNewType cnt && cnt.Values.Count == 0))
                     return LLVM.Int16Type();
                 else
-                    return _getGlobalStruct(parent.Name, _usePtrTypes);
+                    return _getGlobalStruct(parent.Name, usePtrTypes);
             }
             
             return LLVM.VoidType();
@@ -241,6 +241,20 @@ namespace Whirlwind.Generation
 
             // for now
             return _ignoreValueRef();
+        }
+
+        private bool _isPointerType(DataType dt)
+        {
+            if (dt is CustomInstance ci)
+            {
+                if (dt is CustomNewType cnt && cnt.Values.Count > 0)
+                    return true;
+
+                if (ci.Parent.Instances.Count > 1 && !ci.Parent.Instances.All(x => x is CustomNewType))
+                    return true;
+            }
+
+            return dt is StructType || dt is InterfaceType;
         }
     }
 }

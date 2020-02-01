@@ -42,6 +42,13 @@ namespace Whirlwind.Generation
                     case "ExprStmt":
                         _generateExpr(((StatementNode)node).Nodes[0]);
                         break;
+                    case "DeclareVariable":
+                        _generateVarDecl((StatementNode)node);
+                        break;
+                    case "DeclareConstant":
+                    case "DeclareConstexpr":
+                        _generateConstDecl((StatementNode)node);
+                        break;
                 }
             }
 
