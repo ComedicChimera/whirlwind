@@ -243,7 +243,7 @@ namespace Whirlwind.Generation
             return _ignoreValueRef();
         }
 
-        private bool _isPointerType(DataType dt)
+        private bool _isReferenceType(DataType dt)
         {
             if (dt is CustomInstance ci)
             {
@@ -253,8 +253,12 @@ namespace Whirlwind.Generation
                 if (ci.Parent.Instances.Count > 1 && !ci.Parent.Instances.All(x => x is CustomNewType))
                     return true;
             }
+            else if (dt is FunctionType ft)
+                return ft.IsBoxed;
 
-            return dt is StructType || dt is InterfaceType;
+            return new[] { TypeClassifier.ANY, TypeClassifier.ARRAY, TypeClassifier.TUPLE,
+                TypeClassifier.LIST, TypeClassifier.DICT, TypeClassifier.INTERFACE_INSTANCE,
+                TypeClassifier.STRUCT_INSTANCE }.Contains(dt.Classify());
         }
     }
 }

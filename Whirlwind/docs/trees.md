@@ -222,7 +222,7 @@ Represents a single Whirlwind statement.
 | Yield | *Value* | Yield-return a value from a function | **BLOCK** |
 | ExprStmt | Expr | Represents an expression acting as a statement | **STATEMENT** |
 | ExprReturn | Expr | Represents an implicit return in an expression function | **BLOCK** |
-| Assignment | Variables, Initializers | Assign a set of variables to a new value | **STATEMENT** |
+| Assignment | AssignVars, AssignExprs | Assign a set of variables to a new value | **STATEMENT** |
 | Annotation | AnnotationName, \[ AnnotationValue \] | A compiler annotation | **BLOCK** |
 | Include | Package, \[ Rename \] | Include a package | **BLOCK** |
 | IncludeSet | IncludeSet, Package | Include a set of values from a package | **BLOCK** |

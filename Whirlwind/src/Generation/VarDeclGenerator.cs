@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 
-using Whirlwind.Types;
 using Whirlwind.Semantic;
 
 using LLVMSharp;
@@ -27,16 +24,16 @@ namespace Whirlwind.Generation
                     var initExpr = _generateExpr(varNode.Nodes[1]);
 
                     if (!idNode.Type.Equals(varNode.Nodes[1].Type))
-                        initExpr = _cast(initExpr, idNode.Type, varNode.Nodes[1].Type);
+                        initExpr = _cast(initExpr, varNode.Nodes[1].Type, idNode.Type);
 
-                    if (_isPointerType(idNode.Type))
-                        _scopes.Last()[idNode.IdName] = new GeneratorSymbol(initExpr);
+                    if (_isReferenceType(idNode.Type))
+                        _setVar(idNode.IdName, initExpr);
                     else
                     {
                         var varAlloc = LLVM.BuildAlloca(_builder, _convertType(idNode.Type), idNode.IdName);
                         LLVM.BuildStore(_builder, initExpr, varAlloc);
 
-                        _scopes.Last()[idNode.IdName] = new GeneratorSymbol(varAlloc, true);
+                        _setVar(idNode.IdName, varAlloc, true);
                     }
                 }
             }
@@ -44,7 +41,7 @@ namespace Whirlwind.Generation
             var totalInitExpr = _generateExpr(stNode.Nodes[1]);
             var tieType = stNode.Nodes[1].Type;
 
-            if (_isPointerType(tieType))
+            if (_isReferenceType(tieType))
             {
                 for (int i = 0; i < uninitializedVars.Count; i++)
                 {
@@ -53,12 +50,12 @@ namespace Whirlwind.Generation
                     if (item.Type.Equals(tieType))
                     {
                         if (i > 0)
-                            _scopes.Last()[item.IdName] = new GeneratorSymbol(_copy(totalInitExpr));
+                            _setVar(item.IdName, _copyRefType(totalInitExpr));
                         else
-                            _scopes.Last()[item.IdName] = new GeneratorSymbol(totalInitExpr);
+                            _setVar(item.IdName, totalInitExpr);
                     }
                     else
-                        _scopes.Last()[item.IdName] = new GeneratorSymbol(_cast(totalInitExpr, item.Type, tieType));
+                        _setVar(item.IdName, _cast(totalInitExpr, tieType, item.Type));
                 }
             }
             else
@@ -70,9 +67,9 @@ namespace Whirlwind.Generation
                     if (item.Type.Equals(tieType))
                         LLVM.BuildStore(_builder, totalInitExpr, varAlloc);
                     else
-                        LLVM.BuildStore(_builder, _cast(totalInitExpr, item.Type, tieType), varAlloc);
+                        LLVM.BuildStore(_builder, _cast(totalInitExpr, tieType, item.Type), varAlloc);
 
-                    _scopes.Last()[item.IdName] = new GeneratorSymbol(varAlloc, true);
+                    _setVar(item.Name, varAlloc, true);
                 }
             }           
         }
@@ -93,9 +90,9 @@ namespace Whirlwind.Generation
                     var initExpr = _generateExpr(varNode.Nodes[1]);
 
                     if (!idNode.Type.Equals(varNode.Nodes[1].Type))
-                        initExpr = _cast(initExpr, idNode.Type, varNode.Nodes[1].Type);
+                        initExpr = _cast(initExpr, varNode.Nodes[1].Type, idNode.Type);
 
-                    _scopes.Last()[idNode.IdName] = new GeneratorSymbol(initExpr);
+                    _setVar(idNode.IdName, initExpr);
                 }
             }
 
@@ -109,12 +106,12 @@ namespace Whirlwind.Generation
                 if (item.Type.Equals(tieType))
                 {
                     if (i > 0)
-                        _scopes.Last()[item.IdName] = new GeneratorSymbol(_copy(totalInitExpr));
+                        _setVar(item.IdName, _copyRefType(totalInitExpr));
                     else
-                        _scopes.Last()[item.IdName] = new GeneratorSymbol(totalInitExpr);
+                        _setVar(item.IdName, totalInitExpr);
                 }
                 else
-                    _scopes.Last()[item.IdName] = new GeneratorSymbol(_cast(totalInitExpr, item.Type, tieType));
+                    _setVar(item.IdName, _cast(totalInitExpr, tieType, item.Type));
             }
         }
     }

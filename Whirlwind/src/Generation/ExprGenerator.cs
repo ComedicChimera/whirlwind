@@ -126,21 +126,17 @@ namespace Whirlwind.Generation
                             }
                         }
                         break;
-                    // TODO: calling logic for methods
-                    // TODO: update calling logic
                     case "Call":
-                        return LLVM.BuildCall(_builder, _generateExpr(enode),
-                            _buildArgArray((FunctionType)enode.Nodes[0], enode), "call_tmp");
+                        return _generateCall(enode, (FunctionType)enode.Nodes[0].Type, _generateExpr(enode.Nodes[0]));
                     case "CallOverload":
                         {
                             var fg = (FunctionGroup)enode.Nodes[0];
                             fg.GetFunction(_createArgsList(enode), out FunctionType ft);
 
-                            // TODO: fix this logic, get member can be a fg root node as well
-                            string name = ((IdentifierNode)enode.Nodes[0]).IdName;
+                            string name = _getLookupName(enode.Nodes[0]);
                             name += "." + string.Join(",", ft.Parameters.Select(x => x.DataType.LLVMName()));
 
-                            return LLVM.BuildCall(_builder, _loadGlobalValue(name), _buildArgArray(ft, enode), "call_tmp");
+                            return _generateCall(enode, ft, _loadGlobalValue(name));
                         }
                     case "CallConstructor":
                         return _generateCallConstructor(enode);
@@ -149,7 +145,10 @@ namespace Whirlwind.Generation
                     case "From":
                         return _generateFromExpr(enode);
                     case "TypeCast":
-                        return _cast(_generateExpr(enode.Nodes[0]), enode.Nodes[0].Type, enode.Type);
+                        if (mutableExpr && !_isReferenceType(enode.Type))
+                            return _cast(_generateExpr(enode.Nodes[0], mutableExpr), enode.Nodes[0].Type, new PointerType(enode.Type, false));
+
+                        return _cast(_generateExpr(enode.Nodes[0], mutableExpr), enode.Nodes[0].Type, enode.Type);
                     case "Add":
                         {
                             if (expr.Type is ArrayType at)
@@ -652,9 +651,52 @@ namespace Whirlwind.Generation
             }
         }
         
-        private LLVMValueRef _generateCall(ExprNode enode)
+        private LLVMValueRef _generateCall(ExprNode enode, FunctionType ft, LLVMValueRef genFn)
         {
-            return _ignoreValueRef();
+            var argArray = _buildArgArray(ft, enode);
+
+            LLVMValueRef rtPtr = _ignoreValueRef();
+            bool returnCallResult = true;
+
+            if (_isReferenceType(ft.ReturnType))
+            {
+                var transformedArgArray = new LLVMValueRef[argArray.Length + 1];
+
+                rtPtr = LLVM.BuildAlloca(_builder, _convertType(ft.ReturnType), "rtptr_tmp");
+
+                transformedArgArray[0] = rtPtr;
+                argArray.CopyTo(transformedArgArray, 1);
+
+                argArray = transformedArgArray;
+
+                returnCallResult = false;
+            }
+
+            if (ft.IsBoxed)
+            {
+                var fPtr = LLVM.BuildStructGEP(_builder, genFn, 0, "fptr_tmp");
+                var statePtr = LLVM.BuildStructGEP(_builder, genFn, 1, "state_ptr_tmp");
+
+                if (ft.IsMethod)
+                    statePtr = LLVM.BuildBitCast(_builder, statePtr, fPtr.TypeOf().GetParamTypes()[0], "this_ptr_tmp");
+
+                var boxedFnArgArray = new LLVMValueRef[argArray.Length + 1];
+                boxedFnArgArray[0] = statePtr;
+
+                argArray.CopyTo(boxedFnArgArray, 1);
+
+                var callResult = LLVM.BuildCall(_builder, fPtr, boxedFnArgArray, "call_boxed_tmp");
+                if (returnCallResult)
+                    return callResult;
+            }
+            else
+            {
+                var callResult = LLVM.BuildCall(_builder, genFn, argArray, "call_tmp");
+                if (returnCallResult)
+                    return callResult;
+            }
+
+            return rtPtr;
         }
 
         private LLVMValueRef _generateCallConstructor(ExprNode enode)
@@ -766,7 +808,7 @@ namespace Whirlwind.Generation
                 if (item.Name == "NamedArgument")
                     break;
 
-                argArray[i - 1] = _generateExpr(item);
+                argArray[i - 1] = _copy(_generateExpr(item), item.Type);
             }
 
             if (i == enode.Nodes.Count - 1)
@@ -781,7 +823,7 @@ namespace Whirlwind.Generation
                         .Where(x => x.Param.Name == itemName)
                         .First().Ndx;
 
-                    argArray[ftNdx] = _generateExpr(item.Nodes[1]);
+                    argArray[ftNdx] = _copy(_generateExpr(item.Nodes[1]), item.Nodes[1].Type);
                 }
             }
 

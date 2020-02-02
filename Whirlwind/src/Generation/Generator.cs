@@ -292,9 +292,23 @@ namespace Whirlwind.Generation
             return _getLookupName(node.Type);
         }   
         
-        private LLVMValueRef _copy(LLVMValueRef vref)
+        // TODO: special method cases on copies
+        private LLVMValueRef _copyRefType(LLVMValueRef vref)
         {
             return _ignoreValueRef();
+        }
+
+        private LLVMValueRef _copy(LLVMValueRef vref, DataType dt)
+        {
+            if (_isReferenceType(dt))
+                return _copyRefType(vref);
+
+            return vref;
+        }
+
+        private void _setVar(string name, LLVMValueRef val, bool isPtr=false)
+        {
+            _scopes.Last()[name] = new GeneratorSymbol(val, isPtr);
         }
     }
 
