@@ -39,6 +39,7 @@ namespace Whirlwind.Generation
                 }
             }
 
+            // TODO: null initialization
             var totalInitExpr = _generateExpr(stNode.Nodes[1]);
             var tieType = stNode.Nodes[1].Type;
 
@@ -93,6 +94,7 @@ namespace Whirlwind.Generation
                 }
             }
 
+            // TODO: null initialization
             var totalInitExpr = _generateExpr(stNode.Nodes[1]);
             var tieType = stNode.Nodes[1].Type;
 

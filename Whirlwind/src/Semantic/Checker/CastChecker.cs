@@ -155,7 +155,7 @@ namespace Whirlwind.Semantic.Checker
                     break;
                 case TypeClassifier.FUNCTION_GROUP:
                     if (desired is FunctionType && ((FunctionGroup)start).Functions.Any(x => x.Equals(desired)))
-                            return true;
+                        return true;
                     break;
                 case TypeClassifier.STRUCT_INSTANCE:
                     if (desired.Classify() == TypeClassifier.STRUCT_INSTANCE)

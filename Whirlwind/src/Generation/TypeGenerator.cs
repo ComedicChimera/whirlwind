@@ -141,19 +141,74 @@ namespace Whirlwind.Generation
             // interfaces introduce different casting rules
             if (desired is InterfaceType dInterf)
             {
+                var interf = LLVM.BuildAlloca(_builder, _convertType(dInterf), "interf_box_tmp");
+                var thisElemPtr = LLVM.BuildStructGEP(_builder, interf, 0, "this_elem_ptr_tmp");
 
+                LLVMValueRef thisPtr;
+                if (_isReferenceType(start) || start is PointerType)
+                    thisPtr = LLVM.BuildBitCast(_builder, val, LLVM.PointerType(LLVM.Int8Type(), 0), "this_ptr_tmp");
+                else
+                {
+                    var castPtr = LLVM.BuildAlloca(_builder, LLVM.PointerType(_convertType(start), 0), "cast_ptr_tmp");
+                    LLVM.BuildStore(_builder, val, castPtr);
+
+                    thisPtr = LLVM.BuildBitCast(_builder, castPtr, LLVM.PointerType(LLVM.Int8Type(), 0), "this_ptr_tmp");
+                }
+
+                LLVM.BuildStore(_builder, thisPtr, thisElemPtr);
+
+                var vtableElemPtr = LLVM.BuildStructGEP(_builder, interf, 1, "vtable_elem_ptr_tmp");
+                LLVM.BuildStore(_builder, _createVtable(start.GetInterface(), dInterf), vtableElemPtr);
+
+                return interf;
+            }
+            else if (desired is AnyType)
+            {
+                if (_isReferenceType(start) || start is PointerType)
+                    return LLVM.BuildBitCast(_builder, val, LLVM.PointerType(LLVM.Int8Type(), 0), "cast_tmp");
+                else
+                {
+                    var castPtr = LLVM.BuildAlloca(_builder, LLVM.PointerType(_convertType(start), 0), "cast_ptr_tmp");
+                    LLVM.BuildStore(_builder, val, castPtr);
+
+                    return LLVM.BuildBitCast(_builder, castPtr, LLVM.PointerType(LLVM.Int8Type(), 0), "cast_tmp");
+                }
             }
 
             if (start is SimpleType sst)
             {
                 if (desired is SimpleType dst)
                     return _castSimple(val, sst, dst);
-                else if (desired is PointerType dpt)
+                else if (desired is PointerType)
+                    return LLVM.BuildIntToPtr(_builder, val, _convertType(desired), "cast_tmp");
+            }
+            // TODO: ptr -> array
+            else if (start is PointerType spt)
+            {
+                if (desired is PointerType)
+                    return LLVM.BuildBitCast(_builder, val, _convertType(desired), "cast_tmp");
+                else if (desired is SimpleType)
+                    return LLVM.BuildPtrToInt(_builder, val, _convertType(desired), "cast_tmp");
+            }
+            else if (start is AnyType)
+            {
+                if (_isReferenceType(desired) || desired is PointerType)
+                    return LLVM.BuildBitCast(_builder, val, _convertType(desired), "cast_tmp");
+                else
                 {
+                    var castPtr = LLVM.BuildBitCast(_builder, val, LLVM.PointerType(_convertType(desired), 0), "cast_ptr_tmp");
 
+                    return LLVM.BuildLoad(_builder, castPtr, "cast_tmp");
                 }
             }
+            else if (start is NullType nt)
+                return _cast(val, nt.EvaluatedType, desired);
 
+            return _ignoreValueRef();
+        }
+
+        private LLVMValueRef _createVtable(InterfaceType child, InterfaceType parent)
+        {
             return _ignoreValueRef();
         }
 
