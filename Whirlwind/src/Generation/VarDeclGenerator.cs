@@ -39,41 +39,56 @@ namespace Whirlwind.Generation
                 }
             }
 
-            // TODO: null initialization
-            var totalInitExpr = _generateExpr(stNode.Nodes[1]);
-            var tieType = stNode.Nodes[1].Type;
-
-            if (_isReferenceType(tieType))
+            if (stNode.Nodes.Count == 1)
             {
-                for (int i = 0; i < uninitializedVars.Count; i++)
+                foreach (var item in uninitializedVars)
                 {
-                    var item = uninitializedVars[i];
-                    
-                    if (item.Type.Equals(tieType))
-                        _setVar(item.IdName, _copyRefType(totalInitExpr));
+                    if (_isReferenceType(item.Type))
+                        _setVar(item.IdName, _getNullValue(item.Type));
                     else
-                        _setVar(item.IdName, _cast(totalInitExpr, tieType, item.Type));
+                    {
+                        var varAlloc = LLVM.BuildAlloca(_builder, _convertType(item.Type), item.IdName);
+                        LLVM.BuildStore(_builder, _getNullValue(item.Type), varAlloc);
+                    }
                 }
             }
             else
             {
-                foreach (var item in uninitializedVars)
+                var totalInitExpr = _generateExpr(stNode.Nodes[1]);
+                var tieType = stNode.Nodes[1].Type;
+
+                if (_isReferenceType(tieType))
                 {
-                    var varAlloc = LLVM.BuildAlloca(_builder, _convertType(item.Type), item.IdName);
+                    for (int i = 0; i < uninitializedVars.Count; i++)
+                    {
+                        var item = uninitializedVars[i];
 
-                    if (item.Type.Equals(tieType))
-                        LLVM.BuildStore(_builder, totalInitExpr, varAlloc);
-                    else
-                        LLVM.BuildStore(_builder, _cast(totalInitExpr, tieType, item.Type), varAlloc);
-
-                    _setVar(item.Name, varAlloc, true);
+                        if (item.Type.Equals(tieType))
+                            _setVar(item.IdName, _copyRefType(totalInitExpr));
+                        else
+                            _setVar(item.IdName, _cast(totalInitExpr, tieType, item.Type));
+                    }
                 }
-            }           
+                else
+                {
+                    foreach (var item in uninitializedVars)
+                    {
+                        var varAlloc = LLVM.BuildAlloca(_builder, _convertType(item.Type), item.IdName);
+
+                        if (item.Type.Equals(tieType))
+                            LLVM.BuildStore(_builder, totalInitExpr, varAlloc);
+                        else
+                            LLVM.BuildStore(_builder, _cast(totalInitExpr, tieType, item.Type), varAlloc);
+
+                        _setVar(item.Name, varAlloc, true);
+                    }
+                }
+            }                      
         }
 
         private void _generateConstDecl(StatementNode stNode)
         {
-            var uninitializedVars = new List<IdentifierNode>();
+            var uninitializedConsts = new List<IdentifierNode>();
 
             foreach (var item in ((ExprNode)stNode.Nodes[0]).Nodes)
             {
@@ -81,7 +96,7 @@ namespace Whirlwind.Generation
                 var idNode = (IdentifierNode)varNode.Nodes[0];
 
                 if (varNode.Nodes.Count == 1)
-                    uninitializedVars.Add(idNode);
+                    uninitializedConsts.Add(idNode);
                 else
                 {
                     var initExpr = _generateExpr(varNode.Nodes[1]);
@@ -94,19 +109,26 @@ namespace Whirlwind.Generation
                 }
             }
 
-            // TODO: null initialization
-            var totalInitExpr = _generateExpr(stNode.Nodes[1]);
-            var tieType = stNode.Nodes[1].Type;
-
-            for (int i = 0; i < uninitializedVars.Count; i++)
+            if (stNode.Nodes.Count == 1)
             {
-                var item = uninitializedVars[i];
-
-                if (item.Type.Equals(tieType))
-                    _setVar(item.IdName, _copy(totalInitExpr, tieType));
-                else
-                    _setVar(item.IdName, _cast(totalInitExpr, tieType, item.Type));
+                foreach (var item in uninitializedConsts)
+                    _setVar(item.IdName, _getNullValue(item.Type));
             }
+            else
+            {
+                var totalInitExpr = _generateExpr(stNode.Nodes[1]);
+                var tieType = stNode.Nodes[1].Type;
+
+                for (int i = 0; i < uninitializedConsts.Count; i++)
+                {
+                    var item = uninitializedConsts[i];
+
+                    if (item.Type.Equals(tieType))
+                        _setVar(item.IdName, _copy(totalInitExpr, tieType));
+                    else
+                        _setVar(item.IdName, _cast(totalInitExpr, tieType, item.Type));
+                }
+            }           
         }
     }
 }
