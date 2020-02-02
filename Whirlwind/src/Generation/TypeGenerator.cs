@@ -203,6 +203,18 @@ namespace Whirlwind.Generation
             }
             else if (start is NullType nt)
                 return _cast(val, nt.EvaluatedType, desired);
+            else if (start is InterfaceType)
+            {
+                var thisPtr = LLVM.BuildLoad(_builder, LLVM.BuildStructGEP(_builder, val, 0, "this_elem_ptr"), "this_ptr");
+
+                if (_isReferenceType(desired) || desired is PointerType)
+                    return LLVM.BuildBitCast(_builder, thisPtr, _convertType(desired), "cast_tmp");
+                else
+                {
+                    var castPtr = LLVM.BuildBitCast(_builder, thisPtr, LLVM.PointerType(_convertType(desired), 0), "cast_ptr_tmp");
+                    return LLVM.BuildLoad(_builder, castPtr, "cast_tmp");
+                }
+            }
 
             return _ignoreValueRef();
         }
