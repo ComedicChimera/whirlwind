@@ -75,20 +75,14 @@ namespace Whirlwind.Generation
                                 string rootName = _getLookupName(enode.Nodes[0]);
                                 var baseInterf = _generateExpr(enode.Nodes[0]);
 
-                                if (_isVTableMethod(it, memberName))
-                                {
+                                var vtable = LLVM.BuildStructGEP(_builder, baseInterf, 1, "vtable_tmp");
 
-                                    var vtable = LLVM.BuildStructGEP(_builder, baseInterf, 1, "vtable_tmp");
+                                int vtableNdx = _getVTableNdx(it, memberName);
 
-                                    int vtableNdx = _getVTableNdx(it, memberName);
+                                var gepRes = LLVM.BuildStructGEP(_builder, vtable,
+                                    (uint)vtableNdx, "vtable_gep_tmp");
 
-                                    var gepRes = LLVM.BuildStructGEP(_builder, vtable,
-                                        (uint)vtableNdx, "vtable_gep_tmp");
-
-                                    return _boxFunction(gepRes, baseInterf);
-                                }
-                                else
-                                    return _boxFunction(_globalScope[rootName + ".interf." + memberName].Vref, baseInterf);
+                                return _boxFunction(gepRes, baseInterf);
                             }
                         }
                         break;

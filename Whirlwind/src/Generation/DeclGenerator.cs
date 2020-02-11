@@ -111,7 +111,6 @@ namespace Whirlwind.Generation
             int methodNdx = 0;
             foreach (var method in interfType.Methods)
             {
-                // build method if necessary
                 if (method.Key.DataType is FunctionType fnType)
                 {
                     // TODO: check for operator overloads

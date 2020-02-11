@@ -75,7 +75,7 @@ namespace Whirlwind.Types
         {
             if (Methods.Select(x => x.Key.Name).Contains(fnName))
             {
-                symbol = Methods.Keys.Where(x => x.Name == fnName).ToArray()[0];
+                symbol = Methods.Keys.Where(x => x.Name == fnName).First();
                 return true;
             }
 

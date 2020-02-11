@@ -251,7 +251,6 @@ namespace Whirlwind.Semantic.Visitor
                         if (fnNode.IdName.StartsWith("__"))
                             _checkSpecialMethod(fnNode, selfType, func.Content[1].Position);
 
-
                         if (!interfaceType.AddMethod(new Symbol(fnNode.IdName, fnNode.Type, memberModifiers),
                             func.Content.Last().Name == "func_body"))
                             throw new SemanticException("Interface cannot contain duplicate members", func.Content[1].Position);

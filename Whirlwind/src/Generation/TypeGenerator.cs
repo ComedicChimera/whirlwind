@@ -221,6 +221,20 @@ namespace Whirlwind.Generation
 
         private LLVMValueRef _createVtable(InterfaceType child, InterfaceType parent)
         {
+            var methods = new List<LLVMValueRef>();
+
+            foreach (var method in parent.Methods)
+            {
+                if (method.Value)
+                {
+
+                }
+                else
+                {
+
+                }
+            }
+
             return _ignoreValueRef();
         }
 
