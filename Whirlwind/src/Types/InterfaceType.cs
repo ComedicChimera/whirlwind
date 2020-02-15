@@ -50,7 +50,7 @@ namespace Whirlwind.Types
 
         public bool AddMethod(Symbol fn, bool hasBody)
         {
-            if (Methods.All(x => x.Key.Name != fn.Name && _distinguish(x.Key.DataType, fn.DataType)))
+            if (Methods.All(x => x.Key.Name != fn.Name || _distinguish(x.Key.DataType, fn.DataType)))
             {
                 Methods.Add(fn, hasBody);
 
@@ -68,15 +68,42 @@ namespace Whirlwind.Types
                 // we know gta and gtb are both generic functions (cast is always valid)
                 return FunctionGroup.CanDistinguish((FunctionType)gta.DataType, (FunctionType)gtb.DataType);
 
-            return true;
+            // if they are of different types with same name, then although they are different, the language
+            // can't distinguish them properly nor can it group them so we return false to create an invalid case
+            return false;
         }
 
         public bool GetFunction(string fnName, out Symbol symbol)
         {
             if (Methods.Select(x => x.Key.Name).Contains(fnName))
             {
-                symbol = Methods.Keys.Where(x => x.Name == fnName).First();
-                return true;
+                var matches = Methods.Keys.Where(x => x.Name == fnName);
+
+                if (matches.Count() == 1)
+                {
+                    symbol = Methods.Keys.Where(x => x.Name == fnName).First();
+                    return true;
+                }
+
+                // create artificial function groups so that interfaces have the right behavior
+                // that is GetFunction will return the corresponding function group if there are matches
+                // this allows interfaces to integrate with the rest of semantics of the language while still
+                // preserving the ability to have different members of a function or generic group have 
+                // different implementation states (ie. some implemented, some not) something just storing them
+                // as groups in the Methods list would not allow
+                else if (matches.First().DataType is FunctionType)
+                {
+                    string name = matches.First().Name;
+                    symbol = new Symbol(name, new FunctionGroup(name, matches.Select(x => (FunctionType)x.DataType).ToList()));
+                    return true;
+                }
+                // assume generic group
+                else
+                {
+                    string name = matches.First().Name;
+                    symbol = new Symbol(name, new GenericGroup(name, matches.Select(x => (GenericType)x.DataType).ToList()));
+                    return true;
+                }
             }
 
             symbol = null;

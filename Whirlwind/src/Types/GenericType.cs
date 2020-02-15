@@ -473,7 +473,7 @@ namespace Whirlwind.Types
             GenericFunctions = new List<GenericType> { type1, type2 };
         }
 
-        private GenericGroup(string name, List<GenericType> genericFunctions)
+        public GenericGroup(string name, List<GenericType> genericFunctions)
         {
             Name = name;
             GenericFunctions = genericFunctions;

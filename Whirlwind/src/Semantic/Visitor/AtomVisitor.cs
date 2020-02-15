@@ -70,6 +70,14 @@ namespace Whirlwind.Semantic.Visitor
             // check for unconstructed type classes (in case not caught in trailer)
             if (needCheckTC && _nodes.Last().Type is CustomInstance ci && ci.NeedsConstruction)
                 throw new SemanticException("Type class has uninitialized values", node.Position);
+
+            // check for function groups and generic groups (that should've decayed into functions by this point)
+            if (new[] { TypeClassifier.FUNCTION_GROUP, TypeClassifier.GENERIC_GROUP }.Contains(_nodes.Last().Type.Classify()))
+                throw new SemanticException("Unable to determine the desired overload of function", node.Position);
+
+            // check for uninitialized generics (again should not exist past this point)
+            if (_nodes.Last().Type is GenericType)
+                throw new SemanticException("Generic missing type arguments", node.Position);
         }
 
         private void _visitTrailer(ASTNode node)
