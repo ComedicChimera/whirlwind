@@ -171,24 +171,7 @@ namespace Whirlwind.Generation
         }
 
         private string _getLookupName(DataType dt)
-        {
-            string rawName;
-
-            if (dt is StructType st)
-                rawName = st.Name;
-            else if (dt is InterfaceType it)
-                rawName = it.Name;
-            else if (dt is GenericType gt)
-                return _getLookupName(gt.DataType);
-            else if (dt is CustomType ct)
-                rawName = ct.Name;
-            else if (dt is CustomInstance cit)
-                rawName = cit.Parent.Name;
-            else
-                rawName = dt.LLVMName();
-
-            return _getLookupName(rawName);
-        }
+            => _getLookupName(dt.LLVMName());
 
         private GeneratorSymbol _getNamedValue(string name)
         {
@@ -243,54 +226,7 @@ namespace Whirlwind.Generation
             }
 
             return false;
-        }
-
-        private string _getLookupName(ITypeNode node)
-        {
-            switch (node.Name)
-            {
-                case "CreateGeneric":
-                    {
-                        var enode = (ExprNode)node;
-                        var generate = ((GenericType)enode.Nodes[0]).Generates.Where(x => enode.Type.Equals(x.Type)).First();
-
-                        return _getLookupName(enode.Nodes[0]) + ".variant." + generate.GenericAliases.Select(x => x.ToString()).First();
-                    }
-                case "GetMember":
-                    {
-                        var enode = (ExprNode)node;
-                        string memberName = ((IdentifierNode)enode.Nodes[1]).IdName;
-
-                        if (enode.Nodes[0].Type is InterfaceType it && !_isVTableMethod(it, memberName))
-                            return _getLookupName(enode.Nodes[0]) + ".interf." + memberName;
-                    }
-                    break;
-                case "DerefGetMemeber":
-                case "NullableDerefGetMember":
-                    {
-                        var enode = (ExprNode)node;
-                        string memberName = ((IdentifierNode)enode.Nodes[1]).IdName;
-
-                        var ept = (PointerType)enode.Nodes[0].Type;
-                        if (ept.DataType is InterfaceType it && !_isVTableMethod(it, memberName))
-                            return _getLookupName(enode.Nodes[0]) + ".interf." + memberName;
-                    }
-                    break;
-                case "GetTIMethod":
-                case "DerefGetTIMethod":
-                case "NullableDerefGetTIMethod":
-                    {
-                        var enode = (ExprNode)node;
-
-                        return _getLookupName(enode.Nodes[0]) + ".interf." + ((IdentifierNode)enode.Nodes[1]).IdName;
-                    }
-                case "StaticGet":
-                    // TODO: implement get lookup name for static get
-                    break;
-            }
-
-            return _getLookupName(node.Type);
-        }   
+        } 
         
         // TODO: special method cases on copies
         private LLVMValueRef _copyRefType(LLVMValueRef vref)

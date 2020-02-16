@@ -459,6 +459,9 @@ namespace Whirlwind.Types
 
         public override string ToString()
             => DataType.ToString() + "<" + string.Join(", ", GenericVariables.Select(x => x.Name)) + ">";
+
+        public override string LLVMName()
+            => DataType.ToString().Replace(" ", "");
     }
 
     // represents a generic function group

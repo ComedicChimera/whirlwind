@@ -70,38 +70,22 @@ namespace Whirlwind.Generation
                                 else
                                     return LLVM.BuildLoad(_builder, memberPtr, "struct_member." + memberName);
                             }
+                            // this only handles regular interfaces since other cases are handled by other functions
                             else if (enode.Nodes[0].Type is InterfaceType it)
-                            {
-                                string rootName = _getLookupName(enode.Nodes[0]);
-                                var baseInterf = _generateExpr(enode.Nodes[0]);
-
-                                var vtable = LLVM.BuildStructGEP(_builder, baseInterf, 1, "vtable_tmp");
-
-                                int vtableNdx = _getVTableNdx(it, memberName);
-
-                                var gepRes = LLVM.BuildStructGEP(_builder, vtable,
-                                    (uint)vtableNdx, "vtable_gep_tmp");
-
-                                return _boxFunction(gepRes, baseInterf);
-                            }
+                                return _generateVtableGet(_generateExpr(enode.Nodes[0]), _getVTableNdx(it, memberName));
                         }
                         break;
                     case "GetTIMethod":
                         {
-                            string rootName = _getLookupName(enode.Nodes[0]);
+                            // assumes not overloads and no generics (handled by other parts of the code)
+                            string rootName = _getLookupName(enode.Nodes[0].Type);
                             var baseInterf = _generateExpr(enode.Nodes[0]);
                             string memberName = ((IdentifierNode)enode.Nodes[1]).IdName;
 
                             return _boxFunction(_globalScope[rootName + ".interf." + memberName].Vref, baseInterf);
                         }   
                     case "CreateGeneric":
-                        {
-                            var generateName = _getLookupName(enode.Nodes[0]);                           
-
-                            // structs are handled in the CallConstructor handler
-                            // and interfaces are never used this way
-                            return _globalScope[generateName].Vref;
-                        }
+                        return _generateCreateGeneric(enode);
                     case "StaticGet":
                         {
                             var rootType = enode.Nodes[0].Type;
@@ -124,13 +108,75 @@ namespace Whirlwind.Generation
                         return _generateCall(enode, (FunctionType)enode.Nodes[0].Type, _generateExpr(enode.Nodes[0]));
                     case "CallOverload":
                         {
-                            var fg = (FunctionGroup)enode.Nodes[0];
+                            var root = enode.Nodes[0];
+
+                            var fg = (FunctionGroup)root.Type;
                             fg.GetFunction(_createArgsList(enode), out FunctionType ft);
 
-                            string name = _getLookupName(enode.Nodes[0]);
-                            name += "." + string.Join(",", ft.Parameters.Select(x => x.DataType.LLVMName()));
+                            string overloadSuffix = string.Join(",", ft.Parameters.Select(x => x.DataType.LLVMName()));
 
-                            return _generateCall(enode, ft, _loadGlobalValue(name));
+                            LLVMValueRef llvmFn;
+                            if (root.Name == "GetMember")
+                            {
+                                var interfGetMember = (ExprNode)root;
+
+                                var interfNode = interfGetMember.Nodes[0];
+                                var it = (InterfaceType)interfNode.Type;
+
+                                var vtableNdx = _getVTableNdx(it, ((IdentifierNode)interfGetMember.Nodes[1]).IdName);
+                                vtableNdx += fg.Functions.IndexOf(ft);
+
+                                llvmFn = _generateVtableGet(_generateExpr(interfNode), vtableNdx);
+                            }
+                            else if (root.Name == "GetTIMethod")
+                                llvmFn = _loadGlobalValue(_getLookupName(((ExprNode)root).Nodes[0].Type) + "." + overloadSuffix);
+                            else
+                                llvmFn = _loadGlobalValue(fg.Name + "." + overloadSuffix);
+
+                            return _generateCall(enode, ft, llvmFn);
+                        }
+                    case "CallGenericOverload":
+                        {
+                            var root = enode.Nodes[0];
+
+                            var gg = (GenericGroup)root.Type;
+                            gg.GetFunction(_createArgsList(enode), out FunctionType ft);
+
+                            string overloadSuffix = string.Join(",", ft.Parameters.Select(x => x.DataType.LLVMName()));
+
+                            LLVMValueRef llvmFn;
+                            if (root.Name == "GetMember")
+                            {
+                                var interfGetMember = (ExprNode)root;
+
+                                var interfNode = interfGetMember.Nodes[0];
+                                var it = (InterfaceType)interfNode.Type;
+
+                                var vtableNdx = _getVTableNdx(it, ((IdentifierNode)interfGetMember.Nodes[1]).IdName);
+
+                                // move the vtable ndx to the start of the generic in the generic group that the function is
+                                // stored in by totalling all the generics vtable offsets (the number of generates that had)
+                                // and add that to the starting vtable index
+                                vtableNdx += gg.GenericFunctions
+                                    .Select(x => (GenericType)x.DataType)
+                                    .TakeWhile(x => !x.Generates.Select(y => y.Type).Contains(ft))
+                                    .Aggregate(0, (a, b) => a + b.Generates.Count);
+
+                                // then add the index of the desired generate of the appropriate generic function to this to
+                                // create the final vtable index
+                                vtableNdx += gg.GenericFunctions
+                                    .Select((x, i) => new { Type = x, Ndx = i })
+                                    .Where(x => x.Type.Generates.Select(y => y.Type).Contains(ft))
+                                    .First().Ndx;
+
+                                llvmFn = _generateVtableGet(_generateExpr(interfNode), vtableNdx);
+                            }
+                            else if (root.Name == "GetTIMethod")
+                                llvmFn = _loadGlobalValue(_getLookupName(((ExprNode)root).Nodes[0].Type) + ".variant." + overloadSuffix);
+                            else
+                                llvmFn = _loadGlobalValue(gg.Name + ".variant." + overloadSuffix);
+
+                            return _generateCall(enode, ft, llvmFn);
                         }
                     case "CallConstructor":
                         return _generateCallConstructor(enode);
@@ -546,6 +592,63 @@ namespace Whirlwind.Generation
                 default:
                     return "__~^__";
             }
+        }
+
+        private LLVMValueRef _generateCreateGeneric(ExprNode enode)
+        {
+            var root = enode.Nodes[0];
+
+            // only time this is valid (pure GetMember) is with interfaces
+            if (root.Name == "GetMember")
+            {
+                var interfGetMember = (ExprNode)root;
+
+                var itType = (InterfaceType)interfGetMember.Nodes[0].Type;
+                string name = ((IdentifierNode)interfGetMember.Nodes[1]).IdName;
+
+                int vtableNdx = _getVTableNdx(itType, name);
+                itType.GetFunction(name, out Symbol sym);
+
+                vtableNdx += ((GenericType)sym.DataType).Generates
+                    .Select((x, i) => new { x.Type, Ndx = i })
+                    .Where(x => x.Type == enode.Type).First().Ndx;
+
+                return _generateVtableGet(_generateExpr(interfGetMember.Nodes[0]), vtableNdx);
+            }
+
+            var generate = ((GenericType)root.Type).Generates.Where(x => enode.Type.Equals(x.Type)).First();
+            string typeListSuffix = string.Join(',', generate.GenericAliases.Select(x => x.Value.LLVMName()));
+
+            if (root.Name == "GetTIMethod")
+            {
+                var tiGetMember = (ExprNode)root;
+
+                string rootName = _getLookupName(tiGetMember.Nodes[0].Type);
+                string memberName = ((IdentifierNode)tiGetMember.Nodes[1]).IdName;
+
+                string tiPrefix = rootName + ".interf." + memberName;
+                var typeInterf = _globalScope[tiPrefix].Vref;
+
+                var tiGenerateName = tiPrefix + ".variant." + typeListSuffix;
+
+                return _boxFunction(_globalScope[tiGenerateName].Vref, typeInterf);
+            }
+
+            var generateName = _getLookupName(root.Type) + ".variant." + typeListSuffix;
+
+            // structs are handled in the CallConstructor handler
+            // and interfaces are never used this way
+            return _globalScope[generateName].Vref;
+        }
+
+        private LLVMValueRef _generateVtableGet(LLVMValueRef baseInterf, int vtableNdx)
+        {            
+            var vtable = LLVM.BuildStructGEP(_builder, baseInterf, 1, "vtable_tmp");
+
+            var gepRes = LLVM.BuildStructGEP(_builder, vtable,
+                (uint)vtableNdx, "vtable_gep_tmp");
+
+            return _boxFunction(gepRes, baseInterf);
         }
 
         private LLVMValueRef _generateArrayLiteral(ExprNode enode)
