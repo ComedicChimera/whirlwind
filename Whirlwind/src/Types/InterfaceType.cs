@@ -5,12 +5,19 @@ using Whirlwind.Semantic;
 
 namespace Whirlwind.Types
 {
+    enum MethodStatus
+    {
+        ABSTRACT,
+        VIRTUAL,
+        IMPLEMENTED
+    }
+
     class InterfaceType : DataType
     {
         public readonly string Name;
         public readonly List<InterfaceType> Implements;
         public bool SuperForm { get; private set; } = false;
-        public Dictionary<Symbol, bool> Methods { get; private set; }
+        public Dictionary<Symbol, MethodStatus> Methods { get; private set; }
 
         private bool _initialized = false;
 
@@ -20,7 +27,7 @@ namespace Whirlwind.Types
 
             Implements = new List<InterfaceType>();
 
-            Methods = new Dictionary<Symbol, bool>();
+            Methods = new Dictionary<Symbol, MethodStatus>();
 
             Constant = true;
         }
@@ -34,11 +41,11 @@ namespace Whirlwind.Types
             if (superForm)
             {
                 SuperForm = true;
-                Methods = new Dictionary<Symbol, bool>();
+                Methods = new Dictionary<Symbol, MethodStatus>();
 
                 foreach (var method in interf.Methods)
                 {
-                    if (method.Value)
+                    if (method.Value == MethodStatus.VIRTUAL)
                         Methods.Add(method.Key, method.Value);
                 }
             }
@@ -48,11 +55,11 @@ namespace Whirlwind.Types
             _initialized = true;
         }
 
-        public bool AddMethod(Symbol fn, bool hasBody)
+        public bool AddMethod(Symbol fn, MethodStatus methodStatus)
         {
             if (Methods.All(x => x.Key.Name != fn.Name || _distinguish(x.Key.DataType, fn.DataType)))
             {
-                Methods.Add(fn, hasBody);
+                Methods.Add(fn, methodStatus);
 
                 return true;
             }
@@ -181,10 +188,12 @@ namespace Whirlwind.Types
             else
                 interf = child.GetInterface();
 
-            if (Methods.Where(x => !x.Value).All(x => interf.Methods.Select(y => y.Key).Where(y => x.Key.Equals(y)).Count() > 0)) {
+            if (Methods.Where(x => x.Value == MethodStatus.ABSTRACT)
+                .All(x => interf.Methods.Select(y => y.Key).Where(y => x.Key.Equals(y)).Count() > 0))
+            {
                 foreach (var method in Methods) {
-                    if (method.Value && !interf.Methods.Contains(method))
-                        interf.AddMethod(method.Key, method.Value);
+                    if (method.Value != MethodStatus.ABSTRACT && !interf.Methods.Contains(method))
+                        interf.AddMethod(method.Key, MethodStatus.VIRTUAL);
                 }
 
                 interf.Implements.Add(this);

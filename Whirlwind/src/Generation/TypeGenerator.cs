@@ -160,6 +160,9 @@ namespace Whirlwind.Generation
                 var vtableElemPtr = LLVM.BuildStructGEP(_builder, interf, 1, "vtable_elem_ptr_tmp");
                 LLVM.BuildStore(_builder, _createVtable(start.GetInterface(), dInterf), vtableElemPtr);
 
+                var cVarElemPtr = LLVM.BuildStructGEP(_builder, interf, 2, "c_var_elem_ptr_tmp");
+                LLVM.BuildStore(_builder, LLVM.ConstInt(LLVM.Int16Type(), _getInterfCVar(dInterf, start), new LLVMBool(0)), cVarElemPtr);
+
                 return interf;
             }
             else if (desired is AnyType)
@@ -219,23 +222,71 @@ namespace Whirlwind.Generation
             return _ignoreValueRef();
         }
 
-        private LLVMValueRef _createVtable(InterfaceType child, InterfaceType parent)
+        private LLVMValueRef _createVtable(InterfaceType child, InterfaceType parent, string genericSuffix="")
         {
             var methods = new List<LLVMValueRef>();
 
-            foreach (var method in parent.Methods)
+            void addMethod(InterfaceType it, string methodName)
             {
-                if (method.Value)
-                {
+                it.GetFunction(methodName, out Symbol sym);
+                string methodPrefix = it.Name + genericSuffix + ".interf.";
 
-                }
-                else
+                switch (sym.DataType.Classify())
                 {
-
+                    case TypeClassifier.FUNCTION:
+                        methods.Add(_loadGlobalValue(methodPrefix + sym.Name));
+                        break;
+                    case TypeClassifier.FUNCTION_GROUP:
+                        methods.Concat(
+                            ((FunctionGroup)sym.DataType).Functions
+                            .Select(x =>
+                                _loadGlobalValue(methodPrefix + sym.Name + "." + 
+                                string.Join(",", x.Parameters.Select(y => y.DataType.LLVMName()))
+                            ))
+                        );
+                        break;
+                    case TypeClassifier.GENERIC:
+                        methods.Concat(
+                            ((GenericType)sym.DataType).Generates
+                            .Select(x => 
+                                _loadGlobalValue(methodPrefix + sym.Name + ".variant." +
+                                string.Join(",", x.GenericAliases.Select(y => y.Value.LLVMName()))
+                            ))
+                        );
+                        break;
+                    case TypeClassifier.GENERIC_GROUP:
+                        // select every generate of every generic function in the generic group
+                        methods.Concat(
+                            ((GenericGroup)sym.DataType).GenericFunctions
+                            .SelectMany(x => x.Generates.Select(y => 
+                                _loadGlobalValue(methodPrefix + sym.Name + ".variant." +
+                                string.Join(",", y.GenericAliases.Select(z => z.Value.LLVMName()))
+                                )
+                            ))
+                        );
+                        break;
                 }
             }
 
-            return _ignoreValueRef();
+            foreach (var method in parent.Methods)
+            {
+                if (child.Methods[method.Key] == MethodStatus.VIRTUAL)
+                    addMethod(parent, method.Key.Name);
+                else
+                    addMethod(child, method.Key.Name);
+            }
+
+            var vtableType = _getGlobalStruct(parent.Name + genericSuffix + ".__vtable", false);
+            var vtablePtr = LLVM.BuildAlloca(_builder, vtableType, "vtable_ptr_tmp");
+
+            LLVM.BuildStore(_builder, LLVM.ConstNamedStruct(vtableType, methods.ToArray()), vtablePtr);
+
+            return vtablePtr;
+        }
+
+        private ulong _getInterfCVar(InterfaceType it, DataType dt)
+        {
+            return 0;
         }
 
         private byte _getSimpleClass(SimpleType st)

@@ -117,7 +117,7 @@ namespace Whirlwind.Generation
 
                     methods.Add(_convertType(fnType));
 
-                    if (method.Value)
+                    if (method.Value != MethodStatus.ABSTRACT)
                     {
                         var llvmMethod = _generateFunctionPrototype(name + ".interf." + method.Key.Name, fnType, exported);
 
@@ -135,8 +135,8 @@ namespace Whirlwind.Generation
             interfStruct.StructSetBody(new[]
             {
                 LLVM.PointerType(LLVM.Int8Type(), 0),
-                LLVM.Int16Type(),
-                vtableStruct
+                LLVM.PointerType(vtableStruct, 0),
+                LLVM.Int16Type()
             }, false);
 
             _globalStructs[name] = interfStruct;

@@ -226,6 +226,9 @@ namespace Whirlwind.Semantic.Visitor
                         throw new SemanticException("All methods of type interface must define a body",
                             func.Content[func.Content.Count - 2].Position);
 
+                    var mStatus = func.Content.Last().Name == "func_body" ?
+                            (typeInterface ? MethodStatus.IMPLEMENTED : MethodStatus.VIRTUAL) : MethodStatus.ABSTRACT;
+
                     if (func.Content[4].Name == "generic_tag")
                     {
                         var genericVars = _primeGeneric((ASTNode)func.Content[4]);
@@ -237,10 +240,9 @@ namespace Whirlwind.Semantic.Visitor
                         var genNode = (IdentifierNode)((BlockNode)_nodes.Last()).Nodes[0];
 
                         if (new[] { "__finalize__", "__copy__", "__move__", "__get__", "__set__", "__close__" }.Contains(genNode.IdName))
-                            throw new SemanticException("Special methods cannot be generic", func.Content[2].Position);
+                            throw new SemanticException("Special methods cannot be generic", func.Content[2].Position);                       
 
-                        if (!interfaceType.AddMethod(new Symbol(genNode.IdName, genNode.Type, memberModifiers),
-                            func.Content.Last().Name == "func_body"))
+                        if (!interfaceType.AddMethod(new Symbol(genNode.IdName, genNode.Type, memberModifiers), mStatus))
                             throw new SemanticException("Interface cannot contain duplicate members", func.Content[1].Position);
                     }
                     else
@@ -251,8 +253,7 @@ namespace Whirlwind.Semantic.Visitor
                         if (fnNode.IdName.StartsWith("__"))
                             _checkSpecialMethod(fnNode, selfType, func.Content[1].Position);
 
-                        if (!interfaceType.AddMethod(new Symbol(fnNode.IdName, fnNode.Type, memberModifiers),
-                            func.Content.Last().Name == "func_body"))
+                        if (!interfaceType.AddMethod(new Symbol(fnNode.IdName, fnNode.Type, memberModifiers), mStatus))
                             throw new SemanticException("Interface cannot contain duplicate members", func.Content[1].Position);
                     }
                 }
@@ -318,12 +319,12 @@ namespace Whirlwind.Semantic.Visitor
             _nodes.Add(new ValueNode("Operator", ft, op));
             MergeBack();
 
-            bool hasBody = false;
+            var mStatus = MethodStatus.ABSTRACT;
 
             if (node.Content.Last().Name == "func_body")
             {
                 _nodes.Add(new IncompleteNode((ASTNode)node.Content.Last()));
-                hasBody = true;
+                mStatus = typeInterface ? MethodStatus.IMPLEMENTED : MethodStatus.VIRTUAL;
                 MergeToBlock();
             }           
             else if (typeInterface)
@@ -337,10 +338,10 @@ namespace Whirlwind.Semantic.Visitor
                 _makeGeneric(node, genericVars, new List<Modifier>(), sym, node.Content[1].Position);
                 var genType = ((BlockNode)_nodes.Last()).Nodes[0].Type;
 
-                interfType.AddMethod(new Symbol($"__{op}__", genType), hasBody);
+                interfType.AddMethod(new Symbol($"__{op}__", genType), mStatus);
             }
             else
-                interfType.AddMethod(new Symbol($"__{op}__", ft), hasBody);
+                interfType.AddMethod(new Symbol($"__{op}__", ft), mStatus);
         }
 
         private bool _isGenericInterf(ASTNode node, List<string> varNames)
