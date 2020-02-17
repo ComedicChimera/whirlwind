@@ -211,7 +211,10 @@ namespace Whirlwind.Types
         }
 
         public virtual string LLVMName()
-            => ToString().Replace(" ", "");
+            => _makeLLVMSafe(ToString());
+
+        protected string _makeLLVMSafe(string str)
+            => str.Replace(" ", "").Split("::").Last();
 
         // get a given data type classifier as a string
         public abstract TypeClassifier Classify();

@@ -34,5 +34,8 @@
 
         public override string ToString()
             => (IsDynamicPointer ? "dyn* " : "*") + DataType.ToString();
+
+        public override string LLVMName()
+            => (IsDynamicPointer ? "dyn* " : "*") + DataType.LLVMName();
     }
 }

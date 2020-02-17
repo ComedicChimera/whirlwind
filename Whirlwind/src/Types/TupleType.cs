@@ -40,5 +40,8 @@ namespace Whirlwind.Types
 
         public override string ToString()
             => $"tuple({string.Join(", ", Types.Select(x => x.ToString()))})";
+
+        public override string LLVMName()
+            => $"tuple({string.Join(", ", Types.Select(x => x.LLVMName()))})";
     }
 }

@@ -48,6 +48,9 @@
 
         public override string ToString()
             => $"array[{ElementType.ToString()}{(Size == -1 ? "]" : $", {Size}]")}";
+
+        public override string LLVMName()
+            => _makeLLVMSafe($"array[{ElementType.LLVMName()}{(Size == -1 ? "]" : $", {Size}]")}");
     }
 
     class ListType : DataType, IIterable
@@ -91,6 +94,9 @@
 
         public override string ToString()
             => $"list[{ElementType.ToString()}]";
+
+        public override string LLVMName()
+            => _makeLLVMSafe($"list[{ElementType.LLVMName()}]");
     }
 
     class DictType : DataType,  IIterable
@@ -131,5 +137,8 @@
 
         public override string ToString()
             => $"dict[{KeyType.ToString()}, {ValueType.ToString()}]";
+
+        public override string LLVMName()
+            => $"dict[{KeyType.LLVMName()}, {ValueType.LLVMName()}]";
     }
 }

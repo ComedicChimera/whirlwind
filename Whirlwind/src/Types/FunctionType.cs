@@ -163,6 +163,30 @@ namespace Whirlwind.Types
 
             return baseString += $"({string.Join(", ", stringParams)})({(ReturnType is NoneType ? "" : ReturnType.ToString())})";
         }
+
+        // TODO: clean this up a bit?
+        public override string LLVMName()
+        {
+            string baseString = Async ? "async" : "func";
+
+            var stringParams = new List<string>();
+
+            foreach (var param in Parameters)
+            {
+                string stringParam = "";
+
+                if (param.Indefinite)
+                    stringParam += "...";
+                else if (param.Optional)
+                    stringParam += "~";
+
+                stringParam += param.DataType.LLVMName();
+
+                stringParams.Add(stringParam);
+            }
+
+            return baseString += $"({string.Join(", ", stringParams)})({(ReturnType is NoneType ? "" : ReturnType.LLVMName())})";
+        }
     }
 
     class FunctionGroup : DataType
