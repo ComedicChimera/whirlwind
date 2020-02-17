@@ -161,7 +161,7 @@ namespace Whirlwind.Generation
                 LLVM.BuildStore(_builder, _createVtable(start.GetInterface(), dInterf), vtableElemPtr);
 
                 var cVarElemPtr = LLVM.BuildStructGEP(_builder, interf, 2, "c_var_elem_ptr_tmp");
-                LLVM.BuildStore(_builder, LLVM.ConstInt(LLVM.Int16Type(), _getInterfCVar(dInterf, start), new LLVMBool(0)), cVarElemPtr);
+                LLVM.BuildStore(_builder, LLVM.ConstInt(LLVM.Int16Type(), _getInterfCVar(start), new LLVMBool(0)), cVarElemPtr);
 
                 return interf;
             }
@@ -284,10 +284,8 @@ namespace Whirlwind.Generation
             return vtablePtr;
         }
 
-        private ulong _getInterfCVar(InterfaceType it, DataType dt)
-        {
-            return 0;
-        }
+        private ulong _getInterfCVar(DataType dt)
+            => (ulong)dt.ToString().GetHashCode();
 
         private byte _getSimpleClass(SimpleType st)
         {
