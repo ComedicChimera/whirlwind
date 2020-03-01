@@ -357,8 +357,8 @@ block: '{' [main] '}'
 ;
 
 // operator (wherever any operator can be used)
-operator: '+' | '-' | '*' | '/' | '%' | '<' | '>' | '<=' | '>=' | '==' | '!='
-| '>>=' | '~^' | '~*' | '~/' | '<' '<' | '>' '>' | 'AND' | 'OR' | 'XOR' | '~' ;
+operator: '<' '<' | '>' '>' | '+' | '-' | '*' | '/' | '%' | '<' | '>' | '<=' | '>=' | '==' | '!='
+| '>>=' | '~^' | '~*' | '~/' | 'AND' | 'OR' | 'XOR' | '~' ;
 
 // generic tag (placed after several block declarations)
 generic_tag: '<' generic (',' generic)* '>' ;

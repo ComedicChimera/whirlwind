@@ -552,9 +552,8 @@ namespace Whirlwind.Generation
             if (expr.Nodes.Count - startDepth == 1)
             {
                 var opType = expr.Nodes[startDepth].Type;
-                var opMethod = _convertOverloadTreeToOpMethod(expr.Name);
 
-                if (HasOverload(opType, opMethod, out DataType _))
+                if (HasOverload(opType, expr.Name, out DataType _))
                 {
                     /*res = LLVM.BuildCall(_builder, _getNamedValue(opType.ToString() + ".operator." + opMethod),
                         _generateExpr();*/
@@ -748,6 +747,7 @@ namespace Whirlwind.Generation
             }
         }
         
+        // TODO: handle indefinites
         private LLVMValueRef _generateCall(ExprNode enode, FunctionType ft, LLVMValueRef genFn)
         {
             var argArray = _buildArgArray(ft, enode);

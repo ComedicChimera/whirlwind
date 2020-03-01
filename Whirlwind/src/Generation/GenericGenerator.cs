@@ -21,6 +21,9 @@ namespace Whirlwind.Generation
                 case TypeClassifier.FUNCTION:
                     gg = (n, e) => _generateFunction(n, e, true);
                     break;
+                case TypeClassifier.TYPE_CLASS:
+                    gg = (n, _) => _generateTypeClass(n);
+                    break;
                 default:
                     gg = (n, e) => _generateStruct(n, e, false);
                     break;
@@ -43,6 +46,28 @@ namespace Whirlwind.Generation
             _genericSuffix = newSuffix;
 
             return oldSuffix;
+        }
+
+        private List<Tuple<string, FunctionType, BlockNode>> _generateGenericMethod(string interfName, Symbol symbol)
+        {
+            string llvmNameBase;
+            if (_getOperatorOverloadName(symbol.Name, out string overloadName))
+                llvmNameBase = interfName + ".operator." + overloadName;
+            else
+                llvmNameBase = interfName + ".interf." + symbol.Name;
+
+            var generateMethods = new List<Tuple<string, FunctionType, BlockNode>>();
+            foreach (var generate in ((GenericType)symbol.DataType).Generates)
+            {
+                string llvmName = llvmNameBase + ".variant." + string.Join("_", generate.GenericAliases
+                    .Values.Select(x => x.LLVMName()));
+
+                generateMethods.Add(new Tuple<string, FunctionType, BlockNode>(
+                    llvmName, (FunctionType)generate.Type, generate.Block
+                    ));
+            }
+
+            return generateMethods;
         }
     }
 }

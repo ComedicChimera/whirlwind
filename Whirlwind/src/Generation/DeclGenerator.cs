@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System;
 
 using LLVMSharp;
 
@@ -93,6 +94,7 @@ namespace Whirlwind.Generation
         private Parameter _buildThisParameter(DataType dt)
             => new Parameter("this", new PointerType(dt, false), false, false, false, false);
 
+        // TODO: external interfaces
         private void _generateInterf(BlockNode node)
         {
             var idNode = (IdentifierNode)node.Nodes[0];
@@ -113,17 +115,39 @@ namespace Whirlwind.Generation
             {
                 if (method.Key.DataType is FunctionType fnType)
                 {
-                    // TODO: check for operator overloads
+                    string llvmName;
+                    if (_getOperatorOverloadName(method.Key.Name, out string overloadName))
+                        llvmName = name + ".operator." + overloadName;
+                    else
+                        llvmName = name + ".interf." + method.Key.Name;
+
+                    if (interfType.Methods.Where(x => x.Key.Name == method.Key.Name).Count() > 1)
+                        llvmName += "." + string.Join(",", fnType.Parameters.Select(x => x.DataType.LLVMName()));
 
                     methods.Add(_convertType(fnType));
 
                     if (method.Value != MethodStatus.ABSTRACT)
                     {
-                        var llvmMethod = _generateFunctionPrototype(name + ".interf." + method.Key.Name, fnType, exported);
+                        var llvmMethod = _generateFunctionPrototype(llvmName, fnType, exported);
 
                         _appendFunctionBlock(llvmMethod, ((BlockNode)node.Block[methodNdx]));
                     }
-                }   
+                }
+                // generic case
+                else
+                {
+                    var generateList = _generateGenericMethod(name, method.Key);
+
+                    if (method.Value != MethodStatus.ABSTRACT)
+                    {
+                        foreach (var generate in generateList)
+                        {
+                            var llvmMethod = _generateFunctionPrototype(generate.Item1, generate.Item2, exported);
+
+                            _appendFunctionBlock(llvmMethod, generate.Item3);
+                        }
+                    }                    
+                }
             }
 
             var vtableStruct = LLVM.StructCreateNamed(_ctx, llvmPrefix + name + ".__vtable");
@@ -142,6 +166,52 @@ namespace Whirlwind.Generation
             _globalStructs[name] = interfStruct;
         }
 
+        Dictionary<string, string> _opNameTable = new Dictionary<string, string>
+        {
+            { "+", "Add" },
+            { "-", "Sub" },
+            { "*", "Mul" },
+            { "/", "Div" },
+            { "~/", "Floordiv" },
+            { "~^", "Pow" },
+            { "%", "Mod" },
+            { ">", "Gt" },
+            { "<", "Lt" },
+            { ">=", "GtEq" },
+            { "<=", "LtEq" },
+            { "==", "Eq" },
+            { "!=", "Neq" },
+            { "!", "Not" },
+            { "AND", "And" },
+            { "OR", "Or" },
+            { "XOR", "Xor" },
+            { "~", "Complement" },
+            { "%", "Mod" },
+            { ">>", "RShift" },
+            { "<<", "LShift" },
+            { "~*", "Compose" },
+            { ">>=", "Bind" },
+            { "[]", "Subscript" },
+            { "[:]", "Slice" },
+            { "..", "Range" },
+            { ":>", "ExtractInto" }
+        };
+
+        private bool _getOperatorOverloadName(string baseName, out string outputName)
+        {
+            string trimmedName = baseName.Trim('_');
+            
+            if (_opNameTable.ContainsKey(trimmedName))
+            {
+                outputName = _opNameTable[trimmedName];
+                return true;
+            }
+
+            outputName = "";
+            return false;
+        }
+
+        // TODO: external type classes
         private void _generateTypeClass(BlockNode node)
         {
             var tc = (CustomType)(node.Nodes[0].Type);

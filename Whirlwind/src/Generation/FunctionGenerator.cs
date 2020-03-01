@@ -60,30 +60,63 @@ namespace Whirlwind.Generation
 
         private LLVMValueRef _generateFunctionPrototype(string name, FunctionType ft, bool external)
         {
-            var arguments = new LLVMTypeRef[ft.Parameters.Count];
+            int argOffset = 0, argCount = ft.Parameters.Count;
+            var frontArgs = new List<Tuple<string, LLVMTypeRef>>();
+            bool refReturn = _isReferenceType(ft.ReturnType);
+
+            if (ft.IsBoxed)
+            {
+                argOffset++;
+                frontArgs.Add(new Tuple<string, LLVMTypeRef>(
+                    ft.IsMethod ? "this" : "$state", LLVM.PointerType(LLVM.Int8Type(), 0)
+                    ));
+            }          
+            if (refReturn)
+            {
+                argOffset++;
+                frontArgs.Add(new Tuple<string, LLVMTypeRef>(
+                    "$rt_val", _convertType(ft.ReturnType, true)
+                    ));
+            }
+
+            argCount += argOffset;           
+
+            var arguments = new LLVMTypeRef[argCount];
             var byvalAttr = new List<int>();
             var isVarArg = false;
 
             Parameter param;
-            for (int i = 0; i < ft.Parameters.Count; i++)
+            for (int i = 0; i < argCount; i++)
             {
-                param = ft.Parameters[i];
+                if (i < argOffset)
+                    arguments[i] = frontArgs[0].Item2;
+                else
+                {
+                    param = ft.Parameters[i];
 
-                if (param.Indefinite)
-                    isVarArg = true;
+                    // TODO: make sure indefinite passes as list
+                    if (param.Indefinite)
+                        isVarArg = true;
 
-                arguments[i] = _convertType(param.DataType, true);
+                    arguments[i] = _convertType(param.DataType, true);
+                }             
             }
 
-            var llvmFn = LLVM.AddFunction(_module, name, LLVM.FunctionType(_convertType(ft.ReturnType), arguments, isVarArg));
+            var llvmFn = LLVM.AddFunction(_module, name, LLVM.FunctionType(
+                refReturn ? LLVM.VoidType() : _convertType(ft.ReturnType), 
+                arguments, isVarArg));
 
             // handle external symbols as necessary
             LLVM.SetLinkage(llvmFn, external ? LLVMLinkage.LLVMExternalLinkage : LLVMLinkage.LLVMLinkerPrivateLinkage);
 
-            for (int i = 0; i < ft.Parameters.Count; i++)
+            for (int i = 0; i < argCount; i++)
             {
                 LLVMValueRef llvmParam = LLVM.GetParam(llvmFn, (uint)i);
-                LLVM.SetValueName(llvmParam, ft.Parameters[i].Name);
+
+                if (i < argOffset)
+                    LLVM.SetValueName(llvmParam, frontArgs[i].Item1);
+                else
+                    LLVM.SetValueName(llvmParam, ft.Parameters[i - argOffset].Name);
             }
 
             return llvmFn;
@@ -132,11 +165,6 @@ namespace Whirlwind.Generation
 
             _scopes.Add(fnScope);            
         }
-
-        /*private bool _returnsAsArgPtr(FunctionType ft)
-            => new[] { TypeClassifier.STRUCT_INSTANCE, TypeClassifier.TYPE_CLASS_INSTANCE,
-                       TypeClassifier.INTERFACE_INSTANCE, TypeClassifier.ARRAY, TypeClassifier.LIST,
-                       TypeClassifier.DICT, TypeClassifier.TUPLE }.Contains(ft.ReturnType.Classify());*/
         
         private ArgumentList _createArgsList(ExprNode enode)
             => new ArgumentList(

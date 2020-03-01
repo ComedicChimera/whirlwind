@@ -36,22 +36,12 @@ namespace Whirlwind.Generation
                         return _stringType;
                 }
             }
-            // TODO: fix broken type impls (none of the collections generate properly)
             else if (dt is ArrayType at)
-            {
-                ((GenericType)_impls["array"]).CreateGeneric(new List<DataType> { at.ElementType }, out DataType ast);
-                return _convertType(ast);
-            }
+                return _makeGenerate((GenericType)_impls["array"], usePtrTypes, at.ElementType);
             else if (dt is ListType lt)
-            {
-                ((GenericType)_impls["list"]).CreateGeneric(new List<DataType> { lt.ElementType }, out DataType lst);
-                return _convertType(lst);
-            }
+                return _makeGenerate((GenericType)_impls["list"], usePtrTypes, lt.ElementType);
             else if (dt is DictType dct)
-            {
-                ((GenericType)_impls["dict"]).CreateGeneric(new List<DataType> { dct.KeyType, dct.ValueType }, out DataType dst);
-                return _convertType(dst);
-            }
+                return _makeGenerate((GenericType)_impls["dict"], usePtrTypes, dct.KeyType, dct.ValueType);
             else if (dt is PointerType pt)
                 return LLVM.PointerType(_convertType(pt.DataType), 0);
             else if (dt is StructType st)
@@ -91,8 +81,21 @@ namespace Whirlwind.Generation
             }               
             else if (dt is FunctionType ft)
             {
-                var fp = LLVM.PointerType(LLVM.FunctionType(_convertType(ft.ReturnType),
-                    ft.Parameters.Select(x => _convertType(x.DataType)).ToArray(),
+                var parameters = ft.Parameters.Select(x => _convertType(x.DataType)).ToList();
+                LLVMTypeRef rtType;
+
+                if (_isReferenceType(ft.ReturnType))
+                {
+                    parameters.Insert(0, _convertType(ft.ReturnType, true));
+                    rtType = LLVM.VoidType();
+                }
+                else
+                    rtType = _convertType(ft.ReturnType);
+
+                if (ft.IsBoxed)
+                    parameters.Insert(0, LLVM.PointerType(LLVM.Int8Type(), 0));
+
+                var fp = LLVM.PointerType(LLVM.FunctionType(rtType, parameters.ToArray(),
                     ft.Parameters.Count > 0 && ft.Parameters.Last().Indefinite), 0);
 
                 return LLVM.StructType(new[] { fp, LLVM.PointerType(LLVM.Int8Type(), 0) }, false);
@@ -129,9 +132,38 @@ namespace Whirlwind.Generation
             return gStruct;
         }
 
+        // allow for creation of artificial struct generates
+        private LLVMTypeRef _makeGenerate(GenericType gt, bool usePtrTypes, params DataType[] typeArguments)
+        {
+            // assume this will work :D
+            gt.CreateGeneric(typeArguments.ToList(), out DataType generateType);
+            var generate = gt.Generates.Single(x => x.Type.Equals(generateType));
+
+            _genericSuffix = ".variant." + string.Join("_", generate.GenericAliases
+                     .Values.Select(x => x.LLVMName()));
+
+            _generateStruct(generate.Block, false, false);
+
+            var gVar = _getGlobalStruct(_getLookupName(gt) + _genericSuffix, usePtrTypes);
+            _genericSuffix = "";
+
+            return gVar;
+        }
+
         private LLVMTypeRef _processGeneric(GenericType gt, DataType ot, bool usePtrTypes)
         {
-            
+            foreach (var generate in gt.Generates)
+            {
+                if (generate.Type.Equals(ot))
+                {
+                    string baseName = _getLookupName(gt);
+
+                    // all generic types of this form should have a global struct associated
+                    return _getGlobalStruct(baseName + ".variant." + string.Join("_", generate.GenericAliases
+                        .Values.Select(x => x.LLVMName())), usePtrTypes);                  
+                }
+            }
+
             return LLVM.VoidType();
         }
 

@@ -152,6 +152,9 @@ namespace Whirlwind.Generation
                 case "Interface":
                     _generateInterf((BlockNode)node);
                     break;
+                case "TypeClass":
+                    _generateTypeClass((BlockNode)node);
+                    break;
                 case "Generic":
                     _generateGeneric((BlockNode)node);
                     break;
