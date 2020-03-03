@@ -111,12 +111,12 @@ namespace Whirlwind.Generation
                     if (onlyInstance is CustomAlias ca)
                         return _convertType(ca.Type);
                     else if (onlyInstance is CustomNewType cnt)
-                        return cnt.Values.Count == 0 ? LLVM.Int16Type() : _getGlobalStruct(parent.Name, usePtrTypes);
+                        return cnt.Values.Count == 0 ? LLVM.Int16Type() : _getGlobalStruct(_getLookupName(parent.Name), usePtrTypes);
                 }
                 else if (parent.Instances.All(x => x is CustomNewType cnt && cnt.Values.Count == 0))
                     return LLVM.Int16Type();
                 else
-                    return _getGlobalStruct(parent.Name, usePtrTypes);
+                    return _getGlobalStruct(_getLookupName(parent.Name), usePtrTypes);
             }
             
             return LLVM.VoidType();
