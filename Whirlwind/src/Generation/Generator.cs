@@ -176,6 +176,21 @@ namespace Whirlwind.Generation
         private string _getLookupName(DataType dt)
             => _getLookupName(dt.LLVMName());
 
+        // only used to get the composite identifier for a lookup (handles static get for packages)
+        private string _getLookupName(ITypeNode node)
+        {
+            if (node is IdentifierNode idNode)
+                return idNode.IdName;
+            else if (node.Name == "StaticGet")
+            {
+                var staticGetNode = (ExprNode)node;
+
+                return _getLookupName(staticGetNode.Nodes[0]) + "::" + ((IdentifierNode)staticGetNode.Nodes[1]).IdName;
+            }
+            else
+                throw new NotImplementedException("Function is only valid for package static get nodes and identifier nodes.");
+        }
+
         private GeneratorSymbol _getNamedValue(string name)
         {
             IEnumerable<Dictionary<string, GeneratorSymbol>> localScopes = _scopes;

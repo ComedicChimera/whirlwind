@@ -98,9 +98,14 @@ namespace Whirlwind.Generation
                                 // interpret as pure enum (pure alises don't make it this far)
                                 return LLVM.ConstInt(LLVM.Int16Type(), (ulong)idPos, new LLVMBool(0));
                             }
-                            else if (rootType is PackageType pt)
+                            else if (rootType is PackageType)
                             {
-                                // TODO: package stuff
+                                string lookupName = _getLookupName(enode);
+
+                                if (mutableExpr)
+                                    return _globalScope[lookupName].Vref;
+                                else
+                                    return _loadGlobalValue(lookupName);
                             }
                         }
                         break;
@@ -633,7 +638,8 @@ namespace Whirlwind.Generation
                 return _boxFunction(_globalScope[tiGenerateName].Vref, typeInterf);
             }
 
-            var generateName = _getLookupName(root.Type) + ".variant." + typeListSuffix;
+            // assume root is an Identifier node or package static get
+            var generateName = _getLookupName(root) + ".variant." + typeListSuffix;
 
             // structs are handled in the CallConstructor handler
             // and interfaces are never used this way
