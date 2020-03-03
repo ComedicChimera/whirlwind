@@ -18,6 +18,8 @@ namespace Whirlwind.Semantic.Visitor
             _table.DescendScope();
 
             var typeClass = new CustomType(_namePrefix + name);
+            _nodes.Add(new IdentifierNode(name, typeClass));
+            MergeBack();
 
             // self referential pointer declaration
             _table.AddSymbol(new Symbol(name, new SelfType(_namePrefix + name, typeClass) { Constant = true }));

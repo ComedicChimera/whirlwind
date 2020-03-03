@@ -186,7 +186,6 @@ namespace Whirlwind.Generation
             { "OR", "Or" },
             { "XOR", "Xor" },
             { "~", "Complement" },
-            { "%", "Mod" },
             { ">>", "RShift" },
             { "<<", "LShift" },
             { "~*", "Compose" },
@@ -214,7 +213,7 @@ namespace Whirlwind.Generation
         // TODO: external type classes
         private void _generateTypeClass(BlockNode node)
         {
-            var tc = (CustomType)(node.Nodes[0].Type);
+            var tc = (CustomType)node.Nodes[0].Type;
             int buildType = 0;
 
             if (tc.Instances.Count == 1)
