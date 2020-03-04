@@ -853,8 +853,8 @@ namespace Whirlwind.Generation
                     new[] { LLVM.Int32Type(), valPtr.TypeOf() }, false), "tc_tmp");
 
                 var firstElem = LLVM.BuildBitCast(_builder, tcRef, LLVM.PointerType(LLVM.Int16Type(), 0), "tc_enum_ptr_tmp");
-                LLVM.BuildStore(_builder, firstElem, 
-                    LLVM.ConstInt(LLVM.Int16Type(), (ulong)cnt.Parent.Instances.IndexOf(cnt), new LLVMBool(0)));
+                LLVM.BuildStore(_builder, LLVM.ConstInt(LLVM.Int16Type(), (ulong)cnt.Parent.Instances.IndexOf(cnt), new LLVMBool(0)),
+                    firstElem);
 
                 var valPtrElem = LLVM.BuildStructGEP(_builder, tcRef, 1, "tc_val_ptr_tmp");
                 LLVM.BuildStore(_builder, valPtr, valPtrElem);

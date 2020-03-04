@@ -596,7 +596,10 @@ namespace Whirlwind.Semantic.Visitor
                     _nodes.Add(new ExprNode("CallTCConstructor", newCnt));
 
                     PushForward(cnt.Values.Count);
-                    PushForward();
+
+                    // add function to beginning of call
+                    ((ExprNode)_nodes[_nodes.Count - 1]).Nodes.Insert(0, _nodes[_nodes.Count - 2]);
+                    _nodes.RemoveAt(_nodes.Count - 2);
                 }
                 else
                     throw new SemanticException("Unable to call a type of " + rootType.ToString(), node.Content[0].Position);
