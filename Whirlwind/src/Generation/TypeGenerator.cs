@@ -43,7 +43,12 @@ namespace Whirlwind.Generation
             else if (dt is DictType dct)
                 return _makeGenerate((GenericType)_impls["dict"], usePtrTypes, dct.KeyType, dct.ValueType);
             else if (dt is PointerType pt)
+            {
+                if (pt.DataType is AnyType)
+                    return LLVM.PointerType(LLVM.Int8Type(), 0);
+
                 return LLVM.PointerType(_convertType(pt.DataType), 0);
+            }
             else if (dt is StructType st)
             {
                 string lName = _getLookupName(st.Name);
@@ -78,7 +83,7 @@ namespace Whirlwind.Generation
                 var tStruct = LLVM.StructType(tt.Types.Select(x => _convertType(x)).ToArray(), true);
 
                 return usePtrTypes ? LLVM.PointerType(tStruct, 0) : tStruct;
-            }               
+            }
             else if (dt is FunctionType ft)
             {
                 var parameters = ft.Parameters.Select(x => _convertType(x.DataType)).ToList();
@@ -118,6 +123,8 @@ namespace Whirlwind.Generation
                 else
                     return _getGlobalStruct(_getLookupName(parent.Name), usePtrTypes);
             }
+            else if (dt is AnyType)
+                return LLVM.PointerType(LLVM.Int8Type(), 0);
             
             return LLVM.VoidType();
         }
@@ -249,6 +256,11 @@ namespace Whirlwind.Generation
                     var castPtr = LLVM.BuildBitCast(_builder, thisPtr, LLVM.PointerType(_convertType(desired), 0), "cast_ptr_tmp");
                     return LLVM.BuildLoad(_builder, castPtr, "cast_tmp");
                 }
+            }
+            else if (start is CustomInstance ci)
+            {
+                if (desired is CustomNewType)
+                    return val;
             }
 
             return _ignoreValueRef();

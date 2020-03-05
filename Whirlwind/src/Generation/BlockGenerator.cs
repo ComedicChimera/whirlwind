@@ -12,6 +12,8 @@ namespace Whirlwind.Generation
         // bool says whether or not block contains a definite return (needs void or no)
         private bool _generateBlock(List<ITypeNode> block)
         {
+            bool needsVoidTerminator = true;
+
             foreach (var node in block)
             {
                 switch (node.Name)
@@ -22,8 +24,9 @@ namespace Whirlwind.Generation
 
                             // build first arg for now
                             LLVM.BuildRet(_builder, _generateExpr(ertNode.Nodes[0]));
+
+                            return false;
                         }
-                        break;
                     case "Return":
                         {
                             var rtNode = (StatementNode)node;
@@ -37,8 +40,9 @@ namespace Whirlwind.Generation
 
                                 LLVM.BuildRet(_builder, exprRes);
                             }
-                        }
-                        break;
+
+                            return false;
+                        }                      
                     case "ExprStmt":
                         _generateExpr(((StatementNode)node).Nodes[0]);
                         break;
@@ -52,7 +56,7 @@ namespace Whirlwind.Generation
                 }
             }
 
-            return false;
+            return needsVoidTerminator;
         }
     }
 }

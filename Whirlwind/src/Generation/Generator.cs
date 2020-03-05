@@ -249,7 +249,7 @@ namespace Whirlwind.Generation
         // TODO: special method cases on copies
         private LLVMValueRef _copyRefType(LLVMValueRef vref)
         {
-            return _ignoreValueRef();
+            return vref;
         }
 
         private LLVMValueRef _copy(LLVMValueRef vref, DataType dt)

@@ -902,7 +902,7 @@ namespace Whirlwind.Semantic.Visitor
             {
                 DataType dt = cnt.Values.Count > 1 ? new TupleType(cnt.Values) : cnt.Values.First();
 
-                _nodes.Add(new ExprNode("ExtractValue", dt));
+                _nodes.Add(new ExprNode("From", dt));
                 PushForward();
             }
             else

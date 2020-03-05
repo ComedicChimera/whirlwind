@@ -30,12 +30,6 @@ struct __string {
 	size: uint;
 }
 
-#impl "alg_type"
-struct __algType {
-	label: int;
-	values: *any;
-}
-
 
 // FRIEND FUNCTIONS
 #friend "string"

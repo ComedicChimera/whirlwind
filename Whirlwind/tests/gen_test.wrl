@@ -17,6 +17,4 @@ func main() {
 	let t = Test::V(10);
 
 	let v = from (t as Test::V);
-
-
 }

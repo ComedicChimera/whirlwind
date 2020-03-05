@@ -54,7 +54,7 @@ namespace Whirlwind.Generation
             }
             else
             {
-                var totalInitExpr = _generateExpr(stNode.Nodes[1]);
+                var totalInitExpr = _generateExpr(((ExprNode)stNode.Nodes[1]).Nodes[0]);
                 var tieType = stNode.Nodes[1].Type;
 
                 if (_isReferenceType(tieType))
