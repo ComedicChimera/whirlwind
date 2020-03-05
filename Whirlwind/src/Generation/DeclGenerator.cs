@@ -41,7 +41,7 @@ namespace Whirlwind.Generation
                 else
                 {
                     BlockNode constructor = (BlockNode)item;
-                    FunctionType cft = (FunctionType)(constructor.Nodes[0].Type);
+                    FunctionType cft = (FunctionType)(constructor.Nodes[0].Type).Copy();
                     cft.Parameters.Insert(0, _buildThisParameter(st));
 
                     string suffix = ".constructor";

@@ -807,7 +807,7 @@ namespace Whirlwind.Generation
             var newStruct = LLVM.BuildAlloca(_builder, _convertType(enode.Type), "nstruct_tmp");
 
             var st = (StructType)enode.Nodes[0].Type;
-            string lookupName = st.Name;
+            string lookupName = _getLookupName(st.Name);
 
             // check for _$initMembers
             string initMembersLookup = lookupName + "._$initMembers";
@@ -902,6 +902,9 @@ namespace Whirlwind.Generation
         private LLVMValueRef[] _buildArgArray(FunctionType ft, ExprNode enode)
         {
             var argArray = new LLVMValueRef[ft.Parameters.Count];
+
+            if (argArray.Length == 0)
+                return argArray;
 
             int i = 1;
             for (; i < enode.Nodes.Count; i++)

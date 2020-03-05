@@ -72,7 +72,7 @@ namespace Whirlwind.Types
 
         public FunctionType GetFirstConstructor() => _constructors.First();
 
-        public bool HasMultipleConstructors() => _constructors.Count > 0;
+        public bool HasMultipleConstructors() => _constructors.Count > 1;
 
         protected sealed override bool _coerce(DataType other)
         {

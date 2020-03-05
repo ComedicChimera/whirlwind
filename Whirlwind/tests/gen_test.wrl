@@ -1,20 +1,17 @@
-﻿type Test 
-	| V(int) 
-	| str
-	;
+﻿struct Test {
+	x, y: int;
 
-func f<T>(x: T) T => 4;
-
-func ttTest(t: Test) str => (t as str) + "asdf";
+	constructor(x, y: int) {
+		this.x = x;
+		this.y = y;
+	}
+}
 
 func main() {
-	f(56);
-	f(4.5);
+	let s = new Test(4, 5);
 
-	ttTest(V(45));
-	ttTest("test");
-
-	let t = Test::V(10);
-
-	let v = from (t as Test::V);
+	let v: int;
+	v = s.y + s.x;
+	
+	s.x = v;
 }
