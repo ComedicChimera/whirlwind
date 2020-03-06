@@ -53,6 +53,9 @@ namespace Whirlwind.Generation
                     case "DeclareConstexpr":
                         _generateConstDecl((StatementNode)node);
                         break;
+                    case "Assignment":
+                        _generateAssignment((StatementNode)node);
+                        break;
                 }
             }
 

@@ -315,7 +315,7 @@ namespace Whirlwind.Semantic.Visitor
                             var impl = _getImpl(type);
 
                             if (impl != null)
-                                return _getMember(impl, name, opPos, idPos, out bool _);
+                                return _getMember(impl, name, opPos, idPos, out interfGet);
                         }
 
                         throw new SemanticException($"Type has no interface member `{name}`", idPos);

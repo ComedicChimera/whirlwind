@@ -128,10 +128,10 @@ namespace Whirlwind.Types
         }
 
         public override DataType ConstCopy()
-            => new FunctionType(Parameters, ReturnType, Async, IsMethod) { Constant = true };
+            => new FunctionType(new List<Parameter>(Parameters), ReturnType, Async, IsMethod) { Constant = true };
 
         public FunctionType NonConstCopy()
-            => new FunctionType(Parameters, ReturnType, Async, IsMethod) { Constant = false };
+            => new FunctionType(new List<Parameter>(Parameters), ReturnType, Async, IsMethod) { Constant = false };
 
         public FunctionType BoxedCopy()
         {

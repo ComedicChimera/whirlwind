@@ -759,7 +759,7 @@ namespace Whirlwind.Generation
             var argArray = _buildArgArray(ft, enode);
 
             LLVMValueRef rtPtr = _ignoreValueRef();
-            bool returnCallResult = true;
+            bool returnCallResult = !(ft.ReturnType is NoneType);
 
             if (_isReferenceType(ft.ReturnType))
             {
@@ -788,15 +788,23 @@ namespace Whirlwind.Generation
 
                 argArray.CopyTo(boxedFnArgArray, 1);
 
-                var callResult = LLVM.BuildCall(_builder, fPtr, boxedFnArgArray, "call_boxed_tmp");
                 if (returnCallResult)
+                {
+                    var callResult = LLVM.BuildCall(_builder, fPtr, boxedFnArgArray, "call_boxed_tmp");
                     return callResult;
+                }
+                else
+                    LLVM.BuildCall(_builder, fPtr, boxedFnArgArray, "");
             }
             else
             {
-                var callResult = LLVM.BuildCall(_builder, genFn, argArray, "call_tmp");
                 if (returnCallResult)
+                {
+                    var callResult = LLVM.BuildCall(_builder, genFn, argArray, "call_tmp");
                     return callResult;
+                }
+                else
+                    LLVM.BuildCall(_builder, genFn, argArray, "");
             }
 
             return rtPtr;
