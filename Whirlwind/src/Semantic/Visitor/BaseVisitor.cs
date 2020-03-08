@@ -155,9 +155,9 @@ namespace Whirlwind.Semantic.Visitor
                         else
                             throw new SemanticException($"Undefined symbol: `{((TokenNode)node.Content[0]).Tok.Value}`", node.Position);
                     case "THIS":
-                        if (_table.Lookup("$THIS", out Symbol instance))
+                        if (_table.Lookup("this", out Symbol instance))
                         {
-                            _nodes.Add(new IdentifierNode("$THIS", instance.DataType));
+                            _nodes.Add(new IdentifierNode("this", instance.DataType));
                             return;
                         }
                         {
@@ -567,7 +567,7 @@ namespace Whirlwind.Semantic.Visitor
 
         private void _visitSuperCall(ASTNode node)
         {
-            if (_table.Lookup("$THIS", out Symbol thisPtr))
+            if (_table.Lookup("this", out Symbol thisPtr))
             {
                 var typeInterf = thisPtr.DataType.GetInterface();
 

@@ -49,7 +49,7 @@ namespace Whirlwind.Generation
                     {
                         var varAlloc = LLVM.BuildAlloca(_builder, _convertType(item.Type), item.IdName);
                         LLVM.BuildStore(_builder, _getNullValue(item.Type), varAlloc);
-                        _setVar(item.IdName, varAlloc);
+                        _setVar(item.IdName, varAlloc, true);
                     }
                 }
             }

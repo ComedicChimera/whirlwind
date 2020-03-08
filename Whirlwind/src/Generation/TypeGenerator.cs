@@ -33,6 +33,9 @@ namespace Whirlwind.Generation
                     case SimpleType.SimpleClassifier.DOUBLE:
                         return LLVM.DoubleType();
                     default:
+                        if (usePtrTypes)
+                            return LLVM.PointerType(_stringType, 0);
+
                         return _stringType;
                 }
             }

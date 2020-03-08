@@ -65,7 +65,7 @@ namespace Whirlwind.Semantic.Checker
 
                 if (_lValueNodes.Contains(node.Name))
                 {
-                    if (node.Name.EndsWith("GetMember") && enode.Nodes[0] is IdentifierNode idNode && idNode.IdName == "$THIS")
+                    if (node.Name.EndsWith("GetMember") && enode.Nodes[0] is IdentifierNode idNode && idNode.IdName == "this")
                         return LValueExpr(enode.Nodes[1]);
 
                     return enode.Nodes.All(x => LValueExpr(x));

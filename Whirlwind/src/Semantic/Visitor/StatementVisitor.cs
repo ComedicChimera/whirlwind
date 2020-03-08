@@ -172,12 +172,12 @@ namespace Whirlwind.Semantic.Visitor
                                     throw new SemanticException("Unable to delete member variables outside of finalizer", elem.Position);
 
                                 // if we are in a finalizer a this pointer must exist
-                                _table.Lookup("$THIS", out Symbol thisPtr);
+                                _table.Lookup("this", out Symbol thisPtr);
 
                                 if (thisPtr.DataType.Classify() != TypeClassifier.STRUCT_INSTANCE)
                                     throw new SemanticException("Unable to delete member of anything other than a struct", elem.Position);
 
-                                _nodes.Add(new IdentifierNode("$THIS", thisPtr.DataType));
+                                _nodes.Add(new IdentifierNode("this", thisPtr.DataType));
                                 hasThis = true;
                             }
                             else if (tkNode.Tok.Type == "IDENTIFIER")

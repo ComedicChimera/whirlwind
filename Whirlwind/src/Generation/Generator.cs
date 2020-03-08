@@ -116,7 +116,7 @@ namespace Whirlwind.Generation
             // TODO: add in any special functions / post generation code here
 
             if (LLVM.VerifyModule(_module, LLVMVerifierFailureAction.LLVMPrintMessageAction, out var error) != new LLVMBool(0))
-                Console.WriteLine("LLVM Build Errors!");
+                Console.WriteLine("\nFailed to build LLVM module.");
 
             LLVM.DumpModule(_module);
         }

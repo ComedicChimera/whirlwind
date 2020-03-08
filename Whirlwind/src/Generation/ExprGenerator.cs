@@ -56,25 +56,7 @@ namespace Whirlwind.Generation
                     case "Array":
                         return _generateArrayLiteral(enode);
                     case "GetMember":
-                        {
-                            string memberName = ((IdentifierNode)enode.Nodes[1]).IdName;
-
-                            if (enode.Nodes[0].Type is StructType st)
-                            {
-                                int memberNdx = st.Members.Keys.ToList().IndexOf(memberName);
-
-                                var memberPtr = LLVM.BuildStructGEP(_builder, _generateExpr(enode.Nodes[0]), (uint)memberNdx, "struct_gep_tmp");
-
-                                if (mutableExpr)
-                                    return memberPtr;
-                                else
-                                    return LLVM.BuildLoad(_builder, memberPtr, "struct_member." + memberName);
-                            }
-                            // this only handles regular interfaces since other cases are handled by other functions
-                            else if (enode.Nodes[0].Type is InterfaceType it)
-                                return _generateVtableGet(_generateExpr(enode.Nodes[0]), _getVTableNdx(it, memberName));
-                        }
-                        break;
+                        return _generateGetMember(enode, mutableExpr);
                     case "GetTIMethod":
                         {
                             // assumes not overloads and no generics (handled by other parts of the code)
@@ -904,6 +886,66 @@ namespace Whirlwind.Generation
             }
 
             return tcRef;
+        }
+
+        private LLVMValueRef _generateGetMember(ExprNode enode, bool mutableExpr)
+        {
+            string memberName = ((IdentifierNode)enode.Nodes[1]).IdName;
+
+            LLVMValueRef getStructElem(StructType st)
+            {
+                int memberNdx = st.Members.Keys.ToList().IndexOf(memberName);
+
+                var memberPtr = LLVM.BuildStructGEP(_builder, _generateExpr(enode.Nodes[0]), (uint)memberNdx, "struct_gep_tmp");
+
+                if (mutableExpr)
+                    return memberPtr;
+                else
+                    return LLVM.BuildLoad(_builder, memberPtr, "struct_member." + memberName);
+            }
+
+            if (enode.Nodes[0].Type is StructType pst)
+                return getStructElem(pst);
+            // this only handles regular interfaces since other cases are handled by other functions
+            else if (enode.Nodes[0].Type is InterfaceType it)
+                return _generateVtableGet(_generateExpr(enode.Nodes[0]), _getVTableNdx(it, memberName));
+            // handle friend get membets
+            else
+            {
+                string implName = enode.Nodes[0].Type.LLVMName();
+
+                if (implName.Contains("["))
+                    implName = implName.Split("[")[0];
+                else if (implName == "str")
+                    implName = "string";
+
+                var impl = _impls[implName];
+
+                if (impl is GenericType gt)
+                {
+                    var rootType = enode.Nodes[0].Type;
+
+                    // assume generic creation works
+                    switch (rootType.Classify())
+                    {
+                        case TypeClassifier.ARRAY:
+                            gt.CreateGeneric(new List<DataType> { ((ArrayType)rootType).ElementType }, out impl);
+                            break;
+                        case TypeClassifier.LIST:
+                            gt.CreateGeneric(new List<DataType> { ((ListType)rootType).ElementType }, out impl);
+                            break;
+                        case TypeClassifier.DICT:
+                            {
+                                var dct = (DictType)rootType;
+
+                                gt.CreateGeneric(new List<DataType> { dct.KeyType, dct.ValueType }, out impl);
+                            }
+                            break;
+                    }
+                }
+
+                return getStructElem((StructType)impl);
+            }
         }
 
         // TODO: handle indefinites

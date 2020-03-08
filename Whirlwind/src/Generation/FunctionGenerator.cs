@@ -160,7 +160,10 @@ namespace Whirlwind.Generation
             {
                 var param = LLVM.GetParam(fnRef, i);
 
-                fnScope[param.GetValueName()] = new GeneratorSymbol(param);
+                // split by modulo since llvm puts type prefix before name
+                // and trim off quotes in case LLVM considers name illegal and
+                // artifically inserts quotes in front of it
+                fnScope[param.GetValueName().Split("%").Last().Trim('\"')] = new GeneratorSymbol(param);
             }
 
             _scopes.Add(fnScope);            

@@ -74,8 +74,6 @@ namespace Whirlwind.Generation
                         }
                     }
                     break;
-                case "This":
-                    return _getNamedValue("this").Vref;
                 case "Value":
                     return _getNamedValue("value_tmp").Vref;
                 case "ByteLiteral":

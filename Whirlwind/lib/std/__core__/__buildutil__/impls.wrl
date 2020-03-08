@@ -37,7 +37,7 @@ func __concat(a, b: str) str {
 	let np: *char;
 	*np = *a.chars;
 
-	*(np + a.size) = *b.chars;
+	// *(np + a.size) = *b.chars;
 
 	return new __string { chars = np, size = a.size + b.size } as str;
 }

@@ -90,7 +90,7 @@ namespace Whirlwind.Semantic.Visitor
 
                         _table.AddSymbol(new Symbol(idNode.Name, ((StructType)idNode.Type).GetInstance().ConstCopy()));
 
-                        _table.AddSymbol(new Symbol("$THIS", ((StructType)idNode.Type).GetInstance()));
+                        _table.AddSymbol(new Symbol("this", ((StructType)idNode.Type).GetInstance()));
 
                         foreach (var item in ((BlockNode)node).Block)
                         {
@@ -271,13 +271,13 @@ namespace Whirlwind.Semantic.Visitor
             }
             
             if (interf.Name == "Interface")
-                _table.AddSymbol(new Symbol("$THIS", ((InterfaceType)interf.Nodes[0].Type).GetInstance()));
+                _table.AddSymbol(new Symbol("this", ((InterfaceType)interf.Nodes[0].Type).GetInstance()));
             else if (interf.Name == "BindGenerateInterface")
-                _table.AddSymbol(new Symbol("$THIS", interf.Nodes[0].Type));
+                _table.AddSymbol(new Symbol("this", interf.Nodes[0].Type));
             // make sure generics are defined as instance         
             else
                 // for all who need it, it is already declared as an instance
-                _table.AddSymbol(new Symbol("$THIS", interf.Nodes[1].Type));
+                _table.AddSymbol(new Symbol("this", interf.Nodes[1].Type));
 
             foreach (var item in interf.Block)
             {
