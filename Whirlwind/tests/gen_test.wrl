@@ -1,17 +1,21 @@
-﻿struct Test {
-	x, y: int;
+﻿struct Test<T> {
+	x, y: T;
 
-	constructor(x, y: int) {
-		this.x = x;
-		this.y = y;
+	constructor() {
+		this.x = 1;
+		this.y = 2;
 	}
 }
 
-func main() {
-	let s = new Test(4, 5);
+func doThing<T>(s: Test<T>, b: T) Test<T> {
+	s.x += b;
+	s.y *= b;
 
-	let v: int;
-	v = s.y + s.x;
-	
-	s.x = v;
+	return s;
+}
+
+func main() {
+	let s = new Test<int>();
+
+	s = doThing(s, 4);
 }

@@ -92,7 +92,7 @@ namespace Whirlwind.Generation
                     arguments[i] = frontArgs[0].Item2;
                 else
                 {
-                    param = ft.Parameters[i];
+                    param = ft.Parameters[i - argOffset];
 
                     // TODO: make sure indefinite passes as list
                     if (param.Indefinite)
