@@ -164,7 +164,7 @@ namespace Whirlwind.Generation
         {
             foreach (var generate in gt.Generates)
             {
-                if (generate.Type.Equals(ot))
+                if (generate.Type.GenerateEquals(ot))
                 {
                     string baseName = _getLookupName(gt);
 

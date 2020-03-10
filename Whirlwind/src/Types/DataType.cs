@@ -184,6 +184,18 @@ namespace Whirlwind.Types
             return false;
         }
 
+        // check two data types for approximate equality (ignore constancy)
+        public bool GenerateEquals(DataType other)
+        {
+            if (other == null)
+                return false;
+
+            if (other is GenericAlias gp)
+                return GenerateEquals(gp.ReplacementType);
+
+            return _equals(other);
+        }
+
         public override bool Equals(object obj)
         {
             if (obj is DataType dt && obj != null)
