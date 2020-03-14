@@ -127,6 +127,11 @@ namespace Whirlwind.Generation
             _fnBlocks.Add(new Tuple<LLVMValueRef, BlockNode>(vref, block));
         }
 
+        private void _appendFunctionBlock(LLVMValueRef vref, FnBodyBuilder fbb)
+        {
+            _fnSpecialBlocks.Add(new Tuple<LLVMValueRef, FnBodyBuilder>(vref, fbb));
+        }
+
         private void _buildFunctionBlock(LLVMValueRef vref, BlockNode block)
         {
             LLVM.PositionBuilderAtEnd(_builder, LLVM.AppendBasicBlockInContext(_ctx, vref, "entry"));

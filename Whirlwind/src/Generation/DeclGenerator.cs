@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System;
 
 using LLVMSharp;
 
@@ -24,7 +23,6 @@ namespace Whirlwind.Generation
             _globalStructs[name] = llvmStruct;
 
             var memberDict = new Dictionary<string, ITypeNode>();
-            bool needsInitMembers = false;
 
             // process constructor
             bool hasMultipleConstructors = st.HasMultipleConstructors();
@@ -32,9 +30,6 @@ namespace Whirlwind.Generation
             {
                 if (item is ExprNode eNode)
                 {
-                    if (memberDict.Count == 0)
-                        needsInitMembers = true;
-
                     foreach (var elem in eNode.Nodes.Skip(1))
                         memberDict.Add(((IdentifierNode)elem).IdName, eNode.Nodes[0]);
                 }
@@ -52,43 +47,34 @@ namespace Whirlwind.Generation
                     var llvmConstructor = _generateFunctionPrototype(name + suffix, cft, exported);
                     _addGlobalDecl(name + suffix, llvmConstructor);
 
-                    if (constructor.Block.Count > 0)
-                        _appendFunctionBlock(llvmConstructor, constructor);
+                    _appendFunctionBlock(llvmConstructor, constructor);
                 }
             }
 
-            if (needsInitMembers)
-            {
-                // add custom init members build algo and append
-                var initFn = _generateFunctionPrototype(name + "._$initMembers", new FunctionType(new List<Parameter>
+            // add custom init members build algo and append
+            var initFnProto = _generateFunctionPrototype(name + "._$initMembers", new FunctionType(new List<Parameter>
                             { _buildThisParameter(st) },
-                           new NoneType(), false), false);
+                       new NoneType(), false), false);
 
-                _declareFnArgs(initFn);
+            _addGlobalDecl(name + "._$initMembers", initFnProto);
 
-                LLVM.PositionBuilderAtEnd(_builder, LLVM.AppendBasicBlockInContext(_ctx, initFn, "entry"));
-
+            _appendFunctionBlock(initFnProto, (initFn) =>
+            {
                 // build init members content
                 for (int i = 0; i < st.Members.Count; i++)
                 {
                     var memberPtr = LLVM.BuildStructGEP(_builder, _getNamedValue("this").Vref, (uint)i, "get_member_tmp");
 
                     string memberName = st.Members.ElementAt(i).Key;
-                    var memberValue = memberDict.ContainsKey(memberName) ? 
-                        _generateExpr(memberDict[memberName]) : 
+                    var memberValue = memberDict.ContainsKey(memberName) ?
+                        _generateExpr(memberDict[memberName]) :
                         _getNullValue(st.Members.ElementAt(i).Value.DataType);
 
                     LLVM.BuildStore(_builder, memberValue, memberPtr);
                 }
 
-                LLVM.BuildRetVoid(_builder);
-
-                _scopes.RemoveLast();
-
-                _addGlobalDecl(name + "._$initMembers", initFn);
-
-                LLVM.VerifyFunction(initFn, LLVMVerifierFailureAction.LLVMPrintMessageAction);
-            }
+                return true;
+            });
         }
 
         private Parameter _buildThisParameter(DataType dt)

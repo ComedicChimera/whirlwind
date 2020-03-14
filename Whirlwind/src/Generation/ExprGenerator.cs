@@ -799,13 +799,10 @@ namespace Whirlwind.Generation
             var st = (StructType)enode.Nodes[0].Type;
             string lookupName = _getLookupName(enode.Type);
 
-            // check for _$initMembers
+            // init members should always exist
             string initMembersLookup = lookupName + "._$initMembers";
-            if (_globalScope.ContainsKey(initMembersLookup))
-            {
-                LLVM.BuildCall(_builder, _globalScope[initMembersLookup].Vref,
+            LLVM.BuildCall(_builder, _globalScope[initMembersLookup].Vref,
                     new[] { newStruct }, "");
-            }
 
             string constructorLookup = lookupName + ".constructor";
 
@@ -818,6 +815,9 @@ namespace Whirlwind.Generation
 
                 constructorLookup += "." + string.Join(",", constr.Parameters.Select(x => x.DataType.LLVMName()));
             }
+            // implicit default constructor is init members
+            else if (!_globalScope.ContainsKey(constructorLookup))
+                return newStruct;
             else
                 constr = st.GetFirstConstructor();
 
