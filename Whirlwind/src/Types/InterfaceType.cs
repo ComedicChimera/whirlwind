@@ -162,10 +162,31 @@ namespace Whirlwind.Types
         {
             if (other is InterfaceType it)
             {
+                // TODO: should name be checked?
+
                 if (_initialized != it._initialized || SuperForm != it.SuperForm)
                     return false;
 
                 return Methods.DictionaryEquals(it.Methods);
+            }
+
+            return false;
+        }
+
+        public override bool GenerateEquals(DataType other)
+        {
+            if (other == null)
+                return false;
+
+            if (other is InterfaceType it)
+            {
+                // TODO: should name be checked?
+                if (Name != it.Name)
+                    return false;
+
+                // TODO: check for superform?
+
+                return it.Methods.DictionaryEquals(it.Methods);
             }
 
             return false;

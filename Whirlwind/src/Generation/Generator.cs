@@ -174,10 +174,43 @@ namespace Whirlwind.Generation
         }
 
         private string _getLookupName(DataType dt)
-            => _getLookupName(dt.LLVMName());
+        {
+            var rawName = _getLookupName(dt.LLVMName());
+
+            Symbol symbol = _getSymbolFromLookupName(rawName);
+            if (symbol != null && dt.Classify() != TypeClassifier.GENERIC && 
+                symbol.DataType is GenericType gt)
+            {
+                return rawName + ".variant." + string.Join(",", gt.Generates.Single(x => x.Type.GenerateEquals(dt))
+                    .GenericAliases.Select(x => x.Value.LLVMName()));
+            }
+
+            return rawName;
+        }
+
+        private Symbol _getSymbolFromLookupName(string lName)
+        {
+            var lNameComponents = lName.Split("::");
+
+            _table.Lookup(lNameComponents[0], out Symbol symbol);
+
+            // descend package tree
+            if (lNameComponents.Length > 1)           
+            {
+                // we know the keys must exist if it makes it this far
+                foreach (var item in lNameComponents.Skip(1))
+                {
+                    var pkg = (PackageType)symbol.DataType;
+
+                    symbol = pkg.ExternalTable[item];
+                }      
+            }
+
+            return symbol;
+        }
 
         // only used to get the composite identifier for a lookup (handles static get for packages)
-        private string _getLookupName(ITypeNode node)
+        private string _getIdentifierName(ITypeNode node)
         {
             if (node is IdentifierNode idNode)
                 return idNode.IdName;
@@ -185,7 +218,7 @@ namespace Whirlwind.Generation
             {
                 var staticGetNode = (ExprNode)node;
 
-                return _getLookupName(staticGetNode.Nodes[0]) + "::" + ((IdentifierNode)staticGetNode.Nodes[1]).IdName;
+                return _getIdentifierName(staticGetNode.Nodes[0]) + "::" + ((IdentifierNode)staticGetNode.Nodes[1]).IdName;
             }
             else
                 throw new NotImplementedException("Function is only valid for package static get nodes and identifier nodes.");

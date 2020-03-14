@@ -185,7 +185,7 @@ namespace Whirlwind.Types
         }
 
         // check two data types for approximate equality (ignore constancy)
-        public bool GenerateEquals(DataType other)
+        public virtual bool GenerateEquals(DataType other)
         {
             if (other == null)
                 return false;

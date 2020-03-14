@@ -113,7 +113,21 @@ namespace Whirlwind.Types
             return false;
         }
 
-        
+        public override bool GenerateEquals(DataType other)
+        {
+            if (other == null)
+                return false;
+
+            if (other is StructType st)
+            {
+                if (Name != st.Name)
+                    return false;
+
+                return Members.DictionaryEquals(st.Members);
+            }
+
+            return false;
+        }
 
         public override DataType ConstCopy()
             => new StructType(this)

@@ -56,9 +56,7 @@ namespace Whirlwind.Generation
             {
                 string lName = _getLookupName(st.Name);
 
-                Symbol symbol = null;
-                foreach (var item in lName.Split("::"))
-                    _table.Lookup(item, out symbol);
+                Symbol symbol = _getSymbolFromLookupName(lName);
 
                 if (symbol.DataType is StructType)
                     return _getGlobalStruct(lName, usePtrTypes);
@@ -71,9 +69,7 @@ namespace Whirlwind.Generation
                 // interface types are effectively structs from llvm's perspective
                 string lName = _getLookupName(it.Name);
 
-                Symbol symbol = null;
-                foreach (var item in lName.Split("::"))
-                    _table.Lookup(item, out symbol);
+                Symbol symbol = _getSymbolFromLookupName(lName);
 
                 if (symbol.DataType is InterfaceType)
                     return _getGlobalStruct(lName, usePtrTypes);
@@ -147,7 +143,7 @@ namespace Whirlwind.Generation
         {
             // assume this will work :D
             gt.CreateGeneric(typeArguments.ToList(), out DataType generateType);
-            var generate = gt.Generates.Single(x => x.Type.Equals(generateType));
+            var generate = gt.Generates.Single(x => x.Type.GenerateEquals(generateType));
 
             _genericSuffix = ".variant." + string.Join("_", generate.GenericAliases
                      .Values.Select(x => x.LLVMName()));

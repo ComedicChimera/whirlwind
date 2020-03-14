@@ -82,7 +82,7 @@ namespace Whirlwind.Generation
                             }
                             else if (rootType is PackageType)
                             {
-                                string lookupName = _getLookupName(enode);
+                                string lookupName = _getIdentifierName(enode);
 
                                 if (mutableExpr)
                                     return _globalScope[lookupName].Vref;
@@ -602,7 +602,7 @@ namespace Whirlwind.Generation
                 return _generateVtableGet(_generateExpr(interfGetMember.Nodes[0]), vtableNdx);
             }
 
-            var generate = ((GenericType)root.Type).Generates.Where(x => enode.Type.Equals(x.Type)).First();
+            var generate = ((GenericType)root.Type).Generates.Single(x => enode.Type.GenerateEquals(x.Type));
             string typeListSuffix = string.Join(',', generate.GenericAliases.Select(x => x.Value.LLVMName()));
 
             if (root.Name == "GetTIMethod")
@@ -621,7 +621,7 @@ namespace Whirlwind.Generation
             }
 
             // assume root is an Identifier node or package static get
-            var generateName = _getLookupName(root) + ".variant." + typeListSuffix;
+            var generateName = _getIdentifierName(root) + ".variant." + typeListSuffix;
 
             // structs are handled in the CallConstructor handler
             // and interfaces are never used this way
@@ -797,7 +797,7 @@ namespace Whirlwind.Generation
             var newStruct = LLVM.BuildAlloca(_builder, _convertType(enode.Type), "nstruct_tmp");
 
             var st = (StructType)enode.Nodes[0].Type;
-            string lookupName = _getLookupName(st.Name);
+            string lookupName = _getLookupName(enode.Type);
 
             // check for _$initMembers
             string initMembersLookup = lookupName + "._$initMembers";
