@@ -65,6 +65,13 @@ namespace Whirlwind.Generation
 
                     if (method.Value != MethodStatus.ABSTRACT)
                     {
+                        if (typeInterf && method.Value == MethodStatus.VIRTUAL)
+                        {
+                            var parentInterf = interfType.Implements.Single(x => x.Methods.Contains(method));
+
+                            _addGlobalDecl(llvmName, _globalScope[llvmName.Replace(name, _getLookupName(parentInterf))].Vref);
+                        }
+
                         var llvmMethod = _generateFunctionPrototype(llvmName, fnType, exported);
 
                         _appendFunctionBlock(llvmMethod, ((BlockNode)node.Block[methodNdx]));
@@ -81,6 +88,13 @@ namespace Whirlwind.Generation
                     {
                         foreach (var generate in generateList)
                         {
+                            if (typeInterf && method.Value == MethodStatus.VIRTUAL)
+                            {
+                                var parentInterf = interfType.Implements.Single(x => x.Methods.Contains(method));
+
+                                _addGlobalDecl(generate.Item1, _globalScope[generate.Item1.Replace(name, _getLookupName(parentInterf))].Vref);
+                            }
+
                             var llvmMethod = _generateFunctionPrototype(generate.Item1, generate.Item2, exported);
 
                             _appendFunctionBlock(llvmMethod, generate.Item3);
@@ -149,7 +163,14 @@ namespace Whirlwind.Generation
 
         private void _generateGenericBind(BlockNode node)
         {
+            var gt = (GenericType)node.Nodes[0].Type;
+            
+            foreach (var item in gt.Generates)
+            {
+                var dtBindName = _getLookupName(item.Type);
 
+                _generateInterfBody(item.Block, (InterfaceType)item.Type, dtBindName, true, false);
+            }
         }
     }
 }
