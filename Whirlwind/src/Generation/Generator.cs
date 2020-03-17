@@ -64,8 +64,11 @@ namespace Whirlwind.Generation
 
         // store the randomly generated package prefix
         private readonly string _randPrefix;
+
         // store global string type
         private LLVMTypeRef _stringType;
+        // store global any type struct
+        private LLVMTypeRef _anyType;
 
         public Generator(SymbolTable table, Dictionary<string, string> flags, Dictionary<string, DataType> impls, string namePrefix)
         {
@@ -133,8 +136,15 @@ namespace Whirlwind.Generation
 
                         _generateTopDecl(annotBlock.Block[1]);
 
-                        if (annotName == "impl" && ((ValueNode)annotation.Nodes[1]).Value == "string")
-                            _stringType = _globalStructs["__string"];
+                        if (annotName == "impl")
+                        {
+                            var implName = ((ValueNode)annotation.Nodes[1]).Value;
+
+                            if (implName == "string")
+                                _stringType = _globalStructs["__string"];
+                            else if (implName == "any")
+                                _anyType = _globalStructs["__any"];
+                        }                     
 
                         // add more annotation logic later...
                     }

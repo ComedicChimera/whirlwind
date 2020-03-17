@@ -30,6 +30,13 @@ struct __string {
 	size: uint;
 }
 
+#impl "any"
+struct __any {
+	val: *byte;
+	cVar: short;
+	size: int;
+}
+
 
 // FRIEND FUNCTIONS
 #friend "string"

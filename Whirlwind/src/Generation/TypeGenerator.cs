@@ -46,12 +46,7 @@ namespace Whirlwind.Generation
             else if (dt is DictType dct)
                 return _makeGenerate((GenericType)_impls["dict"], usePtrTypes, dct.KeyType, dct.ValueType);
             else if (dt is PointerType pt)
-            {
-                if (pt.DataType is AnyType)
-                    return LLVM.PointerType(LLVM.Int8Type(), 0);
-
                 return LLVM.PointerType(_convertType(pt.DataType), 0);
-            }
             else if (dt is StructType st)
             {
                 string lName = _getLookupName(st.Name);
@@ -128,7 +123,12 @@ namespace Whirlwind.Generation
                     return _getGlobalStruct(_getLookupName(parent.Name), usePtrTypes);
             }
             else if (dt is AnyType)
-                return LLVM.PointerType(LLVM.Int8Type(), 0);
+            {
+                if (usePtrTypes)
+                    return LLVM.PointerType(_anyType, 0);
+
+                return _anyType;
+            }
             
             return LLVM.VoidType();
         }
@@ -204,7 +204,7 @@ namespace Whirlwind.Generation
                 LLVM.BuildStore(_builder, _createVtable(start.GetInterface(), dInterf), vtableElemPtr);
 
                 var cValElemPtr = LLVM.BuildStructGEP(_builder, interf, 2, "c_val_elem_ptr_tmp");
-                LLVM.BuildStore(_builder, LLVM.ConstInt(LLVM.Int16Type(), _getInterfCVal(start), new LLVMBool(0)), cValElemPtr);
+                LLVM.BuildStore(_builder, LLVM.ConstInt(LLVM.Int16Type(), _getTypeCVal(start), new LLVMBool(0)), cValElemPtr);
 
                 var sizeElemPtr = LLVM.BuildStructGEP(_builder, interf, 3, "size_elem_ptr_tmp");
                 LLVM.BuildStore(_builder, LLVM.ConstInt(LLVM.Int32Type(), start.SizeOf(), new LLVMBool(0)), sizeElemPtr);
@@ -213,17 +213,31 @@ namespace Whirlwind.Generation
             }
             else if (desired is AnyType)
             {
+                LLVMValueRef i8AnyValuePtr;
+
                 if (_isReferenceType(start) || start is PointerType)
-                    return LLVM.BuildBitCast(_builder, val, LLVM.PointerType(LLVM.Int8Type(), 0), "cast_tmp");
+                    i8AnyValuePtr = LLVM.BuildBitCast(_builder, val, LLVM.PointerType(LLVM.Int8Type(), 0), "cast_tmp");
                 else
                 {
                     var castPtr = LLVM.BuildAlloca(_builder, LLVM.PointerType(_convertType(start), 0), "cast_ptr_tmp");
                     LLVM.BuildStore(_builder, val, castPtr);
 
-                    return LLVM.BuildBitCast(_builder, castPtr, LLVM.PointerType(LLVM.Int8Type(), 0), "cast_tmp");
+                    i8AnyValuePtr = LLVM.BuildBitCast(_builder, castPtr, LLVM.PointerType(LLVM.Int8Type(), 0), "cast_tmp");
                 }
-            }
 
+                var anyStruct = LLVM.BuildAlloca(_builder, _anyType, "any_struct_tmp");
+
+                var anyValElemPtr = LLVM.BuildStructGEP(_builder, anyStruct, 0, "any_val_elem_ptr_tmp");
+                LLVM.BuildStore(_builder, i8AnyValuePtr, anyValElemPtr);
+
+                var anyCValElemPtr = LLVM.BuildStructGEP(_builder, anyStruct, 1, "any_c_val_elem_ptr_tmp");
+                LLVM.BuildStore(_builder, LLVM.ConstInt(LLVM.Int16Type(), _getTypeCVal(start), new LLVMBool(0)), anyCValElemPtr);
+
+                var anySizeElemPtr = LLVM.BuildStructGEP(_builder, anyStruct, 2, "any_size_elem_ptr_tmp");
+                LLVM.BuildStore(_builder, LLVM.ConstInt(LLVM.Int32Type(), start.SizeOf(), new LLVMBool(0)), anySizeElemPtr);
+
+                return anyStruct;
+            }
             if (start is SimpleType sst)
             {
                 if (desired is SimpleType dst)
@@ -241,11 +255,14 @@ namespace Whirlwind.Generation
             }
             else if (start is AnyType)
             {
+                var anyValueElemPtr = LLVM.BuildStructGEP(_builder, val, 0, "any_val_elem_ptr_tmp");
+                var anyValuePtr = LLVM.BuildLoad(_builder, anyValueElemPtr, "any_val_ptr_tmp");
+
                 if (_isReferenceType(desired) || desired is PointerType)
-                    return LLVM.BuildBitCast(_builder, val, _convertType(desired), "cast_tmp");
+                    return LLVM.BuildBitCast(_builder, anyValuePtr, _convertType(desired), "cast_tmp");
                 else
                 {
-                    var castPtr = LLVM.BuildBitCast(_builder, val, LLVM.PointerType(_convertType(desired), 0), "cast_ptr_tmp");
+                    var castPtr = LLVM.BuildBitCast(_builder, anyValuePtr, LLVM.PointerType(_convertType(desired), 0), "cast_ptr_tmp");
 
                     return LLVM.BuildLoad(_builder, castPtr, "cast_tmp");
                 }
@@ -335,7 +352,7 @@ namespace Whirlwind.Generation
             return vtablePtr;
         }
 
-        private ulong _getInterfCVal(DataType dt)
+        private ulong _getTypeCVal(DataType dt)
         {
             if (_cValLookupTable.ContainsValue(dt))
                 return _cValLookupTable.Single(x => dt.Equals(x.Value)).Key;
