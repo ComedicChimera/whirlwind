@@ -107,12 +107,25 @@ namespace Whirlwind.Types
         public override string ToString()
             => Name;
 
+        public bool IsReferenceType()
+        {
+            if (Instances.All(x => x is CustomNewType cnt2 && cnt2.Values.Count == 0))
+                return false;
+
+            // if there is only instance, we know that if it is a custom new type, it has more than
+            // value so we only need to test for custom aliases here (custom new types would be invalid)
+            if (Instances.Count == 1 && Instances[0] is CustomAlias)
+                return false;
+
+            return true;
+        }
+
         public override uint SizeOf()
         {
-            if (Instances.Any(x => x is CustomNewType cnt && cnt.Values.Count > 0))
+            if (IsReferenceType())
                 return WhirlGlobals.POINTER_SIZE + 6;
 
-            return 2;
+            return Instances.Count == 1 && Instances[0] is CustomAlias ca ? ca.Type.SizeOf() : 2;
         }
     }
 

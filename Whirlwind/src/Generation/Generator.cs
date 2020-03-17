@@ -294,6 +294,7 @@ namespace Whirlwind.Generation
                 case TypeClassifier.ANY:
                     _elemDeepCopy(copyRef, 0, 2);
                     break;
+                // if a type class has made it this far, then we can assume it is a reference type
                 case TypeClassifier.TYPE_CLASS_INSTANCE:
                     _elemDeepCopy(copyRef, 1, 2);
                     break;

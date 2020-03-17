@@ -435,13 +435,7 @@ namespace Whirlwind.Generation
         private bool _isReferenceType(DataType dt)
         {
             if (dt is CustomInstance ci)
-            {
-                if (dt is CustomNewType cnt && cnt.Values.Count > 0)
-                    return true;
-
-                if (ci.Parent.Instances.Count > 1 && !ci.Parent.Instances.All(x => x is CustomNewType))
-                    return true;
-            }
+                return ci.Parent.IsReferenceType();
             else if (dt is FunctionType ft)
                 return ft.IsBoxed;
 
