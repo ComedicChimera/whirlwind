@@ -324,6 +324,9 @@ namespace Whirlwind.Generation
 
         private LLVMValueRef _copy(LLVMValueRef vref, DataType dt)
         {
+            if (dt.Category == ValueCategory.RValue)
+                return vref;
+
             if (_isReferenceType(dt))
                 return _copyRefType(vref, dt);
 

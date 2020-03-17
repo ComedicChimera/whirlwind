@@ -26,9 +26,8 @@ namespace Whirlwind.Generation
                     if (!idNode.Type.Equals(varNode.Nodes[1].Type))
                         initExpr = _cast(initExpr, varNode.Nodes[1].Type, idNode.Type);
 
-                    // TODO: remove copy if cast?
                     if (_isReferenceType(idNode.Type))
-                        _setVar(idNode.IdName, _copyRefType(initExpr));
+                        _setVar(idNode.IdName, _copy(initExpr, varNode.Nodes[1].Type));
                     else
                     {
                         var varAlloc = LLVM.BuildAlloca(_builder, _convertType(idNode.Type), idNode.IdName);
@@ -65,7 +64,7 @@ namespace Whirlwind.Generation
                         var item = uninitializedVars[i];
 
                         if (item.Type.Equals(tieType))
-                            _setVar(item.IdName, _copyRefType(totalInitExpr));
+                            _setVar(item.IdName, _copy(totalInitExpr, tieType));
                         else
                             _setVar(item.IdName, _cast(totalInitExpr, tieType, item.Type));
                     }
@@ -102,7 +101,6 @@ namespace Whirlwind.Generation
                 {
                     var initExpr = _generateExpr(varNode.Nodes[1]);
 
-                    // TODO: remove copy if cast?
                     if (!idNode.Type.Equals(varNode.Nodes[1].Type))
                         initExpr = _cast(initExpr, varNode.Nodes[1].Type, idNode.Type);
 

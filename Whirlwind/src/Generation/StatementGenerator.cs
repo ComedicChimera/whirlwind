@@ -50,7 +50,7 @@ namespace Whirlwind.Generation
 
             if (_isReferenceType(var.Type))
             {
-                expr = _copyRefType(expr);
+                expr = _copyRefType(expr, exprType);
 
                 if (var is IdentifierNode idNode)
                 {
