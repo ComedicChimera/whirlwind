@@ -49,15 +49,7 @@ namespace Whirlwind.Generation
                 expr = _cast(expr, exprType, var.Type);
 
             if (_isReferenceType(var.Type))
-            {
                 expr = _copyRefType(expr, exprType);
-
-                if (var is IdentifierNode idNode)
-                {
-                    _setVar(idNode.IdName, expr);
-                    return;
-                }                   
-            }
 
             var varRef = _generateExpr(var, true);
 
