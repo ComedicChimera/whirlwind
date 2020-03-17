@@ -8,6 +8,7 @@ namespace Whirlwind
     {
         // global variables
         public static string WHIRL_PATH;
+        public static uint POINTER_SIZE;
 
         // global functions
         public static bool DictionaryEquals<TKey, TValue>(

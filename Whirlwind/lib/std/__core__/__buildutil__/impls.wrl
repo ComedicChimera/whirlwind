@@ -66,6 +66,12 @@ func __concatL<T>(a, b: [T]) {
 	return arr;
 }*/
 
+func __memcpy(dest: *byte, src: *byte, size: int) {	
+	for (i = 0; i < size; i++) {
+		*(dest + i) = *(src + i);
+	}
+}
+
 // INTRINSIC FUNCTIONS
 #intrinsic
 func __malloca(size: uint) *any;

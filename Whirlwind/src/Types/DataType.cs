@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System;
 
 namespace Whirlwind.Types
 {
@@ -145,9 +146,14 @@ namespace Whirlwind.Types
             return _coerce(other);
         }
 
+        // public sizeof method (used in backend, given in bytes)
+        // the default implementation should never be used (thus exception)
+        public virtual uint SizeOf() => throw new NotImplementedException();
+
         // internal coerce method
         protected virtual bool _coerce(DataType other) => false;
 
+        // internal equals method
         protected abstract bool _equals(DataType other);
 
         // returns the types interface
@@ -263,6 +269,8 @@ namespace Whirlwind.Types
             => new AnyType() { Constant = true };
 
         public override string ToString() => "any";
+
+        public override uint SizeOf() => 1;
     }
 
     // type that means there is a value, but it has no type
@@ -290,6 +298,8 @@ namespace Whirlwind.Types
            => new NullType() { Constant = true };
 
         public override string ToString() => "null";
+
+        public override uint SizeOf() => EvaluatedType.SizeOf();
     }
 
     class IncompleteType : DataType

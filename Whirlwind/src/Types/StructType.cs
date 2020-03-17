@@ -137,5 +137,9 @@ namespace Whirlwind.Types
             };
 
         public override string ToString() => Name;
+
+        public override uint SizeOf() => 
+            Members.Select(x => x.Value.DataType.SizeOf())
+            .Aggregate((a, b) => a + b);
     }
 }

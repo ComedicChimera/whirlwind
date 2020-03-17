@@ -187,6 +187,8 @@ namespace Whirlwind.Types
 
             return baseString += $"({string.Join(", ", stringParams)})({(ReturnType is NoneType ? "" : ReturnType.LLVMName())})";
         }
+
+        public override uint SizeOf() => IsBoxed ? WhirlGlobals.POINTER_SIZE * 2 : WhirlGlobals.POINTER_SIZE;
     }
 
     class FunctionGroup : DataType

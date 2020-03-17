@@ -106,6 +106,14 @@ namespace Whirlwind.Types
 
         public override string ToString()
             => Name;
+
+        public override uint SizeOf()
+        {
+            if (Instances.Any(x => x is CustomNewType cnt && cnt.Values.Count > 0))
+                return WhirlGlobals.POINTER_SIZE + 6;
+
+            return 2;
+        }
     }
 
     abstract class CustomInstance : DataType
@@ -133,6 +141,8 @@ namespace Whirlwind.Types
 
         public override string ToString()
             => Parent.Name;
+
+        public override uint SizeOf() => Parent.SizeOf();
     }
 
     // used as CustomInstance without specific value

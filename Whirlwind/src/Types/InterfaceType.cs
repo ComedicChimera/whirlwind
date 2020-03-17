@@ -233,5 +233,7 @@ namespace Whirlwind.Types
                 };
 
         public override string ToString() => Name;
+
+        public override uint SizeOf() => WhirlGlobals.POINTER_SIZE * 2 + 6;
     }
 }

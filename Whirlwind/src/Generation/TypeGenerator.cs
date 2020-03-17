@@ -102,7 +102,12 @@ namespace Whirlwind.Generation
                 var fp = LLVM.PointerType(LLVM.FunctionType(rtType, parameters.ToArray(),
                     ft.Parameters.Count > 0 && ft.Parameters.Last().Indefinite), 0);
 
-                return LLVM.StructType(new[] { fp, LLVM.PointerType(LLVM.Int8Type(), 0) }, false);
+                var functionStruct = LLVM.StructType(new[] { fp, LLVM.PointerType(LLVM.Int8Type(), 0) }, false);
+
+                if (usePtrTypes)
+                    return LLVM.PointerType(functionStruct, 0);
+
+                return functionStruct;
             }
             else if (dt is CustomInstance ci)
             {
@@ -198,8 +203,11 @@ namespace Whirlwind.Generation
                 var vtableElemPtr = LLVM.BuildStructGEP(_builder, interf, 1, "vtable_elem_ptr_tmp");
                 LLVM.BuildStore(_builder, _createVtable(start.GetInterface(), dInterf), vtableElemPtr);
 
-                var cVarElemPtr = LLVM.BuildStructGEP(_builder, interf, 2, "c_var_elem_ptr_tmp");
-                LLVM.BuildStore(_builder, LLVM.ConstInt(LLVM.Int16Type(), _getInterfCVar(start), new LLVMBool(0)), cVarElemPtr);
+                var cValElemPtr = LLVM.BuildStructGEP(_builder, interf, 2, "c_val_elem_ptr_tmp");
+                LLVM.BuildStore(_builder, LLVM.ConstInt(LLVM.Int16Type(), _getInterfCVal(start), new LLVMBool(0)), cValElemPtr);
+
+                var sizeElemPtr = LLVM.BuildStructGEP(_builder, interf, 3, "size_elem_ptr_tmp");
+                LLVM.BuildStore(_builder, LLVM.ConstInt(LLVM.Int32Type(), start.SizeOf(), new LLVMBool(0)), sizeElemPtr);
 
                 return interf;
             }
@@ -327,8 +335,16 @@ namespace Whirlwind.Generation
             return vtablePtr;
         }
 
-        private ulong _getInterfCVar(DataType dt)
-            => (ulong)dt.ToString().GetHashCode();
+        private ulong _getInterfCVal(DataType dt)
+        {
+            if (_cValLookupTable.ContainsValue(dt))
+                return _cValLookupTable.Single(x => dt.Equals(x.Value)).Key;
+
+            ulong cVal = (ulong)_cValLookupTable.Count;
+            _cValLookupTable[cVal] = dt;
+
+            return cVal;
+        }
 
         private byte _getSimpleClass(SimpleType st)
         {

@@ -126,5 +126,26 @@ namespace Whirlwind.Types
             else
                 return baseString;
         }
+
+        public override uint SizeOf()
+        {
+            switch (Type)
+            {
+                case SimpleClassifier.BOOL:
+                case SimpleClassifier.BYTE:
+                    return 1;
+                case SimpleClassifier.SHORT:
+                    return 2;
+                case SimpleClassifier.INTEGER:
+                case SimpleClassifier.CHAR:
+                case SimpleClassifier.FLOAT:
+                    return 4;
+                case SimpleClassifier.LONG:
+                case SimpleClassifier.DOUBLE:
+                    return 8;
+                default:
+                    return WhirlGlobals.POINTER_SIZE + 4;
+            }
+        }
     }
 }

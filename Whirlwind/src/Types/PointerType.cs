@@ -37,5 +37,7 @@
 
         public override string LLVMName()
             => (IsDynamicPointer ? "dyn* " : "*") + DataType.LLVMName();
+
+        public override uint SizeOf() => WhirlGlobals.POINTER_SIZE;
     }
 }

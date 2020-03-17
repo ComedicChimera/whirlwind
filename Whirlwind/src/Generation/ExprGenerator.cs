@@ -660,7 +660,7 @@ namespace Whirlwind.Generation
 
                 var elemPtr = LLVM.BuildGEP(_builder, arrLit,
                     new[] {
-                        LLVM.ConstInt(LLVM.Int32Type(), 0, new LLVMBool(0)),
+                        // LLVM.ConstInt(LLVM.Int32Type(), 0, new LLVMBool(0)),
                         LLVM.ConstInt(LLVM.Int32Type(), i, new LLVMBool(0))
                     },
                     "elem_ptr"
@@ -848,6 +848,11 @@ namespace Whirlwind.Generation
 
                 var valPtrElem = LLVM.BuildStructGEP(_builder, tcRef, 1, "tc_val_ptr_tmp");
                 LLVM.BuildStore(_builder, valPtr, valPtrElem);
+
+                var sizeElem = LLVM.BuildStructGEP(_builder, tcRef, 2, "tc_size_ptr_tmp");
+                LLVM.BuildStore(_builder,
+                    LLVM.ConstInt(LLVM.Int32Type(), cnt.Values[0].SizeOf(), new LLVMBool(0)),
+                    sizeElem);
             }
             else
             {
@@ -883,6 +888,11 @@ namespace Whirlwind.Generation
 
                 var valArrPtrElem = LLVM.BuildStructGEP(_builder, tcRef, 1, "tc_valarr_ptr_tmp");
                 LLVM.BuildStore(_builder, valArrPtr, valArrPtrElem);
+
+                var sizeElem = LLVM.BuildStructGEP(_builder, tcRef, 2, "tc_size_ptr_tmp");
+                LLVM.BuildStore(_builder, 
+                    LLVM.ConstInt(LLVM.Int32Type(), cnt.Values.Select(x => x.SizeOf()).Aggregate((a, b) => a + b), new LLVMBool(0)), 
+                    sizeElem);
             }
 
             return tcRef;

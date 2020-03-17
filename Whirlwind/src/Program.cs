@@ -78,6 +78,8 @@ namespace Whirlwind
         {
             // TODO - get whirl path from env
             WhirlGlobals.WHIRL_PATH = "C:/Users/forlo/dev/Projects/whirlwind/compiler/Whirlwind/";
+            // TODO - calculate pointer size based on architecture
+            WhirlGlobals.POINTER_SIZE = 8;
         }
 
         static void _showHelp()

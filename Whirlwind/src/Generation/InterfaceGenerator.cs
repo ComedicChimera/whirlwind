@@ -37,7 +37,8 @@ namespace Whirlwind.Generation
             {
                 LLVM.PointerType(LLVM.Int8Type(), 0),
                 LLVM.PointerType(vtableStruct, 0),
-                LLVM.Int16Type()
+                LLVM.Int16Type(),
+                LLVM.Int32Type()
             }, false);
 
             _globalStructs[name] = interfStruct;

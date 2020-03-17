@@ -126,8 +126,9 @@ namespace Whirlwind.Generation
 
                 tcStruct.StructSetBody(new[]
                 {
-                    LLVM.Int32Type(),
-                    valueHolder
+                    LLVM.Int16Type(),
+                    valueHolder,
+                    LLVM.Int32Type()
                 }, true);
 
                 _globalStructs[name] = tcStruct;

@@ -1,9 +1,7 @@
-﻿using System;
-using System.Linq;
+﻿using LLVMSharp;
+using System;
 using System.Collections.Generic;
-
-using LLVMSharp;
-
+using System.Linq;
 using Whirlwind.Semantic;
 using Whirlwind.Types;
 
@@ -58,11 +56,11 @@ namespace Whirlwind.Generation
         private readonly List<Tuple<LLVMValueRef, BlockNode>> _fnBlocks;
         // store function blocks with special generation algorithms that are awaiting generation (delayed)
         private readonly List<Tuple<LLVMValueRef, FnBodyBuilder>> _fnSpecialBlocks;
+        // store the classification values of data types of mapped to said data types for fast lookups
+        private readonly Dictionary<ulong, DataType> _cValLookupTable;
 
         // store the current generic suffix (will be appended to everything that is visited)
         private string _genericSuffix = "";
-        // tells how the compiler should handle id pointers (as pointers for assignment or values for computation)
-        // private bool _allowRawVarPtrs = false;
 
         // store the randomly generated package prefix
         private readonly string _randPrefix;
@@ -87,6 +85,7 @@ namespace Whirlwind.Generation
             _globalStructs = new Dictionary<string, LLVMTypeRef>();
             _fnBlocks = new List<Tuple<LLVMValueRef, BlockNode>>();
             _fnSpecialBlocks = new List<Tuple<LLVMValueRef, FnBodyBuilder>>();
+            _cValLookupTable = new Dictionary<ulong, DataType>();
 
             string randPrefixVals = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -280,15 +279,53 @@ namespace Whirlwind.Generation
         } 
         
         // TODO: special method cases on copies
-        private LLVMValueRef _copyRefType(LLVMValueRef vref)
+        private LLVMValueRef _copyRefType(LLVMValueRef vref, DataType dt)
         {
-            return vref;
+            var copyRef = LLVM.BuildAlloca(_builder, _convertType(dt), "refcopy_tmp");
+
+            var i8CopyRef = LLVM.BuildBitCast(_builder, copyRef, LLVM.PointerType(LLVM.Int8Type(), 0), "refcopy_i8ptr_tmp");
+            var i8SrcRef = LLVM.BuildBitCast(_builder, vref, LLVM.PointerType(LLVM.Int8Type(), 0), "copysrc_i8ptr_tmp");
+
+            LLVM.BuildCall(_builder, _globalScope["__memcpy"].Vref, 
+                new[] { i8CopyRef, i8SrcRef, LLVM.ConstInt(LLVM.Int32Type(), dt.SizeOf(), new LLVMBool(0)) }, "");
+
+            switch (dt.Classify())
+            {
+                case TypeClassifier.ANY:
+                    _elemDeepCopy(copyRef, 0, 2);
+                    break;
+                case TypeClassifier.TYPE_CLASS_INSTANCE:
+                    _elemDeepCopy(copyRef, 1, 2);
+                    break;
+                case TypeClassifier.INTERFACE_INSTANCE:
+                    _elemDeepCopy(copyRef, 0, 3);
+                    break;
+            }
+
+            return copyRef;
+        }
+
+        private void _elemDeepCopy(LLVMValueRef baseCopy, uint dataNdx, uint sizeNdx)
+        {
+            var dataElemPtr = LLVM.BuildStructGEP(_builder, baseCopy, dataNdx, "deepcopy_data_elem_ptr_tmp");
+            var dataPtr = LLVM.BuildLoad(_builder, dataElemPtr, "deepcopy_data_ptr_tmp");
+
+            var i8DataSrcPtr = LLVM.BuildBitCast(_builder, dataPtr, LLVM.PointerType(LLVM.Int8Type(), 0), "deepcopy_data_src_i8ptr_tmp");
+            var i8DataCopyPtr = LLVM.BuildAlloca(_builder, LLVM.Int8Type(), "deepcopy_data_copy_ptr_tmp");
+
+            var sizeElemPtr = LLVM.BuildStructGEP(_builder, baseCopy, sizeNdx, "deepcopy_size_elem_ptr_tmp");
+            var size = LLVM.BuildLoad(_builder, sizeElemPtr, "deepcopy_size_tmp");
+
+            LLVM.BuildCall(_builder, _globalScope["__memcpy"].Vref, 
+                new[] { i8DataCopyPtr, i8DataSrcPtr, size }, "");
+
+            LLVM.BuildStore(_builder, i8DataCopyPtr, dataElemPtr);
         }
 
         private LLVMValueRef _copy(LLVMValueRef vref, DataType dt)
         {
             if (_isReferenceType(dt))
-                return _copyRefType(vref);
+                return _copyRefType(vref, dt);
 
             return vref;
         }

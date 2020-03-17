@@ -1,16 +1,7 @@
-﻿struct Test<T> {
-	x, y: T;
-}
+﻿func test(f: func(int)(int)) {
 
-func doThing<T>(s: Test<T>, b: T) Test<T> {
-	s.x += b;
-	s.y *= b;
-
-	return s;
 }
 
 func main() {
-	let s = new Test<int>();
-
-	s = doThing(s, 4);
+	
 }

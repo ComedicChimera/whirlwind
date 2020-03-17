@@ -53,6 +53,8 @@ namespace Whirlwind.Types
             => new GenericAlias(ReplacementType); // implicit const
 
         public override string ToString() => ReplacementType.ToString();
+
+        public override uint SizeOf() => ReplacementType.SizeOf();
     }
 
     // function used to evaluate generic body

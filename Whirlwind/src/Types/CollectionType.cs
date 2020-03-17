@@ -51,6 +51,8 @@
 
         public override string LLVMName()
             => _makeLLVMSafe($"array[{ElementType.LLVMName()}{(Size == -1 ? "]" : $", {Size}]")}");
+
+        public override uint SizeOf() => WhirlGlobals.POINTER_SIZE + 4;
     }
 
     class ListType : DataType, IIterable
@@ -97,6 +99,8 @@
 
         public override string LLVMName()
             => _makeLLVMSafe($"list[{ElementType.LLVMName()}]");
+
+        public override uint SizeOf() => WhirlGlobals.POINTER_SIZE + 8;
     }
 
     class DictType : DataType,  IIterable
@@ -140,5 +144,7 @@
 
         public override string LLVMName()
             => $"dict[{KeyType.LLVMName()}, {ValueType.LLVMName()}]";
+
+        public override uint SizeOf() => WhirlGlobals.POINTER_SIZE * 2 + 12;
     }
 }

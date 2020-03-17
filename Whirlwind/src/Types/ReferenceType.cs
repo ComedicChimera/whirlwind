@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System;
 
 namespace Whirlwind.Types
 {
@@ -65,6 +66,8 @@ namespace Whirlwind.Types
             => new SelfType(_name, DataType) { Constant = true };
 
         public override string ToString() => _name;
+
+        public override uint SizeOf() => Initialized ? DataType.SizeOf() : throw new NotImplementedException();
     }
 
     // used as a self-referential type for generics
@@ -204,5 +207,15 @@ namespace Whirlwind.Types
         }
 
         public override string ToString() => _name;
+
+        public override uint SizeOf()
+        {
+            if (GenericSelf == null)
+                throw new NotImplementedException();
+
+            GenericSelf.CreateGeneric(TypeList, out DataType generate);
+
+            return generate.SizeOf();
+        }
     }
 }
