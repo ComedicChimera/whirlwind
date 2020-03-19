@@ -118,6 +118,9 @@ namespace Whirlwind.Types
         // store the current value category
         public ValueCategory Category = ValueCategory.RValue;
 
+        // store whether or not data type is a this pointer
+        public bool IsThisPtr = false;
+
         // check if another data type can be coerced to this type
         public virtual bool Coerce(DataType other)
         {
@@ -226,6 +229,14 @@ namespace Whirlwind.Types
                 newDt.Category = ValueCategory.LValue;
 
             return newDt;
+        }
+
+        public DataType ThisCopy(bool thisPtrStatus)
+        {
+            var cpy = Copy();
+            cpy.IsThisPtr = thisPtrStatus;
+
+            return cpy;
         }
 
         public virtual string LLVMName()

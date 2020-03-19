@@ -160,6 +160,7 @@ A multi-value structure or some form of operation.
 | From | Expr | Extract a value from an algebraic type |
 | ExprVarDecl | Identifier, Expr | Declare an expr-local variable |
 | NamedArgument | Identifier, Expr | Names an argument in a function declaration |
+| ThisDereference | Atom | Connotes an implicit dereference of the `this` pointer |
 
 *All of the subscript and slice trees have an option to have `SetOverload` on the end of them where appropriate*
 

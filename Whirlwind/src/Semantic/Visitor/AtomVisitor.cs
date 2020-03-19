@@ -78,6 +78,13 @@ namespace Whirlwind.Semantic.Visitor
             // check for uninitialized generics (again should not exist past this point)
             if (_nodes.Last().Type is GenericType)
                 throw new SemanticException("Generic missing type arguments", node.Position);
+
+            // build in implicit this dereference as in all future stages, this is treated as a value
+            if (_nodes.Last().Type.IsThisPtr)
+            {
+                _nodes.Add(new ExprNode("ThisDereference", _nodes.Last().Type.ThisCopy(false)));
+                PushForward();
+            }
         }
 
         private void _visitTrailer(ASTNode node)

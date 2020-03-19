@@ -196,17 +196,27 @@ namespace Whirlwind.Generation
             return LLVM.PointerType(baseType, 0);
         }
 
-        private LLVMValueRef _boxToInterf(LLVMValueRef vref)
+        private LLVMValueRef _boxToInterf(LLVMValueRef vref, DataType dt)
         {
-            var boxed = LLVM.BuildAlloca(_builder, _interfBoxType, "interf_box_tmp");
-            
-            if (vref.TypeOf().TypeKind == LLVMTypeKind.LLVMPointerTypeKind)
+            var boxed = LLVM.BuildAlloca(_builder, _interfBoxType, "interf_box_tmp");        
+
+            LLVMValueRef thisPtr;
+            if (dt.IsThisPtr || _isReferenceType(dt))
+                thisPtr = LLVM.BuildBitCast(_builder, vref, LLVM.PointerType(LLVM.Int8Type(), 0), "this_i8_ptr_tmp");
+            else
             {
-                // TODO: figure out a way to determine whether or not
-                // something is in its this ptr form in this AND the general case
+                thisPtr = LLVM.BuildAlloca(_builder, _convertType(dt), "this_ptr_tmp");
+                LLVM.BuildStore(_builder, vref, thisPtr);
+
+                thisPtr = LLVM.BuildBitCast(_builder, thisPtr, LLVM.PointerType(LLVM.Int8Type(), 0), "this_i8_ptr_tmp");
             }
 
-            return _ignoreValueRef();
+            var thisElemPtr = LLVM.BuildStructGEP(_builder, boxed, 0, "this_elem_ptr_tmp");
+            LLVM.BuildStore(_builder, thisPtr, thisElemPtr);
+
+            // because this is a fake box (not actually intended to be used a real interface, c val and size are not necessary)
+
+            return boxed;
         }
     }
 }

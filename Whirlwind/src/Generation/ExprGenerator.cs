@@ -73,7 +73,7 @@ namespace Whirlwind.Generation
                                 typeInterf = _cast(typeInterf, enode.Nodes[0].Type, interfType);
                             }
                             else
-                                typeInterf = _boxToInterf(typeInterf); // standard up box (with no real vtable)
+                                typeInterf = _boxToInterf(typeInterf, enode.Nodes[0].Type); // standard up box (with no real vtable)
                             
                             return _boxFunction(_globalScope[rootName + ".interf." + memberName].Vref, typeInterf);
                         }   
@@ -143,7 +143,7 @@ namespace Whirlwind.Generation
                                     typeInterf = _cast(typeInterf, enode.Nodes[0].Type, interfType);
                                 }
                                 else
-                                    typeInterf = _boxToInterf(typeInterf); // standard up box (with no real vtable)
+                                    typeInterf = _boxToInterf(typeInterf, tiGetMember.Nodes[0].Type); // standard up box (with no real vtable)
 
                                 llvmFn = _boxFunction(_loadGlobalValue(rootName + ".interf." + memberName + "." + overloadSuffix), typeInterf);
                             }
@@ -206,6 +206,16 @@ namespace Whirlwind.Generation
                             return _cast(_generateExpr(enode.Nodes[0], mutableExpr), enode.Nodes[0].Type, new PointerType(enode.Type, false));
 
                         return _cast(_generateExpr(enode.Nodes[0], mutableExpr), enode.Nodes[0].Type, enode.Type);
+                    case "ThisDereference":
+                        {
+                            var root = enode.Nodes[0];
+                            var rootExpr = _generateExpr(root);
+
+                            if (_isReferenceType(root.Type))
+                                return rootExpr;
+                            else
+                                return LLVM.BuildLoad(_builder, rootExpr, "this_deref_tmp");
+                        }                       
                     case "Add":
                         {
                             if (expr.Type is ArrayType at)
@@ -652,7 +662,7 @@ namespace Whirlwind.Generation
                     typeInterf = _cast(typeInterf, enode.Nodes[0].Type, interfType);
                 }
                 else
-                    typeInterf = _boxToInterf(typeInterf); // standard up box (with no real vtable)
+                    typeInterf = _boxToInterf(typeInterf, tiGetMember.Nodes[0].Type); // standard up box (with no real vtable)
 
                 var tiGenerateName = rootName + ".interf." + memberName + ".variant." + typeListSuffix;
 
