@@ -63,7 +63,7 @@ namespace Whirlwind.Generation
                     else
                         LLVM.BuildStore(_builder, _cast(totalInitExpr, tieType, item.Type), varAlloc);
 
-                    _setVar(item.Name, varAlloc, true);
+                    _setVar(item.IdName, varAlloc, true);
                 }
             }                      
         }

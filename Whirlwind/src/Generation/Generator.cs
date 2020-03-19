@@ -61,6 +61,8 @@ namespace Whirlwind.Generation
 
         // store the current generic suffix (will be appended to everything that is visited)
         private string _genericSuffix = "";
+        // store the current "this" pointer type
+        private LLVMTypeRef _thisPtrType;
 
         // store the randomly generated package prefix
         private readonly string _randPrefix;
@@ -69,6 +71,8 @@ namespace Whirlwind.Generation
         private LLVMTypeRef _stringType;
         // store global any type struct
         private LLVMTypeRef _anyType;
+        // store reusable "fake" interface type (for forced boxing)
+        private LLVMTypeRef _interfBoxType;
 
         public Generator(SymbolTable table, Dictionary<string, string> flags, Dictionary<string, DataType> impls, string namePrefix)
         {
@@ -99,6 +103,19 @@ namespace Whirlwind.Generation
 
                 return randPrefixVals[rand];
             })) + ".";
+
+            // setup interf forced box type
+            _interfBoxType = LLVM.StructCreateNamed(_ctx, "__interfBoxType");
+            _interfBoxType.StructSetBody(
+                new[]
+                {
+                    LLVM.PointerType(LLVM.Int8Type(), 0),
+                    LLVM.PointerType(LLVM.Int8Type(), 0),
+                    LLVM.Int16Type(),
+                    LLVM.Int32Type()
+                },
+                false
+            );
         }
 
         public void Generate(BlockNode tree, string outputFile)
@@ -166,6 +183,12 @@ namespace Whirlwind.Generation
                     break;
                 case "Generic":
                     _generateGeneric((BlockNode)node);
+                    break;
+                case "BindInterface":
+                    _generateInterfBind((BlockNode)node);
+                    break;
+                case "BindGenericInterface":
+                    _generateGenericBind((BlockNode)node);
                     break;
             }
         }

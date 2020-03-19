@@ -61,10 +61,21 @@ namespace Whirlwind.Generation
                         {
                             // assumes not overloads and no generics (handled by other parts of the code)
                             string rootName = _getLookupName(enode.Nodes[0].Type);
-                            var baseInterf = _generateExpr(enode.Nodes[0]);
+                            var typeInterf = _generateExpr(enode.Nodes[0]);
                             string memberName = ((IdentifierNode)enode.Nodes[1]).IdName;
 
-                            return _boxFunction(_globalScope[rootName + ".interf." + memberName].Vref, baseInterf);
+                            var interfType = enode.Nodes[0].Type.GetInterface();
+                            var method = interfType.Methods.Single(x => x.Key.Name == memberName);
+
+                            if (method.Value == MethodStatus.VIRTUAL)
+                            {
+                                rootName = _getLookupName(interfType.Implements.First(x => x.Methods.Contains(method)));
+                                typeInterf = _cast(typeInterf, enode.Nodes[0].Type, interfType);
+                            }
+                            else
+                                typeInterf = _boxToInterf(typeInterf); // standard up box (with no real vtable)
+                            
+                            return _boxFunction(_globalScope[rootName + ".interf." + memberName].Vref, typeInterf);
                         }   
                     case "CreateGeneric":
                         return _generateCreateGeneric(enode);
@@ -116,7 +127,26 @@ namespace Whirlwind.Generation
                                 llvmFn = _generateVtableGet(_generateExpr(interfNode), vtableNdx);
                             }
                             else if (root.Name == "GetTIMethod")
-                                llvmFn = _loadGlobalValue(_getLookupName(((ExprNode)root).Nodes[0].Type) + "." + overloadSuffix);
+                            {
+                                var tiGetMember = (ExprNode)root;
+
+                                string rootName = _getLookupName(tiGetMember.Nodes[0].Type);
+                                var typeInterf = _generateExpr(tiGetMember.Nodes[0]);
+                                string memberName = ((IdentifierNode)tiGetMember.Nodes[1]).IdName;
+
+                                var interfType = tiGetMember.Nodes[0].Type.GetInterface();
+                                var method = interfType.Methods.Single(x => x.Key.Name == memberName);
+
+                                if (method.Value == MethodStatus.VIRTUAL)
+                                {
+                                    rootName = _getLookupName(interfType.Implements.First(x => x.Methods.Contains(method)));
+                                    typeInterf = _cast(typeInterf, enode.Nodes[0].Type, interfType);
+                                }
+                                else
+                                    typeInterf = _boxToInterf(typeInterf); // standard up box (with no real vtable)
+
+                                llvmFn = _boxFunction(_loadGlobalValue(rootName + ".interf." + memberName + "." + overloadSuffix), typeInterf);
+                            }
                             else
                                 llvmFn = _loadGlobalValue(fg.Name + "." + overloadSuffix);
 
@@ -610,12 +640,21 @@ namespace Whirlwind.Generation
                 var tiGetMember = (ExprNode)root;
 
                 string rootName = _getLookupName(tiGetMember.Nodes[0].Type);
+                var typeInterf = _generateExpr(tiGetMember.Nodes[0]);
                 string memberName = ((IdentifierNode)tiGetMember.Nodes[1]).IdName;
 
-                string tiPrefix = rootName + ".interf." + memberName;
-                var typeInterf = _globalScope[tiPrefix].Vref;
+                var interfType = tiGetMember.Nodes[0].Type.GetInterface();
+                var method = interfType.Methods.Single(x => x.Key.Name == memberName);
 
-                var tiGenerateName = tiPrefix + ".variant." + typeListSuffix;
+                if (method.Value == MethodStatus.VIRTUAL)
+                {
+                    rootName = _getLookupName(interfType.Implements.First(x => x.Methods.Contains(method)));
+                    typeInterf = _cast(typeInterf, enode.Nodes[0].Type, interfType);
+                }
+                else
+                    typeInterf = _boxToInterf(typeInterf); // standard up box (with no real vtable)
+
+                var tiGenerateName = rootName + ".interf." + memberName + ".variant." + typeListSuffix;
 
                 return _boxFunction(_globalScope[tiGenerateName].Vref, typeInterf);
             }
@@ -962,6 +1001,7 @@ namespace Whirlwind.Generation
         private LLVMValueRef[] _buildArgArray(FunctionType ft, ExprNode enode)
         {
             var argArray = new LLVMValueRef[ft.Parameters.Count];
+            var argArrayTypes = new DataType[ft.Parameters.Count];
 
             if (argArray.Length == 0)
                 return argArray;
@@ -975,6 +1015,7 @@ namespace Whirlwind.Generation
                     break;
 
                 argArray[i - 1] = _copy(_generateExpr(item), item.Type);
+                argArrayTypes[i - 1] = item.Type;
             }
 
             if (i == enode.Nodes.Count - 1)
@@ -990,7 +1031,14 @@ namespace Whirlwind.Generation
                         .First().Ndx;
 
                     argArray[ftNdx] = _copy(_generateExpr(item.Nodes[1]), item.Nodes[1].Type);
+                    argArrayTypes[ftNdx] = item.Nodes[1].Type;
                 }
+            }
+
+            for (int k = 0; k < argArray.Length; k++)
+            {
+                if (!ft.Parameters[k].DataType.Equals(argArrayTypes[k]))
+                    argArray[k] = _cast(argArray[k], argArrayTypes[k], ft.Parameters[k].DataType);  
             }
 
             return argArray;

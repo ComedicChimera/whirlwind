@@ -67,9 +67,15 @@ namespace Whirlwind.Generation
             if (ft.IsBoxed)
             {
                 argOffset++;
-                frontArgs.Add(new Tuple<string, LLVMTypeRef>(
-                    ft.IsMethod ? "this" : "$state", LLVM.PointerType(LLVM.Int8Type(), 0)
-                    ));
+
+                if (ft.IsMethod)
+                {
+                    frontArgs.Add(new Tuple<string, LLVMTypeRef>("this", _thisPtrType));
+                }
+                else
+                {
+                    frontArgs.Add(new Tuple<string, LLVMTypeRef>("$state", LLVM.PointerType(LLVM.Int8Type(), 0)));
+                }                
             }          
             if (refReturn)
             {

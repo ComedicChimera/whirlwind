@@ -320,8 +320,8 @@ namespace Whirlwind.Semantic.Visitor
 
                         throw new SemanticException($"Type has no interface member `{name}`", idPos);
                     }
-                        
-                    break;
+
+                    return symbol;
             }
 
             interfGet = false;

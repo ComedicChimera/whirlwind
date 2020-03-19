@@ -1,17 +1,28 @@
-﻿struct Point {
-	x, y: int;
+﻿interf Test {
+	func f(x: int) int;
 
-	constructor(x, y: int) {
-		this.x = x;
-		this.y = y;
+	func g(x: float) float
+		=> this.f(5) * x;
+}
+
+struct Point {
+	a: int;
+	b: float;
+
+	constructor(a: int) {
+		this.a = a;
+		this.b = 5.6;
 	}
 }
 
-func main() {
-	let s1 = new Point(0, 1);
-	let s2 = new Point(2, 3);
-
-	s1 = s2;
-
-	s1.x = 45;
+interf for Point is Test {
+	func f(x: int) int => this.a + x;
 }
+
+func main() {
+	let p = new Point(45);
+	let t = p.f(14);
+
+	let t2 = t - p.g(1.05);
+}
+

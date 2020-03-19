@@ -25,14 +25,16 @@ namespace Whirlwind.Generation
             string llvmPrefix = exported ? _randPrefix : "";
             name += _genericSuffix;
 
-            var methods = _generateInterfBody(node, interfType, name, false, exported);
+            var interfStruct = LLVM.StructCreateNamed(_ctx, llvmPrefix + name);
+
+            _thisPtrType = LLVM.PointerType(interfStruct, 0);
+            var methods = _generateInterfBody(node, interfType, _thisPtrType, name, false, exported);
 
             var vtableStruct = LLVM.StructCreateNamed(_ctx, llvmPrefix + name + ".__vtable");
             vtableStruct.StructSetBody(methods.ToArray(), false);
 
             _globalStructs[name + ".__vtable"] = vtableStruct;
-
-            var interfStruct = LLVM.StructCreateNamed(_ctx, llvmPrefix + name);
+      
             interfStruct.StructSetBody(new[]
             {
                 LLVM.PointerType(LLVM.Int8Type(), 0),
@@ -42,9 +44,12 @@ namespace Whirlwind.Generation
             }, false);
 
             _globalStructs[name] = interfStruct;
+
+            _thisPtrType = LLVM.PointerType(_interfBoxType, 0);
         }
 
-        private List<LLVMTypeRef> _generateInterfBody(BlockNode node, InterfaceType interfType, string name, bool typeInterf, bool exported)
+        private List<LLVMTypeRef> _generateInterfBody(BlockNode node, InterfaceType interfType, LLVMTypeRef desiredThis, 
+            string name, bool typeInterf, bool exported)
         {
             var methods = new List<LLVMTypeRef>();
 
@@ -66,16 +71,12 @@ namespace Whirlwind.Generation
 
                     if (method.Value != MethodStatus.ABSTRACT)
                     {
-                        if (typeInterf && method.Value == MethodStatus.VIRTUAL)
-                        {
-                            var parentInterf = interfType.Implements.Single(x => x.Methods.Contains(method));
-
-                            _addGlobalDecl(llvmName, _globalScope[llvmName.Replace(name, _getLookupName(parentInterf))].Vref);
-                        }
-
                         var llvmMethod = _generateFunctionPrototype(llvmName, fnType, exported);
 
-                        _appendFunctionBlock(llvmMethod, ((BlockNode)node.Block[methodNdx]));
+                        if (typeInterf)
+                            _appendFunctionBlock(llvmMethod, _getTIMethodBodyBuilder((BlockNode)node.Block[methodNdx], desiredThis));
+                        else
+                            _appendFunctionBlock(llvmMethod, (BlockNode)node.Block[methodNdx]);
 
                         _addGlobalDecl(llvmName, llvmMethod);
                     }
@@ -89,16 +90,12 @@ namespace Whirlwind.Generation
                     {
                         foreach (var generate in generateList)
                         {
-                            if (typeInterf && method.Value == MethodStatus.VIRTUAL)
-                            {
-                                var parentInterf = interfType.Implements.Single(x => x.Methods.Contains(method));
-
-                                _addGlobalDecl(generate.Item1, _globalScope[generate.Item1.Replace(name, _getLookupName(parentInterf))].Vref);
-                            }
-
                             var llvmMethod = _generateFunctionPrototype(generate.Item1, generate.Item2, exported);
 
-                            _appendFunctionBlock(llvmMethod, generate.Item3);
+                            if (typeInterf)
+                                _appendFunctionBlock(llvmMethod, _getTIMethodBodyBuilder(generate.Item3, desiredThis));
+                            else
+                                _appendFunctionBlock(llvmMethod, generate.Item3);
 
                             _addGlobalDecl(generate.Item1, llvmMethod);
                         }
@@ -153,13 +150,27 @@ namespace Whirlwind.Generation
             return false;
         }
 
+        private FnBodyBuilder _getTIMethodBodyBuilder(BlockNode block, LLVMTypeRef thisPtrType)
+            => delegate (LLVMValueRef method)
+            {
+                var thisVref = _getNamedValue("this").Vref;
+
+                var thisElemPtr = LLVM.BuildStructGEP(_builder, thisVref, 0, "this_elem_ptr_tmp");
+                var i8ThisPtr = LLVM.BuildLoad(_builder, thisElemPtr, "this_i8ptr_tmp");
+
+                _setVar("this", LLVM.BuildBitCast(_builder, i8ThisPtr, thisPtrType, "__this"));
+
+                return _generateBlock(block.Block);
+            };
+
         // TODO: exported interface bindings
         private void _generateInterfBind(BlockNode node)
         {
             var it = (InterfaceType)node.Nodes[0].Type;
             var dtBindName = _getLookupName(node.Nodes[1].Type);
+            var bindThisPtrType = _getBindThisPtrType(node.Nodes[1].Type);
 
-            _generateInterfBody(node, it, dtBindName, true, false);
+            _generateInterfBody(node, it, bindThisPtrType, dtBindName, true, false);
         }
 
         private void _generateGenericBind(BlockNode node)
@@ -169,9 +180,33 @@ namespace Whirlwind.Generation
             foreach (var item in gt.Generates)
             {
                 var dtBindName = _getLookupName(item.Type);
+                var bindThisPtrType = _getBindThisPtrType(item.Type);
 
-                _generateInterfBody(item.Block, (InterfaceType)item.Type, dtBindName, true, false);
+                _generateInterfBody(item.Block, (InterfaceType)item.Type, bindThisPtrType, dtBindName, true, false);
             }
+        }
+
+        private LLVMTypeRef _getBindThisPtrType(DataType dt)
+        {
+            var baseType = _convertType(dt);
+
+            if (_isReferenceType(dt))
+                return baseType;
+
+            return LLVM.PointerType(baseType, 0);
+        }
+
+        private LLVMValueRef _boxToInterf(LLVMValueRef vref)
+        {
+            var boxed = LLVM.BuildAlloca(_builder, _interfBoxType, "interf_box_tmp");
+            
+            if (vref.TypeOf().TypeKind == LLVMTypeKind.LLVMPointerTypeKind)
+            {
+                // TODO: figure out a way to determine whether or not
+                // something is in its this ptr form in this AND the general case
+            }
+
+            return _ignoreValueRef();
         }
     }
 }

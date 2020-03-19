@@ -37,7 +37,7 @@ namespace Whirlwind.Generation
                 {
                     BlockNode constructor = (BlockNode)item;
                     FunctionType cft = (FunctionType)(constructor.Nodes[0].Type).Copy();
-                    cft.Parameters.Insert(0, _buildThisParameter(st));
+                    cft.Parameters.Insert(0, _buildStructThisParam(st));
 
                     string suffix = ".constructor";
 
@@ -53,7 +53,7 @@ namespace Whirlwind.Generation
 
             // add custom init members build algo and append
             var initFnProto = _generateFunctionPrototype(name + "._$initMembers", new FunctionType(new List<Parameter>
-                            { _buildThisParameter(st) },
+                            { _buildStructThisParam(st) },
                        new NoneType(), false), false);
 
             _addGlobalDecl(name + "._$initMembers", initFnProto);
@@ -77,7 +77,7 @@ namespace Whirlwind.Generation
             });
         }
 
-        private Parameter _buildThisParameter(DataType dt)
+        private Parameter _buildStructThisParam(DataType dt)
             => new Parameter("this", new PointerType(dt, false), false, false, false, false);
 
         // TODO: external type classes

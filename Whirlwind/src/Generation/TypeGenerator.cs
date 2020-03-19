@@ -238,6 +238,7 @@ namespace Whirlwind.Generation
 
                 return anyStruct;
             }
+
             if (start is SimpleType sst)
             {
                 if (desired is SimpleType dst)
