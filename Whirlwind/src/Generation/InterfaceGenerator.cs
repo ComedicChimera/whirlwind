@@ -190,9 +190,6 @@ namespace Whirlwind.Generation
         {
             var baseType = _convertType(dt);
 
-            if (_isReferenceType(dt))
-                return baseType;
-
             return LLVM.PointerType(baseType, 0);
         }
 

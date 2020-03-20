@@ -78,7 +78,7 @@ namespace Whirlwind.Generation
         }
 
         private Parameter _buildStructThisParam(DataType dt)
-            => new Parameter("this", new PointerType(dt, false), false, false, false, false);
+            => new Parameter("this", dt, false, false, false, false);
 
         // TODO: external type classes
         private void _generateTypeClass(BlockNode node)

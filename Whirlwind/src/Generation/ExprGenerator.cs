@@ -69,11 +69,15 @@ namespace Whirlwind.Generation
 
                             if (method.Value == MethodStatus.VIRTUAL)
                             {
-                                rootName = _getLookupName(interfType.Implements.First(x => x.Methods.Contains(method)));
-                                typeInterf = _cast(typeInterf, enode.Nodes[0].Type, interfType);
+                                var rootInterf = interfType.Implements.First(x => x.Methods.Contains(method));
+
+                                rootName = _getLookupName(rootInterf);
+                                typeInterf = _cast(typeInterf, enode.Nodes[0].Type, rootInterf);
                             }
                             else
                                 typeInterf = _boxToInterf(typeInterf, enode.Nodes[0].Type); // standard up box (with no real vtable)
+
+                            typeInterf = LLVM.BuildBitCast(_builder, typeInterf, LLVM.PointerType(LLVM.Int8Type(), 0), "boxed_ti_i8ptr_tmp");
                             
                             return _boxFunction(_globalScope[rootName + ".interf." + memberName].Vref, typeInterf);
                         }   
@@ -808,11 +812,13 @@ namespace Whirlwind.Generation
 
             if (ft.IsBoxed)
             {
-                var fPtr = LLVM.BuildStructGEP(_builder, genFn, 0, "fptr_tmp");
+                var fElemPtr = LLVM.BuildStructGEP(_builder, genFn, 0, "f_elem_ptr_tmp");
+                var fPtr = LLVM.BuildLoad(_builder, fElemPtr, "f_ptr_tmp");
+
                 var statePtr = LLVM.BuildStructGEP(_builder, genFn, 1, "state_ptr_tmp");
 
                 if (ft.IsMethod)
-                    statePtr = LLVM.BuildBitCast(_builder, statePtr, fPtr.TypeOf().GetParamTypes()[0], "this_ptr_tmp");
+                    statePtr = LLVM.BuildBitCast(_builder, statePtr, fPtr.TypeOf().GetElementType().GetParamTypes()[0], "this_ptr_tmp");
 
                 var boxedFnArgArray = new LLVMValueRef[argArray.Length + 1];
                 boxedFnArgArray[0] = statePtr;

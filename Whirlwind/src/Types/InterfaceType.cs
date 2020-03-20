@@ -212,11 +212,25 @@ namespace Whirlwind.Types
             if (Methods.Where(x => x.Value == MethodStatus.ABSTRACT)
                 .All(x => interf.Methods.Select(y => y.Key).Where(y => x.Key.Equals(y)).Count() > 0))
             {
-                foreach (var method in Methods) {
-                    if (method.Value != MethodStatus.ABSTRACT && !interf.Methods.Contains(method))
-                        interf.AddMethod(method.Key, MethodStatus.VIRTUAL);
+                // if a type interface is deriving another interface, then we know this is really
+                // an attachment not a derivation and so we used a different binding algorithm
+                if (Name.StartsWith("TypeInterf:"))
+                {
+                    foreach (var method in Methods)
+                    {
+                        if (!interf.Methods.Any(x => x.Key.Equals(method.Key)))
+                            interf.AddMethod(method.Key, method.Value);
+                    }
                 }
-
+                else
+                {
+                    foreach (var method in Methods)
+                    {
+                        if (method.Value != MethodStatus.ABSTRACT && !interf.Methods.Any(x => x.Key.Equals(method.Key)))
+                            interf.AddMethod(method.Key, MethodStatus.VIRTUAL);
+                    }
+                }
+                
                 interf.Implements.Add(this);
 
                 return true;

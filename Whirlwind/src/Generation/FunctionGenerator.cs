@@ -122,7 +122,12 @@ namespace Whirlwind.Generation
                 if (i < argOffset)
                     LLVM.SetValueName(llvmParam, frontArgs[i].Item1);
                 else
-                    LLVM.SetValueName(llvmParam, ft.Parameters[i - argOffset].Name);
+                {
+                    var ftParam = ft.Parameters[i - argOffset];
+
+                    LLVM.SetValueName(llvmParam, ftParam.DataType.Constant ? "$c_" + ftParam.Name : ftParam.Name);
+                }
+                    
             }
 
             return llvmFn;
@@ -174,7 +179,20 @@ namespace Whirlwind.Generation
                 // split by modulo since llvm puts type prefix before name
                 // and trim off quotes in case LLVM considers name illegal and
                 // artifically inserts quotes in front of it
-                fnScope[param.GetValueName().Split("%").Last().Trim('\"')] = new GeneratorSymbol(param);
+                string paramName = param.GetValueName().Split("%").Last().Trim('\"');
+                
+                // if parameters is a special point or is constant, it can be added directly
+                if (new[] { "this", "$state", "$rt_val" }.Contains(paramName))
+                    fnScope[paramName] = new GeneratorSymbol(param);
+                else if (paramName.StartsWith("$c_"))
+                    fnScope[paramName.Substring(3)] = new GeneratorSymbol(param);
+                // otherwise, compiler must create a variable for it
+                else
+                {
+                    var paramVar = LLVM.BuildAlloca(_builder, param.TypeOf(), paramName + "_");
+                    LLVM.BuildStore(_builder, param, paramVar);
+                    fnScope[paramName] = new GeneratorSymbol(paramVar, true);
+                }
             }
 
             _scopes.Add(fnScope);            

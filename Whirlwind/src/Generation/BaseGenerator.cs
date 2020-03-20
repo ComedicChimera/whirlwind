@@ -227,7 +227,27 @@ namespace Whirlwind.Generation
 
         private LLVMValueRef _getNullValue(DataType dt)
         {
+            if (dt is SimpleType st)
+            {
+                if (st.Type == SimpleType.SimpleClassifier.STRING)
+                    return _getNullStruct(_stringType, "__string");
+                else
+                    return LLVM.ConstNull(_convertType(dt));
+            }
+            else if (dt is PointerType pt)
+                return LLVM.ConstNull(_convertType(dt));
+            else if (dt is StructType strdt)
+                return _getNullStruct(_convertType(dt), _getLookupName(dt));
+
             return _ignoreValueRef();
+        }
+
+        private LLVMValueRef _getNullStruct(LLVMTypeRef nullStructDt, string structName)
+        {
+            var nullStruct = LLVM.BuildAlloca(_builder, nullStructDt, "nullstruct_" + structName);
+            LLVM.BuildCall(_builder, _globalScope[structName + "._$initMembers"].Vref, new[] { nullStruct }, "");
+
+            return nullStruct;
         }
     }
 }

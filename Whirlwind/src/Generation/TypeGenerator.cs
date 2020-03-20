@@ -46,7 +46,7 @@ namespace Whirlwind.Generation
             else if (dt is DictType dct)
                 return _makeGenerate((GenericType)_impls["dict"], usePtrTypes, dct.KeyType, dct.ValueType);
             else if (dt is PointerType pt)
-                return LLVM.PointerType(_convertType(pt.DataType), 0);
+                return LLVM.PointerType(_convertType(pt.DataType, true), 0);
             else if (dt is StructType st)
             {
                 string lName = _getLookupName(st.Name);
@@ -74,13 +74,13 @@ namespace Whirlwind.Generation
             }
             else if (dt is TupleType tt)
             {
-                var tStruct = LLVM.StructType(tt.Types.Select(x => _convertType(x)).ToArray(), true);
+                var tStruct = LLVM.StructType(tt.Types.Select(x => _convertType(x, true)).ToArray(), true);
 
                 return usePtrTypes ? LLVM.PointerType(tStruct, 0) : tStruct;
             }
             else if (dt is FunctionType ft)
             {
-                var parameters = ft.Parameters.Select(x => _convertType(x.DataType)).ToList();
+                var parameters = ft.Parameters.Select(x => _convertType(x.DataType, true)).ToList();
                 LLVMTypeRef rtType;
 
                 if (_isReferenceType(ft.ReturnType))
@@ -113,7 +113,7 @@ namespace Whirlwind.Generation
                     var onlyInstance = parent.Instances[0];
 
                     if (onlyInstance is CustomAlias ca)
-                        return _convertType(ca.Type);
+                        return _convertType(ca.Type, usePtrTypes);
                     else if (onlyInstance is CustomNewType cnt)
                         return cnt.Values.Count == 0 ? LLVM.Int16Type() : _getGlobalStruct(_getLookupName(parent.Name), usePtrTypes);
                 }
@@ -298,7 +298,7 @@ namespace Whirlwind.Generation
             void addMethod(InterfaceType it, string methodName)
             {
                 it.GetFunction(methodName, out Symbol sym);
-                string methodPrefix = it.Name + genericSuffix + ".interf.";
+                string methodPrefix = _getLookupName(it.Name) + genericSuffix + ".interf.";
 
                 switch (sym.DataType.Classify())
                 {
@@ -339,13 +339,13 @@ namespace Whirlwind.Generation
 
             foreach (var method in parent.Methods)
             {
-                if (child.Methods[method.Key] == MethodStatus.VIRTUAL)
+                if (child.Methods.Single(x => x.Key.Equals(method.Key)).Value == MethodStatus.VIRTUAL)
                     addMethod(parent, method.Key.Name);
                 else
                     addMethod(child, method.Key.Name);
             }
 
-            var vtableType = _getGlobalStruct(parent.Name + genericSuffix + ".__vtable", false);
+            var vtableType = _getGlobalStruct(_getLookupName(parent.Name) + genericSuffix + ".__vtable", false);
             var vtablePtr = LLVM.BuildAlloca(_builder, vtableType, "vtable_ptr_tmp");
 
             LLVM.BuildStore(_builder, LLVM.ConstNamedStruct(vtableType, methods.ToArray()), vtablePtr);

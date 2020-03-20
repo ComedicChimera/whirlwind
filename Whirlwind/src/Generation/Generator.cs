@@ -195,6 +195,8 @@ namespace Whirlwind.Generation
 
         private string _getLookupName(string name)
         {
+            name = name.Replace("TypeInterf:", "");
+
             int i = 0;
             for (; i < _namePrefix.Length && i < name.Length; i++)
             {
