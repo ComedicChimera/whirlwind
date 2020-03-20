@@ -368,8 +368,8 @@ namespace Whirlwind.Semantic.Visitor
 
                 return _isVoidOrNull(dictType.KeyType) || _isVoidOrNull(dictType.ValueType);
             }
-            else if (type is IIterable)
-                return _isVoidOrNull(((IIterable)type).GetIterator());
+            else if (type is IIterableType)
+                return _isVoidOrNull(((IIterableType)type).GetIterator());
             else
                 return false;
         }
@@ -385,8 +385,8 @@ namespace Whirlwind.Semantic.Visitor
 
                 return _isVoid(dictType.KeyType) || _isVoid(dictType.ValueType);
             }
-            else if (type is IIterable)
-                return _isVoid(((IIterable)type).GetIterator());
+            else if (type is IIterableType)
+                return _isVoid(((IIterableType)type).GetIterator());
             else
                 return false;
         }

@@ -378,7 +378,7 @@ namespace Whirlwind.Types
 
             if (ta.Classify() != tb.Classify())
             {
-                if (ta is IIterable ita && tb is IIterable itb && !new[] { ta.Classify(), tb.Classify() }.Contains(TypeClassifier.DICT))
+                if (ta is IIterableType ita && tb is IIterableType itb && !new[] { ta.Classify(), tb.Classify() }.Contains(TypeClassifier.DICT))
                     return _getCompletedAliases(ita.GetIterator(), itb.GetIterator(), completedAliases);
                 else
                     return false;
@@ -395,7 +395,7 @@ namespace Whirlwind.Types
                     }
                 case TypeClassifier.ARRAY:
                 case TypeClassifier.LIST:
-                    return _getCompletedAliases(((IIterable)ta).GetIterator(), ((IIterable)tb).GetIterator(), completedAliases);
+                    return _getCompletedAliases(((IIterableType)ta).GetIterator(), ((IIterableType)tb).GetIterator(), completedAliases);
                 case TypeClassifier.DICT:
                     {
                         DictType dta = (DictType)ta, dtb = (DictType)tb;

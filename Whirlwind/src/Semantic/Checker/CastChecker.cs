@@ -70,9 +70,9 @@ namespace Whirlwind.Semantic.Checker
                     if (start.Classify() == TypeClassifier.ARRAY && desired.Classify() == TypeClassifier.POINTER)
                         return ((ArrayType)start).ElementType.Equals(((PointerType)desired).DataType);
                     else if (new[] { TypeClassifier.ARRAY, TypeClassifier.LIST }.Contains(desired.Classify()))
-                        return TypeCast((start as IIterable).GetIterator(), (desired as IIterable).GetIterator());
+                        return TypeCast((start as IIterableType).GetIterator(), (desired as IIterableType).GetIterator());
                     else if (desired.Classify() == TypeClassifier.POINTER)
-                        return TypeCast((start as IIterable).GetIterator(), ((PointerType)desired).DataType);
+                        return TypeCast((start as IIterableType).GetIterator(), ((PointerType)desired).DataType);
                     else if (start is ArrayType at && at.ElementType is SimpleType st && st.Type == SimpleType.SimpleClassifier.BYTE)
                     {
                         if (desired is SimpleType dst)

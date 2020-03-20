@@ -153,9 +153,12 @@ namespace Whirlwind.Generation
             _genericSuffix = ".variant." + string.Join("_", generate.GenericAliases
                      .Values.Select(x => x.LLVMName()));
 
-            _generateStruct(generate.Block, false, false);
+            var generateLookupName = _getLookupName(gt) + _genericSuffix;
 
-            var gVar = _getGlobalStruct(_getLookupName(gt) + _genericSuffix, usePtrTypes);
+            if (!_globalStructs.ContainsKey(generateLookupName))
+                _generateStruct(generate.Block, false, false);
+
+            var gVar = _getGlobalStruct(generateLookupName, usePtrTypes);
             _genericSuffix = "";
 
             return gVar;
@@ -460,6 +463,14 @@ namespace Whirlwind.Generation
             return new[] { TypeClassifier.ANY, TypeClassifier.ARRAY, TypeClassifier.TUPLE,
                 TypeClassifier.LIST, TypeClassifier.DICT, TypeClassifier.INTERFACE_INSTANCE,
                 TypeClassifier.STRUCT_INSTANCE }.Contains(dt.Classify());
+        }
+
+        private string _getLLVMStructName(LLVMTypeRef tr)
+        {
+            if (tr.TypeKind != LLVMTypeKind.LLVMStructTypeKind)
+                throw new NotImplementedException("Unable to get struct name of something that is not a struct kind.");
+
+            return tr.PrintTypeToString().Split("=")[0].Trim().Substring(1);
         }
     }
 }

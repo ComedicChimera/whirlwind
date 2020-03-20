@@ -1,11 +1,11 @@
 ﻿namespace Whirlwind.Types
 {
-    interface IIterable
+    interface IIterableType
     {
         DataType GetIterator();
     }
 
-    class ArrayType : DataType, IIterable
+    class ArrayType : DataType, IIterableType
     {
         public readonly DataType ElementType;
         public readonly int Size; // size = -1 for unsized array
@@ -55,7 +55,7 @@
         public override uint SizeOf() => WhirlGlobals.POINTER_SIZE + 4;
     }
 
-    class ListType : DataType, IIterable
+    class ListType : DataType, IIterableType
     {
         public readonly DataType ElementType;
 
@@ -103,7 +103,7 @@
         public override uint SizeOf() => WhirlGlobals.POINTER_SIZE + 8;
     }
 
-    class DictType : DataType,  IIterable
+    class DictType : DataType,  IIterableType
     {
         public readonly DataType KeyType, ValueType;
 

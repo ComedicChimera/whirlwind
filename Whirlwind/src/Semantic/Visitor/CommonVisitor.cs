@@ -77,8 +77,8 @@ namespace Whirlwind.Semantic.Visitor
 
         private DataType _getIterableElementType(DataType iterable)
         {
-            if (iterable is IIterable)
-                return (iterable as IIterable).GetIterator();
+            if (iterable is IIterableType)
+                return (iterable as IIterableType).GetIterator();
             // should never fail - not a true overload so check not required
             else if (iterable.GetInterface().GetFunction("iter", out Symbol method))
             {

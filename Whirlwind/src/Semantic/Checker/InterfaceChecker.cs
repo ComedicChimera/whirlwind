@@ -35,7 +35,7 @@ namespace Whirlwind.Semantic.Checker
 
         public static bool Iterable(DataType dt, InterfaceType iterableInterf)
         {
-            if (dt is IIterable)
+            if (dt is IIterableType)
                 return true;
 
             return iterableInterf.Coerce(dt);
