@@ -47,7 +47,7 @@ namespace Whirlwind.Generation
                     var llvmConstructor = _generateFunctionPrototype(name + suffix, cft, exported);
                     _addGlobalDecl(name + suffix, llvmConstructor);
 
-                    _appendFunctionBlock(llvmConstructor, constructor);
+                    _appendFunctionBlock(llvmConstructor, new NoneType(), constructor);
                 }
             }
 
@@ -58,7 +58,7 @@ namespace Whirlwind.Generation
 
             _addGlobalDecl(name + "._$initMembers", initFnProto);
 
-            _appendFunctionBlock(initFnProto, (initFn) =>
+            _appendFunctionBlock(initFnProto, new NoneType(), (initFn) =>
             {
                 // build init members content
                 for (int i = 0; i < st.Members.Count; i++)

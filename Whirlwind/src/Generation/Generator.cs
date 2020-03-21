@@ -50,13 +50,13 @@ namespace Whirlwind.Generation
         private readonly List<Dictionary<string, GeneratorSymbol>> _scopes;
         // store the global scope of the program
         private readonly Dictionary<string, GeneratorSymbol> _globalScope;
-        // store globally declared structures
+        // store globally declared type structures
         private readonly Dictionary<string, LLVMTypeRef> _globalStructs;
         // store function blocks that are awaiting generation
-        private readonly List<Tuple<LLVMValueRef, BlockNode>> _fnBlocks;
+        private readonly List<Tuple<LLVMValueRef, DataType, BlockNode>> _fnBlocks;
         // store function blocks with special generation algorithms that are awaiting generation (delayed)
-        private readonly List<Tuple<LLVMValueRef, FnBodyBuilder>> _fnSpecialBlocks;
-        // store the classification values of data types of mapped to said data types for fast lookups
+        private readonly List<Tuple<LLVMValueRef, DataType, FnBodyBuilder>> _fnSpecialBlocks;
+        // store the classification values of data types mapped to said data types for fast lookups
         private readonly Dictionary<ulong, DataType> _cValLookupTable;
 
         // store the current generic suffix (will be appended to everything that is visited)
@@ -67,6 +67,13 @@ namespace Whirlwind.Generation
         private LLVMValueRef _currFunctionRef;
         // store the current break and continue labels
         private LLVMBasicBlockRef _breakLabel, _continueLabel;
+        // store the return type of current function, makes return generation possible
+        private DataType _currFunctionRtType;
+
+        // store the current yield accumulator (if one exists, else _ignoreValueRef)
+        private LLVMValueRef _yieldAccumulator;
+        // tell whether or not that yield accumulator exists (or should be overwritten)
+        private bool _yieldAccValid = false;
 
         // store the randomly generated package prefix
         private readonly string _randPrefix;
@@ -96,8 +103,8 @@ namespace Whirlwind.Generation
             _scopes = new List<Dictionary<string, GeneratorSymbol>>();
             _globalScope = new Dictionary<string, GeneratorSymbol>();
             _globalStructs = new Dictionary<string, LLVMTypeRef>();
-            _fnBlocks = new List<Tuple<LLVMValueRef, BlockNode>>();
-            _fnSpecialBlocks = new List<Tuple<LLVMValueRef, FnBodyBuilder>>();
+            _fnBlocks = new List<Tuple<LLVMValueRef, DataType, BlockNode>>();
+            _fnSpecialBlocks = new List<Tuple<LLVMValueRef, DataType, FnBodyBuilder>>();
             _cValLookupTable = new Dictionary<ulong, DataType>();
 
             string randPrefixVals = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -124,6 +131,8 @@ namespace Whirlwind.Generation
             );
 
             _i8PtrType = LLVM.PointerType(LLVM.Int8Type(), 0);
+
+            _yieldAccumulator = _ignoreValueRef();
         }
 
         public void Generate(BlockNode tree, string outputFile)
@@ -134,11 +143,11 @@ namespace Whirlwind.Generation
 
             // build each fn block awaiting completion
             foreach (var fb in _fnBlocks)
-                _buildFunctionBlock(fb.Item1, fb.Item2);
+                _buildFunctionBlock(fb.Item1, fb.Item2, fb.Item3);
 
             // build each fn block with a special generation algo (like a constructor, etc.)
             foreach (var fsb in _fnSpecialBlocks)
-                _buildFunctionBlock(fsb.Item1, fsb.Item2);
+                _buildFunctionBlock(fsb.Item1, fsb.Item2, fsb.Item3);
 
             // TODO: add in any special functions / post generation code here
 
@@ -171,13 +180,12 @@ namespace Whirlwind.Generation
                                 _anyType = _globalStructs["__any"];
                         }                     
 
-                        // add more annotation logic later...
+                        // TODO: add more annotation logic later...
                     }
                     break;
                 // function bodies visited later
                 case "Function":
                 case "AsyncFunction":
-                    // only generated function tops
                     _generateFunction((BlockNode)node, false, true);
                     break;
                 case "Struct":

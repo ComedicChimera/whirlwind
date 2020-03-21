@@ -35,7 +35,7 @@ namespace Whirlwind.Generation
                 llvmFn = _generateFunctionPrototype(llvmPrefix + name + fgSuffix, fn, externLink);
 
                 if (!external)
-                    _appendFunctionBlock(llvmFn, node);
+                    _appendFunctionBlock(llvmFn, fn.ReturnType, node);
 
                 LLVM.VerifyFunction(llvmFn, LLVMVerifierFailureAction.LLVMPrintMessageAction);
 
@@ -49,7 +49,7 @@ namespace Whirlwind.Generation
                 llvmFn = _generateFunctionPrototype(llvmPrefix + name, fn, externLink);
 
                 if (!external)
-                    _appendFunctionBlock(llvmFn, node);
+                    _appendFunctionBlock(llvmFn, fn.ReturnType, node);
 
                 LLVM.VerifyFunction(llvmFn, LLVMVerifierFailureAction.LLVMPrintMessageAction);
 
@@ -133,22 +133,24 @@ namespace Whirlwind.Generation
             return llvmFn;
         }
 
-        private void _appendFunctionBlock(LLVMValueRef vref, BlockNode block)
+        private void _appendFunctionBlock(LLVMValueRef vref, DataType rtType, BlockNode block)
         {
-            _fnBlocks.Add(new Tuple<LLVMValueRef, BlockNode>(vref, block));
+            _fnBlocks.Add(new Tuple<LLVMValueRef, DataType, BlockNode>(vref, rtType, block));
         }
 
-        private void _appendFunctionBlock(LLVMValueRef vref, FnBodyBuilder fbb)
+        private void _appendFunctionBlock(LLVMValueRef vref, DataType rtType, FnBodyBuilder fbb)
         {
-            _fnSpecialBlocks.Add(new Tuple<LLVMValueRef, FnBodyBuilder>(vref, fbb));
+            _fnSpecialBlocks.Add(new Tuple<LLVMValueRef, DataType, FnBodyBuilder>(vref, rtType, fbb));
         }
 
-        private void _buildFunctionBlock(LLVMValueRef vref, BlockNode block)
+        private void _buildFunctionBlock(LLVMValueRef vref, DataType rtType, BlockNode block)
         {
             LLVM.PositionBuilderAtEnd(_builder, LLVM.AppendBasicBlockInContext(_ctx, vref, "entry"));
 
             _declareFnArgs(vref);
+
             _currFunctionRef = vref;
+            _currFunctionRtType = rtType;
 
             if (_generateBlock(block.Block))
                 LLVM.BuildRetVoid(_builder);
@@ -156,12 +158,14 @@ namespace Whirlwind.Generation
             _scopes.RemoveLast();
         }
 
-        private void _buildFunctionBlock(LLVMValueRef vref, FnBodyBuilder fbb)
+        private void _buildFunctionBlock(LLVMValueRef vref, DataType rtType, FnBodyBuilder fbb)
         {
             LLVM.PositionBuilderAtEnd(_builder, LLVM.AppendBasicBlockInContext(_ctx, vref, "entry"));
 
             _declareFnArgs(vref);
+
             _currFunctionRef = vref;
+            _currFunctionRtType = rtType;
 
             if (fbb(vref))
                 LLVM.BuildRetVoid(_builder);

@@ -74,9 +74,9 @@ namespace Whirlwind.Generation
                         var llvmMethod = _generateFunctionPrototype(llvmName, fnType, exported);
 
                         if (typeInterf)
-                            _appendFunctionBlock(llvmMethod, _getTIMethodBodyBuilder((BlockNode)node.Block[methodNdx], desiredThis));
+                            _appendFunctionBlock(llvmMethod, fnType.ReturnType, _getTIMethodBodyBuilder((BlockNode)node.Block[methodNdx], desiredThis));
                         else
-                            _appendFunctionBlock(llvmMethod, (BlockNode)node.Block[methodNdx]);
+                            _appendFunctionBlock(llvmMethod, fnType.ReturnType, (BlockNode)node.Block[methodNdx]);
 
                         _addGlobalDecl(llvmName, llvmMethod);
                     }
@@ -93,9 +93,9 @@ namespace Whirlwind.Generation
                             var llvmMethod = _generateFunctionPrototype(generate.Item1, generate.Item2, exported);
 
                             if (typeInterf)
-                                _appendFunctionBlock(llvmMethod, _getTIMethodBodyBuilder(generate.Item3, desiredThis));
+                                _appendFunctionBlock(llvmMethod, generate.Item2.ReturnType, _getTIMethodBodyBuilder(generate.Item3, desiredThis));
                             else
-                                _appendFunctionBlock(llvmMethod, generate.Item3);
+                                _appendFunctionBlock(llvmMethod, generate.Item2.ReturnType, generate.Item3);
 
                             _addGlobalDecl(generate.Item1, llvmMethod);
                         }

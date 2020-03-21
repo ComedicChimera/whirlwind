@@ -9,11 +9,12 @@ namespace Whirlwind.Generation
 {
     partial class Generator
     {
-        // bool says whether or not block contains a definite return (needs void or no)
+        // bool says whether or not block has a terminator (of any form)
         private bool _generateBlock(List<ITypeNode> block)
         {
-            bool needsVoidTerminator = true;
-
+            // return statements, breaks, and continues are all considered definite terminators
+            // and therefore all code after them is dead code that does not need to be compiled 
+            // so we can return immediately after encountering one regardless of what comes after
             foreach (var node in block)
             {
                 switch (node.Name)
@@ -22,8 +23,12 @@ namespace Whirlwind.Generation
                         {
                             var ertNode = (StatementNode)node;
 
-                            // build first arg for now
-                            LLVM.BuildRet(_builder, _generateExpr(ertNode.Nodes[0]));
+                            var rtVal = _cast(_generateExpr(ertNode.Nodes[0]), ertNode.Nodes[0].Type, _currFunctionRtType);
+
+                            if (_isReferenceType(_currFunctionRtType))
+                                _returnViaRtPtr(_getNamedValue("$rt_val").Vref, rtVal);
+                            else
+                                LLVM.BuildRet(_builder, rtVal);
 
                             return false;
                         }
@@ -33,23 +38,34 @@ namespace Whirlwind.Generation
 
                             if (rtNode.Nodes.Count == 0)
                                 LLVM.BuildRetVoid(_builder);
-                            else if (rtNode.Nodes.Count == 1)
-                                LLVM.BuildRet(_builder, _generateExpr(rtNode.Nodes[0]));
-                            // tuples are reference types so we know they will be returned by an rt_val
                             else
                             {
-                                var rtPtr = _getNamedValue("$rt_val").Vref;
-                                var tuplePtr = _generateTupleLiteral(rtNode.Nodes);
-                                _returnViaRtPtr(rtPtr, tuplePtr, rtNode.Nodes
-                                    .Select(x => x.Type.SizeOf())
-                                    .Aggregate((a, b) => a + b)
-                                    );
+                                var rtVal = _cast(_generateExpr(rtNode.Nodes[0]), rtNode.Nodes[0].Type, _currFunctionRtType);
 
-                                return false;
+                                if (_isReferenceType(_currFunctionRtType))
+                                    _returnViaRtPtr(_getNamedValue("$rt_val").Vref, rtVal);
+                                else
+                                    LLVM.BuildRet(_builder, rtVal);
                             }
 
                             return false;
-                        }                      
+                        }
+                    // yield does not technically count as a terminator unless we are at the end of its function block
+                    // as it does not connote a control flow change unless in that case
+                    case "Yield":
+                        {
+                            if (!_yieldAccValid)
+                            {
+                                _yieldAccumulator = LLVM.BuildAlloca(_builder, _convertType(_currFunctionRtType, true), "$yield_acc");
+                                _yieldAccValid = true;
+                            }
+
+                            var yldNode = (StatementNode)node;
+                            var yldVal = _cast(_generateExpr(yldNode.Nodes[0]), yldNode.Nodes[0].Type, _currFunctionRtType);
+
+                            LLVM.BuildStore(_builder, yldVal, _yieldAccumulator);
+                        }
+                        break;
                     case "ExprStmt":
                         _generateExpr(((StatementNode)node).Nodes[0]);
                         break;
@@ -66,22 +82,42 @@ namespace Whirlwind.Generation
                     case "If":
                         _generateIfStatement((BlockNode)node); ;
                         break;
+                    // if compound if has terminators on all branchs then the same logic
+                    // that applies to other terminating statements applies (as outlined above)
                     case "CompoundIf":
-                        needsVoidTerminator &= _generateCompoundIf((BlockNode)node);
+                        if (!_generateCompoundIf((BlockNode)node))
+                            return false;
                         break;
                 }
             }
 
-            return needsVoidTerminator;
+            // when the scope count is 1 and the block ends, we know we are at the end of a function block
+            // if the yield accumulator is also valid, and therefore need to generate the yield return
+            if (_scopes.Count == 1 && _yieldAccValid)
+            {
+                var yldVal = LLVM.BuildLoad(_builder, _yieldAccumulator, "$yield_acc_val_tmp");
+
+                if (_isReferenceType(_currFunctionRtType))
+                    _returnViaRtPtr(_getNamedValue("$rt_val").Vref, yldVal);
+                else
+                    LLVM.BuildRet(_builder, yldVal);
+
+                _yieldAccValid = false;
+
+                // if there is a yield return, then we know the block has a terminator
+                return false;
+            }
+
+            return true;
         }
 
-        private void _returnViaRtPtr(LLVMValueRef rtPtr, LLVMValueRef valPtr, uint size)
+        private void _returnViaRtPtr(LLVMValueRef rtPtr, LLVMValueRef valPtr)
         {
             var rti8Ptr = LLVM.BuildBitCast(_builder, rtPtr, _i8PtrType, "rt_i8ptr_tmp");
             var vali8Ptr = LLVM.BuildBitCast(_builder, valPtr, _i8PtrType, "val_i8ptr_tmp");
 
             LLVM.BuildCall(_builder, _globalScope["__memcpy"].Vref, 
-                new[] { rti8Ptr, vali8Ptr, LLVM.ConstInt(LLVM.Int32Type(), size, new LLVMBool(0)) }, "");
+                new[] { rti8Ptr, vali8Ptr, LLVM.ConstInt(LLVM.Int32Type(), _currFunctionRtType.SizeOf(), new LLVMBool(0)) }, "");
 
             LLVM.BuildRetVoid(_builder);
         }
