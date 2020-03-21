@@ -30,6 +30,20 @@ namespace Whirlwind.Generation
         }
     }
 
+    // preserve higher loop context during loop generation
+    struct LoopContext
+    {
+        public LLVMBasicBlockRef BreakLabel, ContinueLabel;
+        public bool BreakLabelUsed;
+
+        public LoopContext(LLVMBasicBlockRef breakLabel, LLVMBasicBlockRef continueLabel, bool blu)
+        {
+            BreakLabel = breakLabel;
+            ContinueLabel = continueLabel;
+            BreakLabelUsed = blu;
+        }
+    }
+
     partial class Generator
     {
         // globally used delegates
@@ -65,8 +79,6 @@ namespace Whirlwind.Generation
         private LLVMTypeRef _thisPtrType;
         // store the current function value reference (for append blocks)
         private LLVMValueRef _currFunctionRef;
-        // store the current break and continue labels
-        private LLVMBasicBlockRef _breakLabel, _continueLabel;
         // store the return type of current function, makes return generation possible
         private DataType _currFunctionRtType;
 
@@ -74,6 +86,11 @@ namespace Whirlwind.Generation
         private LLVMValueRef _yieldAccumulator;
         // tell whether or not that yield accumulator exists (or should be overwritten)
         private bool _yieldAccValid = false;
+
+        // store the current break and continue labels
+        private LLVMBasicBlockRef _breakLabel, _continueLabel;
+        // store bool saying whether or not break label was used (used by inf. loops)
+        private bool _breakLabelUsed = false;
 
         // store the randomly generated package prefix
         private readonly string _randPrefix;
@@ -388,6 +405,24 @@ namespace Whirlwind.Generation
         private void _setVar(string name, LLVMValueRef val, bool isPtr=false)
         {
             _scopes.Last()[name] = new GeneratorSymbol(val, isPtr);
+        }
+
+        private LoopContext _saveAndUpdateLoopContext(LLVMBasicBlockRef breakLabel, LLVMBasicBlockRef continueLabel)
+        {
+            var lCtx = new LoopContext(_breakLabel, _continueLabel, _breakLabelUsed);
+
+            _breakLabel = breakLabel;
+            _continueLabel = continueLabel;
+            _breakLabelUsed = false;
+
+            return lCtx;
+        }
+
+        private void _restoreLoopContext(LoopContext lCtx)
+        {
+            _breakLabel = lCtx.BreakLabel;
+            _continueLabel = lCtx.ContinueLabel;
+            _breakLabelUsed = lCtx.BreakLabelUsed;
         }
     }
 

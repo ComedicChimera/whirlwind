@@ -1,8 +1,11 @@
-﻿func rtTest(x: int) (int, float) {
-	return (x, x / 5);
-}
+﻿func main() {
+	let x = 12;
 
-func main() {
-	let v = rtTest(34);
+	for (x < 30) {
+		if (x % 5 == 0)
+			return;
+
+		x++;
+	}
 }
 

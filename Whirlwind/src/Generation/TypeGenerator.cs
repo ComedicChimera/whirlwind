@@ -184,7 +184,8 @@ namespace Whirlwind.Generation
         // any coercion also maps to a cast in this context
         private LLVMValueRef _cast(LLVMValueRef val, DataType start, DataType desired)
         {
-            if (start.Equals(desired))
+            // ignore constancy during check
+            if (start.ConstCopy().Equals(desired.ConstCopy()))
                 return val;
 
             // interfaces introduce different casting rules

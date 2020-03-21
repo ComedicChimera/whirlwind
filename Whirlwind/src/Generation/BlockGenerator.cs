@@ -66,6 +66,13 @@ namespace Whirlwind.Generation
                             LLVM.BuildStore(_builder, yldVal, _yieldAccumulator);
                         }
                         break;
+                    case "Break":
+                        LLVM.BuildBr(_builder, _breakLabel);
+                        _breakLabelUsed = true;
+                        return false;
+                    case "Continue":
+                        LLVM.BuildBr(_builder, _continueLabel);
+                        return false;
                     case "ExprStmt":
                         _generateExpr(((StatementNode)node).Nodes[0]);
                         break;
@@ -87,6 +94,13 @@ namespace Whirlwind.Generation
                     case "CompoundIf":
                         if (!_generateCompoundIf((BlockNode)node))
                             return false;
+                        break;
+                    case "ForInfinite":
+                        if (!_generateForInfinite((BlockNode)node))
+                            return false;
+                        break;
+                    case "ForCondition":
+                        _generateForCond((BlockNode)node);
                         break;
                 }
             }

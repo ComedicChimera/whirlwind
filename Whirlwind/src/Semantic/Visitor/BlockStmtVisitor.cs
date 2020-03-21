@@ -239,7 +239,7 @@ namespace Whirlwind.Semantic.Visitor
             context.BreakValid = true;
             context.ContinueValid = true;
 
-            if (node.Content.Count == 2)
+            if (node.Content.Where(x => x.Name != "after_clause").Count() == 2)
             {
                 _nodes.Add(new BlockNode("ForInfinite"));
 
@@ -261,7 +261,7 @@ namespace Whirlwind.Semantic.Visitor
                         {
                             if (elem.Name == "expr")
                             {
-                                _visitExpr((ASTNode)subNode);
+                                _visitExpr((ASTNode)elem);
 
                                 if (!new SimpleType(SimpleType.SimpleClassifier.BOOL).Coerce(_nodes.Last().Type))
                                     throw new SemanticException("Condition of for loop must be a boolean", subNode.Position);
@@ -388,7 +388,7 @@ namespace Whirlwind.Semantic.Visitor
 
             _visitBlockNode((ASTNode)afterBlock.Content[1], context);
 
-            MergeBack();
+            MergeToBlock();
         }
 
         private void _visitBlockNode(ASTNode block, StatementContext context)

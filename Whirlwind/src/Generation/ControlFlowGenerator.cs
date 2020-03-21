@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Linq;
 
 using Whirlwind.Semantic;
 
@@ -103,6 +103,91 @@ namespace Whirlwind.Generation
             }
             else
                 return _generateExpr(node.Nodes[0]);
+        }
+
+        private bool _generateForInfinite(BlockNode node)
+        {
+            _scopes.Add(new Dictionary<string, GeneratorSymbol>());
+
+            var contLabel = LLVM.AppendBasicBlock(_currFunctionRef, "for_inf_body");
+            var breakLabel = LLVM.AppendBasicBlock(_currFunctionRef, "for_inf_end");
+
+            var prevLCtx = _saveAndUpdateLoopContext(breakLabel, contLabel);
+
+            LLVM.BuildBr(_builder, contLabel);
+
+            LLVM.PositionBuilderAtEnd(_builder, contLabel);
+            bool needsTerminator = _generateBlock(node.Block);
+
+            if (needsTerminator)
+                LLVM.BuildBr(_builder, contLabel);
+
+            if (_breakLabelUsed)
+            {
+                LLVM.MoveBasicBlockAfter(breakLabel, LLVM.GetLastBasicBlock(_currFunctionRef));
+                LLVM.PositionBuilderAtEnd(_builder, breakLabel);
+                needsTerminator = true;
+            }            
+            else
+            {
+                LLVM.RemoveBasicBlockFromParent(breakLabel);
+                needsTerminator = false;
+            }
+                
+            _restoreLoopContext(prevLCtx);
+            _scopes.RemoveLast();
+
+            return needsTerminator;
+        }
+
+        private void _generateForCond(BlockNode node)
+        {
+            _scopes.Add(new Dictionary<string, GeneratorSymbol>());
+
+            var condLabel = LLVM.AppendBasicBlock(_currFunctionRef, "for_cond");
+            LLVM.BuildBr(_builder, condLabel);
+
+            LLVM.PositionBuilderAtEnd(_builder, condLabel);
+
+            var bodyLabel = LLVM.AppendBasicBlock(_currFunctionRef, "for_body");
+            var endLabel = LLVM.AppendBasicBlock(_currFunctionRef, "for_end");
+
+            var condExpr = _generateIfExpr(node);
+            var lCtx = _saveAndUpdateLoopContext(endLabel, condLabel);
+
+            bool afterReachesEnd = true;
+            if (node.Block.LastOrDefault()?.Name == "After")
+            {
+                var afterLabel = LLVM.AppendBasicBlock(_currFunctionRef, "for_after");
+                LLVM.BuildCondBr(_builder, condExpr, bodyLabel, afterLabel);
+
+                LLVM.PositionBuilderAtEnd(_builder, afterLabel);
+
+                if (_generateBlock(((BlockNode)node.Block.Last()).Block))
+                    LLVM.BuildBr(_builder, endLabel);
+                else if (!_breakLabelUsed)
+                    afterReachesEnd = false;
+            }
+            else
+                LLVM.BuildCondBr(_builder, condExpr, bodyLabel, endLabel);
+
+            LLVM.PositionBuilderAtEnd(_builder, bodyLabel);
+
+            // after block is not evaluated in the main generate block function so we don't need to trim it
+            if (_generateBlock(node.Block))
+                LLVM.BuildBr(_builder, condLabel);
+
+            if (_breakLabelUsed || afterReachesEnd)
+            {
+                LLVM.MoveBasicBlockAfter(endLabel, LLVM.GetLastBasicBlock(_currFunctionRef));
+                LLVM.PositionBuilderAtEnd(_builder, endLabel);
+            }
+            else
+                LLVM.RemoveBasicBlockFromParent(endLabel);
+
+            _restoreLoopContext(lCtx);     
+
+            _scopes.RemoveLast();
         }
     }
 }
