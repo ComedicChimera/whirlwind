@@ -74,7 +74,7 @@ namespace Whirlwind.Generation
                 }
                 else
                 {
-                    frontArgs.Add(new Tuple<string, LLVMTypeRef>("$state", LLVM.PointerType(LLVM.Int8Type(), 0)));
+                    frontArgs.Add(new Tuple<string, LLVMTypeRef>("$state", _i8PtrType));
                 }                
             }          
             if (refReturn)
@@ -148,6 +148,7 @@ namespace Whirlwind.Generation
             LLVM.PositionBuilderAtEnd(_builder, LLVM.AppendBasicBlockInContext(_ctx, vref, "entry"));
 
             _declareFnArgs(vref);
+            _currFunctionRef = vref;
 
             if (_generateBlock(block.Block))
                 LLVM.BuildRetVoid(_builder);
@@ -160,6 +161,7 @@ namespace Whirlwind.Generation
             LLVM.PositionBuilderAtEnd(_builder, LLVM.AppendBasicBlockInContext(_ctx, vref, "entry"));
 
             _declareFnArgs(vref);
+            _currFunctionRef = vref;
 
             if (fbb(vref))
                 LLVM.BuildRetVoid(_builder);

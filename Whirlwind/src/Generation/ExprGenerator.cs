@@ -55,6 +55,8 @@ namespace Whirlwind.Generation
                 {
                     case "Array":
                         return _generateArrayLiteral(enode);
+                    case "Tuple":
+                        return _generateTupleLiteral(enode.Nodes);
                     case "GetMember":
                         return _generateGetMember(enode, mutableExpr);
                     case "GetTIMethod":
@@ -77,7 +79,7 @@ namespace Whirlwind.Generation
                             else
                                 typeInterf = _boxToInterf(typeInterf, enode.Nodes[0].Type); // standard up box (with no real vtable)
 
-                            typeInterf = LLVM.BuildBitCast(_builder, typeInterf, LLVM.PointerType(LLVM.Int8Type(), 0), "boxed_ti_i8ptr_tmp");
+                            typeInterf = LLVM.BuildBitCast(_builder, typeInterf, _i8PtrType, "boxed_ti_i8ptr_tmp");
                             
                             return _boxFunction(_globalScope[rootName + ".interf." + memberName].Vref, typeInterf);
                         }   
@@ -732,6 +734,20 @@ namespace Whirlwind.Generation
             return arrPtr;
         }
 
+        private LLVMValueRef _generateTupleLiteral(List<ITypeNode> nodes)
+        {
+            var tupleType = LLVM.StructType(nodes.Select(x => _convertType(x.Type, true)).ToArray(), false);
+            var tupleAlloca = LLVM.BuildAlloca(_builder, tupleType, "tuple_lit_tmp");
+
+            for (int i = 0; i < nodes.Count; i++)
+            {
+                var tupleElemPtr = LLVM.BuildStructGEP(_builder, tupleAlloca, (uint)i, "tuple_elem_ptr_tmp");
+                LLVM.BuildStore(_builder, _generateExpr(nodes[i]), tupleElemPtr);
+            }
+
+            return tupleAlloca;
+        }
+
         private LLVMValueRef _generateFromExpr(ExprNode enode)
         {
             var rootType = (CustomNewType)enode.Nodes[0].Type;
@@ -892,7 +908,7 @@ namespace Whirlwind.Generation
                 var valPtr = LLVM.BuildAlloca(_builder, _convertType(cnt.Values[0]), "tc_valptr_tmp");                
                 LLVM.BuildStore(_builder, _generateExpr(enode.Nodes[1]), valPtr);
 
-                valPtr = LLVM.BuildBitCast(_builder, valPtr, LLVM.PointerType(LLVM.Int8Type(), 0), "tc_valptr_i8_tmp");
+                valPtr = LLVM.BuildBitCast(_builder, valPtr, _i8PtrType, "tc_valptr_i8_tmp");
 
                 tcRef = LLVM.BuildAlloca(_builder, LLVM.StructType(
                     new[] { LLVM.Int32Type(), valPtr.TypeOf() }, false), "tc_tmp");
@@ -913,7 +929,7 @@ namespace Whirlwind.Generation
             {
                 var valArrPtr = LLVM.BuildArrayAlloca(
                     _builder,
-                    LLVM.PointerType(LLVM.Int8Type(), 0),
+                    _i8PtrType,
                     LLVM.ConstInt(LLVM.Int32Type(), (ulong)cnt.Values.Count, new LLVMBool(0)),
                     "tc_valarr_tmp"
                     );
@@ -928,8 +944,7 @@ namespace Whirlwind.Generation
                             LLVM.ConstInt(LLVM.Int32Type(), (ulong)i, new LLVMBool(0))
                         }, "tc_valarr_elem_tmp");
 
-                    var i8ValPtr = LLVM.BuildBitCast(_builder, valPtr,
-                        LLVM.PointerType(LLVM.Int8Type(), 0), "tc_valarr_elem_val_tmp");
+                    var i8ValPtr = LLVM.BuildBitCast(_builder, valPtr, _i8PtrType, "tc_valarr_elem_val_tmp");
 
                     LLVM.BuildStore(_builder, i8ValPtr, valArrElemPtr);
                 }
@@ -1072,11 +1087,9 @@ namespace Whirlwind.Generation
 
         private LLVMValueRef _boxFunction(LLVMValueRef fn, LLVMValueRef state)
         {
-            var i8PtrType = LLVM.PointerType(LLVM.Int8Type(), 0);
+            var i8StatePtr = LLVM.BuildBitCast(_builder, state, _i8PtrType, "state_ptr_tmp");
 
-            var i8StatePtr = LLVM.BuildBitCast(_builder, state, i8PtrType, "state_ptr_tmp");
-
-            var boxedFunctionStruct = LLVM.BuildAlloca(_builder, LLVM.StructType(new[] { fn.TypeOf(), i8PtrType }, false), "boxed_fn_tmp");
+            var boxedFunctionStruct = LLVM.BuildAlloca(_builder, LLVM.StructType(new[] { fn.TypeOf(), _i8PtrType }, false), "boxed_fn_tmp");
 
             var fnElem = LLVM.BuildStructGEP(_builder, boxedFunctionStruct, 0, "boxed_fn_fnptr_tmp");
             LLVM.BuildStore(_builder, fn, fnElem);

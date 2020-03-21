@@ -92,12 +92,12 @@ namespace Whirlwind.Generation
                     rtType = _convertType(ft.ReturnType);
 
                 if (ft.IsBoxed)
-                    parameters.Insert(0, LLVM.PointerType(LLVM.Int8Type(), 0));
+                    parameters.Insert(0, _i8PtrType);
 
                 var fp = LLVM.PointerType(LLVM.FunctionType(rtType, parameters.ToArray(),
                     ft.Parameters.Count > 0 && ft.Parameters.Last().Indefinite), 0);
 
-                var functionStruct = LLVM.StructType(new[] { fp, LLVM.PointerType(LLVM.Int8Type(), 0) }, false);
+                var functionStruct = LLVM.StructType(new[] { fp, _i8PtrType }, false);
 
                 if (usePtrTypes)
                     return LLVM.PointerType(functionStruct, 0);
@@ -192,13 +192,13 @@ namespace Whirlwind.Generation
 
                 LLVMValueRef thisPtr;
                 if (_isReferenceType(start) || start is PointerType)
-                    thisPtr = LLVM.BuildBitCast(_builder, val, LLVM.PointerType(LLVM.Int8Type(), 0), "this_ptr_tmp");
+                    thisPtr = LLVM.BuildBitCast(_builder, val, _i8PtrType, "this_ptr_tmp");
                 else
                 {
                     var castPtr = LLVM.BuildAlloca(_builder, LLVM.PointerType(_convertType(start), 0), "cast_ptr_tmp");
                     LLVM.BuildStore(_builder, val, castPtr);
 
-                    thisPtr = LLVM.BuildBitCast(_builder, castPtr, LLVM.PointerType(LLVM.Int8Type(), 0), "this_ptr_tmp");
+                    thisPtr = LLVM.BuildBitCast(_builder, castPtr, _i8PtrType, "this_ptr_tmp");
                 }
 
                 LLVM.BuildStore(_builder, thisPtr, thisElemPtr);
@@ -219,13 +219,13 @@ namespace Whirlwind.Generation
                 LLVMValueRef i8AnyValuePtr;
 
                 if (_isReferenceType(start) || start is PointerType)
-                    i8AnyValuePtr = LLVM.BuildBitCast(_builder, val, LLVM.PointerType(LLVM.Int8Type(), 0), "cast_tmp");
+                    i8AnyValuePtr = LLVM.BuildBitCast(_builder, val, _i8PtrType, "cast_tmp");
                 else
                 {
                     var castPtr = LLVM.BuildAlloca(_builder, LLVM.PointerType(_convertType(start), 0), "cast_ptr_tmp");
                     LLVM.BuildStore(_builder, val, castPtr);
 
-                    i8AnyValuePtr = LLVM.BuildBitCast(_builder, castPtr, LLVM.PointerType(LLVM.Int8Type(), 0), "cast_tmp");
+                    i8AnyValuePtr = LLVM.BuildBitCast(_builder, castPtr, _i8PtrType, "cast_tmp");
                 }
 
                 var anyStruct = LLVM.BuildAlloca(_builder, _anyType, "any_struct_tmp");

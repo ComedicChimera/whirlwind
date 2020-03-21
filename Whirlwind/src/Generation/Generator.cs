@@ -63,6 +63,10 @@ namespace Whirlwind.Generation
         private string _genericSuffix = "";
         // store the current "this" pointer type
         private LLVMTypeRef _thisPtrType;
+        // store the current function value reference (for append blocks)
+        private LLVMValueRef _currFunctionRef;
+        // store the current break and continue labels
+        private LLVMBasicBlockRef _breakLabel, _continueLabel;
 
         // store the randomly generated package prefix
         private readonly string _randPrefix;
@@ -73,6 +77,8 @@ namespace Whirlwind.Generation
         private LLVMTypeRef _anyType;
         // store reusable "fake" interface type (for forced boxing)
         private LLVMTypeRef _interfBoxType;
+        // store a quick i8 pointer type
+        private LLVMTypeRef _i8PtrType;
 
         public Generator(SymbolTable table, Dictionary<string, string> flags, Dictionary<string, DataType> impls, string namePrefix)
         {
@@ -109,13 +115,15 @@ namespace Whirlwind.Generation
             _interfBoxType.StructSetBody(
                 new[]
                 {
-                    LLVM.PointerType(LLVM.Int8Type(), 0),
-                    LLVM.PointerType(LLVM.Int8Type(), 0),
+                    _i8PtrType,
+                    _i8PtrType,
                     LLVM.Int16Type(),
                     LLVM.Int32Type()
                 },
                 false
             );
+
+            _i8PtrType = LLVM.PointerType(LLVM.Int8Type(), 0);
         }
 
         public void Generate(BlockNode tree, string outputFile)
@@ -318,8 +326,8 @@ namespace Whirlwind.Generation
         {
             var copyRef = LLVM.BuildAlloca(_builder, _convertType(dt), "refcopy_tmp");
 
-            var i8CopyRef = LLVM.BuildBitCast(_builder, copyRef, LLVM.PointerType(LLVM.Int8Type(), 0), "refcopy_i8ptr_tmp");
-            var i8SrcRef = LLVM.BuildBitCast(_builder, vref, LLVM.PointerType(LLVM.Int8Type(), 0), "copysrc_i8ptr_tmp");
+            var i8CopyRef = LLVM.BuildBitCast(_builder, copyRef, _i8PtrType, "refcopy_i8ptr_tmp");
+            var i8SrcRef = LLVM.BuildBitCast(_builder, vref, _i8PtrType, "copysrc_i8ptr_tmp");
 
             LLVM.BuildCall(_builder, _globalScope["__memcpy"].Vref, 
                 new[] { i8CopyRef, i8SrcRef, LLVM.ConstInt(LLVM.Int32Type(), dt.SizeOf(), new LLVMBool(0)) }, "");
@@ -346,7 +354,7 @@ namespace Whirlwind.Generation
             var dataElemPtr = LLVM.BuildStructGEP(_builder, baseCopy, dataNdx, "deepcopy_data_elem_ptr_tmp");
             var dataPtr = LLVM.BuildLoad(_builder, dataElemPtr, "deepcopy_data_ptr_tmp");
 
-            var i8DataSrcPtr = LLVM.BuildBitCast(_builder, dataPtr, LLVM.PointerType(LLVM.Int8Type(), 0), "deepcopy_data_src_i8ptr_tmp");
+            var i8DataSrcPtr = LLVM.BuildBitCast(_builder, dataPtr, _i8PtrType, "deepcopy_data_src_i8ptr_tmp");
             var i8DataCopyPtr = LLVM.BuildAlloca(_builder, LLVM.Int8Type(), "deepcopy_data_copy_ptr_tmp");
 
             var sizeElemPtr = LLVM.BuildStructGEP(_builder, baseCopy, sizeNdx, "deepcopy_size_elem_ptr_tmp");

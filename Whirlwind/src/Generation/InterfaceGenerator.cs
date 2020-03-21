@@ -37,7 +37,7 @@ namespace Whirlwind.Generation
       
             interfStruct.StructSetBody(new[]
             {
-                LLVM.PointerType(LLVM.Int8Type(), 0),
+                _i8PtrType,
                 LLVM.PointerType(vtableStruct, 0),
                 LLVM.Int16Type(),
                 LLVM.Int32Type()
@@ -199,13 +199,13 @@ namespace Whirlwind.Generation
 
             LLVMValueRef thisPtr;
             if (dt.IsThisPtr || _isReferenceType(dt))
-                thisPtr = LLVM.BuildBitCast(_builder, vref, LLVM.PointerType(LLVM.Int8Type(), 0), "this_i8_ptr_tmp");
+                thisPtr = LLVM.BuildBitCast(_builder, vref, _i8PtrType, "this_i8_ptr_tmp");
             else
             {
                 thisPtr = LLVM.BuildAlloca(_builder, _convertType(dt), "this_ptr_tmp");
                 LLVM.BuildStore(_builder, vref, thisPtr);
 
-                thisPtr = LLVM.BuildBitCast(_builder, thisPtr, LLVM.PointerType(LLVM.Int8Type(), 0), "this_i8_ptr_tmp");
+                thisPtr = LLVM.BuildBitCast(_builder, thisPtr, _i8PtrType, "this_i8_ptr_tmp");
             }
 
             var thisElemPtr = LLVM.BuildStructGEP(_builder, boxed, 0, "this_elem_ptr_tmp");

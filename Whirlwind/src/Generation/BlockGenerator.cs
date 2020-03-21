@@ -1,4 +1,4 @@
-﻿using System;
+﻿using System.Linq;
 using System.Collections.Generic;
 
 using LLVMSharp;
@@ -33,12 +33,19 @@ namespace Whirlwind.Generation
 
                             if (rtNode.Nodes.Count == 0)
                                 LLVM.BuildRetVoid(_builder);
+                            else if (rtNode.Nodes.Count == 1)
+                                LLVM.BuildRet(_builder, _generateExpr(rtNode.Nodes[0]));
+                            // tuples are reference types so we know they will be returned by an rt_val
                             else
                             {
-                                // just do 1 argument
-                                var exprRes = _generateExpr(rtNode.Nodes[0]);
+                                var rtPtr = _getNamedValue("$rt_val").Vref;
+                                var tuplePtr = _generateTupleLiteral(rtNode.Nodes);
+                                _returnViaRtPtr(rtPtr, tuplePtr, rtNode.Nodes
+                                    .Select(x => x.Type.SizeOf())
+                                    .Aggregate((a, b) => a + b)
+                                    );
 
-                                LLVM.BuildRet(_builder, exprRes);
+                                return false;
                             }
 
                             return false;
@@ -56,10 +63,27 @@ namespace Whirlwind.Generation
                     case "Assignment":
                         _generateAssignment((StatementNode)node);
                         break;
+                    case "If":
+                        _generateIfStatement((BlockNode)node); ;
+                        break;
+                    case "CompoundIf":
+                        needsVoidTerminator &= _generateCompoundIf((BlockNode)node);
+                        break;
                 }
             }
 
             return needsVoidTerminator;
+        }
+
+        private void _returnViaRtPtr(LLVMValueRef rtPtr, LLVMValueRef valPtr, uint size)
+        {
+            var rti8Ptr = LLVM.BuildBitCast(_builder, rtPtr, _i8PtrType, "rt_i8ptr_tmp");
+            var vali8Ptr = LLVM.BuildBitCast(_builder, valPtr, _i8PtrType, "val_i8ptr_tmp");
+
+            LLVM.BuildCall(_builder, _globalScope["__memcpy"].Vref, 
+                new[] { rti8Ptr, vali8Ptr, LLVM.ConstInt(LLVM.Int32Type(), size, new LLVMBool(0)) }, "");
+
+            LLVM.BuildRetVoid(_builder);
         }
     }
 }

@@ -120,7 +120,7 @@ namespace Whirlwind.Generation
 
                 var tcStruct = LLVM.StructCreateNamed(_ctx, exported ? _randPrefix + name : name);
 
-                var valueHolder = LLVM.PointerType(LLVM.Int8Type(), 0);
+                var valueHolder = _i8PtrType;
                 if (buildType == 2)
                     valueHolder = LLVM.PointerType(valueHolder, 0);
 

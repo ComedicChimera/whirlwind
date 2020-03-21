@@ -1,28 +1,16 @@
-﻿interf Test {
-	func f(x: int) int;
+﻿func main() {
+	let x = 3;
 
-	func g(x: float) float
-		=> this.f(5) * x;
-}
+	if (x < 4)
+		x++;
+	elif (x > 5)
+		x--;
+	else
+		x = 7;
 
-struct Point {
-	a: int;
-	b: float;
+	let y = 23;
 
-	constructor(a: int) {
-		this.a = a;
-		this.b = 5.6;
-	}
-}
-
-interf for Point is Test {
-	func f(x: int) int => this.a + x;
-}
-
-func main() {
-	let p = new Point(45);
-	let t = p.f(14);
-
-	let t2 = t - p.g(1.05);
+	if (y + x != 27)
+		y = 27 - x;
 }
 
