@@ -82,7 +82,16 @@ namespace Whirlwind.Generation
                             typeInterf = LLVM.BuildBitCast(_builder, typeInterf, _i8PtrType, "boxed_ti_i8ptr_tmp");
                             
                             return _boxFunction(_globalScope[rootName + ".interf." + memberName].Vref, typeInterf);
-                        }   
+                        }
+                    // tuples are never mutable so we don't need to account for mutable expr case
+                    case "GetTupleMember":
+                        {
+                            var tupleRoot = _generateExpr(enode.Nodes[0]);
+                            var ndx = UInt32.Parse(((ValueNode)enode.Nodes[1]).Value);
+
+                            var tupleElemPtr = LLVM.BuildStructGEP(_builder, tupleRoot, ndx, "tuple_elem_ptr_tmp");
+                            return LLVM.BuildLoad(_builder, tupleElemPtr, "tuple_elem_tmp");
+                        }
                     case "CreateGeneric":
                         return _generateCreateGeneric(enode);
                     case "StaticGet":
@@ -266,15 +275,21 @@ namespace Whirlwind.Generation
                         }, enode);
                     // TODO: add NaN checking to both div and floordiv
                     case "Div":
-                        return _buildNumericBinop(category =>
                         {
-                            if (category == 2)
-                                return LLVM.BuildFDiv;
-                            else if (category == 1)
-                                return LLVM.BuildUDiv;
-                            else
-                                return LLVM.BuildSDiv;
-                        }, enode);
+                            // TODO: check for overloads
+
+                            var siCommonType = (SimpleType)_getCommonType(enode);
+
+                            if (_getSimpleClass(siCommonType) == 0)
+                            {
+                                if (siCommonType.Type == SimpleType.SimpleClassifier.LONG)
+                                    siCommonType = new SimpleType(SimpleType.SimpleClassifier.DOUBLE);
+                                else
+                                    siCommonType = new SimpleType(SimpleType.SimpleClassifier.FLOAT);
+                            }
+
+                            return _buildBinop(LLVM.BuildFDiv, enode, siCommonType, true);                            
+                        }
                     // TODO: see note on NaN checking
                     // TODO: make sure floor div is compatable with overload capability
                     case "Floordiv":

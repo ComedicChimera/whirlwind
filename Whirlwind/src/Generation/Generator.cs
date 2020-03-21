@@ -189,7 +189,7 @@ namespace Whirlwind.Generation
                     _generateFunction((BlockNode)node, false, true);
                     break;
                 case "Struct":
-                    _generateStruct((BlockNode)node, false, false);
+                    _generateStruct((BlockNode)node, false);
                     break;
                 case "Interface":
                     _generateInterf((BlockNode)node);

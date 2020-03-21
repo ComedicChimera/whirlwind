@@ -1,16 +1,8 @@
-﻿func main() {
-	let x = 3;
+﻿func rtTest(x: int) (int, float) {
+	return (x, x / 5);
+}
 
-	if (x < 4)
-		x++;
-	elif (x > 5)
-		x--;
-	else
-		x = 7;
-
-	let y = 23;
-
-	if (y + x != 27)
-		y = 27 - x;
+func main() {
+	let v = rtTest(34);
 }
 

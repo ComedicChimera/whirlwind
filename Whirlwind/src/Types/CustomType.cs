@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System;
 
 namespace Whirlwind.Types
 {
@@ -123,7 +124,7 @@ namespace Whirlwind.Types
         public override uint SizeOf()
         {
             if (IsReferenceType())
-                return WhirlGlobals.POINTER_SIZE + 6;
+                return Math.Max(WhirlGlobals.POINTER_SIZE, 4) * 3;
 
             return Instances.Count == 1 && Instances[0] is CustomAlias ca ? ca.Type.SizeOf() : 2;
         }

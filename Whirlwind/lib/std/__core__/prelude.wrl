@@ -85,9 +85,5 @@ func round(n: double) double {
         return n - nDec + 1;
 }
 
-func malloca<T>(n: uint) *T
-	=> __malloca(n * sizeof<T>()) as *T;
-
-// simplified by compiler
 func sizeof<T>() uint
 	=> __sizeof(null as T);

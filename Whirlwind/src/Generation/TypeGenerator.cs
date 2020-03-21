@@ -74,7 +74,7 @@ namespace Whirlwind.Generation
             }
             else if (dt is TupleType tt)
             {
-                var tStruct = LLVM.StructType(tt.Types.Select(x => _convertType(x, true)).ToArray(), true);
+                var tStruct = LLVM.StructType(tt.Types.Select(x => _convertType(x, true)).ToArray(), false);
 
                 return usePtrTypes ? LLVM.PointerType(tStruct, 0) : tStruct;
             }
@@ -156,7 +156,7 @@ namespace Whirlwind.Generation
             var generateLookupName = _getLookupName(gt) + _genericSuffix;
 
             if (!_globalStructs.ContainsKey(generateLookupName))
-                _generateStruct(generate.Block, false, false);
+                _generateStruct(generate.Block, false);
 
             var gVar = _getGlobalStruct(generateLookupName, usePtrTypes);
             _genericSuffix = "";
@@ -184,6 +184,9 @@ namespace Whirlwind.Generation
         // any coercion also maps to a cast in this context
         private LLVMValueRef _cast(LLVMValueRef val, DataType start, DataType desired)
         {
+            if (start.Equals(desired))
+                return val;
+
             // interfaces introduce different casting rules
             if (desired is InterfaceType dInterf)
             {
@@ -289,6 +292,23 @@ namespace Whirlwind.Generation
             {
                 if (desired is CustomNewType)
                     return val;
+            }
+            else if (start is TupleType stt)
+            {
+                // tuples can only be cast from tuples to tuples (excluding interface case which already handled)
+                var dtt = (TupleType)desired;
+
+                var castTuple = LLVM.BuildAlloca(_builder, _convertType(dtt), "cast_tuple_tmp");
+                for (int i = 0; i < stt.Types.Count; i++)
+                {
+                    var tupleElemPtr = LLVM.BuildStructGEP(_builder, val, (uint)i, "tuple_elem_ptr_tmp");
+                    var castTupleElem = _cast(LLVM.BuildLoad(_builder, tupleElemPtr, "tuple_elem_tmp"), stt.Types[i], dtt.Types[i]);
+
+                    var castTupleElemPtr = LLVM.BuildStructGEP(_builder, castTuple, (uint)i, "cast_tuple_elem_ptr_tmp");
+                    LLVM.BuildStore(_builder, castTupleElem, castTupleElemPtr);
+                }
+
+                return castTuple;
             }
 
             return _ignoreValueRef();
@@ -459,6 +479,8 @@ namespace Whirlwind.Generation
                 return ci.Parent.IsReferenceType();
             else if (dt is FunctionType ft)
                 return ft.IsBoxed;
+            else if (dt is SimpleType si)
+                return si.Type == SimpleType.SimpleClassifier.STRING;
 
             return new[] { TypeClassifier.ANY, TypeClassifier.ARRAY, TypeClassifier.TUPLE,
                 TypeClassifier.LIST, TypeClassifier.DICT, TypeClassifier.INTERFACE_INSTANCE,

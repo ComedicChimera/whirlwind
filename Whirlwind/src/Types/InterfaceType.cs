@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System;
 
 using Whirlwind.Semantic;
 
@@ -248,6 +249,6 @@ namespace Whirlwind.Types
 
         public override string ToString() => Name;
 
-        public override uint SizeOf() => WhirlGlobals.POINTER_SIZE * 2 + 6;
+        public override uint SizeOf() => Math.Max(WhirlGlobals.POINTER_SIZE, 4) * 4;
     }
 }

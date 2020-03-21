@@ -85,6 +85,20 @@ namespace Whirlwind.Semantic.Visitor
                 // put nodes in correct order
                 lastNodes.Reverse();
 
+                var annotName = ((ValueNode)((StatementNode)lastNodes[0]).Nodes[0]).Value;
+
+                // apply packed annotation
+                if (annotName == "packed")
+                {
+                    if (((BlockNode)lastNodes[1]).Nodes[0].Type is StructType st)
+                        st.Packed = true;
+                    else
+                        throw new SemanticException("Unable to pack something that is not a struct", root.Content[0].Position);
+                }
+                // check function exclusive annotations
+                else if ((annotName == "intrinsic" || annotName == "external") && root.Name != "func_decl")
+                    throw new SemanticException("Unable to apply function-exclusive annotation to a non-function", root.Content[0].Position);
+
                 // add to annotated block
                 _nodes.Add(new BlockNode("AnnotatedBlock"));
                 ((BlockNode)_nodes.Last()).Block.AddRange(lastNodes);

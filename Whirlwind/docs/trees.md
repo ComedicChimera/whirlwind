@@ -100,6 +100,7 @@ A multi-value structure or some form of operation.
 | GetMember | Root, Identifier | Gets a member of a struct or other type |
 | GetTIMethod | Root, Identifier | Get a method of an item's type interface |
 | StaticGet | Root, Identifier | Gets a static member of the given type |
+| GetTupleMember | Root, IntegerMember | Gets an element from a tuple |
 | DerefGetMember | Root, Identifier | Performs a dereference and gets a member |
 | DerefGetTIMethod | Root, Identifier | Performs a dereference and gets a type interface method |
 | NullableDerefGetMember | Root, Identifier | Performs a nullable dereference and a nullable get member |

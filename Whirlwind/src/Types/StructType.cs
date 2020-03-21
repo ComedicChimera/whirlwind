@@ -9,6 +9,7 @@ namespace Whirlwind.Types
     {
         public readonly string Name;
         public readonly Dictionary<string, Symbol> Members;
+        public bool Packed;
 
         private List<FunctionType> _constructors;
         private bool _instance;
@@ -138,8 +139,9 @@ namespace Whirlwind.Types
 
         public override string ToString() => Name;
 
-        public override uint SizeOf() => 
-            Members.Select(x => x.Value.DataType.SizeOf())
-            .Aggregate((a, b) => a + b);
+        public override uint SizeOf() => Packed
+            ? Members.Select(x => x.Value.DataType.SizeOf()).Aggregate((a, b) => a + b)
+            : Members.Max(x => x.Value.DataType.SizeOf()) * (uint)Members.Count;
+
     }
 }

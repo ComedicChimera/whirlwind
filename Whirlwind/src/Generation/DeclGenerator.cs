@@ -12,13 +12,13 @@ namespace Whirlwind.Generation
     {
         private delegate bool InternalBuilderAlgo(LLVMValueRef vref, BlockNode block);
 
-        private void _generateStruct(BlockNode node, bool exported, bool packed)
+        private void _generateStruct(BlockNode node, bool exported)
         {
             var name = ((IdentifierNode)node.Nodes[0]).IdName + _genericSuffix;
             var st = (StructType)node.Nodes[0].Type;
 
             var llvmStruct = LLVM.StructCreateNamed(_ctx, name);
-            llvmStruct.StructSetBody(st.Members.Select(x => _convertType(x.Value.DataType, true)).ToArray(), packed);
+            llvmStruct.StructSetBody(st.Members.Select(x => _convertType(x.Value.DataType, true)).ToArray(), st.Packed);
 
             _globalStructs[name] = llvmStruct;
 

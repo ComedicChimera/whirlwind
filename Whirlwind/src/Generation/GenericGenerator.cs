@@ -25,7 +25,7 @@ namespace Whirlwind.Generation
                     gg = (n, _) => _generateTypeClass(n);
                     break;
                 default:
-                    gg = (n, e) => _generateStruct(n, e, false);
+                    gg = (n, e) => _generateStruct(n, e);
                     break;
             }
 

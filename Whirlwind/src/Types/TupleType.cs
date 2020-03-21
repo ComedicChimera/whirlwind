@@ -44,8 +44,6 @@ namespace Whirlwind.Types
         public override string LLVMName()
             => $"tuple({string.Join(", ", Types.Select(x => x.LLVMName()))})";
 
-        public override uint SizeOf() =>
-            Types.Select(x => x.SizeOf())
-            .Aggregate((a, b) => a + b);
+        public override uint SizeOf() => Types.Max(x => x.SizeOf()) * (uint)Types.Count;
     }
 }
