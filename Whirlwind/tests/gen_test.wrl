@@ -1,11 +1,11 @@
 ﻿func main() {
-	let x = 12;
+	let x = 0;
 
-	for (x < 30) {
-		if (x % 5 == 0)
-			return;
+	for (i = 0; i < 10; i++) {
+		x += i;
 
-		x++;
+		if (x % 2 == 0)
+			continue;
 	}
 }
 

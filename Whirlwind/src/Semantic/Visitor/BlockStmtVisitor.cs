@@ -349,6 +349,8 @@ namespace Whirlwind.Semantic.Visitor
                             _nodes.Add(new ExprNode("IterVarDecl", _nodes.Last().Type));
                             PushForward(2);
 
+                            ((ExprNode)_nodes.Last()).Nodes.Reverse();
+
                             // first symbol defined a new scope so no need to check
                             _table.AddSymbol(new Symbol(iterVarName, _nodes.Last().Type));
 

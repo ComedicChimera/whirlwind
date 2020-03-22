@@ -72,6 +72,7 @@ namespace Whirlwind.Generation
                         return false;
                     case "Continue":
                         LLVM.BuildBr(_builder, _continueLabel);
+                        _continueLabelUsed = true;
                         return false;
                     case "ExprStmt":
                         _generateExpr(((StatementNode)node).Nodes[0]);
@@ -100,7 +101,12 @@ namespace Whirlwind.Generation
                             return false;
                         break;
                     case "ForCondition":
-                        _generateForCond((BlockNode)node);
+                        if (!_generateForCond((BlockNode)node))
+                            return false;
+                        break;
+                    case "CFor":
+                        if (!_generateCFor((BlockNode)node))
+                            return false;
                         break;
                 }
             }

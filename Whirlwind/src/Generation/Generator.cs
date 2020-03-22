@@ -34,13 +34,14 @@ namespace Whirlwind.Generation
     struct LoopContext
     {
         public LLVMBasicBlockRef BreakLabel, ContinueLabel;
-        public bool BreakLabelUsed;
+        public bool BreakLabelUsed, ContinueLabelUsed;
 
-        public LoopContext(LLVMBasicBlockRef breakLabel, LLVMBasicBlockRef continueLabel, bool blu)
+        public LoopContext(LLVMBasicBlockRef breakLabel, LLVMBasicBlockRef continueLabel, bool blu, bool clu)
         {
             BreakLabel = breakLabel;
             ContinueLabel = continueLabel;
             BreakLabelUsed = blu;
+            ContinueLabelUsed = clu;
         }
     }
 
@@ -89,8 +90,9 @@ namespace Whirlwind.Generation
 
         // store the current break and continue labels
         private LLVMBasicBlockRef _breakLabel, _continueLabel;
-        // store bool saying whether or not break label was used (used by inf. loops)
-        private bool _breakLabelUsed = false;
+        // store bool saying whether or not break and continue labels were used
+        private bool _breakLabelUsed = false, _continueLabelUsed = false;
+        
 
         // store the randomly generated package prefix
         private readonly string _randPrefix;
@@ -409,11 +411,12 @@ namespace Whirlwind.Generation
 
         private LoopContext _saveAndUpdateLoopContext(LLVMBasicBlockRef breakLabel, LLVMBasicBlockRef continueLabel)
         {
-            var lCtx = new LoopContext(_breakLabel, _continueLabel, _breakLabelUsed);
+            var lCtx = new LoopContext(_breakLabel, _continueLabel, _breakLabelUsed, _continueLabelUsed);
 
             _breakLabel = breakLabel;
             _continueLabel = continueLabel;
             _breakLabelUsed = false;
+            _continueLabelUsed = false;
 
             return lCtx;
         }
@@ -423,6 +426,7 @@ namespace Whirlwind.Generation
             _breakLabel = lCtx.BreakLabel;
             _continueLabel = lCtx.ContinueLabel;
             _breakLabelUsed = lCtx.BreakLabelUsed;
+            _continueLabelUsed = lCtx.ContinueLabelUsed;
         }
     }
 

@@ -140,7 +140,7 @@ namespace Whirlwind.Generation
             return needsTerminator;
         }
 
-        private void _generateForCond(BlockNode node)
+        private bool _generateForCond(BlockNode node)
         {
             _scopes.Add(new Dictionary<string, GeneratorSymbol>());
 
@@ -177,7 +177,8 @@ namespace Whirlwind.Generation
             if (_generateBlock(node.Block))
                 LLVM.BuildBr(_builder, condLabel);
 
-            if (_breakLabelUsed || afterReachesEnd)
+            bool hasExitCond = _breakLabelUsed || afterReachesEnd;
+            if (hasExitCond)
             {
                 LLVM.MoveBasicBlockAfter(endLabel, LLVM.GetLastBasicBlock(_currFunctionRef));
                 LLVM.PositionBuilderAtEnd(_builder, endLabel);
@@ -188,6 +189,147 @@ namespace Whirlwind.Generation
             _restoreLoopContext(lCtx);     
 
             _scopes.RemoveLast();
+
+            return hasExitCond;
+        }
+
+        private bool _generateCFor(BlockNode node)
+        {
+            _scopes.Add(new Dictionary<string, GeneratorSymbol>());
+
+            LLVMBasicBlockRef exitLabel, contLabel, beginLabel, bodyLabel, endLabel;
+            bodyLabel = LLVM.AppendBasicBlock(_currFunctionRef, "for_body");
+            endLabel = LLVM.AppendBasicBlock(_currFunctionRef, "for_end");
+
+            beginLabel = bodyLabel;
+            contLabel = bodyLabel;
+
+            bool hasCondition = false, hasUpdate = false, afterReachesEnd = false;
+            bool hasAfter = node.Block.LastOrDefault()?.Name == "After";
+
+            if (hasAfter)
+                exitLabel = LLVM.AppendBasicBlock(_currFunctionRef, "for_after");
+            else
+                exitLabel = endLabel;
+
+            foreach (var item in ((ExprNode)node.Nodes[0]).Nodes)
+            {
+                var enode = (ExprNode)item;
+
+                switch (item.Name)
+                {
+                    case "IterVarDecl":
+                        {
+                            var id = (IdentifierNode)enode.Nodes[0];
+
+                            var iterVarPtr = LLVM.BuildAlloca(_builder, _convertType(id.Type, true), id.IdName);
+                            // no need to cast check here since iterator variables can't have type specifiers
+                            LLVM.BuildStore(_builder, _generateExpr(enode.Nodes[1]), iterVarPtr);
+
+                            _setVar(id.IdName, iterVarPtr, true);
+                        }
+                        break;
+                    case "CForCondition":
+                        {
+                            hasCondition = true;
+
+                            beginLabel = LLVM.AppendBasicBlock(_currFunctionRef, "for_cond");
+                            LLVM.MoveBasicBlockBefore(beginLabel, bodyLabel); // move the condition label before the body label
+
+                            LLVM.BuildBr(_builder, beginLabel);
+
+                            LLVM.PositionBuilderAtEnd(_builder, beginLabel);
+
+                            var condExpr = _generateExpr(enode.Nodes[0]);
+                            LLVM.BuildCondBr(_builder, condExpr, bodyLabel, exitLabel);
+                        }
+                        break;
+                    case "CForUpdateExpr":
+                        hasUpdate = true;
+
+                        contLabel = LLVM.AppendBasicBlock(_currFunctionRef, "for_update");
+                        LLVM.MoveBasicBlockBefore(contLabel, bodyLabel);
+
+                        LLVM.PositionBuilderAtEnd(_builder, contLabel);
+                        _generateExpr(enode.Nodes[0]);
+
+                        LLVM.BuildBr(_builder, beginLabel);
+                        break;
+                    case "CForUpdateAssignment":
+                        hasUpdate = true;
+
+                        contLabel = LLVM.AppendBasicBlock(_currFunctionRef, "for_update");
+                        LLVM.MoveBasicBlockBefore(contLabel, bodyLabel);
+
+                        LLVM.PositionBuilderAtEnd(_builder, contLabel);
+                        _generateAssignment((StatementNode)enode.Nodes[0]);
+
+                        LLVM.BuildBr(_builder, beginLabel);
+                        break;
+                }
+            }
+
+            // make sure it is positioned to the new begin label (even if it is still pointed to
+            // body label, b/c it might not be) if necessary (ie. it has not been repositioned to update label)
+            if (!hasUpdate)
+                contLabel = beginLabel;
+
+            var lCtx = _saveAndUpdateLoopContext(endLabel, contLabel);
+
+            LLVM.PositionBuilderAtEnd(_builder, bodyLabel);
+            bool bodyNeedsTerminator = _generateBlock(node.Block);
+
+            // see note on after block in for cond generation
+            if (bodyNeedsTerminator)
+                LLVM.BuildBr(_builder, contLabel);
+            // get rid of update block if not used
+            else if (!_continueLabelUsed && hasUpdate)
+                LLVM.RemoveBasicBlockFromParent(contLabel);
+
+            if (hasAfter) {
+                if (!hasCondition)
+                {
+                    hasAfter = false;
+                    LLVM.RemoveBasicBlockFromParent(exitLabel);
+                }
+                else
+                {
+                    LLVM.MoveBasicBlockAfter(exitLabel, LLVM.GetLastBasicBlock(_currFunctionRef));
+                    LLVM.PositionBuilderAtEnd(_builder, exitLabel);
+
+                    afterReachesEnd = _generateBlock(((BlockNode)node.Block.Last()).Block);
+
+                    if (afterReachesEnd)
+                        LLVM.BuildBr(_builder, endLabel);
+                }                
+            }
+
+            bool keepEndLabel = true;
+
+            // hasAfter => hasCondition
+            if (hasAfter)
+                keepEndLabel = _breakLabelUsed || afterReachesEnd;
+            else
+                keepEndLabel = _breakLabelUsed || hasCondition;
+
+            if (!hasCondition)
+            {
+                LLVM.PositionBuilderAtEnd(_builder, LLVM.GetPreviousBasicBlock(beginLabel));
+                LLVM.BuildBr(_builder, beginLabel);
+            }
+
+            if (keepEndLabel)
+            {
+                LLVM.MoveBasicBlockAfter(endLabel, LLVM.GetLastBasicBlock(_currFunctionRef));
+                LLVM.PositionBuilderAtEnd(_builder, endLabel);
+            }
+            else
+                LLVM.RemoveBasicBlockFromParent(endLabel);
+
+            _scopes.RemoveLast();
+            _restoreLoopContext(lCtx);
+
+            return keepEndLabel;
         }
     }
 }

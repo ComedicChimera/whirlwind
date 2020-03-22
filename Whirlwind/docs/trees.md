@@ -186,7 +186,7 @@ ExprNodes made specifically for use in certain block statements and/or declarati
 | Name | Parameters | Purpose |
 | ---- | ---------- | ------- |
 | CForExpr | \[IterVarDecl\] \[CForCondition\] \[CForUpdateExpr \| CForUpdateAssignment \] | Contains the contents of the C-style for loop |
-| IterVarDecl | Identifier | Declares an iterator variable for a C-style for loop |
+| IterVarDecl | Identifier, Expr | Declares an iterator variable for a C-style for loop |
 | CForCondition | Expr | The end condition of a C-style for loop |
 | CForUpdateExpr | Expr | The expression to be called each cycle of a C-style for loop |
 | CForUpdateAssignment | Assignment | The assignment statement to evaluated after each cycle of a C-Style for loop |

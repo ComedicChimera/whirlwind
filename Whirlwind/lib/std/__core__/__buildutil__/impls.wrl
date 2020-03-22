@@ -74,9 +74,9 @@ func __concatL<T>(a, b: [T]) {
 }*/
 
 func __memcpy(dest: *byte, src: *byte, size: int) {	
-	for (i = 0; i < size; i++) {
+	/*for (i = 0; i < size; i++) {
 		*(dest + i) = *(src + i);
-	}
+	}*/
 }
 
 // INTRINSIC FUNCTIONS
