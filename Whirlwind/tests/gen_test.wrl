@@ -1,11 +1,6 @@
 ﻿func main() {
-	let x = 0;
+	let x = 78;
 
-	for (i = 0; i < 10; i++) {
-		x += i;
-
-		if (x % 2 == 0)
-			continue;
-	}
+	let c = x as char;
 }
 

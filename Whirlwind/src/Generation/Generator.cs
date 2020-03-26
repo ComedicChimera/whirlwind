@@ -309,7 +309,7 @@ namespace Whirlwind.Generation
 
         private LLVMValueRef _ignoreValueRef()
         {
-            return LLVM.ConstInt(LLVM.Int32Type(), 0, new LLVMBool(0));
+            return LLVM.ConstInt(LLVM.Int8Type(), 0, new LLVMBool(0));
         }
 
         private LLVMValueRef[] _insertFront(LLVMValueRef[] arr, LLVMValueRef val)

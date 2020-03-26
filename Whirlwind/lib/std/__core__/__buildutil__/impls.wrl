@@ -37,6 +37,10 @@ struct __any {
 	size: int;
 }
 
+// CORE INTERFACES
+interf Hashable {
+	func hash() long;
+}
 
 // FRIEND FUNCTIONS
 #friend "string"

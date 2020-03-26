@@ -235,7 +235,7 @@ namespace Whirlwind.Generation
                     return LLVM.ConstNull(_convertType(dt));
             }
             else if (dt is PointerType)
-                return LLVM.ConstNull(_convertType(dt));
+                return LLVM.ConstPointerNull(_convertType(dt));
             else if (dt is StructType)
                 return _getNullStruct(_convertType(dt), _getLookupName(dt));
             else if (dt is IIterableType)

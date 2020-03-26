@@ -55,6 +55,10 @@ namespace Whirlwind.Semantic.Checker
                                 case SimpleType.SimpleClassifier.BYTE:
                                 case SimpleType.SimpleClassifier.CHAR:
                                     return ((SimpleType)desired).Type == SimpleType.SimpleClassifier.INTEGER;
+                                case SimpleType.SimpleClassifier.INTEGER:
+                                    if (((SimpleType)desired).Type == SimpleType.SimpleClassifier.CHAR)
+                                        return true;
+                                    break;
                             }
 
                             // possibly add extra guard logic here

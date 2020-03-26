@@ -700,12 +700,15 @@ namespace Whirlwind.Generation
 
         private LLVMValueRef _generateVtableGet(LLVMValueRef baseInterf, int vtableNdx)
         {            
-            var vtable = LLVM.BuildStructGEP(_builder, baseInterf, 1, "vtable_tmp");
+            var vtableElemPtr = LLVM.BuildStructGEP(_builder, baseInterf, 1, "vtable_elem_ptr_tmp");
+            var vtable = LLVM.BuildLoad(_builder, vtableElemPtr, "vtable_tmp");
 
             var gepRes = LLVM.BuildStructGEP(_builder, vtable,
                 (uint)vtableNdx, "vtable_gep_tmp");
 
-            return _boxFunction(gepRes, baseInterf);
+            var methodPtr = LLVM.BuildLoad(_builder, gepRes, "method_ptr_tmp");
+
+            return _boxFunction(methodPtr, baseInterf);
         }
 
         private LLVMValueRef _generateArrayLiteral(ExprNode enode)

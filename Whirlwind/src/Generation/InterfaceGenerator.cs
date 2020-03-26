@@ -215,5 +215,69 @@ namespace Whirlwind.Generation
 
             return boxed;
         }
+
+        // argument-less form
+        private LLVMValueRef _callMethod(LLVMValueRef root, DataType dt, string methodName, DataType returnType)
+        {
+            LLVMValueRef thisPtr;
+            LLVMValueRef methodRef;
+
+            if (dt is InterfaceType it)
+            {
+                var vtableElemPtr = LLVM.BuildStructGEP(_builder, root, 1, "vtable_elem_ptr_tmp");
+                var vtable = LLVM.BuildLoad(_builder, vtableElemPtr, "vtable_tmp");
+
+                uint vtableNdx = (uint)_getVTableNdx(it, methodName);
+
+                var gepRes = LLVM.BuildStructGEP(_builder, vtable,
+                    vtableNdx, "vtable_gep_tmp");
+
+                methodRef = LLVM.BuildLoad(_builder, gepRes, "method_ptr_tmp");
+                thisPtr = root;
+            }
+            else
+            {
+                // assumes not overloads and no generics (handled by other parts of the code)
+                string rootName = _getLookupName(dt);
+
+                var interfType = dt.GetInterface();
+                var method = interfType.Methods.Single(x => x.Key.Name == methodName);
+
+                if (method.Value == MethodStatus.VIRTUAL)
+                {
+                    var rootInterf = interfType.Implements.First(x => x.Methods.Contains(method));
+
+                    rootName = _getLookupName(rootInterf);
+                    thisPtr = _cast(root, dt, rootInterf);
+                }
+                else
+                    thisPtr = _boxToInterf(root, dt); // standard up box (with no real vtable)
+
+                methodRef = _globalScope[rootName + ".interf." + methodName].Vref;
+            }
+
+            LLVMValueRef[] argArray;
+            bool returnCallResult = true;
+
+            if (_isReferenceType(returnType))
+            {
+                argArray = new LLVMValueRef[2];
+                argArray[1] = LLVM.BuildAlloca(_builder, _convertType(returnType), "rtptr_tmp");
+                returnCallResult = false;
+            }
+            else
+                argArray = new LLVMValueRef[1];
+
+            argArray[0] = thisPtr;
+
+            if (returnCallResult)
+                return LLVM.BuildCall(_builder, methodRef, argArray, "method_call_tmp"); 
+            else
+            {
+                LLVM.BuildCall(_builder, methodRef, argArray, "");
+                return argArray[1];
+            }
+
+        }
     }
 }

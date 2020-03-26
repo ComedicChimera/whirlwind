@@ -497,7 +497,7 @@ namespace Whirlwind.Semantic.Visitor
                     _nodes.RemoveLast();
                 }
 
-                return _nodes.Last().Type.Coerce(rootType);
+                return rootType.Coerce(_nodes.Last().Type);
             }
             else
                 return _visitPattern(caseContent, rootType, allowPatternSymbols);
@@ -620,7 +620,7 @@ namespace Whirlwind.Semantic.Visitor
                         if (vn.Name == "PatternSymbol")
                             _table.AddSymbol(new Symbol(vn.Value, rt.Types[i]));
                     }
-                    else if (!cNode.Type.Coerce(tt.Types[i]))
+                    else if (!rt.Types[i].Coerce(cNode.Type))
                         return false;
                 }
 

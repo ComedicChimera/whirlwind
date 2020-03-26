@@ -77,7 +77,7 @@ namespace Whirlwind.Semantic.Checker
             bool expectEscapeChar = false;
 
             string hexChars = "0123456789ABCDEF";
-            string escapeChars = "ab0fntv\"\'\\0s";
+            string escapeChars = "ab0fntv\"\'\\s";
 
             foreach (char ch in stringLit.Substring(1, stringLit.Length - 1))
             {

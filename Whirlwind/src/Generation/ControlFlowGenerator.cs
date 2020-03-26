@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Whirlwind.Semantic;
+using Whirlwind.Types;
 
 using LLVMSharp;
 
@@ -330,6 +331,107 @@ namespace Whirlwind.Generation
             _restoreLoopContext(lCtx);
 
             return keepEndLabel;
+        }
+
+        private bool _visitSelect(BlockNode node)
+        {
+            var selectExpr = _generateExpr(node.Nodes[0]);
+            var selectType = node.Nodes[0].Type;
+
+            var caseBlocks = node.Block
+                .Where(x => x.Name != "Default")
+                .Select(x => LLVM.AppendBasicBlock(_currFunctionRef, "case"))
+                .ToArray();
+
+            var defaultBlock = LLVM.AppendBasicBlock(_currFunctionRef, "default");
+
+            if (selectType is SimpleType st && _getSimpleClass(st) == 0)
+            {
+                var switchStmt = LLVM.BuildSwitch(_builder, selectExpr, defaultBlock, (uint)caseBlocks.Length);
+
+                for (int i = 0; i < caseBlocks.Length; i++)
+                {
+                    var conds = ((BlockNode)node.Block[i]).Nodes
+                        .Select(x => _cast(_generateExpr(x), x.Type, selectType))
+                        .ToArray();
+
+                    foreach (var cond in conds)
+                        switchStmt.AddCase(cond, caseBlocks[i]);
+                }
+            }
+            else if (_isPatternType(selectType))
+                _generatePatternMatch(selectExpr, selectType, node.Block
+                    .Select(x => (BlockNode)x).Where(x => x.Name == "Case").ToList(), 
+                    caseBlocks, defaultBlock);
+            // is basic hashable type
+            else
+            {
+                var hashCodeType = new SimpleType(SimpleType.SimpleClassifier.LONG);
+
+                var selectHash = _callMethod(selectExpr, selectType, "hash", hashCodeType);
+
+                var switchStmt = LLVM.BuildSwitch(_builder, selectHash, defaultBlock, (uint)caseBlocks.Length);
+
+                for (int i = 0; i < caseBlocks.Length; i++)
+                {
+                    var conds = ((BlockNode)node.Block[i]).Nodes
+                        .Select(x => _callMethod(_generateExpr(x), x.Type, "hash", hashCodeType))
+                        .ToArray();
+
+                    foreach (var cond in conds)
+                        switchStmt.AddCase(cond, caseBlocks[i]);
+                }
+            }
+
+            var selectEnd = LLVM.AppendBasicBlock(_currFunctionRef, "select_end");
+
+            bool generatedDefaultBlock = false;
+            bool allBlocksHaveAlternativeTerminators = true;
+            for (int i = 0; i < node.Block.Count; i++)
+            {
+                _scopes.Add(new Dictionary<string, GeneratorSymbol>());
+
+                var block = (BlockNode)node.Block[i];
+
+                // default block
+                if (i == caseBlocks.Length)
+                {
+                    generatedDefaultBlock = true;
+                    LLVM.PositionBuilderAtEnd(_builder, defaultBlock);
+
+                    if (_generateBlock(block.Block))
+                    {
+                        LLVM.BuildBr(_builder, selectEnd);
+                        allBlocksHaveAlternativeTerminators = false;
+                    }                       
+                }
+                else
+                {
+                    LLVM.PositionBuilderAtEnd(_builder, caseBlocks[i]);
+
+                    if (_generateBlock(block.Block))
+                    {
+                        LLVM.BuildBr(_builder, selectEnd);
+                        allBlocksHaveAlternativeTerminators = false;
+                    }
+                }
+
+                _scopes.RemoveLast();
+            }
+
+            if (!generatedDefaultBlock)
+            {
+                LLVM.PositionBuilderAtEnd(_builder, defaultBlock);
+                LLVM.BuildBr(_builder, selectEnd);
+                allBlocksHaveAlternativeTerminators = false;
+            }
+
+            if (allBlocksHaveAlternativeTerminators)
+                LLVM.RemoveBasicBlockFromParent(selectEnd);
+            else
+                LLVM.PositionBuilderAtEnd(_builder, selectEnd);
+
+            return allBlocksHaveAlternativeTerminators;
         }
     }
 }
