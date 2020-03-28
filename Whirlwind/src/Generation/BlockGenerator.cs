@@ -133,11 +133,7 @@ namespace Whirlwind.Generation
 
         private void _returnViaRtPtr(LLVMValueRef rtPtr, LLVMValueRef valPtr)
         {
-            var rti8Ptr = LLVM.BuildBitCast(_builder, rtPtr, _i8PtrType, "rt_i8ptr_tmp");
-            var vali8Ptr = LLVM.BuildBitCast(_builder, valPtr, _i8PtrType, "val_i8ptr_tmp");
-
-            LLVM.BuildCall(_builder, _globalScope["__memcpy"].Vref, 
-                new[] { rti8Ptr, vali8Ptr, LLVM.ConstInt(LLVM.Int32Type(), _currFunctionRtType.SizeOf(), new LLVMBool(0)) }, "");
+            _copyLLVMStructTo(rtPtr, valPtr);
 
             LLVM.BuildRetVoid(_builder);
         }

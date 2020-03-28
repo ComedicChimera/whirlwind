@@ -346,18 +346,29 @@ namespace Whirlwind.Generation
             }
 
             return false;
-        } 
-        
+        }
+
         // TODO: special method cases on copies
+        private LLVMValueRef _copy(LLVMValueRef vref, DataType dt)
+        {
+            if (dt.Category == ValueCategory.RValue)
+                return vref;
+
+            if (_isReferenceType(dt))
+                return _copyRefType(vref, dt);
+
+            return vref;
+        }
+
         private LLVMValueRef _copyRefType(LLVMValueRef vref, DataType dt)
         {
+            // - don't copy strings or tuples (both are immutable)
+            // - only simple types that make it this far are strings
+            if (dt is SimpleType || dt is TupleType)
+                return vref;
+
             var copyRef = LLVM.BuildAlloca(_builder, _convertType(dt), "refcopy_tmp");
-
-            var i8CopyRef = LLVM.BuildBitCast(_builder, copyRef, _i8PtrType, "refcopy_i8ptr_tmp");
-            var i8SrcRef = LLVM.BuildBitCast(_builder, vref, _i8PtrType, "copysrc_i8ptr_tmp");
-
-            LLVM.BuildCall(_builder, _globalScope["__memcpy"].Vref, 
-                new[] { i8CopyRef, i8SrcRef, LLVM.ConstInt(LLVM.Int32Type(), dt.SizeOf(), new LLVMBool(0)) }, "");
+            _copyLLVMStructTo(copyRef, vref);
 
             switch (dt.Classify())
             {
@@ -376,6 +387,18 @@ namespace Whirlwind.Generation
             return copyRef;
         }
 
+        private void _copyLLVMStructTo(LLVMValueRef dest, LLVMValueRef src)
+        {
+            var srcVal = LLVM.BuildLoad(_builder, src, "srcval_tmp");
+
+            for (uint i = 0; i < srcVal.TypeOf().CountStructElementTypes(); i++)
+            {
+                var elemVal = LLVM.BuildExtractValue(_builder, srcVal, i, "srcval_elem_tmp");
+                var copyElemPtr = LLVM.BuildStructGEP(_builder, dest, i, "refcopy_elem_ptr_tmp");
+                LLVM.BuildStore(_builder, elemVal, copyElemPtr);
+            }
+        }
+
         private void _elemDeepCopy(LLVMValueRef baseCopy, uint dataNdx, uint sizeNdx)
         {
             var dataElemPtr = LLVM.BuildStructGEP(_builder, baseCopy, dataNdx, "deepcopy_data_elem_ptr_tmp");
@@ -391,17 +414,6 @@ namespace Whirlwind.Generation
                 new[] { i8DataCopyPtr, i8DataSrcPtr, size }, "");
 
             LLVM.BuildStore(_builder, i8DataCopyPtr, dataElemPtr);
-        }
-
-        private LLVMValueRef _copy(LLVMValueRef vref, DataType dt)
-        {
-            if (dt.Category == ValueCategory.RValue)
-                return vref;
-
-            if (_isReferenceType(dt))
-                return _copyRefType(vref, dt);
-
-            return vref;
         }
 
         private void _setVar(string name, LLVMValueRef val, bool isPtr=false)
