@@ -245,6 +245,23 @@ namespace Whirlwind.Generation
                             {
 
                             }
+                            else if (expr.Type is PointerType)
+                            {
+                                var basePtr = _generateExpr(enode.Nodes[0]);
+                                var offset = _generateExpr(enode.Nodes[1]);
+
+                                if (enode.Nodes.Count > 2)
+                                {
+                                    foreach (var item in enode.Nodes)
+                                        offset = LLVM.BuildAdd(_builder, offset, _generateExpr(item), "ptr_add_rop_tmp");
+                                }
+
+                                return LLVM.BuildGEP(_builder, basePtr, new[]
+                                {
+                                    _getI64Zero(),
+                                    offset
+                                }, "ptr_add_tmp");
+                            }
                             else
                             {
                                 return _buildNumericBinop(category =>
@@ -258,13 +275,34 @@ namespace Whirlwind.Generation
                         }
                         break;
                     case "Sub":
-                        return _buildNumericBinop(category =>
                         {
-                            if (category == 2)
-                                return LLVM.BuildFSub;
+                            if (expr.Type is PointerType)
+                            {
+                                var ptInt = LLVM.BuildPtrToInt(_builder, _generateExpr(enode.Nodes[0]), LLVM.Int64Type(), "ptr_int_tmp");
+
+                                foreach (var item in enode.Nodes.Skip(1))
+                                {
+                                    var baseElem = _generateExpr(item);
+
+                                    if (((SimpleType)item).Type != SimpleType.SimpleClassifier.LONG)
+                                        baseElem = _cast(baseElem, item.Type, new SimpleType(SimpleType.SimpleClassifier.LONG));
+
+                                    ptInt = LLVM.BuildSub(_builder, ptInt, baseElem, "ptr_sub_tmp");
+                                }
+
+                                return LLVM.BuildIntToPtr(_builder, ptInt, _convertType(expr.Type), "ptr_sub_result_tmp");
+                            }
                             else
-                                return LLVM.BuildSub;
-                        }, enode);                     
+                            {
+                                return _buildNumericBinop(category =>
+                                {
+                                    if (category == 2)
+                                        return LLVM.BuildFSub;
+                                    else
+                                        return LLVM.BuildSub;
+                                }, enode);
+                            }                           
+                        }                                        
                     case "Mul":
                         return _buildNumericBinop(category =>
                         {
@@ -457,8 +495,15 @@ namespace Whirlwind.Generation
                     // TODO: check for overloads on increment and decrement operators
                     case "Increment":
                         {
-                            var incRes = LLVM.BuildAdd(_builder,
-                                _generateExpr(enode.Nodes[0]),
+                            var root = _generateExpr(enode.Nodes[0]);
+
+                            LLVMValueRef incRes;
+                            if (expr.Type is PointerType)
+                                incRes = LLVM.BuildGEP(_builder, root, new[] {
+                                    _getI64Zero(), _getOne(new SimpleType(SimpleType.SimpleClassifier.LONG))
+                                }, "ptr_increm_tmp");
+                            else
+                                incRes = LLVM.BuildAdd(_builder, root,
                                 _getOne(enode.Type),
                                 "increm_tmp");
 
@@ -468,10 +513,23 @@ namespace Whirlwind.Generation
                         }
                     case "Decrement":
                         {
-                            var decRes = LLVM.BuildSub(_builder,
-                                _generateExpr(enode.Nodes[0]),
-                                _getOne(enode.Type),
-                                "decrem_tmp");
+                            var root = _generateExpr(enode.Nodes[0]);
+
+                            LLVMValueRef decRes;
+                            if (expr.Type is PointerType)
+                            {
+                                root = LLVM.BuildPtrToInt(_builder, root, LLVM.Int64Type(), "decrem_rootptr_tmp");
+
+                                decRes = LLVM.BuildSub(_builder, root,
+                                    LLVM.ConstInt(LLVM.Int64Type(), 1, new LLVMBool(0)),
+                                    "decrem_tmp");
+
+                                decRes = LLVM.BuildIntToPtr(_builder, decRes, _convertType(expr.Type), "decrem_ptr_result_tmp");
+                            }
+                            else  
+                                decRes = LLVM.BuildSub(_builder, root,
+                                    _getOne(enode.Type),
+                                    "decrem_tmp");
 
                             LLVM.BuildStore(_builder, decRes, _generateExpr(enode.Nodes[0], true));
 
@@ -481,8 +539,13 @@ namespace Whirlwind.Generation
                         {
                             var oriVal = _generateExpr(enode.Nodes[0]);
 
-                            var incRes = LLVM.BuildAdd(_builder,
-                                oriVal,
+                            LLVMValueRef incRes;
+                            if (expr.Type is PointerType)
+                                incRes = LLVM.BuildGEP(_builder, oriVal, new[] {
+                                    _getI64Zero(), LLVM.ConstInt(LLVM.Int64Type(), 1, new LLVMBool(0))
+                                }, "ptr_p_increm_tmp");
+                            else
+                                incRes = LLVM.BuildAdd(_builder, oriVal,
                                 _getOne(enode.Type),
                                 "p_increm_tmp");
 
@@ -494,10 +557,23 @@ namespace Whirlwind.Generation
                         {
                             var oriVal = _generateExpr(enode.Nodes[0]);
 
-                            var decRes = LLVM.BuildSub(_builder,
-                                oriVal,
-                                _getOne(enode.Type),
-                                "p_decrem_tmp");
+                            LLVMValueRef decRes;
+                            if (expr.Type is PointerType)
+                            {
+                                var ptrInt = LLVM.BuildPtrToInt(_builder, oriVal, LLVM.Int64Type(), "p_decrem_rootptr_tmp");
+
+                                decRes = LLVM.BuildSub(_builder,
+                                    ptrInt,
+                                    LLVM.ConstInt(LLVM.Int64Type(), 1, new LLVMBool(0)),
+                                    "decrem_tmp");
+
+                                decRes = LLVM.BuildIntToPtr(_builder, decRes, _convertType(expr.Type), "p_decrem_ptr_result_tmp");
+                            }
+                            else
+                                decRes = LLVM.BuildSub(_builder,
+                                    oriVal,
+                                    _getOne(enode.Type),
+                                    "p_decrem_tmp");
 
                             LLVM.BuildStore(_builder, decRes, _generateExpr(enode.Nodes[0], true));
 
@@ -530,8 +606,10 @@ namespace Whirlwind.Generation
             var commonType = _getCommonType(node);
             int instrCat = 0;
 
+            if (commonType is PointerType)
+                instrCat = 0;
             // we assume the common type is a simple type if it is being interpreted as numeric
-            if (((SimpleType)commonType).Unsigned)
+            else if (((SimpleType)commonType).Unsigned)
                 instrCat = 1;
             else if (new[] { SimpleType.SimpleClassifier.FLOAT, SimpleType.SimpleClassifier.DOUBLE}
                 .Contains(((SimpleType)commonType).Type))
@@ -1101,6 +1179,11 @@ namespace Whirlwind.Generation
                 return LLVM.ConstInt(_convertType(dt), 1, new LLVMBool(0));
             else
                 return LLVM.ConstReal(_convertType(dt), 1);
+        }
+
+        private LLVMValueRef _getI64Zero()
+        {
+            return LLVM.ConstInt(LLVM.Int64Type(), 0, new LLVMBool(0));
         }
 
         private LLVMValueRef _boxFunction(LLVMValueRef fn, LLVMValueRef state)

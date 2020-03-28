@@ -45,23 +45,29 @@ namespace Whirlwind.Semantic.Checker
                             valid = true;
                     }
                     break;
-                case "*":
                 case "-":
-                case "/":
-                case "~/":
-                case "%":
                     {
                         if (rootType is PointerType pt && !pt.IsDynamicPointer && new SimpleType(SimpleType.SimpleClassifier.INTEGER, true)
                             .Coerce(operandType))
                         {
                             return;
                         }
-                            
+
                         if (Numeric(operandType))
                         {
                             valid = true;
                             break;
-                        }                       
+                        }
+                    }
+                    break;
+                case "*":               
+                case "/":
+                case "~/":
+                case "%":
+                    if (Numeric(operandType))
+                    {
+                        valid = true;
+                        break;
                     }
                     break;
                 case "~^":
