@@ -26,8 +26,10 @@ struct __dict<K, V> {
 
 #impl "string"
 struct __string {
-	chars: *char;
-	size: uint;
+	bytes: *byte;
+	byteCount: uint;
+
+	length: uint;
 }
 
 #impl "any"
@@ -45,12 +47,12 @@ interf Hashable {
 // FRIEND FUNCTIONS
 #friend "string"
 func __concat(a, b: str) str {
-	let np: *char;
-	*np = *a.chars;
+	let np: *byte;
+	__memcpy(np, a.bytes, a.byteCount);
 
-	// *(np + a.size) = *b.chars;
+	__memcpy(np + a.byteCount, b.bytes, b.byteCount);
 
-	return new __string { chars = np, size = a.size + b.size } as str;
+	return new __string { bytes = np, byteCount = a.byteCount + b.byteCount, length = a.length + b.length } as str;
 }
 
 #friend "array"
@@ -77,15 +79,15 @@ func __concatL<T>(a, b: [T]) {
 	return arr;
 }*/
 
-func __memcpy(dest: *byte, src: *byte, size: int) {	
-	/*for (i = 0; i < size; i++) {
+func __memcpy(dest: *byte, src: *byte, size: uint) {	
+	for (i = 0u; i < size; i++) {
 		*(dest + i) = *(src + i);
-	}*/
+	}
 }
 
 // INTRINSIC FUNCTIONS
 #intrinsic
-func __malloca(size: uint) *any;
+func __malloca(size: uint) *byte;
 
 #intrinsic
 func __sizeof(data: any) uint;

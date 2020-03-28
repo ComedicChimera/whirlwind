@@ -466,7 +466,7 @@ namespace Whirlwind.Generation
                     case "Then":
                         {
                             var valRes = _generateExpr(enode.Nodes[0]);
-                            _scopes.Last()["value_tmp"] = new GeneratorSymbol(valRes);
+                            _scopes.Last()["$VALUE"] = new GeneratorSymbol(valRes);
 
                             return _generateExpr(enode.Nodes[1]);
                         }

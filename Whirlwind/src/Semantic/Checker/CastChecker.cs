@@ -109,9 +109,19 @@ namespace Whirlwind.Semantic.Checker
                         return TypeCast(((DictType)start).KeyType, ((DictType)desired).KeyType) && TypeCast(((DictType)start).ValueType, ((DictType)desired).ValueType);
                     break;
                 case TypeClassifier.POINTER:
-                    if (desired is PointerType pt)
-                        return ((PointerType)start).IsDynamicPointer == pt.IsDynamicPointer && 
-                            TypeCast(((PointerType)start).DataType, ((PointerType)desired).DataType);
+                    if (desired is PointerType dpt)
+                    {
+                        var spt = (PointerType)start;
+
+                        if (spt.IsDynamicPointer != dpt.IsDynamicPointer)
+                            return false;
+
+                        if (_isBytePointer(spt) || _isBytePointer(dpt))
+                            return true;
+
+                        return TypeCast(spt.DataType, dpt.DataType);
+                    }
+                        
                     else if (desired.Classify() == TypeClassifier.SIMPLE)
                         return ((SimpleType)desired).Type == SimpleType.SimpleClassifier.INTEGER && ((SimpleType)desired).Unsigned;
                     else if (desired.Classify() == TypeClassifier.ARRAY)
@@ -197,5 +207,8 @@ namespace Whirlwind.Semantic.Checker
 
             return false;
         }
+
+        private static bool _isBytePointer(PointerType pt)
+            => pt.DataType is SimpleType st && st.Type == SimpleType.SimpleClassifier.BYTE && st.Unsigned;
     }
 }

@@ -16,7 +16,6 @@ connote any operation or computation.
 | Name | Purpose | Value |
 | ---- | ------- | ----- |
 | Literal | Represents a literal value | *Any Literal Value* |
-| This | Represents an pointer to any valid instance | *empty* |
 | Null | Represents a use of the null keyword | *empty* |
 | Type | Represents the data type used in is type testing | *empty* |
 | Value | Represents the chained data value | *empty* |

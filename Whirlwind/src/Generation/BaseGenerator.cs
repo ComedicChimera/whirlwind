@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Globalization;
 
 using LLVMSharp;
 
@@ -37,16 +36,15 @@ namespace Whirlwind.Generation
                             case SimpleType.SimpleClassifier.STRING:
                                 {
                                     var arrData = _convertString(node.Value);
-                                    var arrType = LLVM.ArrayType(LLVM.Int32Type(), (uint)arrData.Length);
+                                    var arrType = LLVM.ArrayType(LLVM.Int8Type(), (uint)arrData.Length);
 
-                                    var strLit = LLVM.BuildAlloca(_builder, arrType, "string_lit");
+                                    var strLitArr = LLVM.BuildAlloca(_builder, arrType, "string_lit_arr_tmp");
 
                                     uint i = 0;
                                     foreach (var elem in arrData)
                                     {
-                                        var elemPtr = LLVM.BuildGEP(_builder, strLit,
+                                        var elemPtr = LLVM.BuildGEP(_builder, strLitArr,
                                             new[] {
-                                        LLVM.ConstInt(LLVM.Int32Type(), 0, new LLVMBool(0)),
                                         LLVM.ConstInt(LLVM.Int32Type(), i, new LLVMBool(0))
                                             },
                                             "elem_ptr"
@@ -57,25 +55,28 @@ namespace Whirlwind.Generation
                                         i++;
                                     }
 
-                                    return LLVM.ConstNamedStruct(_stringType, new[]
-                                    {
-                                        // fix array allocation
-                                        LLVM.BuildGEP(_builder,
-                                            strLit,
-                                            new[] {
-                                                LLVM.ConstInt(LLVM.Int64Type(), 0, new LLVMBool(0)),
-                                                LLVM.ConstInt(LLVM.Int64Type(), 0, new LLVMBool(0))
-                                            },
-                                            "string_tmp"
-                                            ),
-                                        LLVM.ConstInt(LLVM.Int32Type(), (uint)node.Value.Length - 2, new LLVMBool(0))
-                                    });
+                                    var strLitArrPtr = LLVM.BuildBitCast(_builder, strLitArr, _i8PtrType, "str_lit_arr_ptr_tmp");
+
+                                    var strLit = LLVM.BuildAlloca(_builder, _stringType, "string_lit_tmp");
+
+                                    var strLitArrPtrElem = LLVM.BuildStructGEP(_builder, strLit, 0, "string_lit_arr_ptr_elem_ptr_tmp");
+                                    LLVM.BuildStore(_builder, strLitArrPtr, strLitArrPtrElem);
+
+                                    var strLitByteCountElem = LLVM.BuildStructGEP(_builder, strLit, 1, "string_lit_bc_elem_ptr_tmp");
+                                    LLVM.BuildStore(_builder, 
+                                        LLVM.ConstInt(LLVM.Int32Type(), (ulong)arrData.Length, new LLVMBool(0)), strLitByteCountElem);
+
+                                    var strLitLengthElem = LLVM.BuildStructGEP(_builder, strLit, 2, "string_lit_len_elem_ptr_tmp");
+                                    LLVM.BuildStore(_builder,
+                                        LLVM.ConstInt(LLVM.Int32Type(), (ulong)node.Value.Length - 2, new LLVMBool(0)), strLitLengthElem);
+
+                                    return strLit;
                                 }
                         }
                     }
                     break;
                 case "Value":
-                    return _getNamedValue("value_tmp").Vref;
+                    return _getNamedValue("$VALUE").Vref;
                 case "ByteLiteral":
                     {
                         ulong val = node.Value.StartsWith("0x") ? Convert.ToUInt64(node.Value, 16) : Convert.ToUInt64(node.Value, 2);
@@ -109,69 +110,9 @@ namespace Whirlwind.Generation
         {
             string stringData = stringLit.Substring(1, stringLit.Length - 2);
 
-            var intData = new List<uint>();
+            byte[] bytes = Encoding.UTF8.GetBytes(stringData);
 
-            TextElementEnumerator e = StringInfo.GetTextElementEnumerator(stringData);
-            byte[] bytes;
-            while (e.MoveNext())
-            {
-                bytes = Encoding.UTF8.GetBytes(stringData, e.ElementIndex, 1);
-
-                if (bytes.Length == 1)
-                {
-                    byte c = bytes[0];
-                    int take = 0;
-
-                    if (c == 92)
-                    {
-                        e.MoveNext();
-
-                        // should always be good
-                        c = Encoding.UTF8.GetBytes(stringData, e.ElementIndex, 1)[0];
-
-                        uint unicodeInt = 0;
-                        if (c == 85)
-                            take = 8;
-                        else if (c == 117)
-                            take = 4;
-                        else
-                        {
-                            if (_charTranslationDict.ContainsKey(c))
-                                unicodeInt = _charTranslationDict[c];
-                            else
-                                unicodeInt = c;
-                        }
-                        
-                        for(; take > 0; take--)
-                        {
-                            unicodeInt *= 16;
-
-                            e.MoveNext();
-
-                            c = Encoding.UTF8.GetBytes(stringData, e.ElementIndex, 1)[0];
-
-                            if (c < 58)
-                                unicodeInt += (uint)(c - 48);
-                            else
-                                unicodeInt += (uint)(c - 55);
-                           
-                        }
-
-                        if (unicodeInt > _maxUnicodePoint)
-                            throw new GeneratorException("Invalid unicode point: " + stringData);
-
-                        intData.Add(unicodeInt);
-                        continue;
-                    }
-                }
-
-                byte[] intBytes = new byte[sizeof(int)];
-                Array.Copy(bytes, intBytes, bytes.Length);
-
-                intData.Add(BitConverter.ToUInt32(intBytes));
-            }
-
-            return intData.Select(x => LLVM.ConstInt(LLVM.Int32Type(), x, new LLVMBool(0))).ToArray();
+            return bytes.Select(x => LLVM.ConstInt(LLVM.Int8Type(), (ulong)x, new LLVMBool(0))).ToArray();
         }
 
         private uint _convertCharLiteral(string charLit)
