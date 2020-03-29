@@ -279,5 +279,23 @@ namespace Whirlwind.Generation
             }
 
         }
+
+        private InterfaceType _getInterfaceOf(DataType dt)
+            => dt is InterfaceType it ? it : dt.GetInterface();
+
+        private DataType _getNoArgMethodRtType(InterfaceType it, string methodName)
+        {
+            it.GetFunction(methodName, out Symbol symbol);
+
+            if (symbol.DataType is FunctionType ft)
+                return ft.ReturnType;
+            else if (symbol.DataType is FunctionGroup fg)
+            {
+                fg.GetFunction(new ArgumentList(), out FunctionType fgft);
+                return fgft.ReturnType;
+            }
+            else
+                throw new NotImplementedException();           
+        }
     }
 }

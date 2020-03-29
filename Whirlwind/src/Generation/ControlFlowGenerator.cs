@@ -333,7 +333,60 @@ namespace Whirlwind.Generation
             return keepEndLabel;
         }
 
-        private bool _visitSelect(BlockNode node)
+        private bool _generateForIter(BlockNode node)
+        {
+            var beginBlock = LLVM.AppendBasicBlock(_currFunctionRef, "for_iter_update");
+            LLVM.BuildBr(_builder, beginBlock);
+
+            var bodyBlock = LLVM.AppendBasicBlock(_currFunctionRef, "for_iter_body");
+            var endBlock = LLVM.AppendBasicBlock(_currFunctionRef, "for_iter_end");
+
+            LLVMBasicBlockRef exitBlock;
+            bool exitHasTerminator = false;
+            if (node.Block.Last().Name == "After")
+            {
+                exitBlock = LLVM.AppendBasicBlock(_currFunctionRef, "for_iter_after");
+                LLVM.PositionBuilderAtEnd(_builder, exitBlock);
+
+                if (_generateBlock(((BlockNode)node.Block.Last()).Block))
+                    LLVM.BuildBr(_builder, endBlock);
+                else
+                    exitHasTerminator = true;
+            }
+            else
+                exitBlock = endBlock;
+
+            _scopes.Add(new Dictionary<string, GeneratorSymbol>());
+
+            LLVM.PositionBuilderAtEnd(_builder, beginBlock);
+            var setupBlock = _buildIteratorUpdateBlock(_setupIterator((ExprNode)node.Nodes[0]), bodyBlock, exitBlock);
+            LLVM.MoveBasicBlockAfter(setupBlock, beginBlock);
+
+            LLVM.PositionBuilderAtEnd(_builder, bodyBlock);
+            var lCtx = _saveAndUpdateLoopContext(endBlock, beginBlock);
+
+            if (_generateBlock(node.Block))
+                LLVM.BuildBr(_builder, beginBlock);
+
+            bool needsTerminator = true;
+            if (exitHasTerminator && !_breakLabelUsed)
+            {
+                LLVM.RemoveBasicBlockFromParent(endBlock);
+                needsTerminator = false;
+            }               
+            else
+            {
+                LLVM.MoveBasicBlockAfter(endBlock, LLVM.GetLastBasicBlock(_currFunctionRef));
+                LLVM.PositionBuilderAtEnd(_builder, endBlock);
+            }
+
+            _restoreLoopContext(lCtx);
+            _scopes.RemoveLast();
+
+            return needsTerminator;
+        }
+
+        private bool _generateSelect(BlockNode node)
         {
             var selectExpr = _generateExpr(node.Nodes[0]);
             var selectType = node.Nodes[0].Type;

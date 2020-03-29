@@ -220,6 +220,13 @@ namespace Whirlwind.Semantic.Visitor
                     case "super_call":
                         _visitSuperCall((ASTNode)node.Content[0]);
                         break;
+                    case "sizeof_call":
+                        {
+                            var size = _generateType((ASTNode)node.Content[2]).SizeOf();
+
+                            _nodes.Add(new ValueNode("Literal", new SimpleType(SimpleType.SimpleClassifier.INTEGER, true), size.ToString()));
+                        }
+                        break;
                 }
             }
         }

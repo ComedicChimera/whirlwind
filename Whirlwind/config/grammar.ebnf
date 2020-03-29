@@ -258,6 +258,7 @@ base: 'INTEGER_LITERAL'
 | sub_expr
 | partial_func
 | super_call
+| sizeof_call
 ;
 
 // collection types
@@ -284,6 +285,8 @@ partial_arg: '_'
 ;
 
 super_call: 'SUPER' '(' [ 'IDENTIFIER' static_get* [ generic_spec ] ] ')' ;
+
+sizeof_call: 'SIZEOF' '(' types ')' ;
 
 // DATA TYPES - data type literals
 types: ['CONST'] ( base_types

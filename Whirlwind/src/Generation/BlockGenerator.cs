@@ -108,6 +108,14 @@ namespace Whirlwind.Generation
                         if (!_generateCFor((BlockNode)node))
                             return false;
                         break;
+                    case "Select":
+                        if (!_generateSelect((BlockNode)node))
+                            return false;
+                        break;
+                    case "ForIterator":
+                        if (!_generateForIter((BlockNode)node))
+                            return false;
+                        break;
                 }
             }
 
