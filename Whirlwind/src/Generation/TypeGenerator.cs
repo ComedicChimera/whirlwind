@@ -495,5 +495,24 @@ namespace Whirlwind.Generation
 
             return tr.PrintTypeToString().Split("=")[0].Trim().Substring(1);
         }
+
+        private bool _needsHash(DataType dt)
+        {
+            if (dt is SimpleType st && _getSimpleClass(st) == 0)
+                return true;
+            else if (dt is CustomInstance ci)
+            {
+                if (ci.Parent.IsReferenceType())
+                    return false;
+
+                if (ci.Parent.Instances.All(x => x is CustomNewType))
+                    return true;
+
+                // can assume it is a pure type alias if it reaches this point
+                return _needsHash(((CustomAlias)ci.Parent.Instances.First()).Type);
+            }
+
+            return false;
+        }
     }
 }

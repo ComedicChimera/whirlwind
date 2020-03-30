@@ -42,8 +42,10 @@ namespace Whirlwind.Types
             return false;
         }
 
-        // returns a custom opaque type (used type representing a custom instance)
-        public CustomInstance GetInstance() => new CustomOpaqueType(this);
+        // returns the most accurate representation of the type class instance(s)
+        // if there are multiple: custom opaque type
+        // if there is only one: that instance
+        public CustomInstance GetInstance() => Instances.Count == 1 ? Instances[0] : new CustomOpaqueType(this);
 
         public bool CreateInstance(string name, List<DataType> values, out CustomNewType cnType)
         {

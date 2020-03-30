@@ -77,10 +77,9 @@ namespace Whirlwind.Generation
         }
 
         private bool _isPatternType(DataType dt)
-            => dt is CustomInstance || dt is TupleType;
+            => dt is TupleType || (dt is CustomInstance ci && ci.Parent.IsReferenceType());
 
-        // arity checks handled externally
-        private PatternMatrix _constructPatternMatrix(List<DataType> columns, List<BlockNode> caseNodes)
+        private PatternMatrix _constructTuplePatternMatrix(List<DataType> columns, List<BlockNode> caseNodes)
         {
             var caseExprs = caseNodes
                 .SelectMany(x => x.Nodes)
@@ -94,20 +93,29 @@ namespace Whirlwind.Generation
                 var caseExpr = caseExprs[i];
 
                 if (caseExpr.Name == "TuplePattern")
-                    _makePMatrixRow(pMat, i, columns[i], caseExpr.Nodes);
-                else if (caseExpr.Name == "TypeClassPattern")
-                    _makePMatrixRow(pMat, i, columns[i], caseExpr.Nodes.Skip(1).ToList());
-                // assume is expression and populate accordingly
-                else
+                    _makePMatrixRow(pMat, i, columns, caseExpr.Nodes);
+                // assume is tuple expression
+                else if (caseExpr.Type is TupleType ctt)
                 {
+                    var tuple = _generateExpr(caseExpr);
 
+                    for (int j = 0; j < ctt.Types.Count; i++)
+                    {
+                        var tupleElemPtr = LLVM.BuildStructGEP(_builder, tuple, (uint)j, string.Format("tuple_member%d_elem_ptr_tmp", i));
+                        var tupleElem = LLVM.BuildLoad(_builder, tupleElemPtr, string.Format("tuple_member%d_tmp", i));
+
+                        if (!columns[j].Equals(ctt.Types[j]))
+                            tupleElem = _cast(tupleElem, ctt.Types[j], columns[j]);
+
+                        pMat.SetElement(i, j, tupleElem);
+                    }
                 }
             }
 
             return pMat;
         }
 
-        private void _makePMatrixRow(PatternMatrix pMat, int row, DataType columnType, List<ITypeNode> nodes)
+        private void _makePMatrixRow(PatternMatrix pMat, int row, List<DataType> columnTypes, List<ITypeNode> nodes)
         {
             for (int j = 0; j < nodes.Count; j++)
             {
@@ -122,7 +130,7 @@ namespace Whirlwind.Generation
                     case "_":
                         break;
                     default:
-                        pMat.SetElement(row, j, _cast(_generateExpr(node), node.Type, columnType));
+                        pMat.SetElement(row, j, _cast(_generateExpr(node), node.Type, columnTypes[j]));
                         break;
                 }
             }

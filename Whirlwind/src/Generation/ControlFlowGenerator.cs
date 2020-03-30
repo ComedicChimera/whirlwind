@@ -398,28 +398,21 @@ namespace Whirlwind.Generation
 
             var defaultBlock = LLVM.AppendBasicBlock(_currFunctionRef, "default");
 
-            if (selectType is SimpleType st && _getSimpleClass(st) == 0)
-            {
-                var switchStmt = LLVM.BuildSwitch(_builder, selectExpr, defaultBlock, (uint)caseBlocks.Length);
-
-                for (int i = 0; i < caseBlocks.Length; i++)
-                {
-                    var conds = ((BlockNode)node.Block[i]).Nodes
-                        .Select(x => _cast(_generateExpr(x), x.Type, selectType))
-                        .ToArray();
-
-                    foreach (var cond in conds)
-                        switchStmt.AddCase(cond, caseBlocks[i]);
-                }
-            }
-            else if (_isPatternType(selectType))
+            if (_isPatternType(selectType))
                 _generatePatternMatch(selectExpr, selectType, node.Block
-                    .Select(x => (BlockNode)x).Where(x => x.Name == "Case").ToList(), 
+                    .Select(x => (BlockNode)x).Where(x => x.Name == "Case").ToList(),
                     caseBlocks, defaultBlock);
             // is basic hashable type
-            else
+            else if (_needsHash(selectType))
             {
                 var hashCodeType = new SimpleType(SimpleType.SimpleClassifier.LONG);
+
+                // handle special case of custom aliases
+                if (selectType is CustomAlias)
+                {
+                    var selectElem = LLVM.BuildStructGEP(_builder, selectExpr, 0, "select_ca_data_elem_ptr_tmp");
+                    selectExpr = LLVM.BuildLoad(_builder, selectElem, "select_ca_data_tmp");
+                }
 
                 var selectHash = _callMethod(selectExpr, selectType, "hash", hashCodeType);
 
@@ -429,6 +422,28 @@ namespace Whirlwind.Generation
                 {
                     var conds = ((BlockNode)node.Block[i]).Nodes
                         .Select(x => _callMethod(_generateExpr(x), x.Type, "hash", hashCodeType))
+                        .ToArray();
+
+                    foreach (var cond in conds)
+                        switchStmt.AddCase(cond, caseBlocks[i]);
+                }
+            }
+            // can be selected upon without using a hash
+            else
+            {
+                // handle special case of custom aliases
+                if (selectType is CustomAlias)
+                {
+                    var selectElem = LLVM.BuildStructGEP(_builder, selectExpr, 0, "select_ca_data_elem_ptr_tmp");
+                    selectExpr = LLVM.BuildLoad(_builder, selectElem, "select_ca_data_tmp");
+                }
+
+                var switchStmt = LLVM.BuildSwitch(_builder, selectExpr, defaultBlock, (uint)caseBlocks.Length);
+
+                for (int i = 0; i < caseBlocks.Length; i++)
+                {
+                    var conds = ((BlockNode)node.Block[i]).Nodes
+                        .Select(x => _cast(_generateExpr(x), x.Type, selectType))
                         .ToArray();
 
                     foreach (var cond in conds)
