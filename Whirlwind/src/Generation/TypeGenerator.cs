@@ -499,20 +499,21 @@ namespace Whirlwind.Generation
         private bool _needsHash(DataType dt)
         {
             if (dt is SimpleType st && _getSimpleClass(st) == 0)
-                return true;
+                return false;
             else if (dt is CustomInstance ci)
             {
                 if (ci.Parent.IsReferenceType())
-                    return false;
+                    throw new NotImplementedException();
 
+                // no reference types => no values => i16
                 if (ci.Parent.Instances.All(x => x is CustomNewType))
-                    return true;
+                    return false;
 
                 // can assume it is a pure type alias if it reaches this point
                 return _needsHash(((CustomAlias)ci.Parent.Instances.First()).Type);
             }
 
-            return false;
+            return true;
         }
     }
 }
