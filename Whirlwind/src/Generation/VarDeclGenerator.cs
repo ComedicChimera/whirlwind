@@ -27,12 +27,14 @@ namespace Whirlwind.Generation
                         initExpr = _cast(initExpr, varNode.Nodes[1].Type, idNode.Type);
 
                     if (_isReferenceType(idNode.Type))
-                        initExpr = _copy(initExpr, varNode.Nodes[1].Type);
+                        _setVar(idNode.IdName, _copy(initExpr, varNode.Nodes[1].Type));
+                    else
+                    {
+                        var varAlloc = LLVM.BuildAlloca(_builder, _convertType(idNode.Type), idNode.IdName);
+                        LLVM.BuildStore(_builder, initExpr, varAlloc);
 
-                    var varAlloc = LLVM.BuildAlloca(_builder, _convertType(idNode.Type, true), idNode.IdName);
-                    LLVM.BuildStore(_builder, initExpr, varAlloc);
-
-                    _setVar(idNode.IdName, varAlloc, true);                   
+                        _setVar(idNode.IdName, varAlloc, true);
+                    }                                   
                 }
             }
 
@@ -40,9 +42,14 @@ namespace Whirlwind.Generation
             {
                 foreach (var item in uninitializedVars)
                 {
-                    var varAlloc = LLVM.BuildAlloca(_builder, _convertType(item.Type, true), item.IdName);
-                    LLVM.BuildStore(_builder, _getNullValue(item.Type), varAlloc);
-                    _setVar(item.IdName, varAlloc, true);
+                    if (_isReferenceType(item.Type))
+                        _setVar(item.IdName, _getNullValue(item.Type));
+                    else
+                    {
+                        var varAlloc = LLVM.BuildAlloca(_builder, _convertType(item.Type), item.IdName);
+                        LLVM.BuildStore(_builder, _getNullValue(item.Type), varAlloc);
+                        _setVar(item.IdName, varAlloc, true);
+                    }                    
                 }
             }
             else
@@ -52,18 +59,18 @@ namespace Whirlwind.Generation
 
                 foreach (var item in uninitializedVars)
                 {
-                    var varAlloc = LLVM.BuildAlloca(_builder, _convertType(item.Type, true), item.IdName);
-
                     LLVMValueRef currentInitExpr = totalInitExpr;
+                    if (!item.Type.Equals(tieType))
+                        currentInitExpr = _cast(totalInitExpr, tieType, item.Type);
+
                     if (_isReferenceType(tieType))
-                        currentInitExpr = _copy(totalInitExpr, tieType);
-
-                    if (item.Type.Equals(tieType))
-                        LLVM.BuildStore(_builder, totalInitExpr, varAlloc);
+                        _setVar(item.IdName, _copy(currentInitExpr, tieType));
                     else
-                        LLVM.BuildStore(_builder, _cast(totalInitExpr, tieType, item.Type), varAlloc);
-
-                    _setVar(item.IdName, varAlloc, true);
+                    {
+                        var varAlloc = LLVM.BuildAlloca(_builder, _convertType(item.Type), item.IdName);
+                        LLVM.BuildStore(_builder, currentInitExpr, varAlloc);
+                        _setVar(item.IdName, varAlloc, true);
+                    }                    
                 }
             }                      
         }

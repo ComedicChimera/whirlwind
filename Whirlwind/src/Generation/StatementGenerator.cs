@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-using Whirlwind.Semantic;
+﻿using Whirlwind.Semantic;
 using Whirlwind.Types;
 
 using LLVMSharp;
@@ -49,11 +45,9 @@ namespace Whirlwind.Generation
                 expr = _cast(expr, exprType, var.Type);
 
             if (_isReferenceType(var.Type))
-                expr = _copyRefType(expr, exprType);
-
-            var varRef = _generateExpr(var, true);
-
-            LLVM.BuildStore(_builder, expr, varRef);
+                _copyLLVMStructTo(_generateExpr(var), expr);
+            else
+                LLVM.BuildStore(_builder, expr, _generateExpr(var, true));
         }
     }
 }

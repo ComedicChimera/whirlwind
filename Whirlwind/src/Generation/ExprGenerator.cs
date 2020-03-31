@@ -214,6 +214,37 @@ namespace Whirlwind.Generation
                         return _generateCallConstructor(enode);
                     case "CallTCConstructor":
                         return _generateCallTCConstructor(enode);
+                    case "InitList":
+                        {
+                            var st = (StructType)enode.Nodes[0].Type;
+                            var root = LLVM.BuildAlloca(_builder, _convertType(st), "initl_struct_tmp");
+
+                            foreach (var item in enode.Nodes.Skip(1))
+                            {
+                                var initializer = (ExprNode)item;
+
+                                var name = ((IdentifierNode)initializer.Nodes[0]).IdName;
+                                var initExprNode = initializer.Nodes[1];
+                                var initExpr = _generateExpr(initExprNode);
+
+                                var memberType = st.Members[name].DataType;
+                                if (!memberType.Equals(initExprNode.Type))
+                                    initExpr = _cast(initExpr, initExprNode.Type, memberType);
+
+                                uint memberNdx = (uint)st.Members.TakeWhile(x => x.Key != name).Count();
+                                var memberPtr = LLVM.BuildStructGEP(_builder, root, memberNdx, $"initl_struct_member.{name}_ptr_tmp");
+
+                                if (_isReferenceType(memberType))
+                                {
+                                    var member = LLVM.BuildLoad(_builder, memberPtr, $"initl_struct_member.{name}_tmp");
+                                    _copyLLVMStructTo(member, initExpr);
+                                }
+                                else 
+                                    LLVM.BuildStore(_builder, initExpr, memberPtr);
+                            }
+
+                            return root;
+                        }
                     case "From":
                         return _generateFromExpr(enode);
                     case "TypeCast":

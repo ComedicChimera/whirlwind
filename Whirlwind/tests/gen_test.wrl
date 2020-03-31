@@ -1,12 +1,19 @@
-﻿func main() {
-	let c = 'A';
+﻿struct Vec2 {
+	x, y: int;
+}
 
-	if ('A' <= c && c <= 'Z')
-		c += 13;
+struct PhysicsData {
+	pos, vel: Vec2;
+}
 
-	if (c > 'Z')
-		c -= 'Z' + 'A' - 1;
+func main() {
+	let v = new Vec2();
+	v.x = 10;
 
+	let v2 = new Vec2{ x = 3, y = 5 };
 
+	let p = new PhysicsData{ pos = v, vel = v2 };
+
+	v2 = v;
 }
 

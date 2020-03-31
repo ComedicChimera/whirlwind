@@ -101,8 +101,8 @@ namespace Whirlwind.Generation
 
                     for (int j = 0; j < ctt.Types.Count; i++)
                     {
-                        var tupleElemPtr = LLVM.BuildStructGEP(_builder, tuple, (uint)j, string.Format("tuple_member%d_elem_ptr_tmp", i));
-                        var tupleElem = LLVM.BuildLoad(_builder, tupleElemPtr, string.Format("tuple_member%d_tmp", i));
+                        var tupleElemPtr = LLVM.BuildStructGEP(_builder, tuple, (uint)j, $"tuple_member{i}_elem_ptr_tmp");
+                        var tupleElem = LLVM.BuildLoad(_builder, tupleElemPtr, $"tuple_member{i}_tmp");
 
                         if (!columns[j].Equals(ctt.Types[j]))
                             tupleElem = _cast(tupleElem, ctt.Types[j], columns[j]);

@@ -82,8 +82,8 @@ namespace Whirlwind.Generation
                 LLVMValueRef currNextVal;
                 if (nextValType is TupleType)
                 {
-                    var currIterValElemPtr = LLVM.BuildStructGEP(_builder, nextVal, i, "next_val#_elem_ptr_tmp".Replace("#", i.ToString()));
-                    currNextVal = LLVM.BuildLoad(_builder, currIterValElemPtr, "next_val#_tmp".Replace("#", i.ToString()));
+                    var currIterValElemPtr = LLVM.BuildStructGEP(_builder, nextVal, i, $"next_val{i}_elem_ptr_tmp");
+                    currNextVal = LLVM.BuildLoad(_builder, currIterValElemPtr, $"next_val{i}_tmp");
                 }
                 else
                     currNextVal = nextVal;

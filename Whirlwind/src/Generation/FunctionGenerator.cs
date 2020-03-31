@@ -192,6 +192,8 @@ namespace Whirlwind.Generation
                     fnScope[paramName] = new GeneratorSymbol(param);
                 else if (paramName.StartsWith("$c_"))
                     fnScope[paramName.Substring(3)] = new GeneratorSymbol(param);
+                // if it is a reference type
+                // TODO: handle reference types in declare fn args
                 // otherwise, compiler must create a variable for it
                 else
                 {

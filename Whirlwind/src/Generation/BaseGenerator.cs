@@ -45,7 +45,8 @@ namespace Whirlwind.Generation
                                     {
                                         var elemPtr = LLVM.BuildGEP(_builder, strLitArr,
                                             new[] {
-                                        LLVM.ConstInt(LLVM.Int32Type(), i, new LLVMBool(0))
+                                                LLVM.ConstInt(LLVM.Int32Type(), 0, new LLVMBool(0)),
+                                                LLVM.ConstInt(LLVM.Int32Type(), i, new LLVMBool(0))
                                             },
                                             "elem_ptr"
                                             );
