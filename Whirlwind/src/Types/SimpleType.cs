@@ -46,9 +46,9 @@ namespace Whirlwind.Types
                     case SimpleClassifier.SHORT:
                         return new[] { SimpleClassifier.INTEGER, SimpleClassifier.FLOAT, SimpleClassifier.LONG, SimpleClassifier.DOUBLE }
                         .Contains(Type);
-                    // integer to long, double, and float
+                    // integer to char, long, double, and float
                     case SimpleClassifier.INTEGER:
-                        return new[] { SimpleClassifier.FLOAT, SimpleClassifier.LONG, SimpleClassifier.DOUBLE }.Contains(Type);
+                        return new[] { SimpleClassifier.CHAR, SimpleClassifier.FLOAT, SimpleClassifier.LONG, SimpleClassifier.DOUBLE }.Contains(Type);
                     // float to double
                     case SimpleClassifier.FLOAT:
                         return Type == SimpleClassifier.DOUBLE;
