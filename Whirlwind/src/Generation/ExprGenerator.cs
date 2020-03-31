@@ -258,7 +258,6 @@ namespace Whirlwind.Generation
 
                                 return LLVM.BuildGEP(_builder, basePtr, new[]
                                 {
-                                    _getI64Zero(),
                                     offset
                                 }, "ptr_add_tmp");
                             }

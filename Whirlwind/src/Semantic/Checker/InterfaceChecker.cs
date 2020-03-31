@@ -80,7 +80,7 @@ namespace Whirlwind.Semantic.Checker
         public static bool Numeric(DataType dt)
         {
             if (dt.Classify() == TypeClassifier.SIMPLE)
-                return !new[] { SimpleType.SimpleClassifier.STRING, SimpleType.SimpleClassifier.CHAR, SimpleType.SimpleClassifier.BOOL }.Contains(((SimpleType)dt).Type);
+                return !new[] { SimpleType.SimpleClassifier.STRING, SimpleType.SimpleClassifier.BOOL }.Contains(((SimpleType)dt).Type);
 
             return false;
         }

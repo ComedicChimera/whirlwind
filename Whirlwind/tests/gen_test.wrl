@@ -1,6 +1,12 @@
 ﻿func main() {
-	let x = 78;
+	let c = 'A';
 
-	let c = x as char;
+	if ('A' <= c && c <= 'Z')
+		c += '\u0013';
+
+	if (c > 'Z')
+		c -= 'Z' + 'A' - '\u0001';
+
+
 }
 

@@ -52,7 +52,8 @@ func __concat(a, b: str) str {
 
 	__memcpy(np + a.byteCount, b.bytes, b.byteCount);
 
-	return new __string { bytes = np, byteCount = a.byteCount + b.byteCount, length = a.length + b.length } as str;
+	// return new __string { bytes = np, byteCount = a.byteCount + b.byteCount, length = a.length + b.length } as str;
+	return "bob";
 }
 
 #friend "array"

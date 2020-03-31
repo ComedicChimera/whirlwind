@@ -120,7 +120,7 @@ namespace Whirlwind.Generation
             string charData = charLit.Substring(1, charLit.Length - 2);
 
             // escape codes
-            if (charData.StartsWith('\''))
+            if (charData.StartsWith('\\'))
             {
                 switch (charData[1])
                 {

@@ -389,11 +389,11 @@ namespace Whirlwind.Generation
 
         private void _copyLLVMStructTo(LLVMValueRef dest, LLVMValueRef src)
         {
-            var srcVal = LLVM.BuildLoad(_builder, src, "srcval_tmp");
-
-            for (uint i = 0; i < srcVal.TypeOf().CountStructElementTypes(); i++)
+            for (uint i = 0; i < src.TypeOf().GetElementType().CountStructElementTypes(); i++)
             {
-                var elemVal = LLVM.BuildExtractValue(_builder, srcVal, i, "srcval_elem_tmp");
+                var srcElemPtr = LLVM.BuildStructGEP(_builder, src, i, "src_elem_ptr_tmp");
+                var elemVal = LLVM.BuildLoad(_builder, srcElemPtr, "src_elem_tmp");
+
                 var copyElemPtr = LLVM.BuildStructGEP(_builder, dest, i, "refcopy_elem_ptr_tmp");
                 LLVM.BuildStore(_builder, elemVal, copyElemPtr);
             }
