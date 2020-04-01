@@ -498,8 +498,25 @@ namespace Whirlwind.Generation
                             var valRes = _generateExpr(enode.Nodes[0]);
                             _scopes.Last()["$VALUE"] = new GeneratorSymbol(valRes);
 
-                            return _generateExpr(enode.Nodes[1]);
+                            var thenRes = _generateExpr(enode.Nodes[1]);
+
+                            if (!_exprNeedsScope)
+                            {
+                                _scopes.RemoveLast();
+                                _exprNeedsScope = true;
+                            }
+
+                            return thenRes;
                         }
+                    case "ExprVarDecl":
+                        if (_exprNeedsScope)
+                        {
+                            _exprNeedsScope = false;
+                            _scopes.Add(new Dictionary<string, GeneratorSymbol>());
+                        }
+
+                        _setVar(((IdentifierNode)enode.Nodes[0]).IdName, _generateExpr(enode.Nodes[1]));
+                        break;
                     case "Indirect":
                         {
                             // nullify indirect if it is just referencing a variable (just use varRef)

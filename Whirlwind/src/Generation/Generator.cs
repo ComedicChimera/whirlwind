@@ -92,7 +92,10 @@ namespace Whirlwind.Generation
         private LLVMBasicBlockRef _breakLabel, _continueLabel;
         // store bool saying whether or not break and continue labels were used
         private bool _breakLabelUsed = false, _continueLabelUsed = false;
-        
+        // store bool saying whether or not an expression needs to create a scope
+        // to store its expression local vars
+        private bool _exprNeedsScope = true;
+
 
         // store the randomly generated package prefix
         private readonly string _randPrefix;
