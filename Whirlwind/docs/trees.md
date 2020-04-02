@@ -89,7 +89,7 @@ A multi-value structure or some form of operation.
 | HeapAllocSize | Size | Allocate a set amount of memory on the heap |
 | HeapAllocType | Type | Allocate enough memory to store a given type |
 | HeapAllocStruct | Struct, *Arguments* | Create a new heap allocated struct and call its constructor where needed |
-| Await | Async Function | Set a function to run on the current thread |
+| Await | Async Function | Yield execution to an async function |
 | DictComprehension | Iterator, Expression, Expression, \[Filter\] | Perform a dictionary comprehension |
 | ListComprehension | Iterator, Expression, \[Filter\] | Perform a list comprehension |
 | ArrayComprehension | Iterator, Expression, \[Filter\] | Perform an array comprehension |
