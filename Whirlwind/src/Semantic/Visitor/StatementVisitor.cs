@@ -373,6 +373,12 @@ namespace Whirlwind.Semantic.Visitor
 
             _nodes.Add(new StatementNode("Assignment"));
             PushForward(2);
+
+            if (subOp != "")
+            {
+                _nodes.Add(new ValueNode("Operator", new NoneType(), subOp));
+                MergeBack();
+            }
         }
 
         private void _visitAssignVar(ASTNode assignVar)

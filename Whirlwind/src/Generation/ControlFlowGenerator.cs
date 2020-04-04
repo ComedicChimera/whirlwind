@@ -388,73 +388,40 @@ namespace Whirlwind.Generation
 
         private bool _generateSelect(BlockNode node)
         {
-            var selectExpr = _generateExpr(node.Nodes[0]);
-            var selectType = node.Nodes[0].Type;
+            var selectExprNode = node.Nodes[0];
+            var selectType = selectExprNode.Type;
 
             var caseBlocks = node.Block
                 .Where(x => x.Name != "Default")
                 .Select(x => LLVM.AppendBasicBlock(_currFunctionRef, "case"))
-                .ToArray();
+                .ToList();
 
             var defaultBlock = LLVM.AppendBasicBlock(_currFunctionRef, "default");
 
+            bool allBlocksHaveAlternativeTerminators;
             if (_isPatternType(selectType))
-                _generatePatternMatch(selectExpr, selectType, node.Block
+                allBlocksHaveAlternativeTerminators = _generatePatternMatch(selectExprNode, node.Block
                     .Select(x => (BlockNode)x).Where(x => x.Name == "Case").ToList(),
                     caseBlocks, defaultBlock);
-            // is basic hashable type
-            else if (_needsHash(selectType))
-            {
-                var hashCodeType = new SimpleType(SimpleType.SimpleClassifier.LONG);
-
-                // handle special case of custom aliases
-                if (selectType is CustomAlias)
-                {
-                    var selectElem = LLVM.BuildStructGEP(_builder, selectExpr, 0, "select_ca_data_elem_ptr_tmp");
-                    selectExpr = LLVM.BuildLoad(_builder, selectElem, "select_ca_data_tmp");
-                }
-
-                var selectHash = _callMethod(selectExpr, selectType, "hash", hashCodeType);
-
-                var switchStmt = LLVM.BuildSwitch(_builder, selectHash, defaultBlock, (uint)caseBlocks.Length);
-
-                for (int i = 0; i < caseBlocks.Length; i++)
-                {
-                    var conds = ((BlockNode)node.Block[i]).Nodes
-                        .Select(x => _callMethod(_generateExpr(x), x.Type, "hash", hashCodeType))
-                        .ToArray();
-
-                    foreach (var cond in conds)
-                        switchStmt.AddCase(cond, caseBlocks[i]);
-                }
-            }
-            // can be selected upon without using a hash
+            // is standard switch case (no pattern matching)
             else
             {
-                // handle special case of custom aliases
-                if (selectType is CustomAlias)
-                {
-                    var selectElem = LLVM.BuildStructGEP(_builder, selectExpr, 0, "select_ca_data_elem_ptr_tmp");
-                    selectExpr = LLVM.BuildLoad(_builder, selectElem, "select_ca_data_tmp");
-                }
+                var onValNodes = node.Block
+                    .Take(caseBlocks.Count)
+                    .SelectMany(x => ((BlockNode)x).Nodes)
+                    .Select(x => _getSwitchableValue(x, selectType))
+                    .ToList();
 
-                var switchStmt = LLVM.BuildSwitch(_builder, selectExpr, defaultBlock, (uint)caseBlocks.Length);
+                var selectExpr = _getSwitchableValue(selectExprNode, selectType);
 
-                for (int i = 0; i < caseBlocks.Length; i++)
-                {
-                    var conds = ((BlockNode)node.Block[i]).Nodes
-                        .Select(x => _cast(_generateExpr(x), x.Type, selectType))
-                        .ToArray();
+                _switchBetween(selectExpr, onValNodes, caseBlocks, defaultBlock);
 
-                    foreach (var cond in conds)
-                        switchStmt.AddCase(cond, caseBlocks[i]);
-                }
+                allBlocksHaveAlternativeTerminators = true;
             }
 
             var selectEnd = LLVM.AppendBasicBlock(_currFunctionRef, "select_end");
 
             bool generatedDefaultBlock = false;
-            bool allBlocksHaveAlternativeTerminators = true;
             for (int i = 0; i < node.Block.Count; i++)
             {
                 _scopes.Add(new Dictionary<string, GeneratorSymbol>());
@@ -462,7 +429,7 @@ namespace Whirlwind.Generation
                 var block = (BlockNode)node.Block[i];
 
                 // default block
-                if (i == caseBlocks.Length)
+                if (i == caseBlocks.Count)
                 {
                     generatedDefaultBlock = true;
                     LLVM.PositionBuilderAtEnd(_builder, defaultBlock);

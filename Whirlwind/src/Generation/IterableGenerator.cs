@@ -14,10 +14,10 @@ namespace Whirlwind.Generation
         struct WhirlIterator
         {
             public LLVMValueRef IterRef;
-            public Dictionary<string, LLVMValueRef> IterVars;
+            public Dictionary<string, Tuple<LLVMValueRef, int>> IterVars;
             public DataType IterDataType;
 
-            public WhirlIterator(LLVMValueRef iterRef, Dictionary<string, LLVMValueRef> iterVars, DataType idt)
+            public WhirlIterator(LLVMValueRef iterRef, Dictionary<string, Tuple<LLVMValueRef, int>> iterVars, DataType idt)
             {
                 IterRef = iterRef;
                 IterVars = iterVars;
@@ -30,13 +30,18 @@ namespace Whirlwind.Generation
             var rootIterable = _generateExpr(iteratorNode.Nodes[0]);
             var iterRef = _getIterRef(rootIterable, iteratorNode.Nodes[0].Type);
 
-            var iterVars = new Dictionary<string, LLVMValueRef>();
-            foreach (var item in iteratorNode.Nodes.Skip(1))
+            var iterVars = new Dictionary<string, Tuple<LLVMValueRef, int>>();
+            for (int i = 1; i < iteratorNode.Nodes.Count; i++)
             {
+                var item = iteratorNode.Nodes[i];
+
                 string idName = ((IdentifierNode)item).IdName;
-                iterVars[idName] = LLVM.BuildAlloca(_builder,
-                    _convertType(item.Type, true),
-                    idName);
+                if (idName != "_")
+                {
+                    iterVars[idName] = new Tuple<LLVMValueRef, int>(
+                    LLVM.BuildAlloca(_builder, _convertType(item.Type, true), idName),
+                    i);
+                }               
             }
 
             return new WhirlIterator(iterRef.Item1, iterVars, iterRef.Item2);
@@ -70,25 +75,22 @@ namespace Whirlwind.Generation
             var nextVal = LLVM.BuildLoad(_builder, nextValElem, "next_val_tmp");
             var nextValType = ((TupleType)nextRtType).Types[0];
 
-            var e = iter.IterVars.GetEnumerator();
-            for (uint i = 0; i < iter.IterVars.Count; i++)
+            foreach (var item in iter.IterVars)
             {
-                e.MoveNext();
-                
-                var item = e.Current;
-
-                _scopes.Last()[item.Key] = new GeneratorSymbol(item.Value, true);
+                _scopes.Last()[item.Key] = new GeneratorSymbol(item.Value.Item1, true);
 
                 LLVMValueRef currNextVal;
                 if (nextValType is TupleType)
                 {
-                    var currIterValElemPtr = LLVM.BuildStructGEP(_builder, nextVal, i, $"next_val{i}_elem_ptr_tmp");
-                    currNextVal = LLVM.BuildLoad(_builder, currIterValElemPtr, $"next_val{i}_tmp");
+                    var currIterValElemPtr = LLVM.BuildStructGEP(_builder, nextVal, 
+                        (uint)item.Value.Item2, $"next_val{item.Value.Item2}_elem_ptr_tmp");
+
+                    currNextVal = LLVM.BuildLoad(_builder, currIterValElemPtr, $"next_val{item.Value.Item2}_tmp");
                 }
                 else
                     currNextVal = nextVal;
 
-                LLVM.BuildStore(_builder, currNextVal, item.Value);
+                LLVM.BuildStore(_builder, currNextVal, item.Value.Item1);
             }
 
             LLVM.BuildBr(_builder, bodyBlock);

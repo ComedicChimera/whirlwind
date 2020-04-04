@@ -1,19 +1,8 @@
-﻿struct Vec2 {
-	x, y: int;
-}
+﻿func main() {
+	let x = 20;
+	x ~/= 10;
 
-struct PhysicsData {
-	pos, vel: Vec2;
-}
-
-func main() {
-	let v = new Vec2();
-	v.x = 10;
-
-	let v2 = new Vec2{ x = 3, y = 5 };
-
-	let p = new PhysicsData{ pos = v, vel = v2 };
-
-	v2 = v;
+	let f = 4.0;
+	f ~/= 3;
 }
 

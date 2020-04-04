@@ -46,6 +46,8 @@ namespace Whirlwind.Generation
             }
             else if (expr is ConstexprNode cnode)
                 return _generateExpr(cnode.ConstValue);
+            else if (expr is LLVMVRefNode vrnode)
+                return vrnode.Vref;
             // only other option is expr node
             else
             {
@@ -80,7 +82,7 @@ namespace Whirlwind.Generation
                                 typeInterf = _boxToInterf(typeInterf, enode.Nodes[0].Type); // standard up box (with no real vtable)
 
                             typeInterf = LLVM.BuildBitCast(_builder, typeInterf, _i8PtrType, "boxed_ti_i8ptr_tmp");
-                            
+
                             return _boxFunction(_globalScope[rootName + ".interf." + memberName].Vref, typeInterf);
                         }
                     // tuples are never mutable so we don't need to account for mutable expr case
@@ -239,7 +241,7 @@ namespace Whirlwind.Generation
                                     var member = LLVM.BuildLoad(_builder, memberPtr, $"initl_struct_member.{name}_tmp");
                                     _copyLLVMStructTo(member, initExpr);
                                 }
-                                else 
+                                else
                                     LLVM.BuildStore(_builder, initExpr, memberPtr);
                             }
 
@@ -261,7 +263,7 @@ namespace Whirlwind.Generation
                                 return rootExpr;
                             else
                                 return LLVM.BuildLoad(_builder, rootExpr, "this_deref_tmp");
-                        }                       
+                        }
                     case "Add":
                         {
                             if (expr.Type is ArrayType at)
@@ -331,8 +333,8 @@ namespace Whirlwind.Generation
                                     else
                                         return LLVM.BuildSub;
                                 }, enode);
-                            }                           
-                        }                                        
+                            }
+                        }
                     case "Mul":
                         return _buildNumericBinop(category =>
                         {
@@ -356,7 +358,7 @@ namespace Whirlwind.Generation
                                     siCommonType = new SimpleType(SimpleType.SimpleClassifier.FLOAT);
                             }
 
-                            return _buildBinop(LLVM.BuildFDiv, enode, siCommonType, true);                            
+                            return _buildBinop(LLVM.BuildFDiv, enode, siCommonType, true);
                         }
                     // TODO: see note on NaN checking
                     // TODO: make sure floor div is compatable with overload capability
@@ -379,7 +381,7 @@ namespace Whirlwind.Generation
                             return result;
                         }
                     // TODO: add NaN checking
-                    case "Mod":                        
+                    case "Mod":
                         return _buildNumericBinop(category =>
                         {
                             if (category == 2)
@@ -573,7 +575,7 @@ namespace Whirlwind.Generation
 
                                 decRes = LLVM.BuildIntToPtr(_builder, decRes, _convertType(expr.Type), "decrem_ptr_result_tmp");
                             }
-                            else  
+                            else
                                 decRes = LLVM.BuildSub(_builder, root,
                                     _getOne(enode.Type),
                                     "decrem_tmp");
@@ -744,27 +746,6 @@ namespace Whirlwind.Generation
             res = _ignoreValueRef();
             return 0;
         } 
-
-        private string _convertOverloadTreeToOpMethod(string name)
-        {
-            switch (name)
-            {
-                case "Add":
-                    return "__+__";
-                case "Neg":
-                case "Sub":
-                    return "__-__";
-                case "Mul":
-                    return "__*__";
-                case "Div":
-                    return "__/__";
-                case "Floordiv":
-                    return "__~/__";
-                // TODO: add other overload conversions
-                default:
-                    return "__~^__";
-            }
-        }
 
         private LLVMValueRef _generateCreateGeneric(ExprNode enode)
         {
