@@ -399,10 +399,11 @@ namespace Whirlwind.Generation
             var defaultBlock = LLVM.AppendBasicBlock(_currFunctionRef, "default");
 
             bool allBlocksHaveAlternativeTerminators;
+            var caseScopes = new List<Dictionary<string, GeneratorSymbol>>();
             if (_isPatternType(selectType))
                 allBlocksHaveAlternativeTerminators = _generatePatternMatch(selectExprNode, node.Block
                     .Select(x => (BlockNode)x).Where(x => x.Name == "Case").ToList(),
-                    caseBlocks, defaultBlock);
+                    caseBlocks, defaultBlock, out caseScopes);
             // is standard switch case (no pattern matching)
             else
             {
@@ -424,7 +425,10 @@ namespace Whirlwind.Generation
             bool generatedDefaultBlock = false;
             for (int i = 0; i < node.Block.Count; i++)
             {
-                _scopes.Add(new Dictionary<string, GeneratorSymbol>());
+                if (caseScopes.Count == 0)
+                    _scopes.Add(new Dictionary<string, GeneratorSymbol>());
+                else
+                    _scopes.Add(caseScopes[i]);
 
                 var block = (BlockNode)node.Block[i];
 

@@ -104,8 +104,7 @@ namespace Whirlwind.Generation
 
                     for (int j = 0; j < ctt.Types.Count; i++)
                     {
-                        var tupleElemPtr = LLVM.BuildStructGEP(_builder, tuple, (uint)j, $"tuple_member{i}_elem_ptr_tmp");
-                        var tupleElem = LLVM.BuildLoad(_builder, tupleElemPtr, $"tuple_member{i}_tmp");
+                        var tupleElem = _getLLVMStructMember(tuple, j, ctt.Types[j], $"tuple_elem.{i}");
 
                         if (!columns[j].Equals(ctt.Types[j]))
                             tupleElem = _cast(tupleElem, ctt.Types[j], columns[j]);
@@ -144,10 +143,8 @@ namespace Whirlwind.Generation
         {
             var selectItem = selectItems[column];
 
-            // TODO: handle non-pattern type class roots
-
             if (_needsHash(types[column]))
-                selectItem = _callMethod(selectItem, types[column], "hash", new SimpleType(SimpleType.SimpleClassifier.LONG));
+                selectItem = _getHash(selectItem, types[column]);
 
             var values = new List<Tuple<int, LLVMValueRef>>();
             var neutrals = new List<int>();
@@ -224,17 +221,16 @@ namespace Whirlwind.Generation
             }
         }
 
+        // TODO: test non-pattern type classes (for behavior)
         private LLVMValueRef _getSwitchableValue(ITypeNode node, DataType switchType)
         {
             var vref = _generateExpr(node);
-
-            // TODO: handle non-pattern type classes
 
             if (!switchType.Equals(node))
                 vref = _cast(vref, node.Type, switchType);
 
             if (_needsHash(node.Type))
-                vref = _callMethod(vref, switchType, "hash", new SimpleType(SimpleType.SimpleClassifier.LONG));
+                vref = _getHash(vref, switchType);
 
             return vref;
         }
@@ -247,13 +243,40 @@ namespace Whirlwind.Generation
             LLVM.MoveBasicBlockAfter(defaultBlock, LLVM.GetLastBasicBlock(_currFunctionRef));
         }
 
-        private void _primeCaseBlocks(PatternMatrix p, List<LLVMValueRef> selectItems, List<LLVMBasicBlockRef> caseBlocks)
+        private List<Dictionary<string, GeneratorSymbol>> _getCaseVariables(PatternMatrix p, List<DataType> types, 
+            List<LLVMValueRef> selectItems, List<LLVMBasicBlockRef> caseBlocks)
         {
+            var scopes = new List<Dictionary<string, GeneratorSymbol>>();
 
+            for (int r = 0; r < p.rows; r++)
+            {
+                scopes.Add(new Dictionary<string, GeneratorSymbol>());
+
+                for (int c = 0; c < p.columns; c++)
+                {
+                    var pVar = p.GetElement(r, c);
+                    LLVM.PositionBuilderAtEnd(_builder, caseBlocks[r]);
+
+                    if (pVar.eType == PMatElementType.NAME)
+                    {
+                        if (_isReferenceType(types[c]))
+                            scopes[r].Add(pVar.eName, new GeneratorSymbol(selectItems[c]));
+                        else
+                        {
+                            var varRef = LLVM.BuildAlloca(_builder, selectItems[c].TypeOf(), pVar.eName);
+                            LLVM.BuildStore(_builder, selectItems[c], varRef);
+
+                            scopes[r].Add(pVar.eName, new GeneratorSymbol(varRef, true));
+                        }
+                    }
+                }
+            }
+
+            return scopes;
         }
 
         private bool _generatePatternMatch(ITypeNode selectExprNode, List<BlockNode> caseNodes,
-            List<LLVMBasicBlockRef> caseBlocks, LLVMBasicBlockRef defaultBlock)
+            List<LLVMBasicBlockRef> caseBlocks, LLVMBasicBlockRef defaultBlock, out List<Dictionary<string, GeneratorSymbol>> caseScopes)
         {
             var selectExpr = _generateExpr(selectExprNode);
             bool noDefault = false;
@@ -263,21 +286,88 @@ namespace Whirlwind.Generation
                 var patternMatrix = _constructTuplePatternMatrix(tt.Types, caseNodes);
 
                 var selectItems = new List<LLVMValueRef>();
-                for (uint i = 0; i < tt.Types.Count; i++)
-                {
-                    var selectItem = LLVM.BuildStructGEP(_builder, selectExpr, i, $"root_pattern_elem{i}_ptr_tmp");
-                    selectItems.Add(LLVM.BuildLoad(_builder, selectItem, $"root_pattern_elem{i}_tmp"));
-                }
+                for (int i = 0; i < tt.Types.Count; i++)
+                    selectItems.Add(_getLLVMStructMember(selectExpr, i, tt.Types[i], $"root_pattern_elem{i}"));
 
-                noDefault = _generatePatternBranch(patternMatrix, tt.Types, selectItems, 0, 
+                noDefault = _generatePatternBranch(patternMatrix, tt.Types, selectItems, 0,
                     Enumerable.Range(0, caseBlocks.Count), caseBlocks, defaultBlock);
 
-                _primeCaseBlocks(patternMatrix, selectItems, caseBlocks);
+                caseScopes = _getCaseVariables(patternMatrix, tt.Types, selectItems, caseBlocks);
             }
             else if (selectExprNode.Type is CustomInstance ci)
             {
                 // TODO: the type class situation
+                var cVal = LLVM.BuildStructGEP(_builder, selectExpr, 1, "root_cval_elem_ptr_tmp");
+                cVal = LLVM.BuildLoad(_builder, cVal, "root_cval_tmp");
+
+                var caseExprs = caseNodes
+                    .SelectMany(x => x.Nodes)
+                    .Select(x => (ExprNode)x)
+                    .ToList();
+
+                var switchStmt = LLVM.BuildSwitch(_builder, cVal, defaultBlock, (uint)ci.Parent.Instances.Count);
+                for (int i = 0; i < ci.Parent.Instances.Count; i++)
+                {
+                    var switchOnVal = LLVM.ConstInt(LLVM.Int16Type(), (ulong)i, new LLVMBool(0));
+                    var instance = ci.Parent.Instances[i];
+
+                    var validCaseNodes = caseExprs
+                        .Where(x => x.Type.Equals(instance))
+                        .ToList();
+
+                    var selectItems = new List<LLVMValueRef>();
+
+                    if (instance is CustomAlias ca)
+                    {
+                        var selectItem = LLVM.BuildStructGEP(_builder, selectExpr, 0, "root_alias_elem_ptr_tmp");
+                        selectItem = LLVM.BuildLoad(_builder, selectItem, "root_alias_i8ptr_tmp");
+
+                        selectItem = LLVM.BuildBitCast(_builder, selectItem, LLVM.PointerType(_convertType(ca.Type), 0), "root_alias_ptr_tmp");
+
+                        if (!_isReferenceType(ca.Type))
+                            selectItem = LLVM.BuildLoad(_builder, selectItem, "root_alias_tmp");
+
+                        if (_needsHash(ca.Type))
+                            selectItem = _getHash(selectItem, ca.Type);
+
+                        selectItems.Add(selectItem);
+                    }
+                    else if (instance is CustomNewType cnt)
+                    {
+                        if (cnt.Values.Count == 1)
+                        {
+                            var selectItem = LLVM.BuildStructGEP(_builder, selectExpr, 0, "root_algval_elem_ptr_tmp");
+                            selectItem = LLVM.BuildLoad(_builder, selectItem, "root_algval_i8ptr_tmp");
+
+                            var algType = cnt.Values[0];
+
+                            selectItem = LLVM.BuildBitCast(_builder, selectItem, 
+                                LLVM.PointerType(_convertType(algType), 0), "root_algval_ptr_tmp");
+
+                            if (!_isReferenceType(algType))
+                                selectItem = LLVM.BuildLoad(_builder, selectItem, "root_algval_tmp");
+
+                            if (_needsHash(algType))
+                                selectItem = _getHash(selectItem, algType);
+
+                            selectItems.Add(selectItem);
+                        }
+                        else if (cnt.Values.Count > 1)
+                        {
+
+                        }
+                        // extract conditionally and store
+                    }
+
+                    // get type class pattern matrix (for instance)
+                    // generate branch
+                    // get case scopes & combine with overall list
+                }
+
+                caseScopes = null; // TEMPORARY
             }
+            else
+                caseScopes = null; // NEVER REACHED
 
             _moveBlocksToEnd(caseBlocks, defaultBlock);
 

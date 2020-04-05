@@ -388,7 +388,7 @@ namespace Whirlwind.Generation
             }
 
             return copyRef;
-        }
+        }  
 
         private void _copyLLVMStructTo(LLVMValueRef dest, LLVMValueRef src)
         {
@@ -443,6 +443,29 @@ namespace Whirlwind.Generation
             _breakLabelUsed = lCtx.BreakLabelUsed;
             _continueLabelUsed = lCtx.ContinueLabelUsed;
         }
+
+        private LLVMValueRef _getLLVMStructMember(LLVMValueRef vref, int ndx, DataType dt, string name = "struct_member")
+        {
+            var elemPtr = LLVM.BuildStructGEP(_builder, vref, (uint)ndx, name + "_ptr_tmp");
+
+            if (_isReferenceType(dt))
+                return elemPtr;
+            else
+                return LLVM.BuildLoad(_builder, elemPtr, name + "_tmp");
+        }
+
+        private void _setLLVMStructMember(LLVMValueRef vref, LLVMValueRef elemRef, int ndx, DataType dt, string name="struct_member")
+        {
+            var elemPtr = LLVM.BuildStructGEP(_builder, vref, (uint)ndx, name + "_ptr_tmp");
+
+            if (_isReferenceType(dt))
+                _copyLLVMStructTo(elemPtr, elemRef);
+            else
+                LLVM.BuildStore(_builder, elemRef, elemPtr);
+        }
+
+        private LLVMTypeRef _createLLVMStructType(IEnumerable<DataType> memberTypes)
+            => LLVM.StructType(memberTypes.Select(x => _convertType(x)).ToArray(), false);
     }
 
     class GeneratorException : Exception

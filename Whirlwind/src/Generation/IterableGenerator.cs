@@ -71,22 +71,16 @@ namespace Whirlwind.Generation
             LLVM.BuildCondBr(_builder, nextRtValValid, setupBlock, exitBlock);
 
             LLVM.PositionBuilderAtEnd(_builder, setupBlock);
-            var nextValElem = LLVM.BuildStructGEP(_builder, nextRtVal, 0, "next_rtval_val_elem_ptr_tmp");
-            var nextVal = LLVM.BuildLoad(_builder, nextValElem, "next_val_tmp");
             var nextValType = ((TupleType)nextRtType).Types[0];
+            var nextVal = _getLLVMStructMember(nextRtVal, 0, nextValType, "next_val");          
 
             foreach (var item in iter.IterVars)
             {
                 _scopes.Last()[item.Key] = new GeneratorSymbol(item.Value.Item1, true);
 
                 LLVMValueRef currNextVal;
-                if (nextValType is TupleType)
-                {
-                    var currIterValElemPtr = LLVM.BuildStructGEP(_builder, nextVal, 
-                        (uint)item.Value.Item2, $"next_val{item.Value.Item2}_elem_ptr_tmp");
-
-                    currNextVal = LLVM.BuildLoad(_builder, currIterValElemPtr, $"next_val{item.Value.Item2}_tmp");
-                }
+                if (nextValType is TupleType tt)
+                    currNextVal = _getLLVMStructMember(nextVal, 0, tt.Types[item.Value.Item2], $"next_val.{item.Key}");
                 else
                     currNextVal = nextVal;
 

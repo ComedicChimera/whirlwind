@@ -297,6 +297,9 @@ namespace Whirlwind.Semantic.Visitor
             DataType dt = new NoneType();
             DataType rootType = _nodes.Last().Type;
 
+            if (!Hashable(rootType) || !(rootType is CustomType || rootType is TupleType))
+                throw new SemanticException("Unable to perform select on a " + rootType.ToString(), node.Content[0].Position);
+
             int exprCount = 1;
             bool noDefaultCase = true;
             foreach (var item in node.Content)
@@ -317,12 +320,6 @@ namespace Whirlwind.Semantic.Visitor
                             if (!_visitCaseExpr((ASTNode)elem, rootType, caseNode.Content.Count < 5))
                                 throw new SemanticException("All conditions of select expression must be similar to the root type",
                                     elem.Position);
-
-                            exprs++;
-                        }
-                        else if (elem.Name == "expr")
-                        {
-                            _visitExpr((ASTNode)elem);
 
                             exprs++;
                         }
@@ -487,7 +484,7 @@ namespace Whirlwind.Semantic.Visitor
                 _couldOwnerExist = false;
 
                 _visitExpr(caseContent);
-                _clearContext();
+                _clearContext();               
 
                 if (_nodes.Last() is IncompleteNode inode)
                 {
@@ -496,6 +493,14 @@ namespace Whirlwind.Semantic.Visitor
                     _nodes[_nodes.Count - 2] = _nodes.Last();
                     _nodes.RemoveLast();
                 }
+
+                if (Evaluator.TryEval(_nodes.Last()))
+                    _nodes[_nodes.Count - 1] = Evaluator.Evaluate(_nodes.Last());
+                else
+                    throw new SemanticException("Unable to use non-constant expression in case expression", caseContent.Position);
+
+                if (!Hashable(_nodes.Last().Type))
+                    throw new SemanticException("Types of case expressions must be integral or hashable", caseContent.Position);
 
                 return rootType.Coerce(_nodes.Last().Type);
             }
@@ -580,9 +585,7 @@ namespace Whirlwind.Semantic.Visitor
                         {
                             if (anode.Content[0] is TokenNode itkn && itkn.Tok.Type == "IDENTIFIER")
                             {
-                                if (_table.Lookup(itkn.Tok.Value, out Symbol sym))
-                                    _nodes.Add(new IdentifierNode(sym.Name, sym.DataType));
-                                else if (allowPatternSymbols)
+                                if (allowPatternSymbols)
                                     _nodes.Add(new ValueNode("PatternSymbol", new NoneType(), itkn.Tok.Value));
                                 else
                                     throw new SemanticException("Unable to use pattern variables in a case with multiple matches",
@@ -596,6 +599,14 @@ namespace Whirlwind.Semantic.Visitor
 
                         // no id found
                         _visitExpr((ASTNode)patternElem.Content.First());
+
+                        if (Evaluator.TryEval(_nodes.Last()))
+                            _nodes[_nodes.Count - 1] = Evaluator.Evaluate(_nodes.Last());
+                        else
+                            throw new SemanticException("Unable to use a non-constant expression in a pattern.", iNode.Position);
+
+                        if (!Hashable(_nodes.Last().Type))
+                            throw new SemanticException("Pattern values must be integral or hashable", iNode.Position);
                     }
 
                     loopEnd:

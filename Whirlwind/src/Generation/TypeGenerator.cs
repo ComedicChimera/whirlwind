@@ -74,7 +74,7 @@ namespace Whirlwind.Generation
             }
             else if (dt is TupleType tt)
             {
-                var tStruct = LLVM.StructType(tt.Types.Select(x => _convertType(x, true)).ToArray(), false);
+                var tStruct = _createLLVMStructType(tt.Types);
 
                 return usePtrTypes ? LLVM.PointerType(tStruct, 0) : tStruct;
             }
@@ -302,11 +302,10 @@ namespace Whirlwind.Generation
                 var castTuple = LLVM.BuildAlloca(_builder, _convertType(dtt), "cast_tuple_tmp");
                 for (int i = 0; i < stt.Types.Count; i++)
                 {
-                    var tupleElemPtr = LLVM.BuildStructGEP(_builder, val, (uint)i, "tuple_elem_ptr_tmp");
-                    var castTupleElem = _cast(LLVM.BuildLoad(_builder, tupleElemPtr, "tuple_elem_tmp"), stt.Types[i], dtt.Types[i]);
+                    var tupleElem = _getLLVMStructMember(val, i, stt.Types[i], $"tuple_elem.{i}");
+                    var castTupleElem = _cast(tupleElem, stt.Types[i], dtt.Types[i]);
 
-                    var castTupleElemPtr = LLVM.BuildStructGEP(_builder, castTuple, (uint)i, "cast_tuple_elem_ptr_tmp");
-                    LLVM.BuildStore(_builder, castTupleElem, castTupleElemPtr);
+                    _setLLVMStructMember(castTuple, castTupleElem, i, dtt.Types[i], $"cast_tuple_elem.{i}");
                 }
 
                 return castTuple;
@@ -494,6 +493,11 @@ namespace Whirlwind.Generation
                 throw new NotImplementedException("Unable to get struct name of something that is not a struct kind.");
 
             return tr.PrintTypeToString().Split("=")[0].Trim().Substring(1);
+        }
+
+        private LLVMValueRef _getHash(LLVMValueRef vref, DataType dt)
+        {
+            return _callMethod(vref, dt, "__hash__", new SimpleType(SimpleType.SimpleClassifier.LONG));
         }
 
         private bool _needsHash(DataType dt)

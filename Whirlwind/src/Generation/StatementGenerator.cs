@@ -46,8 +46,7 @@ namespace Whirlwind.Generation
 
                     for (int k = 0; k < tt.Types.Count; k++)
                     {
-                        var elemRef = LLVM.BuildStructGEP(_builder, llvmTuple, (uint)k, "tuple_elem_ref_tmp");
-                        var tupleElem = LLVM.BuildLoad(_builder, elemRef, "tuple_elem_tmp");
+                        var tupleElem = _getLLVMStructMember(llvmTuple, k, tt.Types[k], $"tuple_elem.{k}");
 
                         _assignTo(assignVar, tt.Types[k], tupleElem, op);
 

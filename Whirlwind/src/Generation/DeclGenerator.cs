@@ -18,7 +18,7 @@ namespace Whirlwind.Generation
             var st = (StructType)node.Nodes[0].Type;
 
             var llvmStruct = LLVM.StructCreateNamed(_ctx, name);
-            llvmStruct.StructSetBody(st.Members.Select(x => _convertType(x.Value.DataType, true)).ToArray(), st.Packed);
+            llvmStruct.StructSetBody(st.Members.Select(x => _convertType(x.Value.DataType)).ToArray(), st.Packed);
 
             _globalStructs[name] = llvmStruct;
 
@@ -63,14 +63,12 @@ namespace Whirlwind.Generation
                 // build init members content
                 for (int i = 0; i < st.Members.Count; i++)
                 {
-                    var memberPtr = LLVM.BuildStructGEP(_builder, _getNamedValue("this").Vref, (uint)i, "get_member_tmp");
-
                     string memberName = st.Members.ElementAt(i).Key;
                     var memberValue = memberDict.ContainsKey(memberName) ?
                         _generateExpr(memberDict[memberName]) :
                         _getNullValue(st.Members.ElementAt(i).Value.DataType);
 
-                    LLVM.BuildStore(_builder, memberValue, memberPtr);
+                    _setLLVMStructMember(_getNamedValue("this").Vref, memberValue, i, st.Members[memberName].DataType);
                 }
 
                 return true;

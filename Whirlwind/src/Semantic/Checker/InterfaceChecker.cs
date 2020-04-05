@@ -28,8 +28,11 @@ namespace Whirlwind.Semantic.Checker
 
         public static bool Hashable(DataType dt)
         {
-            if (new[] { TypeClassifier.ARRAY, TypeClassifier.DICT, TypeClassifier.LIST, TypeClassifier.FUNCTION, TypeClassifier.TUPLE }.Contains(dt.Classify()))
+            // TODO: check for whether or not object has `__hash__` on structs, type classes, and interfaces
+
+            if (new[] { TypeClassifier.ARRAY, TypeClassifier.DICT, TypeClassifier.LIST, TypeClassifier.FUNCTION }.Contains(dt.Classify()))
                 return false;
+            
             return true;
         }
 

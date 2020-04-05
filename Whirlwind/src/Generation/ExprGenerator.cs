@@ -89,10 +89,9 @@ namespace Whirlwind.Generation
                     case "GetTupleMember":
                         {
                             var tupleRoot = _generateExpr(enode.Nodes[0]);
-                            var ndx = UInt32.Parse(((ValueNode)enode.Nodes[1]).Value);
+                            var ndx = Int32.Parse(((ValueNode)enode.Nodes[1]).Value);
 
-                            var tupleElemPtr = LLVM.BuildStructGEP(_builder, tupleRoot, ndx, "tuple_elem_ptr_tmp");
-                            return LLVM.BuildLoad(_builder, tupleElemPtr, "tuple_elem_tmp");
+                            return _getLLVMStructMember(tupleRoot, ndx, ((TupleType)enode.Nodes[0]).Types[ndx], $"tuple_elem.{ndx}");
                         }
                     case "CreateGeneric":
                         return _generateCreateGeneric(enode);
@@ -233,16 +232,8 @@ namespace Whirlwind.Generation
                                 if (!memberType.Equals(initExprNode.Type))
                                     initExpr = _cast(initExpr, initExprNode.Type, memberType);
 
-                                uint memberNdx = (uint)st.Members.TakeWhile(x => x.Key != name).Count();
-                                var memberPtr = LLVM.BuildStructGEP(_builder, root, memberNdx, $"initl_struct_member.{name}_ptr_tmp");
-
-                                if (_isReferenceType(memberType))
-                                {
-                                    var member = LLVM.BuildLoad(_builder, memberPtr, $"initl_struct_member.{name}_tmp");
-                                    _copyLLVMStructTo(member, initExpr);
-                                }
-                                else
-                                    LLVM.BuildStore(_builder, initExpr, memberPtr);
+                                int memberNdx = st.Members.TakeWhile(x => x.Key != name).Count();
+                                _setLLVMStructMember(root, initExpr, memberNdx, memberType, $"initl_member.{name}");
                             }
 
                             return root;
@@ -839,7 +830,6 @@ namespace Whirlwind.Generation
 
                 var elemPtr = LLVM.BuildGEP(_builder, arrLit,
                     new[] {
-                        // LLVM.ConstInt(LLVM.Int32Type(), 0, new LLVMBool(0)),
                         LLVM.ConstInt(LLVM.Int32Type(), i, new LLVMBool(0))
                     },
                     "elem_ptr"
@@ -860,7 +850,7 @@ namespace Whirlwind.Generation
 
         private LLVMValueRef _generateTupleLiteral(List<ITypeNode> nodes)
         {
-            var tupleType = LLVM.StructType(nodes.Select(x => _convertType(x.Type, true)).ToArray(), false);
+            var tupleType = _createLLVMStructType(nodes.Select(x => x.Type));
             var tupleAlloca = LLVM.BuildAlloca(_builder, tupleType, "tuple_lit_tmp");
 
             for (int i = 0; i < nodes.Count; i++)
@@ -876,55 +866,64 @@ namespace Whirlwind.Generation
         {
             var rootType = (CustomNewType)enode.Nodes[0].Type;
 
-            var gepRes = LLVM.BuildStructGEP(
+            var fromValElemPtr = LLVM.BuildStructGEP(
                 _builder,
                 _generateExpr(enode.Nodes[0]),
                 1,
-                "from_tmp");
+                "from_elem_ptr_tmp");
+
+            var fromVal = LLVM.BuildLoad(_builder, fromValElemPtr, "from_val_tmp");
 
             if (rootType.Values.Count > 1)
             {
-                var tupleElements = new LLVMValueRef[rootType.Values.Count];
+                var tuple = LLVM.BuildAlloca(_builder, _createLLVMStructType(rootType.Values), "from_tuple_tmp");
+                var tupleTypes = ((TupleType)enode.Type).Types;
 
                 for (int i = 0; i < rootType.Values.Count; i++)
                 {
-                    var elemGepRes = LLVM.BuildInBoundsGEP(
-                        _builder,
-                        gepRes,
-                        new[] { LLVM.ConstInt(LLVM.Int16Type(), (ulong)i, new LLVMBool(0)) },
-                        "from_elem_gep_tmp"
-                        );
+                    var elemGepRes = LLVM.BuildInBoundsGEP(_builder, fromVal,
+                        new[]
+                        {
+                            LLVM.ConstInt(LLVM.Int32Type(), (ulong)i, new LLVMBool(0)),
+                            LLVM.ConstInt(LLVM.Int32Type(), 0, new LLVMBool(0))
+                        }, "from_valarr_elem_ptr_tmp");
 
                     var elemCastRes = LLVM.BuildBitCast(
                         _builder,
                         elemGepRes,
-                        LLVM.PointerType(_convertType(((TupleType)enode.Type).Types[i]), 0),
+                        LLVM.PointerType(_convertType(tupleTypes[i]), 0),
                         "from_elem_cast_tmp"
                         );
 
-                    tupleElements[i] = LLVM.BuildLoad(
-                        _builder,
-                        elemCastRes,
-                        "from_elem_deref_tmp"
-                        );
+                    var tupleElemPtr = LLVM.BuildStructGEP(_builder, tuple, (uint)i, "from_tuple_elem_ptr_tmp");
+                    if (_isReferenceType(tupleTypes[i]))
+                        _copyLLVMStructTo(tupleElemPtr, elemCastRes);
+                    else
+                    {
+                        var elemVal = LLVM.BuildLoad(_builder, elemCastRes, "elem_val_tmp");
+                        LLVM.BuildStore(_builder, elemVal, tupleElemPtr);
+                    }
                 }
 
-                return LLVM.ConstStructInContext(_ctx, tupleElements, true);
+                return tuple;
             }
             else
             {
                 var castRes = LLVM.BuildBitCast(
                     _builder,
-                    gepRes,
+                    fromVal,
                     LLVM.PointerType(_convertType(enode.Type), 0),
                     "from_cast_tmp"
                     );
 
-                return LLVM.BuildLoad(
-                    _builder,
-                    castRes,
-                    "from_deref_tmp"
-                    );
+                if (_isReferenceType(enode.Type))
+                    return castRes;
+                else
+                    return LLVM.BuildLoad(
+                        _builder,
+                        castRes,
+                        "from_deref_tmp"
+                        );
             }
         }
         
@@ -1035,7 +1034,7 @@ namespace Whirlwind.Generation
                 valPtr = LLVM.BuildBitCast(_builder, valPtr, _i8PtrType, "tc_valptr_i8_tmp");
 
                 tcRef = LLVM.BuildAlloca(_builder, LLVM.StructType(
-                    new[] { LLVM.Int32Type(), valPtr.TypeOf() }, false), "tc_tmp");
+                    new[] { LLVM.Int16Type(), valPtr.TypeOf(), LLVM.Int32Type() }, false), "tc_tmp");
 
                 var firstElem = LLVM.BuildBitCast(_builder, tcRef, LLVM.PointerType(LLVM.Int16Type(), 0), "tc_enum_ptr_tmp");
                 LLVM.BuildStore(_builder, LLVM.ConstInt(LLVM.Int16Type(), (ulong)cnt.Parent.Instances.IndexOf(cnt), new LLVMBool(0)),
@@ -1074,7 +1073,7 @@ namespace Whirlwind.Generation
                 }
 
                 tcRef = LLVM.BuildAlloca(_builder, LLVM.StructType(
-                    new[] { LLVM.Int32Type(), valArrPtr.TypeOf() }, false), "tc_tmp");
+                    new[] { LLVM.Int16Type(), valArrPtr.TypeOf(), LLVM.Int32Type() }, false), "tc_tmp");
 
                 var firstElem = LLVM.BuildBitCast(_builder, tcRef, LLVM.PointerType(LLVM.Int16Type(), 0), "tc_enum_ptr_tmp");
                 LLVM.BuildStore(_builder, firstElem,
@@ -1102,7 +1101,7 @@ namespace Whirlwind.Generation
 
                 var memberPtr = LLVM.BuildStructGEP(_builder, _generateExpr(enode.Nodes[0]), (uint)memberNdx, "struct_gep_tmp");
 
-                if (mutableExpr)
+                if (mutableExpr || _isReferenceType(st.Members[memberName].DataType))
                     return memberPtr;
                 else
                     return LLVM.BuildLoad(_builder, memberPtr, "struct_member." + memberName);
