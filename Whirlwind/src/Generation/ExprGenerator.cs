@@ -1028,8 +1028,13 @@ namespace Whirlwind.Generation
 
             if (cnt.Values.Count == 1)
             {
-                var valPtr = LLVM.BuildAlloca(_builder, _convertType(cnt.Values[0]), "tc_valptr_tmp");                
-                LLVM.BuildStore(_builder, _generateExpr(enode.Nodes[1]), valPtr);
+                var valPtr = LLVM.BuildAlloca(_builder, _convertType(cnt.Values[0]), "tc_valptr_tmp");
+
+                var initExpr = _generateExpr(enode.Nodes[1]);
+                if (_isReferenceType(cnt.Values[0]))
+                    _copyLLVMStructTo(valPtr, initExpr);
+                else
+                    LLVM.BuildStore(_builder, initExpr, valPtr);
 
                 valPtr = LLVM.BuildBitCast(_builder, valPtr, _i8PtrType, "tc_valptr_i8_tmp");
 
@@ -1060,7 +1065,12 @@ namespace Whirlwind.Generation
                 for (int i = 0; i < cnt.Values.Count; i++)
                 {
                     var valPtr = LLVM.BuildAlloca(_builder, _convertType(cnt.Values[i]), "tc_elem_valptr_tmp");
-                    LLVM.BuildStore(_builder, _generateExpr(enode.Nodes[i + 1]), valPtr);
+
+                    var initExpr = _generateExpr(enode.Nodes[i + 1]);
+                    if (_isReferenceType(cnt.Values[i]))
+                        _copyLLVMStructTo(valPtr, initExpr);
+                    else
+                        LLVM.BuildStore(_builder, initExpr, valPtr);
 
                     var valArrElemPtr = LLVM.BuildGEP(_builder, valArrPtr,
                         new[] {

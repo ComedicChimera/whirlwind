@@ -313,7 +313,7 @@ namespace Whirlwind.Semantic.Visitor
                 default:
                     interfGet = true;
 
-                    if (!_flags.ContainsKey("core") && new[] { "__finalize__", "__copy__", "__get__", "__set__" }.Contains(name))
+                    if (!_flags.ContainsKey("core") && new[] { "__finalize__", "__copy__", "__get__", "__set__", "__hash__", "__close__" }.Contains(name))
                         throw new SemanticException("Unable to directly access special methods outside of runtime core", idPos);
                     else if (!type.GetInterface().GetFunction(name, out symbol))
                     {

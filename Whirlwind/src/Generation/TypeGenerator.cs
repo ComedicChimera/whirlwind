@@ -293,6 +293,19 @@ namespace Whirlwind.Generation
             {
                 if (desired is CustomNewType)
                     return val;
+                // assume we are casting a custom alias to its value
+                else
+                {
+                    var aliasElemPtr = LLVM.BuildStructGEP(_builder, val, 1, "type_alias_elem_ptr_tmp");
+                    var aliasPtr = LLVM.BuildLoad(_builder, aliasElemPtr, "type_alias_ptr_tmp");
+
+                    var castAliasPtr = LLVM.BuildBitCast(_builder, aliasPtr, LLVM.PointerType(_convertType(desired), 0), "type_alias_castptr_tmp");
+
+                    if (_isReferenceType(desired))
+                        return castAliasPtr;
+                    else
+                        return LLVM.BuildLoad(_builder, castAliasPtr, "type_alias_cast_value_tmp");
+                }
             }
             else if (start is TupleType stt)
             {

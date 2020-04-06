@@ -85,5 +85,5 @@ func round(n: double) double {
         return n - nDec + 1;
 }
 
-func sizeof<T>() uint
-	=> __sizeof(null as T);
+func hash<T>(v: T) ulong
+	=> __hash(v);

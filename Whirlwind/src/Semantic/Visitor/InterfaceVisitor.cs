@@ -239,7 +239,7 @@ namespace Whirlwind.Semantic.Visitor
 
                         var genNode = (IdentifierNode)((BlockNode)_nodes.Last()).Nodes[0];
 
-                        if (new[] { "__finalize__", "__copy__", "__move__", "__get__", "__set__", "__close__" }.Contains(genNode.IdName))
+                        if (new[] { "__finalize__", "__copy__", "__move__", "__get__", "__set__", "__close__", "__hash__" }.Contains(genNode.IdName))
                             throw new SemanticException("Special methods cannot be generic", func.Content[2].Position);                       
 
                         if (!interfaceType.AddMethod(new Symbol(genNode.IdName, genNode.Type, memberModifiers), mStatus))
@@ -392,7 +392,12 @@ namespace Whirlwind.Semantic.Visitor
             {
                 if (fn.Async || fn.Parameters.Count != 1 || !selfType.Equals(fn.Parameters.First().DataType) 
                     || fn.ReturnType.Classify() != TypeClassifier.NONE)
-                    throw new SemanticException("Invalid definition for copier", namePos);
+                    throw new SemanticException("Invalid definition for setter", namePos);
+            }
+            else if (fnNode.IdName == "__hash__")
+            {
+                if (fn.Async || fn.Parameters.Count != 0 || !new SimpleType(SimpleType.SimpleClassifier.LONG, true).Equals(fn.ReturnType))
+                    throw new SemanticException("Invalid definition for hash function", namePos);
             }
         }
     }
