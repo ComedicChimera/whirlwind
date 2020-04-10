@@ -736,77 +736,7 @@ namespace Whirlwind.Generation
 
             res = _ignoreValueRef();
             return 0;
-        } 
-
-        private LLVMValueRef _generateCreateGeneric(ExprNode enode)
-        {
-            var root = enode.Nodes[0];
-
-            // only time this is valid (pure GetMember) is with interfaces
-            if (root.Name == "GetMember")
-            {
-                var interfGetMember = (ExprNode)root;
-
-                var itType = (InterfaceType)interfGetMember.Nodes[0].Type;
-                string name = ((IdentifierNode)interfGetMember.Nodes[1]).IdName;
-
-                int vtableNdx = _getVTableNdx(itType, name);
-                itType.GetFunction(name, out Symbol sym);
-
-                vtableNdx += ((GenericType)sym.DataType).Generates
-                    .Select((x, i) => new { x.Type, Ndx = i })
-                    .Where(x => x.Type == enode.Type).First().Ndx;
-
-                return _generateVtableGet(_generateExpr(interfGetMember.Nodes[0]), vtableNdx);
-            }
-
-            var generate = ((GenericType)root.Type).Generates.Single(x => enode.Type.GenerateEquals(x.Type));
-            string typeListSuffix = string.Join(',', generate.GenericAliases.Select(x => x.Value.LLVMName()));
-
-            if (root.Name == "GetTIMethod")
-            {
-                var tiGetMember = (ExprNode)root;
-
-                string rootName = _getLookupName(tiGetMember.Nodes[0].Type);
-                var typeInterf = _generateExpr(tiGetMember.Nodes[0]);
-                string memberName = ((IdentifierNode)tiGetMember.Nodes[1]).IdName;
-
-                var interfType = tiGetMember.Nodes[0].Type.GetInterface();
-                var method = interfType.Methods.Single(x => x.Key.Name == memberName);
-
-                if (method.Value == MethodStatus.VIRTUAL)
-                {
-                    rootName = _getLookupName(interfType.Implements.First(x => x.Methods.Contains(method)));
-                    typeInterf = _cast(typeInterf, enode.Nodes[0].Type, interfType);
-                }
-                else
-                    typeInterf = _boxToInterf(typeInterf, tiGetMember.Nodes[0].Type); // standard up box (with no real vtable)
-
-                var tiGenerateName = rootName + ".interf." + memberName + ".variant." + typeListSuffix;
-
-                return _boxFunction(_globalScope[tiGenerateName].Vref, typeInterf);
-            }
-
-            // assume root is an Identifier node or package static get
-            var generateName = _getIdentifierName(root) + ".variant." + typeListSuffix;
-
-            // structs are handled in the CallConstructor handler
-            // and interfaces are never used this way
-            return _globalScope[generateName].Vref;
-        }
-
-        private LLVMValueRef _generateVtableGet(LLVMValueRef baseInterf, int vtableNdx)
-        {            
-            var vtableElemPtr = LLVM.BuildStructGEP(_builder, baseInterf, 1, "vtable_elem_ptr_tmp");
-            var vtable = LLVM.BuildLoad(_builder, vtableElemPtr, "vtable_tmp");
-
-            var gepRes = LLVM.BuildStructGEP(_builder, vtable,
-                (uint)vtableNdx, "vtable_gep_tmp");
-
-            var methodPtr = LLVM.BuildLoad(_builder, gepRes, "method_ptr_tmp");
-
-            return _boxFunction(methodPtr, baseInterf);
-        }
+        }       
 
         private LLVMValueRef _generateArrayLiteral(ExprNode enode)
         {
@@ -873,6 +803,7 @@ namespace Whirlwind.Generation
                 "from_elem_ptr_tmp");
 
             var fromVal = LLVM.BuildLoad(_builder, fromValElemPtr, "from_val_tmp");
+            var rootValues = _getTypeClassValues(fromVal, rootType);
 
             if (rootType.Values.Count > 1)
             {
@@ -881,50 +812,17 @@ namespace Whirlwind.Generation
 
                 for (int i = 0; i < rootType.Values.Count; i++)
                 {
-                    var elemGepRes = LLVM.BuildInBoundsGEP(_builder, fromVal,
-                        new[]
-                        {
-                            LLVM.ConstInt(LLVM.Int32Type(), (ulong)i, new LLVMBool(0)),
-                            LLVM.ConstInt(LLVM.Int32Type(), 0, new LLVMBool(0))
-                        }, "from_valarr_elem_ptr_tmp");
-
-                    var elemCastRes = LLVM.BuildBitCast(
-                        _builder,
-                        elemGepRes,
-                        LLVM.PointerType(_convertType(tupleTypes[i]), 0),
-                        "from_elem_cast_tmp"
-                        );
-
                     var tupleElemPtr = LLVM.BuildStructGEP(_builder, tuple, (uint)i, "from_tuple_elem_ptr_tmp");
                     if (_isReferenceType(tupleTypes[i]))
-                        _copyLLVMStructTo(tupleElemPtr, elemCastRes);
+                        _copyLLVMStructTo(tupleElemPtr, rootValues[i]);
                     else
-                    {
-                        var elemVal = LLVM.BuildLoad(_builder, elemCastRes, "elem_val_tmp");
-                        LLVM.BuildStore(_builder, elemVal, tupleElemPtr);
-                    }
+                        LLVM.BuildStore(_builder, rootValues[i], tupleElemPtr);
                 }
 
                 return tuple;
             }
             else
-            {
-                var castRes = LLVM.BuildBitCast(
-                    _builder,
-                    fromVal,
-                    LLVM.PointerType(_convertType(enode.Type), 0),
-                    "from_cast_tmp"
-                    );
-
-                if (_isReferenceType(enode.Type))
-                    return castRes;
-                else
-                    return LLVM.BuildLoad(
-                        _builder,
-                        castRes,
-                        "from_deref_tmp"
-                        );
-            }
+                return rootValues[0];
         }
         
         // TODO: handle indefinites
@@ -1236,26 +1134,6 @@ namespace Whirlwind.Generation
             LLVM.BuildStore(_builder, state, stateElem);
 
             return boxedFunctionStruct;
-        }
-
-        private int _getVTableNdx(InterfaceType it, string name)
-        {
-            int vtableNdx = 0;
-            foreach (var method in it.Methods)
-            {
-                if (!it.Implements.Any(x => x.GetFunction(name, out Symbol _)))
-                    continue;
-
-                if (method.Key.Name == name)
-                    break;
-
-                if (method.Key.DataType is GenericType gt)
-                    vtableNdx += gt.Generates.Count;
-                else
-                    vtableNdx++;
-            }
-
-            return vtableNdx;
         }
     }
 }

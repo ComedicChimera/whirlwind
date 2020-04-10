@@ -193,8 +193,8 @@ namespace Whirlwind.Semantic.Visitor
             _visitExpr((ASTNode)blockStmt.Content[2]);
             DataType exprType = _nodes.Last().Type;
 
-            if (!Hashable(exprType) || !(exprType is CustomType || exprType is TupleType))
-                throw new SemanticException("Unable to perform select on a " + exprType.ToString(), blockStmt.Content[2].Position);
+            if (!Comparable(exprType, willDecompose: true))
+                throw new SemanticException("Unable to select over type of " + exprType.ToString(), blockStmt.Content[2].Position);
 
             MergeBack();
 

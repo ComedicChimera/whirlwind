@@ -10,8 +10,6 @@ namespace Whirlwind.Generation
 {
     partial class Generator
     {
-        private delegate bool InternalBuilderAlgo(LLVMValueRef vref, BlockNode block);
-
         private void _generateStruct(BlockNode node, bool exported)
         {
             var name = ((IdentifierNode)node.Nodes[0]).IdName + _genericSuffix;
@@ -77,68 +75,5 @@ namespace Whirlwind.Generation
 
         private Parameter _buildStructThisParam(DataType dt)
             => new Parameter("this", dt, false, false, false, false);
-
-        // TODO: external type classes
-        private void _generateTypeClass(BlockNode node)
-        {
-            var tc = (CustomType)node.Nodes[0].Type;
-            int buildType = 0;
-
-            if (tc.Instances.Count == 1)
-            {
-                if (tc.Instances.First() is CustomNewType cnt)
-                {
-                    if (cnt.Values.Count == 1)
-                        buildType = 1;
-                    else if (cnt.Values.Count > 1)
-                        buildType = 2;
-                }                   
-            }
-            else
-            {
-                IEnumerable<int> cntFields = tc.Instances
-                    .Where(x => x is CustomNewType)
-                    .Select(x => ((CustomNewType)x).Values.Count);
-                
-                // if there are not new types, then we have a type union => type 1
-                if (cntFields.Count() == 0 || cntFields.Max() == 1)
-                    buildType = 1;
-                else if (cntFields.Max() > 1)
-                    buildType = 2;
-            }
-
-            if (buildType > 0)
-            {
-                string name = ((IdentifierNode)node.Nodes[0]).IdName;
-
-                _table.Lookup(name, out Symbol symbol);
-                name += _genericSuffix;
-
-                bool exported = symbol.Modifiers.Contains(Modifier.EXPORTED);                
-
-                var tcStruct = LLVM.StructCreateNamed(_ctx, exported ? _randPrefix + name : name);
-
-                var valueHolder = _i8PtrType;
-                if (buildType == 2)
-                    valueHolder = LLVM.PointerType(valueHolder, 0);
-
-                tcStruct.StructSetBody(new[]
-                {
-                    LLVM.Int16Type(),
-                    valueHolder,
-                    LLVM.Int32Type()
-                }, true);
-
-                _globalStructs[name] = tcStruct;
-            }
-        }
-
-        private FnBodyBuilder _wrapBuilderFunc(BlockNode block, InternalBuilderAlgo ibo)
-        {
-            return delegate (LLVMValueRef vref)
-            {
-                return ibo(vref, block);
-            };
-        }
     }
 }

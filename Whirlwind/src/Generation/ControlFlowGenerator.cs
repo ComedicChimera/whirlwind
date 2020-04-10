@@ -1,11 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 
-using Whirlwind.Semantic;
-using Whirlwind.Types;
-
 using LLVMSharp;
+
+using Whirlwind.Semantic;
 
 namespace Whirlwind.Generation
 {

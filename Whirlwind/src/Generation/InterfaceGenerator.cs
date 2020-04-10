@@ -216,6 +216,102 @@ namespace Whirlwind.Generation
             return boxed;
         }
 
+
+        private LLVMValueRef _createVtable(InterfaceType child, InterfaceType parent, string genericSuffix = "")
+        {
+            var methods = new List<LLVMValueRef>();
+
+            void addMethod(InterfaceType it, string methodName)
+            {
+                it.GetFunction(methodName, out Symbol sym);
+                string methodPrefix = _getLookupName(it.Name) + genericSuffix + ".interf.";
+
+                switch (sym.DataType.Classify())
+                {
+                    case TypeClassifier.FUNCTION:
+                        methods.Add(_loadGlobalValue(methodPrefix + sym.Name));
+                        break;
+                    case TypeClassifier.FUNCTION_GROUP:
+                        methods.Concat(
+                            ((FunctionGroup)sym.DataType).Functions
+                            .Select(x =>
+                                _loadGlobalValue(methodPrefix + sym.Name + "." +
+                                string.Join(",", x.Parameters.Select(y => y.DataType.LLVMName()))
+                            ))
+                        );
+                        break;
+                    case TypeClassifier.GENERIC:
+                        methods.Concat(
+                            ((GenericType)sym.DataType).Generates
+                            .Select(x =>
+                                _loadGlobalValue(methodPrefix + sym.Name + ".variant." +
+                                string.Join(",", x.GenericAliases.Select(y => y.Value.LLVMName()))
+                            ))
+                        );
+                        break;
+                    case TypeClassifier.GENERIC_GROUP:
+                        // select every generate of every generic function in the generic group
+                        methods.Concat(
+                            ((GenericGroup)sym.DataType).GenericFunctions
+                            .SelectMany(x => x.Generates.Select(y =>
+                                _loadGlobalValue(methodPrefix + sym.Name + ".variant." +
+                                string.Join(",", y.GenericAliases.Select(z => z.Value.LLVMName()))
+                                )
+                            ))
+                        );
+                        break;
+                }
+            }
+
+            foreach (var method in parent.Methods)
+            {
+                if (child.Methods.Single(x => x.Key.Equals(method.Key)).Value == MethodStatus.VIRTUAL)
+                    addMethod(parent, method.Key.Name);
+                else
+                    addMethod(child, method.Key.Name);
+            }
+
+            var vtableType = _getGlobalStruct(_getLookupName(parent.Name) + genericSuffix + ".__vtable", false);
+            var vtablePtr = LLVM.BuildAlloca(_builder, vtableType, "vtable_ptr_tmp");
+
+            LLVM.BuildStore(_builder, LLVM.ConstNamedStruct(vtableType, methods.ToArray()), vtablePtr);
+
+            return vtablePtr;
+        }
+
+        private LLVMValueRef _generateVtableGet(LLVMValueRef baseInterf, int vtableNdx)
+        {
+            var vtableElemPtr = LLVM.BuildStructGEP(_builder, baseInterf, 1, "vtable_elem_ptr_tmp");
+            var vtable = LLVM.BuildLoad(_builder, vtableElemPtr, "vtable_tmp");
+
+            var gepRes = LLVM.BuildStructGEP(_builder, vtable,
+                (uint)vtableNdx, "vtable_gep_tmp");
+
+            var methodPtr = LLVM.BuildLoad(_builder, gepRes, "method_ptr_tmp");
+
+            return _boxFunction(methodPtr, baseInterf);
+        }
+
+        private int _getVTableNdx(InterfaceType it, string name)
+        {
+            int vtableNdx = 0;
+            foreach (var method in it.Methods)
+            {
+                if (!it.Implements.Any(x => x.GetFunction(name, out Symbol _)))
+                    continue;
+
+                if (method.Key.Name == name)
+                    break;
+
+                if (method.Key.DataType is GenericType gt)
+                    vtableNdx += gt.Generates.Count;
+                else
+                    vtableNdx++;
+            }
+
+            return vtableNdx;
+        }
+
         // argument-less form
         private LLVMValueRef _callMethod(LLVMValueRef root, DataType dt, string methodName, DataType returnType)
         {

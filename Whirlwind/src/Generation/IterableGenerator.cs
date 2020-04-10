@@ -2,10 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 
+using LLVMSharp;
+
 using Whirlwind.Semantic;
 using Whirlwind.Types;
-
-using LLVMSharp;
 
 namespace Whirlwind.Generation
 {

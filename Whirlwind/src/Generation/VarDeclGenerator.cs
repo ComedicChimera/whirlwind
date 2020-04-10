@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 
-using Whirlwind.Semantic;
-
 using LLVMSharp;
+
+using Whirlwind.Semantic;
 
 namespace Whirlwind.Generation
 {

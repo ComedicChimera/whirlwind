@@ -87,8 +87,8 @@ namespace Whirlwind.Semantic.Checker
                 case "==":
                 case "!=":
                     {
-                        // all that is needed is operator congruence
-                        valid = true;
+                        if (_isComparableType(rootType) && _isComparableType(operandType))
+                            valid = true;
                     }
                     break;
                 case ">":

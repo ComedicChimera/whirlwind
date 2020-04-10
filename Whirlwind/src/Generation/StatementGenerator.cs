@@ -1,11 +1,11 @@
 ﻿using System.Collections.Generic;
 
+using LLVMSharp;
+
 using Whirlwind.Semantic;
 using Whirlwind.Types;
 
 using static Whirlwind.Semantic.Checker.Checker;
-
-using LLVMSharp;
 
 namespace Whirlwind.Generation
 {

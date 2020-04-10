@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 
+using LLVMSharp;
+
 using Whirlwind.Semantic;
 using Whirlwind.Types;
 
@@ -68,6 +70,63 @@ namespace Whirlwind.Generation
             }
 
             return generateMethods;
+        }
+
+        private LLVMValueRef _generateCreateGeneric(ExprNode enode)
+        {
+            var root = enode.Nodes[0];
+
+            // only time this is valid (pure GetMember) is with interfaces
+            if (root.Name == "GetMember")
+            {
+                var interfGetMember = (ExprNode)root;
+
+                var itType = (InterfaceType)interfGetMember.Nodes[0].Type;
+                string name = ((IdentifierNode)interfGetMember.Nodes[1]).IdName;
+
+                int vtableNdx = _getVTableNdx(itType, name);
+                itType.GetFunction(name, out Symbol sym);
+
+                vtableNdx += ((GenericType)sym.DataType).Generates
+                    .Select((x, i) => new { x.Type, Ndx = i })
+                    .Where(x => x.Type == enode.Type).First().Ndx;
+
+                return _generateVtableGet(_generateExpr(interfGetMember.Nodes[0]), vtableNdx);
+            }
+
+            var generate = ((GenericType)root.Type).Generates.Single(x => enode.Type.GenerateEquals(x.Type));
+            string typeListSuffix = string.Join(',', generate.GenericAliases.Select(x => x.Value.LLVMName()));
+
+            if (root.Name == "GetTIMethod")
+            {
+                var tiGetMember = (ExprNode)root;
+
+                string rootName = _getLookupName(tiGetMember.Nodes[0].Type);
+                var typeInterf = _generateExpr(tiGetMember.Nodes[0]);
+                string memberName = ((IdentifierNode)tiGetMember.Nodes[1]).IdName;
+
+                var interfType = tiGetMember.Nodes[0].Type.GetInterface();
+                var method = interfType.Methods.Single(x => x.Key.Name == memberName);
+
+                if (method.Value == MethodStatus.VIRTUAL)
+                {
+                    rootName = _getLookupName(interfType.Implements.First(x => x.Methods.Contains(method)));
+                    typeInterf = _cast(typeInterf, enode.Nodes[0].Type, interfType);
+                }
+                else
+                    typeInterf = _boxToInterf(typeInterf, tiGetMember.Nodes[0].Type); // standard up box (with no real vtable)
+
+                var tiGenerateName = rootName + ".interf." + memberName + ".variant." + typeListSuffix;
+
+                return _boxFunction(_globalScope[tiGenerateName].Vref, typeInterf);
+            }
+
+            // assume root is an Identifier node or package static get
+            var generateName = _getIdentifierName(root) + ".variant." + typeListSuffix;
+
+            // structs are handled in the CallConstructor handler
+            // and interfaces are never used this way
+            return _globalScope[generateName].Vref;
         }
     }
 }
