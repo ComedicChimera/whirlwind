@@ -36,6 +36,9 @@ namespace Whirlwind.Semantic.Visitor
                     case "from_expr":
                         _visitFromExpr((ASTNode)subNode);
                         break;
+                    case "match_expr":
+                        _visitMatchExpr((ASTNode)subNode);
+                        break;
                     case "TOKEN":
                         switch (((TokenNode)subNode).Tok.Type) {
                             case "AWAIT":
@@ -915,6 +918,120 @@ namespace Whirlwind.Semantic.Visitor
             else
                 throw new SemanticException($"Unable to extract value from type of {_nodes.Last().Type.ToString()} class member", 
                     node.Content[1].Position);
+        }
+
+        private void _visitMatchExpr(ASTNode node)
+        {
+            string join = "", relate = "";
+            var matchArr = new List<ASTNode>();
+            DataType rootExprType = new NoneType();
+            bool expectTypeArr = false;
+
+            DataType boolType = new SimpleType(SimpleType.SimpleClassifier.BOOL);
+            var valueRef = new ValueNode("Value", rootExprType);
+
+            foreach (var item in node.Content)
+            {
+                switch (item.Name)
+                {
+                    case "match_kind":
+                        {
+                            var matchKindNode = (ASTNode)item;
+
+                            join = ((TokenNode)matchKindNode.Content[1]).Tok.Type;
+                            relate = ((TokenNode)matchKindNode.Content[3]).Tok.Type;                            
+                        }
+                        break;
+                    case "expr":
+                        {
+                            _nodes.Add(new ExprNode("Then", boolType));
+                            _visitExpr((ASTNode)item);
+                            rootExprType = _nodes.Last().Type;
+
+                            MergeBack();
+                        }
+                        break;
+                    case "match_arr":
+                        {
+                            expectTypeArr = relate == "IS";
+
+                            var firstElem = ((ASTNode)item).Content[1];
+
+                            if (expectTypeArr && firstElem.Name == "expr")
+                                throw new SemanticException("Expecting set of types", item.Position);
+                            else if (!expectTypeArr && firstElem.Name == "types")
+                                throw new SemanticException("Expected set of values", item.Position);
+
+                            foreach (var elem in ((ASTNode)item).Content)
+                            {
+                                if (elem.Name == "expr")
+                                    matchArr.Add((ASTNode)elem);
+                                else if (elem.Name == "types")
+                                    matchArr.Add((ASTNode)elem);
+                            }
+                        }
+                        break;
+                }
+            }
+
+            bool countJoiner = false;
+            if (join != "AND" && join != "OR")
+            {
+                if (!Int32.TryParse(join, out int cjv) || cjv > 255)
+                    throw new SemanticException("Invalid count joiner for match expression", ((ASTNode)node.Content[1]).Content[1].Position);
+
+                countJoiner = true;
+            }
+
+            if (expectTypeArr)
+            {
+                foreach (var item in matchArr)
+                {
+                    var dt = _generateType(item);
+
+                    _nodes.Add(new ExprNode("Is", boolType, new List<ITypeNode> { valueRef, new ValueNode("Type", dt) }));
+                }
+            }
+            else
+            {
+                foreach (var item in matchArr)
+                {
+                    _visitExpr(item);
+
+                    DataType resultType = rootExprType.Copy();
+                    CheckOperand(ref resultType, _nodes.Last().Type, relate, item.Position);
+
+                    if (!boolType.Equals(resultType))
+                        throw new SemanticException("Application of match relational operator must result in a boolean", item.Position);
+
+                    _nodes.Add(new ExprNode(relate == "==" ? "Eq" : "Neq", boolType, new List<ITypeNode> { valueRef }));
+                    PushForward();
+                }
+            }
+            
+            if (countJoiner)
+            {
+                var byteType = new SimpleType(SimpleType.SimpleClassifier.BYTE, true);
+
+                var matchByteNodes = _nodes.TakeLast(matchArr.Count)
+                    .Select(x => new ExprNode("TypeCast", byteType, new List<ITypeNode> { x }))
+                    .Select(x => (ITypeNode)x)
+                    .ToList();
+
+                _nodes.RemoveRange(_nodes.Count - matchArr.Count, matchArr.Count);
+
+                _nodes.Add(new ExprNode("Eq", boolType, new List<ITypeNode> {
+                    new ExprNode("Add", byteType, matchByteNodes),
+                    new ValueNode("Literal", byteType, join)
+                    }));
+            }
+            else
+            {
+                _nodes.Add(new ExprNode(join == "AND" ? "And" : "Or", boolType));
+                PushForward(matchArr.Count);
+            }
+
+            MergeBack();
         }
     }
 }

@@ -323,6 +323,18 @@ namespace Whirlwind.Semantic.Visitor
 
                             exprs++;
                         }
+                        else if (elem.Name == "expr")
+                        {
+                            _visitExpr((ASTNode)elem);
+
+                            if (_isVoidOrNull(_nodes.Last().Type))
+                                throw new SemanticException("Select result must have a value", elem.Position);
+
+                            _nodes.Add(new ExprNode("ResultExpr", _nodes.Last().Type));
+                            PushForward();
+
+                            exprs++;
+                        }
                     }
 
                     if (_isVoidOrNull(dt))
@@ -433,7 +445,7 @@ namespace Whirlwind.Semantic.Visitor
                     {
                         if (_nodes[_nodes.Count - i] is ExprNode enode)
                         {
-                            if (testExhaustivity((ExprNode)enode.Nodes[0]))
+                            if (enode.Nodes.SkipLast(1).All(x => testExhaustivity((ExprNode)x)))
                             {
                                 isExhaustive = true;
                                 break;
@@ -450,16 +462,17 @@ namespace Whirlwind.Semantic.Visitor
 
                         for (int i = 1; i < exprCount; i++)
                         {
-                            var item = ((ExprNode)_nodes[_nodes.Count - i]).Nodes[0];
-
-                            if (item is ExprNode exprNode)
+                            foreach (var item in ((ExprNode)_nodes[_nodes.Count - i]).Nodes.SkipLast(1))
                             {
-                                if (item.Type is CustomNewType cnt && (cnt.Values.Count == 0 || testExhaustivity(exprNode)))
+                                if (item is ExprNode exprNode)
                                 {
-                                    if (!instancesMatched.Contains(cnt.Name))
-                                        instancesMatched.Add(cnt.Name);
+                                    if (item.Type is CustomNewType cnt && (cnt.Values.Count == 0 || testExhaustivity(exprNode)))
+                                    {
+                                        if (!instancesMatched.Contains(cnt.Name))
+                                            instancesMatched.Add(cnt.Name);
+                                    }
                                 }
-                            }                                                      
+                            }                                                                              
                         }
 
                         isExhaustive = instancesMatched.Count == ci.Parent.Instances.Count;

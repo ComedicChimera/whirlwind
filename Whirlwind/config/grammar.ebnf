@@ -202,6 +202,7 @@ unary_atom: ('&' | '-' | '~' | '++' | '--' | '*' ['?'] ) atom
 atom: [ 'NEW' ] [ 'AWAIT' ] base trailer*
 | heap_alloc
 | from_expr
+| match_expr
 ;
 
 trailer: '[' (expr [slice] | slice) ']'
@@ -236,6 +237,14 @@ alloc_body: '(' types ',' expr ')'
 
 // access the value of a type class
 from_expr: 'FROM' expr ;
+
+// the match expression
+match_expr: 'MATCH' match_kind expr 'TO' match_arr ;
+match_kind: '<' ('AND' | 'OR' | 'INTEGER_LITERAL') ',' ('!=' | '==' | 'IS') '>' ;
+match_arr: '{' expr (',' expr)+ '}' 
+| '{' types (',' types)+ '}'
+;
+
 
 // BASES - lowest component of an atom
 base: 'INTEGER_LITERAL'

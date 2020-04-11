@@ -446,7 +446,7 @@ namespace Whirlwind.Generation
         // PATTERN MATCH/SELECT GENERATORS
         // -------------------------------
 
-        private bool _generatePatternMatch(ITypeNode selectExprNode, List<BlockNode> caseNodes,
+        private bool _generatePatternMatch(ITypeNode selectExprNode, List<TreeNode> caseNodes,
             List<LLVMBasicBlockRef> caseBlocks, LLVMBasicBlockRef defaultBlock, out List<Dictionary<string, GeneratorSymbol>> caseScopes)
         {
             var selectExpr = _generateExpr(selectExprNode);
@@ -463,6 +463,9 @@ namespace Whirlwind.Generation
 
                 foreach (var expr in caseNodes[i].Nodes.Select(x => ((ExprNode)x)))
                 {
+                    if (expr.Name == "ResultExpr")
+                        break;
+
                     caseExprs.Add(expr);
                     columnCaseBlocks[caseNdx++] = caseBlocks[i];
                 }
@@ -597,6 +600,48 @@ namespace Whirlwind.Generation
             }
 
             _moveBlocksToEnd(caseBlocks, defaultBlock);
+
+            return noDefault;
+        }
+
+        private bool _generateSelectLogic(DataType selectType, ITypeNode selectExprNode, 
+            List<ITypeNode> caseNodes, List<LLVMBasicBlockRef> caseBlocks, LLVMBasicBlockRef defaultBlock,
+            out List<Dictionary<string, GeneratorSymbol>> caseScopes)
+        {
+            bool noDefault;
+            if (_isPatternType(selectType))
+                noDefault = _generatePatternMatch(selectExprNode, caseNodes
+                    .Where(x => x.Name == "Case").Select(x => (TreeNode)x).ToList(),
+                    caseBlocks, defaultBlock, out caseScopes);
+            // is standard switch case (no pattern matching)
+            else
+            {
+                var selectExpr = _generateExpr(selectExprNode);
+
+                bool canSwitch;
+                if (Hashable(selectType))
+                {
+                    if (_needsHash(selectType))
+                        selectExpr = _getHash(selectExpr, selectType).Item1;
+
+                    canSwitch = true;
+                }
+                else
+                    canSwitch = false;
+
+                var caseValPairs = caseNodes
+                    .Take(caseBlocks.Count)
+                    .SelectMany(x => ((TreeNode)x).Nodes)
+                    .Select(x => _getSwitchableValue(x, selectType));
+
+                canSwitch &= caseValPairs.All(x => x.Item2);
+
+                _switchBetween(selectExpr, caseValPairs.Select(x => x.Item1).ToList(),
+                    caseBlocks, defaultBlock, selectType, canSwitch);
+
+                noDefault = true;
+                caseScopes = new List<Dictionary<string, GeneratorSymbol>>();
+            }
 
             return noDefault;
         }

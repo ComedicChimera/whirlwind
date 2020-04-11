@@ -510,6 +510,8 @@ namespace Whirlwind.Generation
 
                         _setVar(((IdentifierNode)enode.Nodes[0]).IdName, _generateExpr(enode.Nodes[1]));
                         break;
+                    case "SelectExpr":
+                        return _generateSelectExpr(enode);                       
                     case "Indirect":
                         {
                             // nullify indirect if it is just referencing a variable (just use varRef)
@@ -708,9 +710,9 @@ namespace Whirlwind.Generation
             return results;
         }
 
-        // ------------------
-        // GENERATION HELPERS
-        // ------------------
+        // ---------------------
+        // EXPRESSION GENERATORS
+        // ---------------------
 
         // Note: generates as many overloads as it can of a single operator; returns depth it reached
         private int _generateOperatorOverload(ExprNode expr, int startDepth, out LLVMValueRef res)
@@ -1058,6 +1060,67 @@ namespace Whirlwind.Generation
                 return getStructElem((StructType)impl);
             }
         }
+
+        private LLVMValueRef _generateSelectExpr(ExprNode enode)
+        {
+            var selectExprNode = enode.Nodes[0];
+            var selectType = selectExprNode.Type;
+
+            var caseNodes = enode.Nodes.Skip(1).SkipLast(1);
+            var caseBlocks = caseNodes
+                .Select(x => LLVM.AppendBasicBlock(_currFunctionRef, "case"))
+                .ToList();
+
+            var defaultBlock = LLVM.AppendBasicBlock(_currFunctionRef, "default");
+            var selectEnd = LLVM.AppendBasicBlock(_currFunctionRef, "select_end");
+            var selectResult = LLVM.BuildAlloca(_builder, _convertType(enode.Type), "select_result_tmp");
+
+            bool noDefault = _generateSelectLogic(selectType, selectExprNode,
+                caseNodes.ToList(), caseBlocks, defaultBlock,
+                out List<Dictionary<string, GeneratorSymbol>> caseScopes);
+            
+            using (var e1 = caseNodes.GetEnumerator())
+            {
+                for (int i = 0; i < caseBlocks.Count; i++)
+                {
+                    e1.MoveNext();
+
+                    LLVM.PositionBuilderAtEnd(_builder, caseBlocks[i]);
+                    _scopes.Add(caseScopes[i]);
+
+                    var exprResult = _generateExpr(((ExprNode)e1.Current).Nodes.Last());
+                    if (_isReferenceType(selectType))
+                        _copyLLVMStructTo(selectResult, exprResult);
+                    else
+                        LLVM.BuildStore(_builder, exprResult, selectResult);
+
+                    LLVM.BuildBr(_builder, selectEnd);
+
+                    _scopes.RemoveLast();
+                }
+            }
+
+            if (noDefault)
+                LLVM.RemoveBasicBlockFromParent(defaultBlock);
+            else
+            {
+                LLVM.PositionBuilderAtEnd(_builder, defaultBlock);
+                var exprResult = _generateExpr(((ExprNode)enode.Nodes.Last()).Nodes.Last());
+                if (_isReferenceType(selectType))
+                    _copyLLVMStructTo(selectResult, exprResult);
+                else
+                    LLVM.BuildStore(_builder, exprResult, selectResult);
+
+                LLVM.BuildBr(_builder, selectEnd);
+            }
+
+            LLVM.PositionBuilderAtEnd(_builder, selectEnd);
+            return selectResult;
+        }
+
+        // -----------------------
+        // EXPR GENERATION HELPERS
+        // -----------------------
 
         // TODO: handle indefinites
         private LLVMValueRef[] _buildArgArray(FunctionType ft, ExprNode enode)

@@ -154,7 +154,10 @@ A multi-value structure or some form of operation.
 | ExtractInto | Expr, Identifier | Extracts the value from the given expression if possible and stores it in a expr-local |
 | Range | Expr, Expr | Creates a range between the two expressions |
 | TypeCast | Expr, Type | Converts a type class value into a more specific form |
-| SelectExpr | *Cases*, \[Default\] | An inline select expression |
+| SelectExpr | Root, *Cases*, \[Default\] | An inline select expression |
+| Case | *CaseExpr*, ResultExpr | Represents a case in a case expression |
+| Default | Expr | Represents the default branch in a case expression |
+| ResultExpr | Expr | Result of a case in a select expression |
 | Then | Expr, Expr | Chains one expr into another |
 | Super | Expr | Gets the parent based on the given name |
 | From | Expr | Extract a value from an algebraic type |
@@ -196,8 +199,6 @@ ExprNodes made specifically for use in certain block statements and/or declarati
 | MemberInitializer | Identifier, Expr | The initializer for any struct member that has one |
 | DecoratorCall | Expr | Used in processing a decorator expression; represents a call to the decorator |
 | ValueRestrictor | Expr | Restricts the value of any type class enumerated value |
-| Case | Represents a case in a case expression |
-| Default | Represents the default branch in a case expression |
 
 ## Statement Node
 

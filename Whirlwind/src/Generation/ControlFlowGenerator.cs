@@ -5,6 +5,8 @@ using LLVMSharp;
 
 using Whirlwind.Semantic;
 
+using static Whirlwind.Semantic.Checker.Checker;
+
 namespace Whirlwind.Generation
 {
     partial class Generator
@@ -384,7 +386,7 @@ namespace Whirlwind.Generation
             return needsTerminator;
         }
 
-        private bool _generateSelect(BlockNode node)
+        private bool _generateSelectStmt(BlockNode node)
         {
             var selectExprNode = node.Nodes[0];
             var selectType = selectExprNode.Type;
@@ -395,38 +397,17 @@ namespace Whirlwind.Generation
                 .ToList();
 
             var defaultBlock = LLVM.AppendBasicBlock(_currFunctionRef, "default");
-
-            bool allBlocksHaveAlternativeTerminators;
-            var caseScopes = new List<Dictionary<string, GeneratorSymbol>>();
-            if (_isPatternType(selectType))
-                allBlocksHaveAlternativeTerminators = _generatePatternMatch(selectExprNode, node.Block
-                    .Select(x => (BlockNode)x).Where(x => x.Name == "Case").ToList(),
-                    caseBlocks, defaultBlock, out caseScopes);
-            // is standard switch case (no pattern matching)
-            else
-            {
-                var onValNodes = node.Block
-                    .Take(caseBlocks.Count)
-                    .SelectMany(x => ((BlockNode)x).Nodes)
-                    .Select(x => _getSwitchableValue(x, selectType))
-                    .ToList();
-
-                var selectExpr = _getSwitchableValue(selectExprNode, selectType);
-
-                _switchBetween(selectExpr, onValNodes, caseBlocks, defaultBlock);
-
-                allBlocksHaveAlternativeTerminators = true;
-            }
-
             var selectEnd = LLVM.AppendBasicBlock(_currFunctionRef, "select_end");
+
+            bool allBlocksHaveAlternativeTerminators = _generateSelectLogic(
+                selectType, selectExprNode, node.Block, caseBlocks, defaultBlock,
+                out List<Dictionary<string, GeneratorSymbol>> caseScopes
+                );           
 
             bool generatedDefaultBlock = false;
             for (int i = 0; i < node.Block.Count; i++)
             {
-                if (caseScopes.Count == 0)
-                    _scopes.Add(new Dictionary<string, GeneratorSymbol>());
-                else
-                    _scopes.Add(caseScopes[i]);
+                _scopes.Add(caseScopes[i]);
 
                 var block = (BlockNode)node.Block[i];
 
