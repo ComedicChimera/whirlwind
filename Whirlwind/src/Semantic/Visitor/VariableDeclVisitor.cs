@@ -233,7 +233,7 @@ namespace Whirlwind.Semantic.Visitor
                         if (initializers.ContainsKey(id))
                             throw new SemanticException("Unable to perform tuple based initialization on pre-initialized values", variables[id].Position);
                         else if (_isVoidOrNull(variables.Values.ElementAt(i).Type))
-                            variables[id] = new Variable(dt, variables[id].Position);
+                            variables[id] = new Variable(dt.LValueCopy(), variables[id].Position);
                         else if (!variables[id].Type.Coerce(dt))
                             throw new SemanticException("Tuple types and variable types must match", variables[id].Position);
 

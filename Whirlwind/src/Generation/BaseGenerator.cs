@@ -26,6 +26,7 @@ namespace Whirlwind.Generation
                                 return LLVM.ConstInt(_convertType(node.Type), (ulong)(node.Value == "true" ? 1 : 0), new LLVMBool(0));
                             case SimpleType.SimpleClassifier.CHAR:
                                 return LLVM.ConstInt(LLVM.Int32Type(), _convertCharLiteral(node.Value), new LLVMBool(0));
+                            case SimpleType.SimpleClassifier.BYTE: // for match expr
                             case SimpleType.SimpleClassifier.SHORT:
                             case SimpleType.SimpleClassifier.INTEGER:
                             case SimpleType.SimpleClassifier.LONG:

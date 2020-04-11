@@ -87,8 +87,6 @@ namespace Whirlwind.Generation
 
         // store the current yield accumulator (if one exists, else _ignoreValueRef)
         private LLVMValueRef _yieldAccumulator;
-        // tell whether or not that yield accumulator exists (or should be overwritten)
-        private bool _yieldAccValid = false;
 
         // store the current break and continue labels
         private LLVMBasicBlockRef _breakLabel, _continueLabel;

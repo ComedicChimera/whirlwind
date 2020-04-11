@@ -268,6 +268,7 @@ Represents a single Whirlwind block statement or declaration.
 | Subscope | `none` | A new subscope |
 | CaptureBlock | `none` | A capturing block; capture is stored in symbol table |
 | After | `none` | A block that runs after certain blocks under certain conditions |
+| YieldBlock | `none` | A block that represents a function body requiring a yield accumulator |
 
 ### Block Values (Block Declarations)
 

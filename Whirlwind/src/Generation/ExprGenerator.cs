@@ -1114,6 +1114,7 @@ namespace Whirlwind.Generation
                 LLVM.BuildBr(_builder, selectEnd);
             }
 
+            LLVM.MoveBasicBlockAfter(selectEnd, LLVM.GetLastBasicBlock(_currFunctionRef));
             LLVM.PositionBuilderAtEnd(_builder, selectEnd);
             return selectResult;
         }

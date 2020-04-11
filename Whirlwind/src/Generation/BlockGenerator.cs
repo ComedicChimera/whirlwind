@@ -53,18 +53,29 @@ namespace Whirlwind.Generation
                     // as it does not connote a control flow change unless in that case
                     case "Yield":
                         {
-                            if (!_yieldAccValid)
-                            {
-                                _yieldAccumulator = LLVM.BuildAlloca(_builder, _convertType(_currFunctionRtType, true), "$yield_acc");
-                                _yieldAccValid = true;
-                            }
-
                             var yldNode = (StatementNode)node;
                             var yldVal = _cast(_generateExpr(yldNode.Nodes[0]), yldNode.Nodes[0].Type, _currFunctionRtType);
 
                             LLVM.BuildStore(_builder, yldVal, _yieldAccumulator);
                         }
                         break;
+                    case "YieldBlock":
+                        {
+                            _yieldAccumulator = LLVM.BuildAlloca(_builder, _convertType(_currFunctionRtType, true), "$yield_acc");
+
+                            // build yield return
+                            if (_generateBlock(((BlockNode)node).Block))
+                            {
+                                var yldVal = LLVM.BuildLoad(_builder, _yieldAccumulator, "$yield_acc_val_tmp");
+
+                                if (_isReferenceType(_currFunctionRtType))
+                                    _returnViaRtPtr(_getNamedValue("$rt_val").Vref, yldVal);
+                                else
+                                    LLVM.BuildRet(_builder, yldVal);
+                            }
+
+                            return false;
+                        }
                     case "Break":
                         LLVM.BuildBr(_builder, _breakLabel);
                         _breakLabelUsed = true;
@@ -116,23 +127,6 @@ namespace Whirlwind.Generation
                             return false;
                         break;
                 }
-            }
-
-            // when the scope count is 1 and the block ends, we know we are at the end of a function block
-            // if the yield accumulator is also valid, and therefore need to generate the yield return
-            if (_scopes.Count == 1 && _yieldAccValid)
-            {
-                var yldVal = LLVM.BuildLoad(_builder, _yieldAccumulator, "$yield_acc_val_tmp");
-
-                if (_isReferenceType(_currFunctionRtType))
-                    _returnViaRtPtr(_getNamedValue("$rt_val").Vref, yldVal);
-                else
-                    LLVM.BuildRet(_builder, yldVal);
-
-                _yieldAccValid = false;
-
-                // if there is a yield return, then we know the block has a terminator
-                return false;
             }
 
             return true;

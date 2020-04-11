@@ -61,8 +61,21 @@ namespace Whirlwind.Generation
 
             public void Build(LLVMBuilderRef _builder, LLVMValueRef _currFunctionRef)
             {
+                if (_caseBlocks.Count == 0)
+                {
+                    LLVM.BuildBr(_builder, _defaultBlock);
+                    return;
+                }                   
+
                 if (_useSwitch)
                 {
+                    if (_caseBlocks.Count == 1)
+                    {
+                        var cmpResult = LLVM.BuildICmp(_builder, LLVMIntPredicate.LLVMIntEQ, _switchExpr, _onValNodes[0], "switch_cmp");
+                        LLVM.BuildCondBr(_builder, cmpResult, _caseBlocks[0], _defaultBlock);
+                        return;
+                    }
+
                     var switchStmt = LLVM.BuildSwitch(_builder, _switchExpr, _defaultBlock, (uint)_caseBlocks.Count);
 
                     for (int i = 0; i < _caseBlocks.Count; i++)
@@ -359,6 +372,14 @@ namespace Whirlwind.Generation
             }
             else
             {
+
+                // if no values, just move to next branch
+                if (values.Count == 0)
+                {
+                    return _generatePatternBranch(p, types, selectItems, column + 1, neutrals,
+                            caseBlocks, defaultBlock);
+                }
+
                 LLVMBasicBlockRef patternDefault;
                 if (fullDefault)
                     patternDefault = defaultBlock;
@@ -371,6 +392,8 @@ namespace Whirlwind.Generation
                 else
                     swb = new SwitchBuilder(types[column], selectItem, patternDefault, _getSwitchComparer(types[column]));
 
+                var parentBlock = LLVM.GetInsertBlock(_builder);
+
                 foreach (var item in values)
                 {
                     var patternCase = LLVM.AppendBasicBlock(_currFunctionRef, "pattern_case");
@@ -382,6 +405,7 @@ namespace Whirlwind.Generation
                     swb.AddCase(item.Item2, patternCase);
                 }
 
+                LLVM.PositionBuilderAtEnd(_builder, parentBlock);
                 // will leave us primed in the default block for generation :D
                 swb.Build(_builder, _currFunctionRef);
 
@@ -456,7 +480,6 @@ namespace Whirlwind.Generation
             var columnCaseBlocks = new List<LLVMBasicBlockRef>();
             var caseBlockPairs = new List<Tuple<LLVMBasicBlockRef, int>>();
 
-            int caseNdx = 0;
             for (int i = 0; i < caseNodes.Count; i++)
             {
                 caseBlockPairs.Add(new Tuple<LLVMBasicBlockRef, int>(caseBlocks[i], caseNodes[i].Nodes.Count));
@@ -467,7 +490,7 @@ namespace Whirlwind.Generation
                         break;
 
                     caseExprs.Add(expr);
-                    columnCaseBlocks[caseNdx++] = caseBlocks[i];
+                    columnCaseBlocks.Add(caseBlocks[i]);
                 }
             }           
 

@@ -184,6 +184,19 @@ namespace Whirlwind.Semantic.Visitor
                 }
             }
 
+            if (_needsYieldBlock)
+            {
+                var fnBlock = ((BlockNode)_nodes.Last());
+
+                var yieldBlock = new BlockNode("YieldBlock")
+                {
+                    Block = fnBlock.Block.Skip(1).ToList()
+                };
+
+                fnBlock.Block = new List<ITypeNode> { fnBlock.Block[0], yieldBlock };
+                _needsYieldBlock = false;
+            }
+
             _table.AscendScope();
 
             return rtType;

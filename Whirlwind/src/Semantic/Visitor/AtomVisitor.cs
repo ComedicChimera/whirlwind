@@ -928,7 +928,7 @@ namespace Whirlwind.Semantic.Visitor
             bool expectTypeArr = false;
 
             DataType boolType = new SimpleType(SimpleType.SimpleClassifier.BOOL);
-            var valueRef = new ValueNode("Value", rootExprType);
+            ValueNode valueRef = new ValueNode("", new NoneType());
 
             foreach (var item in node.Content)
             {
@@ -938,7 +938,7 @@ namespace Whirlwind.Semantic.Visitor
                         {
                             var matchKindNode = (ASTNode)item;
 
-                            join = ((TokenNode)matchKindNode.Content[1]).Tok.Type;
+                            join = ((TokenNode)matchKindNode.Content[1]).Tok.Value;
                             relate = ((TokenNode)matchKindNode.Content[3]).Tok.Type;                            
                         }
                         break;
@@ -947,6 +947,7 @@ namespace Whirlwind.Semantic.Visitor
                             _nodes.Add(new ExprNode("Then", boolType));
                             _visitExpr((ASTNode)item);
                             rootExprType = _nodes.Last().Type;
+                            valueRef = new ValueNode("Value", rootExprType);
 
                             MergeBack();
                         }
@@ -975,7 +976,7 @@ namespace Whirlwind.Semantic.Visitor
             }
 
             bool countJoiner = false;
-            if (join != "AND" && join != "OR")
+            if (join != "&&" && join != "||")
             {
                 if (!Int32.TryParse(join, out int cjv) || cjv > 255)
                     throw new SemanticException("Invalid count joiner for match expression", ((ASTNode)node.Content[1]).Content[1].Position);
@@ -1027,7 +1028,7 @@ namespace Whirlwind.Semantic.Visitor
             }
             else
             {
-                _nodes.Add(new ExprNode(join == "AND" ? "And" : "Or", boolType));
+                _nodes.Add(new ExprNode(join == "&&" ? "And" : "Or", boolType));
                 PushForward(matchArr.Count);
             }
 

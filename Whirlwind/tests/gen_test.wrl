@@ -1,8 +1,14 @@
 ﻿func main() {
-	let x = 20;
-	x ~/= 10;
+	let t = (2, 3, 10);
 
-	let f = 4.0;
-	f ~/= 3;
+	let v: int;
+	select (t) {
+		case (2, x, _):
+			v = x;
+		case (5, _, y):
+			v = y;
+		case (10, 2, 3):
+			v = 10;
+	}
 }
 

@@ -447,9 +447,12 @@ namespace Whirlwind.Generation
             if (allBlocksHaveAlternativeTerminators)
                 LLVM.RemoveBasicBlockFromParent(selectEnd);
             else
+            {
+                LLVM.MoveBasicBlockAfter(selectEnd, LLVM.GetLastBasicBlock(_currFunctionRef));
                 LLVM.PositionBuilderAtEnd(_builder, selectEnd);
+            }              
 
-            return allBlocksHaveAlternativeTerminators;
+            return !allBlocksHaveAlternativeTerminators;
         }
     }
 }

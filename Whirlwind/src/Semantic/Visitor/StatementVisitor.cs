@@ -71,7 +71,10 @@ namespace Whirlwind.Semantic.Visitor
                         break;
                     case "yield_stmt":
                         if (context.Function)
+                        {
+                            _needsYieldBlock = true;
                             _visitReturn(stmt, "Yield");
+                        }                            
                         else
                             throw new SemanticException("Invalid context for a yield statement", stmt.Position);
                         break;
