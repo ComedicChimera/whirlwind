@@ -168,8 +168,16 @@ namespace Whirlwind.Generation
             return BitConverter.ToUInt32(numBytes, 0);
         }
 
-        private LLVMValueRef _getNullValue(DataType dt)
+        private LLVMValueRef _getNullValue(DataType dt, bool noNullStructs=false)
         {
+            if (noNullStructs)
+            {
+                if (_isReferenceType(dt) || dt is PointerType)
+                    return LLVM.ConstPointerNull(_convertType(dt));
+                else
+                    return LLVM.ConstNull(_convertType(dt));
+            }
+
             if (dt is SimpleType st)
             {
                 if (st.Type == SimpleType.SimpleClassifier.STRING)

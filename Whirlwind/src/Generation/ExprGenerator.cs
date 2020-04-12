@@ -474,17 +474,30 @@ namespace Whirlwind.Generation
                         }
                     case "InlineComparison":
                         {
-                            List<LLVMValueRef> elements = enode.Nodes
-                                .Select(x => _generateExpr(x)).ToList();
-
                             // node layout: then, if, else
+                            var cond = _generateExpr(enode.Nodes[1]);
 
+                            var thenBlock = LLVM.AppendBasicBlock(_currFunctionRef, "inline_then");
+                            var elseBlock = LLVM.AppendBasicBlock(_currFunctionRef, "inline_else");
+                            var endBlock = LLVM.AppendBasicBlock(_currFunctionRef, "inline_end");
+                            
+                            LLVM.PositionBuilderAtEnd(_builder, thenBlock);
+                            var thenResult = _generateExpr(enode.Nodes[0]);
+                            if (enode.Type.Equals(enode.Nodes[2].Type) && !enode.Type.Equals(enode.Nodes[0]))
+                                thenResult = _cast(thenResult, enode.Nodes[0].Type, enode.Nodes[2].Type);
+                            LLVM.BuildBr(_builder, endBlock);
+
+                            LLVM.PositionBuilderAtEnd(_builder, elseBlock);
+                            var elseResult = _generateExpr(enode.Nodes[2]);
                             if (enode.Type.Equals(enode.Nodes[0].Type) && !enode.Type.Equals(enode.Nodes[2]))
-                                elements[2] = _cast(elements[2], enode.Nodes[2].Type, enode.Nodes[0].Type);
-                            else if (enode.Type.Equals(enode.Nodes[2].Type) && !enode.Type.Equals(enode.Nodes[0]))
-                                elements[0] = _cast(elements[0], enode.Nodes[0].Type, enode.Nodes[2].Type);
+                                elseResult = _cast(elseResult, enode.Nodes[2].Type, enode.Nodes[0].Type);
+                            LLVM.BuildBr(_builder, endBlock);
 
-                            return LLVM.BuildSelect(_builder, elements[1], elements[0], elements[2], "inline_cmp_res");
+                            LLVM.PositionBuilderAtEnd(_builder, endBlock);
+                            var phiNode = LLVM.BuildPhi(_builder, _convertType(enode.Type), "inline_cond_result");
+                            phiNode.AddIncoming(new[] { thenResult, elseResult }, new[] { thenBlock, elseBlock }, 2);
+
+                            return phiNode;
                         }
                     case "Then":
                         {
@@ -621,6 +634,9 @@ namespace Whirlwind.Generation
 
                             return oriVal;
                         }
+                    case "Is":
+                        _generateIs(enode);
+                        break;
                 }
             }
 
@@ -1117,6 +1133,78 @@ namespace Whirlwind.Generation
             LLVM.MoveBasicBlockAfter(selectEnd, LLVM.GetLastBasicBlock(_currFunctionRef));
             LLVM.PositionBuilderAtEnd(_builder, selectEnd);
             return selectResult;
+        }
+
+        private LLVMValueRef _generateIs(ExprNode enode)
+        {
+            var rootExpr = enode.Nodes[0];
+            var checkType = enode.Nodes[1].Type;
+            var rootVal = _generateExpr(rootExpr);
+
+            LLVMValueRef rtVal;
+            if (rootExpr.Type.Equals(checkType))
+                rtVal = LLVM.ConstInt(LLVM.Int1Type(), 1, new LLVMBool(0));
+            else
+            {
+                var cValType = new SimpleType(SimpleType.SimpleClassifier.SHORT);
+
+                switch (rootExpr)
+                {
+                    case InterfaceType it:
+                        {
+                            var cVal = _getLLVMStructMember(rootVal, 2, cValType);
+                            var otherCVal = LLVM.ConstInt(LLVM.Int16Type(), _getTypeCVal(checkType), new LLVMBool(0));
+
+                            rtVal = LLVM.BuildICmp(_builder, LLVMIntPredicate.LLVMIntEQ, cVal, otherCVal, "is_cmp_tmp");
+                        }
+                        break;
+                    case CustomInstance ci:
+                        {
+                            if (checkType is CustomInstance cci && ci.Parent.Equals(cci.Parent))
+                            {
+                                var cVal = _getLLVMStructMember(rootVal, 1, cValType);
+                                var otherCVal = LLVM.ConstInt(LLVM.Int16Type(), (ulong)ci.Parent.Instances.IndexOf(cci), new LLVMBool(0));
+
+                                rtVal = LLVM.BuildICmp(_builder, LLVMIntPredicate.LLVMIntEQ, cVal, otherCVal, "is_cmp_tmp");
+                            }
+                            else
+                                rtVal = LLVM.ConstInt(LLVM.Int1Type(), 0, new LLVMBool(0));
+                        }
+                        break;
+                    case AnyType at:
+                        {
+                            var cVal = _getLLVMStructMember(rootVal, 1, cValType);
+                            var otherCVal = LLVM.ConstInt(LLVM.Int16Type(), _getTypeCVal(checkType), new LLVMBool(0));
+
+                            rtVal = LLVM.BuildICmp(_builder, LLVMIntPredicate.LLVMIntEQ, cVal, otherCVal, "is_cmp_tmp");
+                        }
+                        break;
+                    // we can assume that is should fail
+                    default:
+                        rtVal = LLVM.ConstInt(LLVM.Int1Type(), 0, new LLVMBool(0));
+                        break;
+                }
+            }        
+
+            if (enode.Nodes[1] is IdentifierNode idNode)
+            {
+                var startBlock = LLVM.GetInsertBlock(_builder);
+                var patternSucc = LLVM.AppendBasicBlock(_currFunctionRef, "is_pattern_succ");
+                var patternEnd = LLVM.AppendBasicBlock(_currFunctionRef, "is_pattern_end");
+
+                LLVM.BuildCondBr(_builder, rtVal, patternSucc, patternEnd);
+
+                LLVM.PositionBuilderAtEnd(_builder, patternSucc);
+                var castRoot = _cast(rootVal, rootExpr.Type, checkType);
+
+                LLVM.PositionBuilderAtEnd(_builder, patternEnd);
+                var phiNode = LLVM.BuildPhi(_builder, _convertType(checkType), "pattern_result");
+                phiNode.AddIncoming(new[] { castRoot, _getNullValue(checkType, true) }, new[] { patternSucc, startBlock }, 2);
+
+                _setVar(idNode.IdName, phiNode);
+            }
+
+            return rtVal;
         }
 
         // -----------------------

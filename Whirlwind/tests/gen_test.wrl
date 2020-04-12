@@ -1,14 +1,4 @@
 ﻿func main() {
-	let t = (2, 3, 10);
 
-	let v: int;
-	select (t) {
-		case (2, x, _):
-			v = x;
-		case (5, _, y):
-			v = y;
-		case (10, 2, 3):
-			v = 10;
-	}
 }
 
