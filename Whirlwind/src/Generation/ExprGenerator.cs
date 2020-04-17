@@ -255,6 +255,8 @@ namespace Whirlwind.Generation
                             else
                                 return LLVM.BuildLoad(_builder, rootExpr, "this_deref_tmp");
                         }
+                    case "Super":
+                        return _getSuperForm((InterfaceType)enode.Nodes[0].Type);
                     case "Add":
                         {
                             if (expr.Type is ArrayType at)
@@ -451,12 +453,13 @@ namespace Whirlwind.Generation
 
                             return _buildCompareBinop(LLVM.BuildICmp, LLVMIntPredicate.LLVMIntSLE);
                         }, enode);
-                    case "And":
+                    case "BAnd":
                         return _buildBinop(LLVM.BuildAnd, enode, _getCommonType(enode));
-                    case "Or":
+                    case "BOr":
                         return _buildBinop(LLVM.BuildOr, enode, _getCommonType(enode));
-                    case "Xor":
+                    case "BXor":
                         return _buildBinop(LLVM.BuildXor, enode, _getCommonType(enode));
+                    // TODO: short circuit evaluation for logical and and logical or
                     // TODO: check for overloads on complement, not, and change sign
                     case "Complement":
                         return LLVM.BuildXor(_builder, _generateExpr(enode.Nodes[0]),
@@ -1286,6 +1289,29 @@ namespace Whirlwind.Generation
             LLVM.BuildStore(_builder, state, stateElem);
 
             return boxedFunctionStruct;
+        }
+
+        private LLVMValueRef _getSuperForm(InterfaceType superInterf)
+        {
+            var thisVref = _getNamedValue("this").Vref;
+
+            // we know `this` is always a pointer so just do a fast bitcast
+            var i8ThisPtr = LLVM.BuildBitCast(_builder, thisVref, _i8PtrType, "i8_this_ptr_tmp");
+
+            var interfStruct = LLVM.BuildAlloca(_builder, _convertType(superInterf), "super_interf_tmp");
+            _setLLVMStructMember(interfStruct, i8ThisPtr, 0, new PointerType(new SimpleType(SimpleType.SimpleClassifier.BYTE, true), false));
+
+            var dt = new NoneType(); // TEMPORARY
+
+            // SUPER VTABLE
+
+            var cVal = LLVM.ConstInt(LLVM.Int16Type(), _getTypeCVal(dt), new LLVMBool(0));
+            _setLLVMStructMember(interfStruct, cVal, 2, new SimpleType(SimpleType.SimpleClassifier.SHORT, true));
+
+            var size = LLVM.ConstInt(LLVM.Int32Type(), dt.SizeOf(), new LLVMBool(0));
+            _setLLVMStructMember(interfStruct, size, 3, new SimpleType(SimpleType.SimpleClassifier.INTEGER, true));
+
+            return interfStruct;
         }
     }
 }

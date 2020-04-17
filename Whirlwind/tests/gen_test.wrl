@@ -1,15 +1,9 @@
-﻿struct Test {
-	self: *Test;
-	v: int;
+﻿func main() {
+	let (a = 12, b = 17);
 
-	constructor(v: int) {
-		this.v = v;
-	}
+	let c = a & b + a | b;
+
+	let d = a ^ b ^ c;
+
+	let f = c * d + (|x: int| => x * 2)(a | b);
 }
-
-func main() {
-	let t = new Test(3);
-
-	*t.self = new Test(5);
-}
-

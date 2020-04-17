@@ -961,8 +961,12 @@ namespace Whirlwind.Semantic.Visitor
                     return "And";
                 case "OR":
                     return "Or";
-                case "XOR":
-                    return "Xor";
+                case "&":
+                    return "BAnd";
+                case "|":
+                    return "BOr";
+                case "^":
+                    return "BXor";
                 case ">>":
                     return "RShift";
                 // "<<"

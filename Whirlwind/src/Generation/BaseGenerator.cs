@@ -87,6 +87,8 @@ namespace Whirlwind.Generation
                     }
                 case "Null":
                     return _getNullValue(((NullType)node.Type).EvaluatedType);
+                case "Super":
+                    return _getSuperForm(node.Type.GetInterface().Implements[0]);
             }
 
             // other values a bit more complicated

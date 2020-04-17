@@ -174,9 +174,9 @@ default_case: ',' '_' '=>' expr ;
 func_op: or (('>>=' | '~*') or)* ;
 
 // logical operators
-or: xor ('OR' xor)* ;
-xor: and ('XOR' and)* ;
-and: comparison ('AND' comparison)* ;
+or: xor (('OR' | '|') xor)* ;
+xor: and ('^' and)* ;
+and: comparison (('AND' | '&') comparison)* ;
 
 // comparisons
 comparison: not (comparison_op not)*;
@@ -370,7 +370,7 @@ block: '{' [main] '}'
 
 // operator (wherever any operator can be used)
 operator: '<' '<' | '>' '>' | '+' | '-' | '*' | '/' | '%' | '<' | '>' | '<=' | '>=' | '==' | '!='
-| '>>=' | '~^' | '~*' | '~/' | 'AND' | 'OR' | 'XOR' | '~' ;
+| '>>=' | '~^' | '~*' | '~/' | 'AND' | 'OR' | '&' | '|' | '^' | '~' ;
 
 // generic tag (placed after several block declarations)
 generic_tag: '<' generic (',' generic)* '>' ;

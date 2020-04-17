@@ -105,17 +105,20 @@ namespace Whirlwind.Semantic.Checker
                     break;
                 case "AND":
                 case "OR":
-                case "XOR":
                     {
-                        if (operandType.Classify() == TypeClassifier.SIMPLE && rootType.Classify() == TypeClassifier.SIMPLE)
+                        if (rootType is SimpleType simpleRoot && operandType is SimpleType simpleOperand)
                         {
-                            SimpleType simpleRoot = (SimpleType)rootType, simpleOperand = (SimpleType)operandType;
-
                             if (simpleRoot.Type == SimpleType.SimpleClassifier.BOOL && simpleOperand.Type == SimpleType.SimpleClassifier.BOOL)
-                                return;
-
-                            valid = true;
+                                return;    
                         }
+                    }
+                    break;
+                case "&":
+                case "|":
+                case "^":
+                    {
+                        if (rootType is SimpleType && operandType is SimpleType)
+                            valid = true;
                     }
                     break;
             }

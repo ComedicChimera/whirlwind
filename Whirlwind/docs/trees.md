@@ -144,9 +144,9 @@ A multi-value structure or some form of operation.
 | Neq | *Values* | Perform an unequality comparison |
 | GtEq | *Values* | Perform a greater than or equal to comparison |
 | LtEq | *Values* | Perform a less than or equal to comparison |
-| Or | *Values* | Perform an or/bitwise or logical operation |
-| Xor | *Values* | Perform a xor/bitwise xor logical operation |
-| And | *Values* | Perform an and/bitwise and logical operation |
+| And | *Values* | Perform a logical and operation |
+| Or | *Values* | Perform a logical or operation |
+| BAnd | *Values* | Performs a logical 
 | Bind | Value, *Functions* | Binds each expression to the one on its right |
 | Compose | *Functions* | Composes the functions sequentially |
 | InlineComparison |  Option1, ComparisonExpr, Option2 | Perform an inline comparison |
