@@ -1,4 +1,15 @@
-﻿func main() {
+﻿struct Test {
+	self: *Test;
+	v: int;
 
+	constructor(v: int) {
+		this.v = v;
+	}
+}
+
+func main() {
+	let t = new Test(3);
+
+	*t.self = new Test(5);
 }
 

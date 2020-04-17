@@ -98,29 +98,8 @@ namespace Whirlwind.Semantic.Visitor
                     case "IDENTIFIER":
                         if (_table.Lookup(((TokenNode)node.Content[0]).Tok.Value, out Symbol sym))
                         {
-                            var symDt = sym.DataType;
-
-                            if (symDt is GenericSelfType gst)
-                            {
-                                if (gst.GenericSelf == null)
-                                    throw new SemanticException("Unable to use incomplete type in expression", node.Content[0].Position);
-                                else
-                                    symDt = gst.GenericSelf;
-                            }
-                            else if (symDt is GenericSelfInstanceType gsit)
-                            {
-                                if (gsit.GenericSelf == null)
-                                    throw new SemanticException("Unable to use incomplete type in expression", node.Content[0].Position);
-                                else
-                                    symDt = gsit.GenericSelf;
-                            }
-                            else if (symDt is SelfType st)
-                            {
-                                if (st.Initialized)
-                                    symDt = st.DataType;
-                                else
-                                    throw new SemanticException("Unable to use incomplete type in expression", node.Content[0].Position);
-                            }
+                            var symDt = SanitizeType(sym.DataType, new SemanticException("Use of incomplete self-referential type in expression", 
+                                node.Content[0].Position));
 
                             if (sym.Modifiers.Contains(Modifier.CONSTEXPR))
                                 _nodes.Add(new ConstexprNode(sym.Name, symDt, sym.Value));

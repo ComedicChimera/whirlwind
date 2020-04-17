@@ -26,6 +26,7 @@ namespace Whirlwind.Generation
             name += _genericSuffix;
 
             var interfStruct = LLVM.StructCreateNamed(_ctx, llvmPrefix + name);
+            _globalStructs[name] = interfStruct; // forward declare interface struct
 
             _thisPtrType = LLVM.PointerType(interfStruct, 0);
             var methods = _generateInterfBody(node, interfType, _thisPtrType, name, false, exported);
@@ -42,8 +43,6 @@ namespace Whirlwind.Generation
                 LLVM.Int16Type(),
                 LLVM.Int32Type()
             }, false);
-
-            _globalStructs[name] = interfStruct;
 
             _thisPtrType = LLVM.PointerType(_interfBoxType, 0);
         }

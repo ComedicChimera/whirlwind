@@ -113,7 +113,7 @@ namespace Whirlwind.Generation
                 arguments, isVarArg));
 
             // handle external symbols as necessary
-            LLVM.SetLinkage(llvmFn, external ? LLVMLinkage.LLVMExternalLinkage : LLVMLinkage.LLVMLinkerPrivateLinkage);
+            LLVM.SetLinkage(llvmFn, external ? LLVMLinkage.LLVMExternalLinkage : LLVMLinkage.LLVMInternalLinkage);
 
             for (int i = 0; i < argCount; i++)
             {

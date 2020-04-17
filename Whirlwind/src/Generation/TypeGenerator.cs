@@ -129,7 +129,11 @@ namespace Whirlwind.Generation
 
                 return _anyType;
             }
+            else if (dt is SelfType selfT)
+                return _convertType(selfT.DataType, usePtrTypes); // should never be null
             
+            // TODO: generic self instances?
+
             return LLVM.VoidType();
         }
 

@@ -63,7 +63,7 @@ namespace Whirlwind.Types
         public override TypeClassifier Classify() => TypeClassifier.SELF;
 
         public override DataType ConstCopy()
-            => new SelfType(_name, DataType) { Constant = true };
+            => new SelfType(_name, DataType) { Constant = true, Initialized = Initialized };
 
         public override string ToString() => _name;
 
@@ -173,7 +173,7 @@ namespace Whirlwind.Types
 
         public override TypeClassifier Classify() => TypeClassifier.GENERIC_SELF_INSTANCE;
 
-        public override DataType ConstCopy() => new GenericSelfInstanceType(TypeList, _name) { Constant = true };
+        public override DataType ConstCopy() => new GenericSelfInstanceType(TypeList, _name) { Constant = true, GenericSelf = GenericSelf };
 
         protected override bool _coerce(DataType other)
         {

@@ -178,24 +178,51 @@ namespace Whirlwind.Generation
                     return LLVM.ConstNull(_convertType(dt));
             }
 
-            if (dt is SimpleType st)
+            switch (dt)
             {
-                if (st.Type == SimpleType.SimpleClassifier.STRING)
-                    return _getNullStruct(_stringType, "__string");
-                else
-                    return LLVM.ConstNull(_convertType(dt));
-            }
-            else if (dt is PointerType)
-                return LLVM.ConstPointerNull(_convertType(dt));
-            else if (dt is StructType)
-                return _getNullStruct(_convertType(dt), _getLookupName(dt));
-            else if (dt is IIterableType)
-            {
-                var iterStructType = _convertType(dt);
-                return _getNullStruct(iterStructType, _getLLVMStructName(iterStructType));
-            }              
+                case SimpleType st:
+                    {
+                        if (st.Type == SimpleType.SimpleClassifier.STRING)
+                            return _getNullStruct(_stringType, "__string");
+                        else
+                            return LLVM.ConstNull(_convertType(dt));
+                    }
+                case PointerType _:
+                    return LLVM.ConstPointerNull(_convertType(dt));
+                case StructType _:
+                    return _getNullStruct(_convertType(dt), _getLookupName(dt));
+                case IIterableType _:
+                    {
+                        var iterStructType = _convertType(dt);
+                        return _getNullStruct(iterStructType, _getLLVMStructName(iterStructType));
+                    }
+                case TupleType tt:
+                    {
+                        var tupleStruct = LLVM.BuildAlloca(_builder, _convertType(dt), "null_tuple");
 
-            return _ignoreValueRef();
+                        for (int i = 0; i < tt.Types.Count; i++)
+                            _setLLVMStructMember(tupleStruct, _getNullValue(tt.Types[i]), i, tt.Types[i], "tuple_member");
+
+                        return tupleStruct;
+                    }
+                case CustomInstance ci:
+                    {
+                        if (ci.Parent.IsReferenceType())
+                            return LLVM.ConstPointerNull(_convertType(ci));
+                        // custom enum
+                        else if (ci.Parent.Instances.Any(x => x is CustomNewType))
+                            return LLVM.ConstNull(LLVM.Int16Type());
+                        // pure alias
+                        else
+                            return _getNullValue(((CustomAlias)ci.Parent.Instances[0]).Type);
+                    }
+                default:
+                    if (_isReferenceType(dt))
+                        return LLVM.ConstPointerNull(_convertType(dt));
+                    else
+                        throw new GeneratorException("Unable to create a null value for the specified type");
+                    
+            }
         }
 
         private LLVMValueRef _getNullStruct(LLVMTypeRef nullStructDt, string structName)

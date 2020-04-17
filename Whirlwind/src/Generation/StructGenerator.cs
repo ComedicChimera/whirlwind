@@ -10,15 +10,15 @@ namespace Whirlwind.Generation
 {
     partial class Generator
     {
-        private void _generateStruct(BlockNode node, bool exported)
+        private void _generateStruct(BlockNode node, bool external)
         {
             var name = ((IdentifierNode)node.Nodes[0]).IdName + _genericSuffix;
             var st = (StructType)node.Nodes[0].Type;
 
             var llvmStruct = LLVM.StructCreateNamed(_ctx, name);
-            llvmStruct.StructSetBody(st.Members.Select(x => _convertType(x.Value.DataType)).ToArray(), st.Packed);
+            _globalStructs[name] = llvmStruct; // forward declare struct
 
-            _globalStructs[name] = llvmStruct;
+            llvmStruct.StructSetBody(st.Members.Select(x => _convertType(x.Value.DataType)).ToArray(), st.Packed);       
 
             var memberDict = new Dictionary<string, ITypeNode>();
 
@@ -42,7 +42,7 @@ namespace Whirlwind.Generation
                     if (hasMultipleConstructors)
                         suffix += "." + string.Join(",", cft.Parameters.Select(x => x.DataType.LLVMName()));
 
-                    var llvmConstructor = _generateFunctionPrototype(name + suffix, cft, exported);
+                    var llvmConstructor = _generateFunctionPrototype(name + suffix, cft, external);
                     _addGlobalDecl(name + suffix, llvmConstructor);
 
                     _appendFunctionBlock(llvmConstructor, new NoneType(), constructor);
@@ -52,7 +52,7 @@ namespace Whirlwind.Generation
             // add custom init members build algo and append
             var initFnProto = _generateFunctionPrototype(name + "._$initMembers", new FunctionType(new List<Parameter>
                             { _buildStructThisParam(st) },
-                       new NoneType(), false), false);
+                       new NoneType(), false), external);
 
             _addGlobalDecl(name + "._$initMembers", initFnProto);
 
