@@ -95,6 +95,9 @@ namespace Whirlwind.Semantic.Visitor
                     case "BINARY_LITERAL":
                         _visitByteLiteral(((TokenNode)node.Content[0]).Tok);
                         return;
+                    case "POWER_LITERAL":
+                        _visitPowerLiteral((TokenNode)node.Content[0]);
+                        return;
                     case "IDENTIFIER":
                         if (_table.Lookup(((TokenNode)node.Content[0]).Tok.Value, out Symbol sym))
                         {
@@ -323,6 +326,35 @@ namespace Whirlwind.Semantic.Visitor
             }
 
             _nodes.Add(new ValueNode("ByteLiteral", new SimpleType(sc, false), token.Value));
+        }
+
+        private void _visitPowerLiteral(TokenNode powerLitNode)
+        {
+            void makeFloatingPoint(string root_, string power_)
+            {
+                string floatString = root_ + "e" + power_;
+
+                if (float.TryParse(floatString, out float _))
+                    _nodes.Add(new ValueNode("Literal", new SimpleType(SimpleType.SimpleClassifier.FLOAT), floatString));
+                else if (double.TryParse(floatString, out double _))
+                    _nodes.Add(new ValueNode("Literal", new SimpleType(SimpleType.SimpleClassifier.DOUBLE), floatString));
+                else
+                    throw new SemanticException($"Unable to create floating-point number from `{powerLitNode.Tok.Value}`", powerLitNode.Position);
+            }
+
+            var powerLitComponents = powerLitNode.Tok.Value.Split('e', 'E');
+
+            string root = powerLitComponents[0], powerStr = powerLitComponents[1];
+
+            if (Int16.TryParse(powerStr, out short power))
+            {
+                if (power < 0 || root.Contains('.'))
+                    makeFloatingPoint(root, powerStr);
+
+                // if (UInt16.TryParse())
+            }
+            else
+                throw new SemanticException("Unable to generate a floating point literal of magnitude " + powerStr, powerLitNode.Position);
         }
 
         private void _visitComprehension(ASTNode node)

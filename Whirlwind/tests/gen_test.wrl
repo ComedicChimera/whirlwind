@@ -5,5 +5,5 @@
 
 	let d = a ^ b ^ c;
 
-	let f = c * d + (|x: int| => x * 2)(a | b);
+	// let f = c * d + (|x: int| => x * 2)(a | b);
 }

@@ -61,7 +61,7 @@ namespace Whirlwind.Generation
                         break;
                     case "YieldBlock":
                         {
-                            _yieldAccumulator = LLVM.BuildAlloca(_builder, _convertType(_currFunctionRtType, true), "$yield_acc");
+                            _yieldAccumulator = _alloca(_currFunctionRtType, "$yield_acc", true);
 
                             // build yield return
                             if (_generateBlock(((BlockNode)node).Block))

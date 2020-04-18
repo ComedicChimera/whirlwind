@@ -197,7 +197,7 @@ namespace Whirlwind.Generation
                 // otherwise, compiler must create a variable for it
                 else
                 {
-                    var paramVar = LLVM.BuildAlloca(_builder, param.TypeOf(), paramName + "_");
+                    var paramVar = LLVM.BuildAlloca(_builder, param.TypeOf(), paramName + "_"); // TODO: calculate alignment here
                     LLVM.BuildStore(_builder, param, paramVar);
                     fnScope[paramName] = new GeneratorSymbol(paramVar, true);
                 }

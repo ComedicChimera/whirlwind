@@ -196,14 +196,15 @@ namespace Whirlwind.Generation
 
         private LLVMValueRef _boxToInterf(LLVMValueRef vref, DataType dt)
         {
-            var boxed = LLVM.BuildAlloca(_builder, _interfBoxType, "interf_box_tmp");        
+            var boxed = LLVM.BuildAlloca(_builder, _interfBoxType, "interf_box_tmp");
+            LLVM.SetAlignment(boxed, WhirlGlobals.POINTER_SIZE);
 
             LLVMValueRef thisPtr;
             if (dt.IsThisPtr || _isReferenceType(dt))
                 thisPtr = LLVM.BuildBitCast(_builder, vref, _i8PtrType, "this_i8_ptr_tmp");
             else
             {
-                thisPtr = LLVM.BuildAlloca(_builder, _convertType(dt), "this_ptr_tmp");
+                thisPtr = _alloca(dt, "this_ptr_tmp");
                 LLVM.BuildStore(_builder, vref, thisPtr);
 
                 thisPtr = LLVM.BuildBitCast(_builder, thisPtr, _i8PtrType, "this_i8_ptr_tmp");
@@ -272,6 +273,7 @@ namespace Whirlwind.Generation
                     addMethod(child, method.Key.Name);
             }
 
+            // TODO: vtable optimizations
             var vtableType = _getGlobalStruct(_getLookupName(parent.Name) + genericSuffix + ".__vtable", false);
             var vtablePtr = LLVM.BuildAlloca(_builder, vtableType, "vtable_ptr_tmp");
 
@@ -359,7 +361,7 @@ namespace Whirlwind.Generation
             if (_isReferenceType(returnType))
             {
                 argArray = new LLVMValueRef[2];
-                argArray[1] = LLVM.BuildAlloca(_builder, _convertType(returnType), "rtptr_tmp");
+                argArray[1] = _alloca(returnType, "rtptr_tmp");
                 returnCallResult = false;
             }
             else

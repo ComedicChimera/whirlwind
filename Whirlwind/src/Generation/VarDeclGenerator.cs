@@ -30,7 +30,7 @@ namespace Whirlwind.Generation
                         _setVar(idNode.IdName, _copy(initExpr, varNode.Nodes[1].Type));
                     else
                     {
-                        var varAlloc = LLVM.BuildAlloca(_builder, _convertType(idNode.Type), idNode.IdName);
+                        var varAlloc = _alloca(idNode.Type, idNode.IdName);
                         LLVM.BuildStore(_builder, initExpr, varAlloc);
 
                         _setVar(idNode.IdName, varAlloc, true);
@@ -46,7 +46,7 @@ namespace Whirlwind.Generation
                         _setVar(item.IdName, _getNullValue(item.Type));
                     else
                     {
-                        var varAlloc = LLVM.BuildAlloca(_builder, _convertType(item.Type), item.IdName);
+                        var varAlloc = _alloca(item.Type, item.IdName);
                         LLVM.BuildStore(_builder, _getNullValue(item.Type), varAlloc);
                         _setVar(item.IdName, varAlloc, true);
                     }                    
@@ -67,7 +67,7 @@ namespace Whirlwind.Generation
                         _setVar(item.IdName, _copy(currentInitExpr, tieType));
                     else
                     {
-                        var varAlloc = LLVM.BuildAlloca(_builder, _convertType(item.Type), item.IdName);
+                        var varAlloc = _alloca(item.Type, item.IdName);
                         LLVM.BuildStore(_builder, currentInitExpr, varAlloc);
                         _setVar(item.IdName, varAlloc, true);
                     }                    

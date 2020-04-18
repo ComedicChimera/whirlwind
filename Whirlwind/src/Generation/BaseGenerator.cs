@@ -60,6 +60,7 @@ namespace Whirlwind.Generation
                                     var strLitArrPtr = LLVM.BuildBitCast(_builder, strLitArr, _i8PtrType, "str_lit_arr_ptr_tmp");
 
                                     var strLit = LLVM.BuildAlloca(_builder, _stringType, "string_lit_tmp");
+                                    LLVM.SetAlignment(strLit, WhirlGlobals.POINTER_SIZE);
 
                                     var strLitArrPtrElem = LLVM.BuildStructGEP(_builder, strLit, 0, "string_lit_arr_ptr_elem_ptr_tmp");
                                     LLVM.BuildStore(_builder, strLitArrPtr, strLitArrPtrElem);
@@ -185,22 +186,22 @@ namespace Whirlwind.Generation
                 case SimpleType st:
                     {
                         if (st.Type == SimpleType.SimpleClassifier.STRING)
-                            return _getNullStruct(_stringType, "__string");
+                            return _getNullStruct(_stringType, "__string", 8u);
                         else
                             return LLVM.ConstNull(_convertType(dt));
                     }
                 case PointerType _:
                     return LLVM.ConstPointerNull(_convertType(dt));
                 case StructType _:
-                    return _getNullStruct(_convertType(dt), _getLookupName(dt));
+                    return _getNullStruct(dt, _getLookupName(dt));
                 case IIterableType _:
                     {
                         var iterStructType = _convertType(dt);
-                        return _getNullStruct(iterStructType, _getLLVMStructName(iterStructType));
+                        return _getNullStruct(iterStructType, _getLLVMStructName(iterStructType), _alignOf(dt));
                     }
                 case TupleType tt:
                     {
-                        var tupleStruct = LLVM.BuildAlloca(_builder, _convertType(dt), "null_tuple");
+                        var tupleStruct = _alloca(dt, "null_tuple");
 
                         for (int i = 0; i < tt.Types.Count; i++)
                             _setLLVMStructMember(tupleStruct, _getNullValue(tt.Types[i]), i, tt.Types[i], "tuple_member");
@@ -227,9 +228,14 @@ namespace Whirlwind.Generation
             }
         }
 
-        private LLVMValueRef _getNullStruct(LLVMTypeRef nullStructDt, string structName)
+        private LLVMValueRef _getNullStruct(DataType dt, string structName)
+            => _getNullStruct(_convertType(dt), structName, _alignOf(dt));
+
+        private LLVMValueRef _getNullStruct(LLVMTypeRef nullStructDt, string structName, uint align)
         {
             var nullStruct = LLVM.BuildAlloca(_builder, nullStructDt, "nullstruct_" + structName);
+            LLVM.SetAlignment(nullStruct, align);
+
             LLVM.BuildCall(_builder, _globalScope[structName + "._$initMembers"].Vref, new[] { nullStruct }, "");
 
             return nullStruct;

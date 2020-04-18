@@ -370,7 +370,7 @@ namespace Whirlwind.Generation
             if (dt is SimpleType || dt is TupleType)
                 return vref;
 
-            var copyRef = LLVM.BuildAlloca(_builder, _convertType(dt), "refcopy_tmp");
+            var copyRef = _alloca(dt, "refcopy_tmp");
             _copyLLVMStructTo(copyRef, vref);
 
             switch (dt.Classify())
@@ -466,6 +466,58 @@ namespace Whirlwind.Generation
 
         private LLVMTypeRef _createLLVMStructType(IEnumerable<DataType> memberTypes)
             => LLVM.StructType(memberTypes.Select(x => _convertType(x)).ToArray(), false);
+
+        private LLVMValueRef _alloca(DataType dt, string name="", bool usePtrTypes=false)
+        {
+            if (name == "")
+                name = "alloca." + dt.LLVMName();
+
+            var pureAlloca = LLVM.BuildAlloca(_builder, _convertType(dt, usePtrTypes), name);
+            LLVM.SetAlignment(pureAlloca, _alignOf(dt));
+            return pureAlloca;
+        }
+
+        // pointer size should never be less than an i32 so we can assume that if a struct contains
+        // a pointer and some i32s the pointer size is the largest
+        private uint _alignOf(DataType dt)
+        {
+            switch (dt)
+            {
+                case SimpleType st:
+                    return st.Type == SimpleType.SimpleClassifier.STRING ? WhirlGlobals.POINTER_SIZE : dt.SizeOf();
+                case ArrayType _:
+                case ListType _:
+                case DictType _:
+                case FunctionType _:
+                case AnyType _:
+                case PointerType _:
+                case InterfaceType _:
+                    return WhirlGlobals.POINTER_SIZE;
+                case TupleType tt:
+                    return tt.Types.Select(x => _alignOf(x)).Max();
+                case StructType st:
+                    return st.Members.Select(x => _alignOf(x.Value.DataType)).Max();
+                case CustomInstance ci:
+                    {
+                        if (ci.Parent.IsReferenceType())
+                            return WhirlGlobals.POINTER_SIZE;
+                        else if (ci.Parent.Instances.All(x => x is CustomNewType))
+                            return 2u;
+                        else
+                            // can assume it is a single instance custom alias :D
+                            return _alignOf(((CustomAlias)ci).Type);
+                    }
+                case SelfType selfT:
+                    return _alignOf(selfT.DataType);
+                case GenericSelfInstanceType gsit:
+                    {
+                        gsit.GenericSelf.CreateGeneric(gsit.TypeList, out DataType ginst);
+                        return _alignOf(ginst);
+                    }
+                default:
+                    throw new GeneratorException("Unable to calculate the alignment of the given type");
+            }
+        }
     }
 
     class GeneratorException : Exception

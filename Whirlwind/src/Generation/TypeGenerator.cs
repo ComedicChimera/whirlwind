@@ -131,8 +131,8 @@ namespace Whirlwind.Generation
             }
             else if (dt is SelfType selfT)
                 return _convertType(selfT.DataType, usePtrTypes); // should never be null
-            
-            // TODO: generic self instances?
+            else if (dt is GenericSelfInstanceType gsit)
+                return _makeGenerate(gsit.GenericSelf, usePtrTypes, gsit.TypeList);
 
             return LLVM.VoidType();
         }
@@ -147,11 +147,10 @@ namespace Whirlwind.Generation
             return gStruct;
         }
 
-        // allow for creation of artificial struct generates
-        private LLVMTypeRef _makeGenerate(GenericType gt, bool usePtrTypes, params DataType[] typeArguments)
+        private LLVMTypeRef _makeGenerate(GenericType gt, bool usePtrTypes, List<DataType> typeArguments)
         {
             // assume this will work :D
-            gt.CreateGeneric(typeArguments.ToList(), out DataType generateType);
+            gt.CreateGeneric(typeArguments, out DataType generateType);
             var generate = gt.Generates.Single(x => x.Type.GenerateEquals(generateType));
 
             _genericSuffix = ".variant." + string.Join("_", generate.GenericAliases
@@ -167,6 +166,10 @@ namespace Whirlwind.Generation
 
             return gVar;
         }
+
+        // allow for creation of artificial struct generates
+        private LLVMTypeRef _makeGenerate(GenericType gt, bool usePtrTypes, params DataType[] typeArguments)
+            => _makeGenerate(gt, usePtrTypes, typeArguments.ToList());
 
         private LLVMTypeRef _processGeneric(GenericType gt, DataType ot, bool usePtrTypes)
         {
@@ -195,7 +198,7 @@ namespace Whirlwind.Generation
             // interfaces introduce different casting rules
             if (desired is InterfaceType dInterf)
             {
-                var interf = LLVM.BuildAlloca(_builder, _convertType(dInterf), "interf_box_tmp");
+                var interf = _alloca(dInterf, "interf_box_tmp");
                 var thisElemPtr = LLVM.BuildStructGEP(_builder, interf, 0, "this_elem_ptr_tmp");
 
                 LLVMValueRef thisPtr;
@@ -204,6 +207,8 @@ namespace Whirlwind.Generation
                 else
                 {
                     var castPtr = LLVM.BuildAlloca(_builder, LLVM.PointerType(_convertType(start), 0), "cast_ptr_tmp");
+                    LLVM.SetAlignment(castPtr, WhirlGlobals.POINTER_SIZE);
+
                     LLVM.BuildStore(_builder, val, castPtr);
 
                     thisPtr = LLVM.BuildBitCast(_builder, castPtr, _i8PtrType, "this_ptr_tmp");
@@ -231,12 +236,15 @@ namespace Whirlwind.Generation
                 else
                 {
                     var castPtr = LLVM.BuildAlloca(_builder, LLVM.PointerType(_convertType(start), 0), "cast_ptr_tmp");
+                    LLVM.SetAlignment(castPtr, WhirlGlobals.POINTER_SIZE);
+
                     LLVM.BuildStore(_builder, val, castPtr);
 
                     i8AnyValuePtr = LLVM.BuildBitCast(_builder, castPtr, _i8PtrType, "cast_tmp");
                 }
 
                 var anyStruct = LLVM.BuildAlloca(_builder, _anyType, "any_struct_tmp");
+                LLVM.SetAlignment(anyStruct, WhirlGlobals.POINTER_SIZE);
 
                 var anyValElemPtr = LLVM.BuildStructGEP(_builder, anyStruct, 0, "any_val_elem_ptr_tmp");
                 LLVM.BuildStore(_builder, i8AnyValuePtr, anyValElemPtr);
@@ -317,7 +325,7 @@ namespace Whirlwind.Generation
                 // tuples can only be cast from tuples to tuples (excluding interface case which already handled)
                 var dtt = (TupleType)desired;
 
-                var castTuple = LLVM.BuildAlloca(_builder, _convertType(dtt), "cast_tuple_tmp");
+                var castTuple = _alloca(dtt, "cast_tuple_tmp");
                 for (int i = 0; i < stt.Types.Count; i++)
                 {
                     var tupleElem = _getLLVMStructMember(val, i, stt.Types[i], $"tuple_elem.{i}");

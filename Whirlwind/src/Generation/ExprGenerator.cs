@@ -218,7 +218,7 @@ namespace Whirlwind.Generation
                     case "InitList":
                         {
                             var st = (StructType)enode.Nodes[0].Type;
-                            var root = LLVM.BuildAlloca(_builder, _convertType(st), "initl_struct_tmp");
+                            var root = _alloca(st, "initl_struct_tmp");
 
                             foreach (var item in enode.Nodes.Skip(1))
                             {
@@ -542,7 +542,7 @@ namespace Whirlwind.Generation
                                     return genSym.Vref;
                             }
 
-                            var ptr = LLVM.BuildAlloca(_builder, _convertType(enode.Nodes[0].Type), "indirect_tmp");
+                            var ptr = _alloca(enode.Nodes[0].Type, "indirect_tmp");
                             LLVM.BuildStore(_builder, _generateExpr(enode.Nodes[0]), ptr);
 
                             return ptr;
@@ -643,6 +643,9 @@ namespace Whirlwind.Generation
                     case "Is":
                         _generateIs(enode);
                         break;
+                    // handle initializer expressions (passed from var-decl generator)
+                    case "Initializer":
+                        return _generateExpr(enode.Nodes[0]);
                 }
             }
 
@@ -865,6 +868,10 @@ namespace Whirlwind.Generation
         {
             var tupleType = _createLLVMStructType(nodes.Select(x => x.Type));
             var tupleAlloca = LLVM.BuildAlloca(_builder, tupleType, "tuple_lit_tmp");
+            LLVM.SetAlignment(tupleAlloca, nodes
+                .Select(x => x.Type)
+                .Max(x => _alignOf(x))
+                );
 
             for (int i = 0; i < nodes.Count; i++)
             {
@@ -891,6 +898,8 @@ namespace Whirlwind.Generation
             if (rootType.Values.Count > 1)
             {
                 var tuple = LLVM.BuildAlloca(_builder, _createLLVMStructType(rootType.Values), "from_tuple_tmp");
+                LLVM.SetAlignment(tuple, _alignOf(enode.Type));
+
                 var tupleTypes = ((TupleType)enode.Type).Types;
 
                 for (int i = 0; i < rootType.Values.Count; i++)
@@ -920,7 +929,7 @@ namespace Whirlwind.Generation
             {
                 var transformedArgArray = new LLVMValueRef[argArray.Length + 1];
 
-                rtPtr = LLVM.BuildAlloca(_builder, _convertType(ft.ReturnType), "rtptr_tmp");
+                rtPtr = _alloca(ft.ReturnType, "rtptr_tmp");
 
                 transformedArgArray[0] = rtPtr;
                 argArray.CopyTo(transformedArgArray, 1);
@@ -969,7 +978,7 @@ namespace Whirlwind.Generation
 
         private LLVMValueRef _generateCallConstructor(ExprNode enode)
         {
-            var newStruct = LLVM.BuildAlloca(_builder, _convertType(enode.Type), "nstruct_tmp");
+            var newStruct = _alloca(enode.Type, "nstruct_tmp");
 
             var st = (StructType)enode.Nodes[0].Type;
             string lookupName = _getLookupName(enode.Type);
@@ -1009,7 +1018,7 @@ namespace Whirlwind.Generation
 
             if (cnt.Values.Count == 1)
             {
-                var valPtr = LLVM.BuildAlloca(_builder, _convertType(cnt.Values[0]), "tc_valptr_tmp");
+                var valPtr = _alloca(cnt.Values[0], "tc_valptr_tmp");
 
                 var initExpr = _generateExpr(enode.Nodes[1]);
                 if (_isReferenceType(cnt.Values[0]))
@@ -1021,6 +1030,7 @@ namespace Whirlwind.Generation
 
                 tcRef = LLVM.BuildAlloca(_builder, LLVM.StructType(
                     new[] { LLVM.Int16Type(), valPtr.TypeOf(), LLVM.Int32Type() }, false), "tc_tmp");
+                LLVM.SetAlignment(tcRef, WhirlGlobals.POINTER_SIZE);
 
                 var firstElem = LLVM.BuildBitCast(_builder, tcRef, LLVM.PointerType(LLVM.Int16Type(), 0), "tc_enum_ptr_tmp");
                 LLVM.BuildStore(_builder, LLVM.ConstInt(LLVM.Int16Type(), (ulong)cnt.Parent.Instances.IndexOf(cnt), new LLVMBool(0)),
@@ -1042,10 +1052,11 @@ namespace Whirlwind.Generation
                     LLVM.ConstInt(LLVM.Int32Type(), (ulong)cnt.Values.Count, new LLVMBool(0)),
                     "tc_valarr_tmp"
                     );
+                LLVM.SetAlignment(valArrPtr, WhirlGlobals.POINTER_SIZE);
 
                 for (int i = 0; i < cnt.Values.Count; i++)
                 {
-                    var valPtr = LLVM.BuildAlloca(_builder, _convertType(cnt.Values[i]), "tc_elem_valptr_tmp");
+                    var valPtr = _alloca(cnt.Values[i], "tc_elem_valptr_tmp");
 
                     var initExpr = _generateExpr(enode.Nodes[i + 1]);
                     if (_isReferenceType(cnt.Values[i]))
@@ -1065,6 +1076,7 @@ namespace Whirlwind.Generation
 
                 tcRef = LLVM.BuildAlloca(_builder, LLVM.StructType(
                     new[] { LLVM.Int16Type(), valArrPtr.TypeOf(), LLVM.Int32Type() }, false), "tc_tmp");
+                LLVM.SetAlignment(tcRef, WhirlGlobals.POINTER_SIZE);
 
                 var firstElem = LLVM.BuildBitCast(_builder, tcRef, LLVM.PointerType(LLVM.Int16Type(), 0), "tc_enum_ptr_tmp");
                 LLVM.BuildStore(_builder, firstElem,
@@ -1154,7 +1166,7 @@ namespace Whirlwind.Generation
 
             var defaultBlock = LLVM.AppendBasicBlock(_currFunctionRef, "default");
             var selectEnd = LLVM.AppendBasicBlock(_currFunctionRef, "select_end");
-            var selectResult = LLVM.BuildAlloca(_builder, _convertType(enode.Type), "select_result_tmp");
+            var selectResult = _alloca(enode.Type, "select_result_tmp");
 
             bool noDefault = _generateSelectLogic(selectType, selectExprNode,
                 caseNodes.ToList(), caseBlocks, defaultBlock,
@@ -1343,6 +1355,7 @@ namespace Whirlwind.Generation
             var i8StatePtr = LLVM.BuildBitCast(_builder, state, _i8PtrType, "state_ptr_tmp");
 
             var boxedFunctionStruct = LLVM.BuildAlloca(_builder, LLVM.StructType(new[] { fn.TypeOf(), _i8PtrType }, false), "boxed_fn_tmp");
+            LLVM.SetAlignment(boxedFunctionStruct, WhirlGlobals.POINTER_SIZE);
 
             var fnElem = LLVM.BuildStructGEP(_builder, boxedFunctionStruct, 0, "boxed_fn_fnptr_tmp");
             LLVM.BuildStore(_builder, fn, fnElem);
@@ -1360,7 +1373,8 @@ namespace Whirlwind.Generation
             // we know `this` is always a pointer so just do a fast bitcast
             var i8ThisPtr = LLVM.BuildBitCast(_builder, thisVref, _i8PtrType, "i8_this_ptr_tmp");
 
-            var interfStruct = LLVM.BuildAlloca(_builder, _convertType(superInterf), "super_interf_tmp");
+            var interfStruct = _alloca(superInterf, "super_interf_tmp");
+
             _setLLVMStructMember(interfStruct, i8ThisPtr, 0, new PointerType(new SimpleType(SimpleType.SimpleClassifier.BYTE, true), false));
 
             var dt = new NoneType(); // TEMPORARY

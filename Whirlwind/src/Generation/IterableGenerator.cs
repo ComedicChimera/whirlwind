@@ -39,7 +39,7 @@ namespace Whirlwind.Generation
                 if (idName != "_")
                 {
                     iterVars[idName] = new Tuple<LLVMValueRef, int>(
-                    LLVM.BuildAlloca(_builder, _convertType(item.Type, true), idName),
+                    _alloca(item.Type, idName, true),
                     i);
                 }               
             }

@@ -223,7 +223,7 @@ namespace Whirlwind.Generation
                         {
                             var id = (IdentifierNode)enode.Nodes[0];
 
-                            var iterVarPtr = LLVM.BuildAlloca(_builder, _convertType(id.Type, true), id.IdName);
+                            var iterVarPtr = _alloca(id.Type, id.IdName, true);
                             // no need to cast check here since iterator variables can't have type specifiers
                             LLVM.BuildStore(_builder, _generateExpr(enode.Nodes[1]), iterVarPtr);
 

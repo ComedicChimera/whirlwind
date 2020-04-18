@@ -453,6 +453,8 @@ namespace Whirlwind.Generation
                         else
                         {
                             var varRef = LLVM.BuildAlloca(_builder, selectItems[c].TypeOf(), pVar.eName);
+                            LLVM.SetAlignment(varRef, _alignOf(types[c]));
+
                             LLVM.BuildStore(_builder, selectItems[c], varRef);
 
                             scopes[r].Add(pVar.eName, new GeneratorSymbol(varRef, true));
