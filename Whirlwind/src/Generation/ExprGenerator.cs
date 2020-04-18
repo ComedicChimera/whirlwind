@@ -459,6 +459,9 @@ namespace Whirlwind.Generation
                         return _buildBinop(LLVM.BuildOr, enode, _getCommonType(enode));
                     case "BXor":
                         return _buildBinop(LLVM.BuildXor, enode, _getCommonType(enode));
+                    case "And":
+                    case "Or":
+                        return _buildShortCircuitBinop(enode, expr.Name == "And");
                     // TODO: short circuit evaluation for logical and and logical or
                     // TODO: check for overloads on complement, not, and change sign
                     case "Complement":
@@ -681,6 +684,65 @@ namespace Whirlwind.Generation
             var binopBuilder = nbbfactory(instrCat);
 
             return _buildBinop(binopBuilder, node, commonType, true);
+        }
+
+        private LLVMValueRef _buildShortCircuitBinop(ExprNode enode, bool isAnd)
+        {
+            var commonType = _getCommonType(enode);
+
+            if (commonType is SimpleType st && st.Type == SimpleType.SimpleClassifier.BOOL)
+            {
+                var thenBlocks = new List<LLVMBasicBlockRef>();
+                var exitBlock = LLVM.AppendBasicBlock(_currFunctionRef, "sc_logical_end");
+
+                var currBlock = LLVM.GetInsertBlock(_builder);
+                var finalValue = _ignoreValueRef();
+                for (int i = 0; i < enode.Nodes.Count; i++)
+                {
+                    bool last = i == enode.Nodes.Count - 1;
+                    var node = enode.Nodes[i];
+
+                    var operand = _generateExpr(node);
+                    thenBlocks.Add(currBlock);
+
+                    if (last)
+                    {
+                        finalValue = operand;
+                        LLVM.BuildBr(_builder, exitBlock);
+                        LLVM.PositionBuilderAtEnd(_builder, exitBlock);
+                    }
+                    else
+                    {
+                        var thenBlock = LLVM.AppendBasicBlock(_currFunctionRef, "sc_logical_then");
+
+                        if (isAnd)
+                            LLVM.BuildCondBr(_builder, operand, thenBlock, exitBlock);
+                        else
+                            LLVM.BuildCondBr(_builder, operand, exitBlock, thenBlock);
+
+                        currBlock = thenBlock;
+                        LLVM.PositionBuilderAtEnd(_builder, currBlock);
+                    }                             
+                }
+
+                // if the incoming block is not the final block then we know a short circuit occurred
+                // therefore we can simply use a constant value as opposed to using the preexisting value
+                // not sure if there is a speed difference, but it is probably easier on the codegen
+                // select that value based on the operation (false if `and` since false exits `and` and
+                // same logic in reverse for `or`)
+                var constResult = LLVM.ConstInt(LLVM.Int1Type(), isAnd ? 0u : 1u, new LLVMBool(0));
+
+                var phiNode = LLVM.BuildPhi(_builder, LLVM.Int1Type(), "logical_op_result");
+
+                phiNode.AddIncoming(Enumerable.Repeat(constResult, thenBlocks.Count - 1)
+                    .Append(finalValue).ToArray(), thenBlocks.ToArray(), (uint)thenBlocks.Count);
+
+                LLVM.MoveBasicBlockAfter(exitBlock, thenBlocks.Last());
+
+                return phiNode;
+            }
+            else
+                return _buildBinop(isAnd ? (BinopBuilder)LLVM.BuildAnd : LLVM.BuildOr, enode, commonType);
         }
 
         private LLVMValueRef _buildBinop(BinopBuilder bbuilder, ExprNode node, DataType commonType, bool noOverloads = false)
