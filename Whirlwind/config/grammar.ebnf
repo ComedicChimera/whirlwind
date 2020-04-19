@@ -353,7 +353,8 @@ initializer: '=' expr ;
 
 // iterator syntax
 iterator: iter_var (',' iter_var)* '<-' expr ;
-iter_var: 'IDENTIFIER' | '_' ;
+iter_var: 'IDENTIFIER' | '_' | tuple_iter_vars ;
+tuple_iter_vars: '(' iter_var (',' iter_var)+ ')' ;
 
 // type extension
 extension: [':' types] ;

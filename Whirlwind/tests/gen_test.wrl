@@ -1,9 +1,3 @@
 ﻿func main() {
-	let (a = 12, b = 17);
-
-	let c = a & b + a | b;
-
-	let d = a ^ b ^ c;
-
-	// let f = c * d + (|x: int| => x * 2)(a | b);
+	
 }

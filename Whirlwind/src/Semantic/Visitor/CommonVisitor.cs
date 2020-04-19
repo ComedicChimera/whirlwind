@@ -10,7 +10,7 @@ namespace Whirlwind.Semantic.Visitor
 {
     partial class Visitor
     {
-        public void _visitIterator(ASTNode node, bool constant)
+        public void _visitIterator(ASTNode node)
         {
             // knows last node is expr
             _visitExpr((ASTNode)node.Content.Last());
@@ -37,42 +37,63 @@ namespace Whirlwind.Semantic.Visitor
             }
             else
                 throw new SemanticException("Missing implementation for type `iterable`", node.Position);
-            
-
-            string[] identifiers = node.Content
-                .Where(x => x.Name == "iter_var")
-                .Select(x => ((ASTNode)x).Content[0])
-                .Select(x => ((TokenNode)x).Tok.Value)
-                .ToArray();
 
             var iteratorTypes = iteratorType.Classify() == TypeClassifier.TUPLE ? ((TupleType)iteratorType).Types : 
-                new List<DataType>() { iteratorType };
-
-            if (constant)
-                iteratorTypes = iteratorTypes.Select(x => x.ConstCopy()).ToList();
-
-            if (identifiers.Length != iteratorTypes.Count)
-                throw new SemanticException("Base iterator and its aliases don't match", node.Position);
+                new List<DataType>() { iteratorType };       
 
             _nodes.Add(new ExprNode("Iterator", new NoneType()));
             // push forward base expression
             PushForward();
 
-            for (int i = 0; i < identifiers.Length; i++)
-            {
-                if (identifiers[i] != "_")
-                {
-                    if (!_table.AddSymbol(new Symbol(identifiers[i], iteratorTypes[i])))
-                        throw new SemanticException("Iterator cannot contain duplicate aliases",
-                            node.Content.Where(x => x.Name == "iter_var").Select(x => ((ASTNode)x).Content[0].Position).ElementAt(i)
-                        );
-                }
-                    
+            int identifierCount = _visitIteratorAliases(node.Content, iteratorTypes);
 
-                _nodes.Add(new IdentifierNode(identifiers[i], iteratorTypes[i]));
+            if (identifierCount != iteratorTypes.Count)
+                throw new SemanticException("Base iterator and its aliases don't match", node.Position);
+
+            MergeBack(identifierCount);
+        }
+
+        private int _visitIteratorAliases(List<INode> iterVars, List<DataType> iteratorTypes)
+        {
+            int identifierCount = 0;
+
+            foreach (var item in iterVars)
+            {
+                if (item.Name == "iter_var")
+                {
+                    if (identifierCount == iteratorTypes.Count)
+                        throw new SemanticException("Too many aliases for iterator unpacking", item.Position);
+
+                    var currType = iteratorTypes[identifierCount++];
+                    var iterVar = ((ASTNode)item).Content[0];
+
+                    if (iterVar is TokenNode tkNode && tkNode.Tok.Value != "_")
+                    {
+                        if (!_table.AddSymbol(new Symbol(tkNode.Tok.Value, currType)))
+                            throw new SemanticException("Iterator cannot contain duplicate aliases", item.Position);
+
+                        _nodes.Add(new IdentifierNode(tkNode.Tok.Value, currType));
+                    }
+                    // unpacking iterator
+                    else
+                    {
+                        var tupleIterVar = (ASTNode)iterVar;
+
+                        if (currType is TupleType tt)
+                        {
+                            if (_visitIteratorAliases(tupleIterVar.Content, tt.Types) != tt.Types.Count)
+                                throw new SemanticException("Too few aliases for iterator unpacking", item.Position);
+
+                            _nodes.Add(new ExprNode("UnpackIterator", tt));
+                            PushForward(tt.Types.Count);
+                        }
+                        else
+                            throw new SemanticException("Unable to unpack type of " + currType.ToString(), item.Position);
+                    }
+                }
             }
 
-            MergeBack(identifiers.Length);
+            return identifierCount;
         }
 
         private DataType _getIterableElementType(DataType iterable)
