@@ -195,13 +195,13 @@ Optional Type:
 
     include { println } from io::std;
 
-    type Option&lt;T&gt;
+    type Option<T>
         | Some(T)
         | None
         ;
 
-    interf&lt;T&gt; for Option&lt;T&gt; is Monad&lt;T&gt; {
-        operator >>= (fn: func(T)(Option&lt;T&gt;)) Option&lt;T&gt; {
+    interf<T> for Option<T> is Monad<T> {
+        operator >>= (fn: func(T)(Option<T>)) Option<T> {
             if (this is None)
                 return None;
             else
