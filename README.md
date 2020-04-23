@@ -134,4 +134,87 @@ suggestions and contributions to help make this language as great as it can be.
 By the time it is finished, this language will likely be the culminations of thousands of hours of work
 and I sincerely believe it will be worth it.
 
+## Additional Examples
 
+Fibonacci:
+
+    include { println } from io::std;
+
+    func fib() const func()(int) {
+        let (a = 0, b = 1);
+
+        func f() int {
+            yield a;
+
+            a, b = b, a + b;
+        }
+
+        return f;
+    }
+
+    func main() {
+        let f = fib();
+
+        // prints first 10 fibonacci numbers
+        for (i = 0; i < 10; i++) {
+            println(f());
+        }
+
+        f = fib();
+        f(); // 0
+    }
+
+Radix Sort:
+
+    include { println } from io::std;
+
+    func radixSort(list: [int]) [int] {
+        let mx = list.max();
+
+        for (it = 0; 10 ~^ it < mx; it++) {
+            let buckets = [null as [int] | _ <- 1..10];
+
+            for (item <- list)
+                buckets[item ~/ (10 ~^ it) % 10].push(item);
+
+            list = list.flatten().toList();
+        }
+
+        return list;
+    }
+
+    func main() {
+        let list = [9, 4, 7, 8, 2, 3, 9, 0, 0, 1];
+
+        list = radixSort(list);
+
+        println(list); // [0, 0, 1, 2, 3, 4, 7, 8, 9, 9]
+    }
+    
+Optional Type:
+
+    include { println } from io::std;
+
+    type Option&lt;T&gt;
+        | Some(T)
+        | None
+        ;
+
+    interf&lt;T&gt; for Option&lt;T&gt; is Monad&lt;T&gt; {
+        operator >>= (fn: func(T)(Option&lt;T&gt;)) Option&lt;T&gt; {
+            if (this is None)
+                return None;
+            else
+                return fn(from this as Some);
+        }
+
+        // -- snip -- (:> operator overload)
+    }
+
+    func main() {
+        let (optA = Some(5), optB = Some(6));
+
+        let sum = optA >>= |x| => optB >>= |y| => Some(x + y);
+
+        println(from sum as Some); // 11
+    }
