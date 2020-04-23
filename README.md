@@ -50,18 +50,18 @@ Whirlwind is designed to have a smooth, expressive, and concise syntax.  It is a
 
 A FizzBuzz function in Whirlwind might look like the following:
 
-    include { Println } from io::std;
+    import { println } from io::std;
     
     func fizzBuzz() {
         for (i = 0; i < 100; i++) {
             if (i % 3 == 0 && i % 5 == 0)
-                Println("FizzBuzz");
+                println("FizzBuzz");
             elif (i % 3 == 0)
-                Println("Fizz");
+                println("Fizz");
             elif (i % 5 == 0)
-                Println("Buzz");
+                println("Buzz");
             else
-                Println(i);
+                println(i);
         }
     }
     
@@ -138,7 +138,7 @@ and I sincerely believe it will be worth it.
 
 Fibonacci:
 
-    include { println } from io::std;
+    import { println } from io::std;
 
     func fib() const func()(int) {
         let (a = 0, b = 1);
@@ -166,9 +166,9 @@ Fibonacci:
 
 Radix Sort:
 
-    include { println } from io::std;
+    import { println } from io::std;
 
-    func radixSort(list: [int]) [int] {
+    func radix_sort(list: [int]) [int] {
         let mx = list.max();
 
         for (it = 0; 10 ~^ it < mx; it++) {
@@ -177,7 +177,7 @@ Radix Sort:
             for (item <- list)
                 buckets[item ~/ (10 ~^ it) % 10].push(item);
 
-            list = list.flatten().toList();
+            list = list.flatten().to_list();
         }
 
         return list;
@@ -186,14 +186,14 @@ Radix Sort:
     func main() {
         let list = [9, 4, 7, 8, 2, 3, 9, 0, 0, 1];
 
-        list = radixSort(list);
+        list = radix_sort(list);
 
         println(list); // [0, 0, 1, 2, 3, 4, 7, 8, 9, 9]
     }
     
 Optional Type:
 
-    include { println } from io::std;
+    import { println } from io::std;
 
     type Option<T>
         | Some(T)
@@ -212,9 +212,9 @@ Optional Type:
     }
 
     func main() {
-        let (optA = Some(5), optB = Some(6));
+        let (opt_a = Some(5), opt_b = Some(6));
 
-        let sum = optA >>= |x| => optB >>= |y| => Some(x + y);
+        let sum = opt_a >>= |x| => opt_b >>= |y| => Some(x + y);
 
         println(from sum as Some); // 11
     }
