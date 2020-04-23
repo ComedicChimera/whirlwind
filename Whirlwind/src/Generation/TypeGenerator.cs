@@ -457,33 +457,6 @@ namespace Whirlwind.Generation
                 throw new NotImplementedException("Unable to get struct name of something that is not a struct kind.");
 
             return tr.PrintTypeToString().Split("=")[0].Trim().Substring(1);
-        }
-
-        private Tuple<LLVMValueRef, bool> _getHash(LLVMValueRef vref, DataType dt)
-        {
-            vref = _callMethod(vref, dt, "__hash__", new SimpleType(SimpleType.SimpleClassifier.LONG));
-
-            return new Tuple<LLVMValueRef, bool>(vref, false);
-        }
-
-        private bool _needsHash(DataType dt)
-        {
-            if (dt is SimpleType st && _getSimpleClass(st) == 0)
-                return false;
-            else if (dt is CustomInstance ci)
-            {
-                if (ci.Parent.IsReferenceType())
-                    throw new NotImplementedException();
-
-                // no reference types => no values => i16
-                if (ci.Parent.Instances.All(x => x is CustomNewType))
-                    return false;
-
-                // can assume it is a pure type alias if it reaches this point
-                return _needsHash(((CustomAlias)ci.Parent.Instances.First()).Type);
-            }
-
-            return true;
-        }
+        }       
     }
 }

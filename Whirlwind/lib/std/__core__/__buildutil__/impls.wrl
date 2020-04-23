@@ -88,7 +88,7 @@ func __memcpy(dest: *byte, src: *byte, size: uint) {
 
 // INTRINSIC FUNCTIONS
 #intrinsic
-func __malloca(size: uint) *byte;
+func malloca(size: uint) *byte;
 
 #intrinsic
-func __hash(v: any) ulong;
+func hash(v: any) (ulong, bool);

@@ -1,0 +1,51 @@
+﻿export {
+	interf Iterator<T> {
+		func next() (T, bool);
+
+		func map<R>(fn: func(T)(R)) Iterator<R>
+			=> new MapIterator{ it = &this, fn = fn};
+
+		func filter(fn: func(T)(bool)) Iterator<T>
+			=> new FilterIterator { it = &this, fn = fn };
+	}
+
+	struct MapIterator<T, R> {
+		it: *Iterator<T>;
+		fn: func(T)(R);
+	}
+
+	interf<T, R> for MapIterator<T, R> is Iterator<R> {
+		func next() (T, bool) {
+			let (result, n) = this.it->next();
+
+			if (n)
+				return this.fn(result), true;
+			else
+				return null, false;
+		}
+	}
+
+	struct FilterIterator<T> {
+		it: *Iterator<T>;
+		fn: func(T)(bool);
+	}
+
+	interf<T> for FilterIterator<T> is Iterator<T> {
+		func next() (T, bool) {
+			for {
+				let (result, n) = this.it->next();
+
+				if (!n)
+					return null, false;
+				elif (this.fn(result))
+					return result, true;
+				else
+					continue;
+			}
+		}
+	}
+
+	interf Iterable<T> {
+		func iter() Iterator<T>;
+	}
+}

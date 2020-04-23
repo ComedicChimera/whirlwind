@@ -19,14 +19,14 @@ struct ErrorData {
 	// stack trace, memory, etc.
 }
 
-func die(err: Error) {
+func panic(msg: str) {
 
 }
 
-func die(err: ErrorKind) {
+func panic(err: Error) {
 
 }
 
-func die(msg: str) {
-    
+func panic(ek: ErrorKind) {
+
 }
