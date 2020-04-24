@@ -50,18 +50,18 @@ Whirlwind is designed to have a smooth, expressive, and concise syntax.  It is a
 
 A FizzBuzz function in Whirlwind might look like the following:
 
-    include { Println } from io::std;
+    import { println } from io::std;
     
     func fizzBuzz() {
         for (i = 0; i < 100; i++) {
             if (i % 3 == 0 && i % 5 == 0)
-                Println("FizzBuzz");
+                println("FizzBuzz");
             elif (i % 3 == 0)
-                Println("Fizz");
+                println("Fizz");
             elif (i % 5 == 0)
-                Println("Buzz");
+                println("Buzz");
             else
-                Println(i);
+                println(i);
         }
     }
     
@@ -134,4 +134,87 @@ suggestions and contributions to help make this language as great as it can be.
 By the time it is finished, this language will likely be the culminations of thousands of hours of work
 and I sincerely believe it will be worth it.
 
+## Additional Examples
 
+Fibonacci:
+
+    import { println } from io::std;
+
+    func fib() const func()(int) {
+        let (a = 0, b = 1);
+
+        func f() int {
+            yield a;
+
+            a, b = b, a + b;
+        }
+
+        return f;
+    }
+
+    func main() {
+        let f = fib();
+
+        // prints first 10 fibonacci numbers
+        for (i = 0; i < 10; i++) {
+            println(f());
+        }
+
+        f = fib();
+        f(); // 0
+    }
+
+Radix Sort:
+
+    import { println } from io::std;
+
+    func radix_sort(list: [int]) [int] {
+        let mx = list.max();
+
+        for (it = 0; 10 ~^ it < mx; it++) {
+            let buckets = [null as [int] | _ <- 1..10];
+
+            for (item <- list)
+                buckets[item ~/ (10 ~^ it) % 10].push(item);
+
+            list = list.flatten().to_list();
+        }
+
+        return list;
+    }
+
+    func main() {
+        let list = [9, 4, 7, 8, 2, 3, 9, 0, 0, 1];
+
+        list = radix_sort(list);
+
+        println(list); // [0, 0, 1, 2, 3, 4, 7, 8, 9, 9]
+    }
+    
+Optional Type:
+
+    import { println } from io::std;
+
+    type Option<T>
+        | Some(T)
+        | None
+        ;
+
+    interf<T> for Option<T> is Monad<T> {
+        operator >>= (fn: func(T)(Option<T>)) Option<T> {
+            if (this is None)
+                return None;
+            else
+                return fn(from this as Some);
+        }
+
+        // -- snip -- (:> operator overload)
+    }
+
+    func main() {
+        let (opt_a = Some(5), opt_b = Some(6));
+
+        let sum = opt_a >>= |x| => opt_b >>= |y| => Some(x + y);
+
+        println(from sum as Some); // 11
+    }
