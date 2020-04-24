@@ -149,10 +149,9 @@ yield_stmt: 'YIELD' expr (',' expr)* ;
 
 
 // EXPRESSIONS - basic unit of statements 
-expr: expr_var | func_op [expr_extension] ;
-expr_extension: 'IF' expr 'ELSE' expr 
-| select_extension+
-| 'IS' type_id [then_extension]
+expr: expr_var | cond_expr [expr_extension] ;
+expr_extension: select_extension+
+| 'IS' type_id [is_constr] [then_extension]
 | ':>' expr
 | then_extension
 | '.' '.' expr
@@ -162,6 +161,9 @@ expr_extension: 'IF' expr 'ELSE' expr
 // expression local variable declaration
 expr_var: 'IDENTIFIER' '=' func_op then_extension ;
 
+// conditional expression (isolated to make visiting easier)
+cond_expr: func_op [ 'IF' func_op 'ELSE' func_op ] ;
+
 // then extension
 then_extension: 'THEN' expr ;
 
@@ -169,6 +171,9 @@ then_extension: 'THEN' expr ;
 select_extension: 'SELECT' '{' inline_case (',' inline_case)* [default_case] '}' ;
 inline_case: case_expr (',' case_expr)* '=>' expr ;
 default_case: ',' '_' '=>' expr ;
+
+// type constructor used is expression
+is_constr: '(' ('IDENTIFIER' | '_') (',' ('IDENTIFIER' | '_'))* ')' ;
 
 // functional/monadic operators
 func_op: or (('>>=' | '~*') or)* ;
@@ -300,7 +305,7 @@ sizeof_call: 'SIZEOF' '(' types ')' ;
 
 // DATA TYPES - data type literals
 types: ['CONST'] ( base_types
-| 'IDENTIFIER' static_get* [generic_spec]
+| 'IDENTIFIER' (static_get | generic_spec)*
 )
 ;
 

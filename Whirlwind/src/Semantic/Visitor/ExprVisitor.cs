@@ -21,8 +21,8 @@ namespace Whirlwind.Semantic.Visitor
             {
                 foreach (var subNode in node.Content)
                 {
-                    if (subNode.Name == "func_op")
-                        _visitFuncOp((ASTNode)subNode);
+                    if (subNode.Name == "cond_expr")
+                        _visitCondExpr((ASTNode)subNode);
                     else if (subNode.Name == "expr_var")
                     {
                         ASTNode exprVarDecl = (ASTNode)subNode;
@@ -82,86 +82,8 @@ namespace Whirlwind.Semantic.Visitor
                                 _visitThen((ASTNode)item, needsSubscope);
                         }
 
-                        if (op == "IF")
-                        {
-                            var dt = _nodes.Last().Type;
-
-                            // avoid null
-                            if (_isVoidOrNull(dt))
-                                dt = _nodes[_nodes.Count - 3].Type;
-
-                            _nodes.Add(new ExprNode("InlineCompare", dt));
-                            PushForward(3);
-
-                            var content = ((ExprNode)_nodes.Last()).Nodes;
-
-                            if (!new SimpleType(SimpleType.SimpleClassifier.BOOL).Coerce(content[1].Type))
-                                throw new SemanticException("Comparison expression of inline comparison must evaluate to a boolean", node.Content[0].Position);
-
-                            if (!content[0].Type.Coerce(content[2].Type) || !content[2].Type.Coerce(content[0].Type))
-                                throw new SemanticException("Possible results of inline comparison must be the same type", ((ASTNode)subNode).Content.Last().Position);
-                        }
-                        else if (op == "IS")
-                        {
-                            ASTNode rOperand = (ASTNode)((ASTNode)subNode).Content[1];
-                            bool createdScope = false;
-
-                            DataType dt;
-                            var typeNode = ((ASTNode)rOperand.Content.Last());
-                            if (typeNode.Content[0] is TokenNode tk && tk.Tok.Type == "IDENTIFIER"
-                                && _table.Lookup(tk.Tok.Value, out Symbol sym) && sym.DataType is CustomNewType)
-                            {
-                                dt = sym.DataType;
-                            }
-                            else
-                                dt = _generateType(typeNode);
-
-                            if (rOperand.Content.Count > 1)
-                            {
-                                var tkNode = ((TokenNode)rOperand.Content[0]);
-
-                                if (needsSubscope)
-                                {
-                                    _table.AddScope();
-                                    _table.DescendScope();
-
-                                    createdScope = true;
-                                }
-
-                                if (!_table.AddSymbol(new Symbol(tkNode.Tok.Value, dt)))
-                                {
-                                    if (needsSubscope)
-                                        _table.AscendScope();
-
-                                    throw new SemanticException("Unable to redeclare symbol in scope", tkNode.Position);
-                                }
-
-                                _nodes.Add(new IdentifierNode(tkNode.Tok.Value, dt));
-                            }
-                            else
-                                _nodes.Add(new ValueNode("Type", dt));
-
-                            var boolType = new SimpleType(SimpleType.SimpleClassifier.BOOL);
-
-                            _nodes.Add(new ExprNode("Is", boolType));
-
-                            PushForward(2);
-
-                            try
-                            {
-                                if (((ASTNode)subNode).Content.Last() is ASTNode anode && anode.Name == "then_extension")
-                                {
-                                    _thenExprType = boolType;
-
-                                    _visitThen(anode, false);
-                                }
-                            }
-                            finally
-                            {
-                                if (createdScope)
-                                    _table.AscendScope();
-                            }
-                        }
+                        if (op == "IS")
+                            _visitIsExpr((ASTNode)subNode, needsSubscope);
                         else if (op == ":>")
                         {
                             var extractExpr = (ASTNode)subNode;
@@ -174,14 +96,14 @@ namespace Whirlwind.Semantic.Visitor
                                 _visitExpr((ASTNode)extractExpr.Content[1]);
 
                                 if (!mType.Coerce(_nodes.Last().Type))
-                                    throw new SemanticException("Expression of `:>` operator must return the source type", 
+                                    throw new SemanticException("Expression of `:>` operator must return the source type",
                                         extractExpr.Content[1].Position);
 
                                 _nodes.Add(new ExprNode("ExtractInto", mType));
                                 PushForward(2);
                             }
                             else
-                                throw new SemanticException("The `:>` operator is not defined on type of " + _nodes.Last().Type.ToString(), 
+                                throw new SemanticException("The `:>` operator is not defined on type of " + _nodes.Last().Type.ToString(),
                                     extractExpr.Content[0].Position);
                         }
                         else if (op == ".")
@@ -236,7 +158,7 @@ namespace Whirlwind.Semantic.Visitor
                             {
                                 _isTypeCast = false;
                             }
-                            
+
                             if (!TypeCast(dt, desired))
                             {
                                 if (!(dt is StructType && (_getImpl(desired)?.Equals(dt) ?? false)))
@@ -669,14 +591,153 @@ namespace Whirlwind.Semantic.Visitor
             return true;
         }
 
+        private void _visitIsExpr(ASTNode node, bool needsSubscope)
+        {
+            var boolType = new SimpleType(SimpleType.SimpleClassifier.BOOL);
+
+            _nodes.Add(new ExprNode("Is", boolType));
+            PushForward();
+
+            DataType dt = new NoneType();
+            bool isTypeId = false;
+            foreach (var elem in node.Content)
+            {
+                var anode = (ASTNode)elem;
+
+                switch (anode.Name)
+                {
+                    case "type_id":
+                        {
+                            _isTypeCast = true;
+
+                            try
+                            {
+                                dt = _generateType((ASTNode)anode.Content.Last());
+                            }
+                            finally
+                            {
+                                _isTypeCast = false;
+                            }
+
+                            if (anode.Content.Count > 1)
+                            {
+                                var tkNode = ((TokenNode)anode.Content[0]);
+
+                                if (!_table.AddSymbol(new Symbol(tkNode.Tok.Value, dt)))
+                                    throw new SemanticException("Unable to redeclare symbol in scope", tkNode.Position);
+
+                                _nodes.Add(new IdentifierNode(tkNode.Tok.Value, dt));
+
+                                isTypeId = true;
+                            }
+                            else
+                                _nodes.Add(new ValueNode("Type", dt));
+
+                            MergeBack();
+                        }
+                        break;
+                    case "is_constr":
+                        if (isTypeId)
+                            throw new SemanticException("Unable to extract two values from an is expression", anode.Position);
+
+                        if (dt is CustomNewType cnt)
+                        {
+                            var tkNodes = anode.Content
+                                .Where(x => x is TokenNode)
+                                .Select(x => ((TokenNode)x))
+                                .ToList();
+
+                            if (cnt.Values.Count != tkNodes.Count)
+                                throw new SemanticException("Extract value pattern must match type class value", anode.Position);
+
+                            _nodes.Add(new ExprNode("IsExtractPattern", dt));
+
+                            for (int i = 0; i < cnt.Values.Count; i++)
+                            {
+                                string tokValue = tkNodes[i].Tok.Value;
+
+                                if (tokValue == "_")
+                                    _nodes.Add(new ValueNode("_", new NoneType()));
+                                else
+                                {
+                                    var cntValType = cnt.Values[i];
+
+                                    if (!_table.AddSymbol(new Symbol(tokValue, cntValType)))
+                                        throw new SemanticException("Unable to redeclare symbol in scope", tkNodes[i].Position);
+
+                                    _nodes.Add(new IdentifierNode(tokValue, cntValType));
+                                }
+
+                                MergeBack();
+                            }
+
+                            MergeBack();
+                        }
+                        else
+                            throw new SemanticException($"Unable to extract type class values from type of {dt}", anode.Position);
+
+                        break;
+                    case "then_extension":
+                        _thenExprType = boolType;
+
+                        _visitThen(anode, needsSubscope);
+                        break;
+                }
+            }
+        }
+
         private void _visitThen(ASTNode node, bool needsSubscope)
         {
+            if (needsSubscope)
+            {
+                _table.AddScope();
+                _table.DescendScope();
+            }
+
             _thenExprType = _nodes.Last().Type;
 
-            _visitExpr((ASTNode)node.Content[1], needsSubscope);
-
+            try
+            {
+                _visitExpr((ASTNode)node.Content[1], false);
+            }
+            finally
+            {
+                if (needsSubscope)
+                    _table.AscendScope();
+            }
+            
             _nodes.Add(new ExprNode("Then", _nodes.Last().Type));
-            PushForward(2);
+            PushForward(2);          
+        }
+
+        private void _visitCondExpr(ASTNode node)
+        {
+            if (node.Content.Count == 5)
+            {
+                // visit conditional node first
+                _visitFuncOp((ASTNode)node.Content[2]);
+
+                // then visit the two branches
+                _visitFuncOp((ASTNode)node.Content[0]);
+                _visitFuncOp((ASTNode)node.Content[4]);
+
+                _nodes.Add(new ExprNode("InlineCompare", new NoneType()));
+                PushForward(3);
+
+                var content = ((ExprNode)_nodes.Last()).Nodes;
+
+                if (!new SimpleType(SimpleType.SimpleClassifier.BOOL).Coerce(content[0].Type))
+                    throw new SemanticException("Comparison expression of inline comparison must evaluate to a boolean", node.Content[0].Position);
+
+                if (content[1].Type.Coerce(content[2].Type))
+                    _nodes.Last().Type = content[1].Type;
+                else if (content[2].Type.Coerce(content[1].Type))
+                    _nodes.Last().Type = content[2].Type;
+                else
+                    throw new SemanticException("Possible results of inline comparison must be the same type", node.Content[4].Position);
+            }
+            else
+                _visitFuncOp((ASTNode)node.Content[0]);
         }
 
         private void _visitFuncOp(ASTNode node)

@@ -23,8 +23,11 @@ namespace Whirlwind.Generation
                 case TypeClassifier.FUNCTION:
                     gg = (n, e) => _generateFunction(n, e, true);
                     break;
-                case TypeClassifier.TYPE_CLASS:
+                case TypeClassifier.TYPE_CLASS_INSTANCE:
                     gg = (n, _) => _generateTypeClass(n);
+                    break;
+                case TypeClassifier.INTERFACE_INSTANCE:
+                    gg = (n, e) => _generateInterf(n);
                     break;
                 default:
                     gg = (n, e) => _generateStruct(n, e);

@@ -19,7 +19,7 @@ namespace Whirlwind.Generation
 
             string name = idNode.IdName;
 
-            _table.Lookup(idNode.IdName, out Symbol interfSymbol);
+            var interfSymbol = _symTable[idNode.IdName];
             bool exported = interfSymbol.Modifiers.Contains(Modifier.EXPORTED);
 
             string llvmPrefix = exported ? _randPrefix : "";

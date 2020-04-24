@@ -87,7 +87,7 @@ namespace Whirlwind.Semantic.Visitor
             // handle generic self contexts
             if (_isGenericSelfContext)
             {
-                _table.Lookup("$GENERIC_SELF", out Symbol selfSym); ;
+                _table.Lookup("$GENERIC_SELF", out Symbol selfSym);
 
                 _isGenericSelfContext = false;
 
@@ -167,7 +167,6 @@ namespace Whirlwind.Semantic.Visitor
                         parent.GenericVariables)));
                 }
                     
-
                 vfn(node, new List<Modifier>());
                 BlockNode generateNode = (BlockNode)_nodes.Last();
 
@@ -185,7 +184,6 @@ namespace Whirlwind.Semantic.Visitor
                     ((GenericSelfType)selfSym.DataType).SetGeneric(parent);
                 }
                     
-
                 _table.AscendScope();
                 _table.RemoveScope();
 

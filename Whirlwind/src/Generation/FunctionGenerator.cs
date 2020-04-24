@@ -16,8 +16,7 @@ namespace Whirlwind.Generation
             var idNode = (IdentifierNode)node.Nodes[0];
 
             string name = idNode.IdName;
-
-            _table.Lookup(name, out Symbol sym);
+            var sym = _symTable[name];
 
             bool exported = sym.Modifiers.Contains(Modifier.EXPORTED);
             bool externLink = external || exported;

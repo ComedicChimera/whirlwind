@@ -135,15 +135,18 @@ namespace Whirlwind
                 // clear out AST once it is no longer being used
                 _clearPackage(pkg);
 
+                // extract all necessary table data
                 var generator = new Generator(table, visitor.Flags(), _impls, namePrefix);
+                var eTable = table.Filter(s => s.Modifiers.Contains(Modifier.EXPORTED));
+
+                // clear out table to free up memory
+                table = null;
 
                 if (_runGenerator(generator, sat, pkg.Name + ".llvm"))
                 {
                     pkgType = null;
                     return false;
-                }
-
-                var eTable = table.Filter(s => s.Modifiers.Contains(Modifier.EXPORTED));
+                }              
 
                 // update _pm package data
                 pkg.Compiled = true;

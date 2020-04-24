@@ -44,7 +44,7 @@ namespace Whirlwind.Generation
             {
                 string name = ((IdentifierNode)node.Nodes[0]).IdName;
 
-                _table.Lookup(name, out Symbol symbol);
+                var symbol = _symTable[name];
                 name += _genericSuffix;
 
                 bool exported = symbol.Modifiers.Contains(Modifier.EXPORTED);

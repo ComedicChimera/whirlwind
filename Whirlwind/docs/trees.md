@@ -149,7 +149,7 @@ A multi-value structure or some form of operation.
 | BAnd | *Values* | Performs a logical 
 | Bind | Value, *Functions* | Binds each expression to the one on its right |
 | Compose | *Functions* | Composes the functions sequentially |
-| InlineComparison |  Option1, ComparisonExpr, Option2 | Perform an inline comparison |
+| InlineComparison | ComparisonExpr, Then, Else | Perform an inline comparison |
 | Is | Expr, Type | Tests if an object is a given data type |
 | ExtractInto | Expr, Identifier | Extracts the value from the given expression if possible and stores it in a expr-local |
 | Range | Expr, Expr | Creates a range between the two expressions |

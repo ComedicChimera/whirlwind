@@ -53,7 +53,7 @@ namespace Whirlwind.Generation
         private delegate bool FnBodyBuilder(LLVMValueRef vref);
 
         // visitor extracted data
-        private readonly SymbolTable _table;
+        private readonly Dictionary<string, Symbol> _symTable;
         private readonly Dictionary<string, string> _flags;
         private readonly Dictionary<string, DataType> _impls;
         private readonly string _namePrefix;
@@ -111,7 +111,7 @@ namespace Whirlwind.Generation
 
         public Generator(SymbolTable table, Dictionary<string, string> flags, Dictionary<string, DataType> impls, string namePrefix)
         {
-            _table = table;
+            _symTable = table.GetScope().ToDictionary(x => x.Name);
             _flags = flags;
             _impls = impls;
             _namePrefix = namePrefix;
@@ -264,7 +264,7 @@ namespace Whirlwind.Generation
         {
             var lNameComponents = lName.Split("::");
 
-            _table.Lookup(lNameComponents[0], out Symbol symbol);
+            var symbol = _symTable[lNameComponents[0]];
 
             // descend package tree
             if (lNameComponents.Length > 1)           

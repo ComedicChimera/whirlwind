@@ -158,8 +158,26 @@ namespace Whirlwind.Generation
 
             var generateLookupName = _getLookupName(gt) + _genericSuffix;
 
+            if (gt.Generates.First().Block.Name == "TypeGenerate")
+                return _convertType(gt.Generates.First().Block.Nodes[0].Type);
+
             if (!_globalStructs.ContainsKey(generateLookupName))
-                _generateStruct(generate.Block, false);
+            {
+                switch (generateType.Classify())
+                {
+                    case TypeClassifier.STRUCT_INSTANCE:
+                        _generateStruct(generate.Block, false);
+                        break;
+                    case TypeClassifier.INTERFACE_INSTANCE:
+                        _generateInterf(generate.Block);
+                        break;
+                    case TypeClassifier.TYPE_CLASS_INSTANCE:
+                        _generateTypeClass(generate.Block);
+                        break;
+                    // functions shouldn't be used here
+                }              
+            }
+                
 
             var gVar = _getGlobalStruct(generateLookupName, usePtrTypes);
             _genericSuffix = "";
