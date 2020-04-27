@@ -165,20 +165,19 @@ namespace Whirlwind.Generation
             {
                 switch (generateType.Classify())
                 {
-                    case TypeClassifier.STRUCT_INSTANCE:
+                    case TypeClassifier.STRUCT:
                         _generateStruct(generate.Block, false);
                         break;
-                    case TypeClassifier.INTERFACE_INSTANCE:
+                    case TypeClassifier.INTERFACE:
                         _generateInterf(generate.Block);
                         break;
-                    case TypeClassifier.TYPE_CLASS_INSTANCE:
+                    case TypeClassifier.TYPE_CLASS:
                         _generateTypeClass(generate.Block);
                         break;
                     // functions shouldn't be used here
                 }              
             }
                 
-
             var gVar = _getGlobalStruct(generateLookupName, usePtrTypes);
             _genericSuffix = "";
 

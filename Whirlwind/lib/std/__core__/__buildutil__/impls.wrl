@@ -47,7 +47,7 @@ interf Hashable {
 // FRIEND FUNCTIONS
 #friend "string"
 func __concat(a, b: str) str {
-	let np = __malloca(a.byteCount + b.byteCount);
+	let np = malloca(a.byteCount + b.byteCount);
 	__memcpy(np, a.bytes, a.byteCount);
 
 	__memcpy(np + a.byteCount, b.bytes, b.byteCount);
@@ -69,7 +69,7 @@ func __concatL<T>(a, b: [T]) {
 // HELPER FUNCTIONS
 /*func __range(l, h, step: int) []int {
 	let size = h - l if step == 1 else l - h;
-	let arr = __malloca(4 * size) as []int;		
+	let arr = malloca(4 * size) as []int;		
 
 	let n = l;
 	for (i = 0; i < size; i++) {

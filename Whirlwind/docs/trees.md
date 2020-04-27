@@ -150,7 +150,8 @@ A multi-value structure or some form of operation.
 | Bind | Value, *Functions* | Binds each expression to the one on its right |
 | Compose | *Functions* | Composes the functions sequentially |
 | InlineComparison | ComparisonExpr, Then, Else | Perform an inline comparison |
-| Is | Expr, Type | Tests if an object is a given data type |
+| Is | Expr, Type, [IsExtractPattern] | Tests if an object is a given data type |
+| IsExtractPattern | Identifiers* | Extracts a type class instance into values in is expression |
 | ExtractInto | Expr, Identifier | Extracts the value from the given expression if possible and stores it in a expr-local |
 | Range | Expr, Expr | Creates a range between the two expressions |
 | TypeCast | Expr, Type | Converts a type class value into a more specific form |
@@ -198,7 +199,6 @@ ExprNodes made specifically for use in certain block statements and/or declarati
 | Implements | *Types* | A list of interfaces implemented by a given type interface |
 | MemberInitializer | Identifier, Expr | The initializer for any struct member that has one |
 | DecoratorCall | Expr | Used in processing a decorator expression; represents a call to the decorator |
-| ValueRestrictor | Expr | Restricts the value of any type class enumerated value |
 
 ## Statement Node
 

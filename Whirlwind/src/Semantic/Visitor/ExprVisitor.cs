@@ -602,87 +602,88 @@ namespace Whirlwind.Semantic.Visitor
             bool isTypeId = false;
             foreach (var elem in node.Content)
             {
-                var anode = (ASTNode)elem;
-
-                switch (anode.Name)
+                if (elem is ASTNode anode)
                 {
-                    case "type_id":
-                        {
-                            _isTypeCast = true;
-
-                            try
+                    switch (anode.Name)
+                    {
+                        case "type_id":
                             {
-                                dt = _generateType((ASTNode)anode.Content.Last());
-                            }
-                            finally
-                            {
-                                _isTypeCast = false;
-                            }
+                                _isTypeCast = true;
 
-                            if (anode.Content.Count > 1)
-                            {
-                                var tkNode = ((TokenNode)anode.Content[0]);
-
-                                if (!_table.AddSymbol(new Symbol(tkNode.Tok.Value, dt)))
-                                    throw new SemanticException("Unable to redeclare symbol in scope", tkNode.Position);
-
-                                _nodes.Add(new IdentifierNode(tkNode.Tok.Value, dt));
-
-                                isTypeId = true;
-                            }
-                            else
-                                _nodes.Add(new ValueNode("Type", dt));
-
-                            MergeBack();
-                        }
-                        break;
-                    case "is_constr":
-                        if (isTypeId)
-                            throw new SemanticException("Unable to extract two values from an is expression", anode.Position);
-
-                        if (dt is CustomNewType cnt)
-                        {
-                            var tkNodes = anode.Content
-                                .Where(x => x is TokenNode)
-                                .Select(x => ((TokenNode)x))
-                                .ToList();
-
-                            if (cnt.Values.Count != tkNodes.Count)
-                                throw new SemanticException("Extract value pattern must match type class value", anode.Position);
-
-                            _nodes.Add(new ExprNode("IsExtractPattern", dt));
-
-                            for (int i = 0; i < cnt.Values.Count; i++)
-                            {
-                                string tokValue = tkNodes[i].Tok.Value;
-
-                                if (tokValue == "_")
-                                    _nodes.Add(new ValueNode("_", new NoneType()));
-                                else
+                                try
                                 {
-                                    var cntValType = cnt.Values[i];
+                                    dt = _generateType((ASTNode)anode.Content.Last());
+                                }
+                                finally
+                                {
+                                    _isTypeCast = false;
+                                }
 
-                                    if (!_table.AddSymbol(new Symbol(tokValue, cntValType)))
-                                        throw new SemanticException("Unable to redeclare symbol in scope", tkNodes[i].Position);
+                                if (anode.Content.Count > 1)
+                                {
+                                    var tkNode = ((TokenNode)anode.Content[0]);
 
-                                    _nodes.Add(new IdentifierNode(tokValue, cntValType));
+                                    if (!_table.AddSymbol(new Symbol(tkNode.Tok.Value, dt)))
+                                        throw new SemanticException("Unable to redeclare symbol in scope", tkNode.Position);
+
+                                    _nodes.Add(new IdentifierNode(tkNode.Tok.Value, dt));
+
+                                    isTypeId = true;
+                                }
+                                else
+                                    _nodes.Add(new ValueNode("Type", dt));
+
+                                MergeBack();
+                            }
+                            break;
+                        case "is_constr":
+                            if (isTypeId)
+                                throw new SemanticException("Unable to extract two values from an is expression", anode.Position);
+
+                            if (dt is CustomNewType cnt)
+                            {
+                                var tkNodes = anode.Content
+                                    .Where(x => x is TokenNode)
+                                    .Select(x => ((TokenNode)x))
+                                    .ToList();
+
+                                if (cnt.Values.Count != tkNodes.Count)
+                                    throw new SemanticException("Extract value pattern must match type class value", anode.Position);
+
+                                _nodes.Add(new ExprNode("IsExtractPattern", dt));
+
+                                for (int i = 0; i < cnt.Values.Count; i++)
+                                {
+                                    string tokValue = tkNodes[i].Tok.Value;
+
+                                    if (tokValue == "_")
+                                        _nodes.Add(new ValueNode("_", new NoneType()));
+                                    else
+                                    {
+                                        var cntValType = cnt.Values[i];
+
+                                        if (!_table.AddSymbol(new Symbol(tokValue, cntValType)))
+                                            throw new SemanticException("Unable to redeclare symbol in scope", tkNodes[i].Position);
+
+                                        _nodes.Add(new IdentifierNode(tokValue, cntValType));
+                                    }
+
+                                    MergeBack();
                                 }
 
                                 MergeBack();
                             }
+                            else
+                                throw new SemanticException($"Unable to extract type class values from type of {dt}", anode.Position);
 
-                            MergeBack();
-                        }
-                        else
-                            throw new SemanticException($"Unable to extract type class values from type of {dt}", anode.Position);
+                            break;
+                        case "then_extension":
+                            _thenExprType = boolType;
 
-                        break;
-                    case "then_extension":
-                        _thenExprType = boolType;
-
-                        _visitThen(anode, needsSubscope);
-                        break;
-                }
+                            _visitThen(anode, needsSubscope);
+                            break;
+                    }
+                }                              
             }
         }
 
@@ -715,11 +716,19 @@ namespace Whirlwind.Semantic.Visitor
             if (node.Content.Count == 5)
             {
                 // visit conditional node first
-                _visitFuncOp((ASTNode)node.Content[2]);
+                _visitExpr((ASTNode)node.Content[2]);
 
                 // then visit the two branches
-                _visitFuncOp((ASTNode)node.Content[0]);
-                _visitFuncOp((ASTNode)node.Content[4]);
+                try
+                {
+                    _visitFuncOp((ASTNode)node.Content[0]);
+                    _visitFuncOp((ASTNode)node.Content[4]);
+                }
+                catch (SemanticContextException se)
+                {
+                    _nodes.RemoveLast();
+                    throw se;
+                }
 
                 _nodes.Add(new ExprNode("InlineCompare", new NoneType()));
                 PushForward(3);

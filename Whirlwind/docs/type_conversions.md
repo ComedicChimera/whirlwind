@@ -17,7 +17,7 @@
 | `byte` | `i8` | |
 | `long` | `i64` | |
 | `str` | `__string` |  |
-| `func(T...)(R)` | `R (T...)*` | |
+| `func(T...)(R)` | `{ R (T...)*, i8* }` | All first class functions are boxed. |
 | `interf:name` | `{ i8*, *vtable, i16, i32 }` | The vtable is generated based on the methods of the interface |
 | `struct:name` | `type {} name` | The type before is designate how the struct declaration will generated: it isn't part of the type |
 | `*T` | `*T` | |

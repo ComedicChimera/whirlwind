@@ -30,10 +30,9 @@ namespace Whirlwind.Semantic.Visitor
                 {
                     var decl = (ASTNode)item;
 
-                    if (decl.Content[0].Name == "type_id")
+                    if (decl.Content[0].Name == "types")
                     {
-                        var typeId = (ASTNode)decl.Content[0];
-                        var types = (ASTNode)typeId.Content.Last();
+                        var types = (ASTNode)decl.Content[0];
 
                         if (types.Content[0] is TokenNode tn && tn.Tok.Type == "IDENTIFIER" 
                             && types.Content.Count == 1 && decl.Content.Count == 1 
@@ -52,32 +51,6 @@ namespace Whirlwind.Semantic.Visitor
 
                             _nodes.Add(new ExprNode("AliasType", dt));
 
-                            if (decl.Content.Count > 1)
-                            {
-                                if (typeId.Content.Count > 1)
-                                {
-                                    _table.AddScope();
-                                    _table.DescendScope();
-
-                                    var resIdName = ((TokenNode)typeId.Content[0]).Tok.Value;
-
-                                    _table.AddSymbol(new Symbol(resIdName, dt));
-
-                                    _nodes.Add(new IdentifierNode(resIdName, dt));
-                                    _visitValueRestrictor((ASTNode)decl.Content[1]);
-                                    MergeBack(2);
-
-                                    _table.AscendScope();
-                                }
-                                else
-                                {
-                                    _visitValueRestrictor((ASTNode)decl.Content[1]);
-                                    MergeBack();
-                                }                                                                    
-                           }
-                           else if (typeId.Content.Count > 1)
-                                throw new SemanticException("Unable to declare type placeholder without value restrictor", typeId.Content[0].Position);
-
                             typeClass.AddInstance(new CustomAlias(typeClass, dt));
                         }
                     }
@@ -86,37 +59,17 @@ namespace Whirlwind.Semantic.Visitor
                         string newTypeName = ((TokenNode)decl.Content[0]).Tok.Value;
 
                         var values = new List<DataType>();
-                        var awaitingRestrictor = false;
 
                         foreach (var elem in ((ASTNode)decl.Content[1]).Content)
                         {
-                            if (elem.Name == "type_id")
+                            if (elem.Name == "types")
                             {
                                 ASTNode anode = (ASTNode)elem;
 
-                                var dt = _generateType((ASTNode)anode.Content.Last());
+                                var dt = _generateType(anode);
                                 values.Add(dt);
 
-                                if (anode.Content.Count > 1)
-                                {
-                                    if (!awaitingRestrictor)
-                                    {
-                                        _table.AddScope();
-                                        _table.DescendScope();
-
-                                        awaitingRestrictor = true;
-                                    }
-
-                                    var resIdName = ((TokenNode)anode.Content[0]).Tok.Value;
-
-                                    if (!_table.AddSymbol(new Symbol(resIdName, dt)))
-                                        throw new SemanticException($"Unable to redeclare type placeholder: `{resIdName}`", 
-                                            anode.Content[0].Position);
-
-                                    _nodes.Add(new IdentifierNode(resIdName, dt));
-                                }
-                                else
-                                    _nodes.Add(new ValueNode("Type", dt));
+                                _nodes.Add(new ValueNode("Type", dt));
                             }
                         }
 
@@ -127,16 +80,6 @@ namespace Whirlwind.Semantic.Visitor
 
                         _nodes.Add(new ExprNode("NewType", ct));
                         PushForward(values.Count);
-
-                        if (decl.Content.Last().Name == "value_restrictor")
-                        {
-                            _visitValueRestrictor((ASTNode)decl.Content.Last());
-                            MergeBack();
-
-                            _table.AscendScope();
-                        }
-                        else if (awaitingRestrictor)
-                            throw new SemanticException("Unable to declare type placeholders without value restrictor", decl.Position);
                     }
                 }
             }
@@ -151,17 +94,6 @@ namespace Whirlwind.Semantic.Visitor
 
             // merge in all instances
             MergeBack(typeClass.Instances.Count);
-        }
-
-        private void _visitValueRestrictor(ASTNode restrictor)
-        {
-            _visitExpr((ASTNode)restrictor.Content[1]);
-
-            if (!new SimpleType(SimpleType.SimpleClassifier.BOOL).Coerce(_nodes.Last().Type))
-                throw new SemanticException("Type of value restrictor expression must be a boolean", restrictor.Content[1].Position);
-
-            _nodes.Add(new ExprNode("ValueRestrictor", new NoneType()));
-            PushForward();
         }
     }
 }

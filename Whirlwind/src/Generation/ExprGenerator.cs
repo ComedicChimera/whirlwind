@@ -1275,10 +1275,60 @@ namespace Whirlwind.Generation
                 var castRoot = _cast(rootVal, rootExpr.Type, checkType);
 
                 LLVM.PositionBuilderAtEnd(_builder, patternEnd);
-                var phiNode = LLVM.BuildPhi(_builder, _convertType(checkType), "pattern_result");
+                var phiNode = LLVM.BuildPhi(_builder, _convertType(checkType), "pattern_result_tmp");
                 phiNode.AddIncoming(new[] { castRoot, _getNullValue(checkType, true) }, new[] { patternSucc, startBlock }, 2);
 
-                _setVar(idNode.IdName, phiNode);
+                var resultVar = _alloca(checkType, "pattern_result_var");
+                LLVM.BuildStore(_builder, phiNode, resultVar);
+                _setVar(idNode.IdName, resultVar);
+            }
+            else if (enode.Nodes.Count == 3)
+            {
+                var isPattern = (ExprNode)enode.Nodes[2];
+
+                var startBlock = LLVM.GetInsertBlock(_builder);
+                var patternSucc = LLVM.AppendBasicBlock(_currFunctionRef, "is_extract_pattern_succ");
+                var patternEnd = LLVM.AppendBasicBlock(_currFunctionRef, "is_extract_pattern_end");
+
+                // allocate output variables
+                List<LLVMValueRef> outputVars = isPattern.Nodes
+                    .Where(x => x.Name != "_")
+                    .Select(x => _alloca(x.Type))
+                    .ToList();
+
+                LLVM.BuildCondBr(_builder, rtVal, patternSucc, patternEnd);
+
+                LLVM.PositionBuilderAtEnd(_builder, patternSucc);
+                var tcElems = _getTypeClassValues(rootVal, ((CustomInstance)checkType));
+                using (var outputVarE = outputVars.GetEnumerator())
+                {
+                    outputVarE.MoveNext();
+
+                    for (int i = 0; i < isPattern.Nodes.Count; i++)
+                    {
+                        var currNode = isPattern.Nodes[i];
+                        var tcElem = tcElems[i];
+
+                        if (currNode.Name == "_")
+                        {
+                            LLVM.InstructionRemoveFromParent(tcElem);
+                            continue;
+                        }
+
+                        outputVarE.MoveNext();
+                        var outputVar = outputVarE.Current;
+
+                        if (_isReferenceType(currNode.Type))
+                            _copyLLVMStructTo(outputVar, tcElem);
+                        else
+                            LLVM.BuildStore(_builder, tcElem, outputVar);
+
+                        _setVar(((IdentifierNode)isPattern.Nodes[i]).Name, outputVar, true);
+                    }
+                }
+                    
+
+                LLVM.PositionBuilderAtEnd(_builder, patternEnd);
             }
 
             return rtVal;

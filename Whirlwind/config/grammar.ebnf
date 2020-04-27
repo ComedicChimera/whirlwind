@@ -56,9 +56,8 @@ ext_op: '[' [ ':' ] ']' | ':>' | '.' '.' ;
 
 // type class declaration
 type_class_decl: 'TYPE' 'IDENTIFIER' [generic_tag] [ type_class_main | ( '|' type_class_main )+ ] ';' ;
-type_class_main: ( 'IDENTIFIER' type_constructor | type_id ) [value_restrictor] ;
-type_constructor: '(' type_id ( ',' type_id )* ')' ;
-value_restrictor: 'WHEN' expr ;
+type_class_main: ( 'IDENTIFIER' type_constructor | types );
+type_constructor: '(' types ( ',' types )* ')' ;
 
 // struct declaration
 struct_decl: 'STRUCT' 'IDENTIFIER' [generic_tag] '{' struct_main '}' ;
@@ -162,7 +161,7 @@ expr_extension: select_extension+
 expr_var: 'IDENTIFIER' '=' func_op then_extension ;
 
 // conditional expression (isolated to make visiting easier)
-cond_expr: func_op [ 'IF' func_op 'ELSE' func_op ] ;
+cond_expr: func_op [ 'IF' expr 'ELSE' func_op ] ;
 
 // then extension
 then_extension: 'THEN' expr ;
