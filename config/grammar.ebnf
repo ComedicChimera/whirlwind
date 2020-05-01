@@ -263,7 +263,6 @@ base: 'INTEGER_LITERAL'
 | sub_expr
 | partial_func
 | super_call
-| sizeof_call
 ;
 
 // collection types
