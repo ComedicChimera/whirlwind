@@ -1,9 +1,0 @@
-{
-  "profiles": {
-    "Whirlwind": {
-      "commandName": "Project",
-      "commandLineArgs": "build tests/",
-      "workingDirectory": "C:\\Users\\forlo\\dev\\Projects\\whirlwind\\compiler\\Whirlwind"
-    }
-  }
-}

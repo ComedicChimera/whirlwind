@@ -190,31 +190,4 @@ Radix Sort:
 
         println(list); // [0, 0, 1, 2, 3, 4, 7, 8, 9, 9]
     }
-    
-Optional Type:
-
-    import { println } from io::std;
-
-    type Option<T>
-        | Some(T)
-        | None
-        ;
-
-    interf<T> for Option<T> is Monad<T> {
-        operator >>= (fn: func(T)(Option<T>)) Option<T> {
-            if (this is None)
-                return None;
-            else
-                return fn(from this as Some);
-        }
-
-        // -- snip -- (:> operator overload)
-    }
-
-    func main() {
-        let (opt_a = Some(5), opt_b = Some(6));
-
-        let sum = opt_a >>= |x| => opt_b >>= |y| => Some(x + y);
-
-        println(from sum as Some); // 11
-    }
+   
