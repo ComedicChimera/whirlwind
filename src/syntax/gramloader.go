@@ -17,8 +17,8 @@ type gramLoader struct {
 }
 
 // load the grammar using a gramLoader and return whether or not
-// reading was successful
-func LoadGrammar(path string) (Grammar, error) {
+// loading was successful (fails if grammar is syntactically invalid)
+func loadGrammar(path string) (Grammar, error) {
 	// open the file and check for errors
 	f, err := os.Open(path)
 

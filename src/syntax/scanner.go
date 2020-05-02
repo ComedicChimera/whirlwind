@@ -10,27 +10,16 @@ import (
 	"strings"
 )
 
-// scan file for tokens
-func Scan(fpath string) ([]Token, error) {
+// create a scanner for the given file
+func NewScanner(fpath string) (*Scanner, error) {
 	f, err := os.Open(fpath)
 
 	if err != nil {
 		return nil, err
 	}
 
-	s := NewScanner(bufio.NewReader(f), fpath)
-	err = s.scan()
-
-	if err != nil {
-		return nil, err
-	}
-
-	return s.Tokens, nil
-}
-
-// create a new scanner
-func NewScanner(file *bufio.Reader, fpath string) *Scanner {
-	return &Scanner{file: file, fpath: fpath, line: 1, currValid: true}
+	s := &Scanner{file: bufio.NewReader(f), fpath: fpath, line: 1, currValid: true}
+	return s, nil
 }
 
 // test if a rune is an ASCII character
@@ -43,6 +32,7 @@ func isDigit(r rune) bool {
 	return r > '/' && r < ':'
 }
 
+// works like an io.Reader for a file (outputting tokens)
 type Scanner struct {
 	file  *bufio.Reader
 	fpath string
@@ -55,14 +45,14 @@ type Scanner struct {
 
 	curr      rune
 	currValid bool // tells us whether or not the scanner has hit an EOF (without checking output from readNext)
-
-	Tokens []Token
 }
 
-// run main scanning algo
-func (s *Scanner) scan() error {
+// read a single token from the stream, error can
+// indicate malformed token or end of token stream
+func (s *Scanner) ReadToken() (*Token, error) {
 	for s.readNext() {
 		malformed := false
+		tok := &Token{}
 
 		switch s.curr {
 		// skip white space, line counting done
@@ -71,23 +61,23 @@ func (s *Scanner) scan() error {
 			continue
 		// handle string-like
 		case '"':
-			malformed = s.readStringLiteral()
+			tok, malformed = s.readStringLiteral()
 		case '\'':
-			malformed = s.readCharLiteral()
+			tok, malformed = s.readCharLiteral()
 		// handle comments
 		case '/':
 			p, more := s.peek()
 
 			if !more {
-				s.pushToken()
-			}
-
-			if p == '/' {
+				tok = s.getToken()
+			} else if p == '/' {
 				s.skipLineComment()
+				continue
 			} else if p == '*' {
 				s.skipBlockComment()
+				continue
 			} else {
-				s.pushToken()
+				tok = s.getToken()
 			}
 		// read in the '.', '..', and '...' tokens
 		case '.':
@@ -99,14 +89,14 @@ func (s *Scanner) scan() error {
 				}
 			}
 
-			s.pushToken()
+			tok = s.getToken()
 		default:
 			// check for identifiers
-			if isLetter(s.curr) {
-				s.readWord()
+			if isLetter(s.curr) || s.curr == '_' {
+				tok = s.readWord()
 				// check numeric literals
 			} else if isDigit(s.curr) {
-				malformed = s.readNumberLiteral()
+				tok, malformed = s.readNumberLiteral()
 				// handle compound operators
 			} else if follows, ok := multiParticles[s.curr]; ok {
 				// peek to see the follows
@@ -118,51 +108,56 @@ func (s *Scanner) scan() error {
 					s.readNext()
 				}
 
-				s.pushToken()
+				tok = s.getToken()
 				// simple, single token operators
 			} else if _, ok := singleParticles[s.curr]; ok {
-				s.pushToken()
+				tok = s.getToken()
 			} else {
 				// any other token must be malformed in some way
-				malformed = false
+				malformed = true
 			}
-		}
-
-		// error out on any malformed tokens (along with contents of token buffer)
-		if malformed {
-			return errors.New(fmt.Sprintf("Malformed Token \"%s\" at (Ln: %d, Col: %d)", string(s.tokBuff), s.line, s.col))
 		}
 
 		// discard the buff for the current scanned token
 		s.discardBuff()
+
+		// error out on any malformed tokens (along with contents of token buffer)
+		if malformed {
+			return nil, errors.New(fmt.Sprintf("Malformed Token \"%s\" at (Ln: %d, Col: %d)", string(s.tokBuff), s.line, s.col))
+		} else {
+			return tok, nil
+		}
 	}
 
-	return nil
+	// end of file
+	return nil, io.EOF
 }
 
 // create a token at the current position from the provided data
-func (s *Scanner) addToken(name string, value string) {
-	s.Tokens = append(s.Tokens, Token{Name: name, Value: value, Line: s.line, Col: s.col})
+func (s *Scanner) makeToken(name string, value string) *Token {
+	tok := &Token{Name: name, Value: value, Line: s.line, Col: s.col}
 	s.col += len(value)
+
+	return tok
+}
+
+// collect the current contents of the token buff into a string
+// and create a token at the current position with a key and value
+// both equal to the current contents of the token buffer
+func (s *Scanner) getToken() *Token {
+	tokValue := string(s.tokBuff)
+	return s.makeToken(tokValue, tokValue)
+}
+
+// same behavior as get token with no arguments except it accepts a token name
+func (s *Scanner) getTokenOf(name string) *Token {
+	tokValue := string(s.tokBuff)
+	return s.makeToken(name, tokValue)
 }
 
 // discards the current token buffer (as it is no longer being used)
 func (s *Scanner) discardBuff() {
 	s.tokBuff = s.tokBuff[:0] // keep buff allocated so we don't have to keep reallocating it everytime
-}
-
-// collect the current contents of the token buff into a string
-// create and add a token at the current position
-// with key and value of the that of the determined token value
-func (s *Scanner) pushToken() {
-	tokValue := string(s.tokBuff)
-	s.addToken(tokValue, tokValue)
-}
-
-// same behavior as push token except it accepts a token name
-func (s *Scanner) pushTokenOf(name string) {
-	tokValue := string(s.tokBuff)
-	s.addToken(name, tokValue)
 }
 
 // reads a rune from the file stream into the rune token
@@ -233,7 +228,7 @@ func (s *Scanner) peek() (rune, bool) {
 
 // reads an identifier or a keyword from the input stream
 // determines based on contents of stream (matches to all possible keywords)
-func (s *Scanner) readWord() {
+func (s *Scanner) readWord() *Token {
 	keywordValid := true
 
 	// we know that whatever it started on was valid so we continue
@@ -254,32 +249,29 @@ func (s *Scanner) readWord() {
 	// duplicate tokens aren't created if the check is successful (found match)
 	if keywordValid {
 		if _, ok := keywords[tokValue]; ok {
-			s.addToken(strings.ToUpper(tokValue), tokValue)
-			return
+			return s.makeToken(strings.ToUpper(tokValue), tokValue)
 			// properly format token names of data types
 		} else if _, ok := keywordDataTypes[tokValue]; ok {
-			s.addToken(strings.ToUpper(tokValue)+"_TYPE", tokValue)
-			return
+			return s.makeToken(strings.ToUpper(tokValue)+"_TYPE", tokValue)
 		} else {
 			// handle special behavior of integral types
 			for k, v := range integralTypes {
 				if tokValue == k {
-					s.addToken(strings.ToUpper(tokValue)+"_TYPE", tokValue)
-					return
+					return s.makeToken(strings.ToUpper(tokValue)+"_TYPE", tokValue)
 				} else if tokValue == v+k {
-					s.addToken(strings.ToUpper(k)+"_TYPE", tokValue)
-					return
+					return s.makeToken(strings.ToUpper(k)+"_TYPE", tokValue)
+
 				}
 			}
 		}
 	}
 
 	// assume that is just a pure identifier
-	s.addToken("IDENTIFIER", tokValue)
+	return s.makeToken("IDENTIFIER", tokValue)
 }
 
 // read in a floating point or integral number
-func (s *Scanner) readNumberLiteral() bool {
+func (s *Scanner) readNumberLiteral() (*Token, bool) {
 	var isHex, isBin, isOct, isFloat, isUns, isLong bool
 
 	// if we previous was an 'e' then we can expect a '-'
@@ -367,7 +359,7 @@ loop:
 
 					// hit EOF on peek, malformed token
 					if !valid {
-						return true
+						return nil, true
 					}
 
 					// if it is not a digit, assume 3 separate tokens, continue scanning after
@@ -407,8 +399,6 @@ loop:
 		}
 	}
 
-	tokValue := string(s.tokBuff)
-
 	// get the appropriate numeric literal name
 	name := "INT_LITERAL"
 	if isFloat {
@@ -421,13 +411,11 @@ loop:
 		name = "OCT_LITERAL"
 	}
 
-	s.addToken(name, tokValue)
-
-	return false
+	return s.getTokenOf(name), false
 }
 
 // read in a string literal
-func (s *Scanner) readStringLiteral() bool {
+func (s *Scanner) readStringLiteral() (*Token, bool) {
 	expectingEscape := false
 
 	// no lookahead pattern necessary here
@@ -438,7 +426,7 @@ func (s *Scanner) readStringLiteral() bool {
 			if s.readEscapeSequence() {
 				expectingEscape = false
 			} else {
-				return true
+				return nil, true
 			}
 		}
 
@@ -452,39 +440,37 @@ func (s *Scanner) readStringLiteral() bool {
 
 	// escape sequence occurred at end of file
 	if expectingEscape {
-		return true
+		return nil, true
 		// EOF occurred before end of string
 	} else if s.tokBuff[len(s.tokBuff)-1] != '"' {
-		return true
+		return nil, true
 	}
 
-	s.pushTokenOf("STRING_LITERAL")
-	return false
+	return s.getTokenOf("STRING_LITERAL"), false
 }
 
 // read in a char literal
-func (s *Scanner) readCharLiteral() bool {
+func (s *Scanner) readCharLiteral() (*Token, bool) {
 	// if the char has no content then it is malformed
 	if !s.readNext() {
-		return false
+		return nil, true
 	}
 
 	// if there is an escape sequence, read it
 	// and if it is invalid, char lit is malformed
 	if s.curr == '\\' && !s.readEscapeSequence() {
-		return false
+		return nil, true
 	}
 
 	// if the next token after processing the escape sequence
 	// is not a closing quote than the char literal is too long
 	// on we are at EOF => malformed in either case
 	if !s.readNext() || s.curr != '\'' {
-		return false
+		return nil, true
 	}
 
 	// assume it is properly formed
-	s.pushTokenOf("CHAR_LITERAL")
-	return true
+	return s.getTokenOf("CHAR_LITERAL"), false
 }
 
 func (s *Scanner) readEscapeSequence() bool {
