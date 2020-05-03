@@ -37,7 +37,7 @@ block_decl: func_decl
 
 
 // type declaration
-type_decl: 'TYPE' 'IDENTIFIER' [generic_tag] ( type_alias | type_set | type_suffix ) ;
+type_decl: ['CLOSED'] 'TYPE' 'IDENTIFIER' [generic_tag] ( type_alias | type_set | type_suffix ) ;
 type_alias: '=' types ( '|' types )* ;
 type_set: '|' type_set_elem ('|' type_set_elem)+ ;
 type_set_elem: 'IDENTIFIER' [ type_suffix ] ;
@@ -55,8 +55,7 @@ implements: types (',' types)* ;
 interf_main: ( func_decl | variant_decl | operator_decl )+ ;
 
 // operator overload
-operator_decl: 'OPERATOR' '(' ( operator | ext_op ) ')' [generic_tag] '(' args_decl_list ')' [types] (func_body | ';') ;
-ext_op: '[' [ ':' ] ']' | ':>' | '.' '.' ;
+operator_decl: 'OPERATOR' '(' operator ')' [generic_tag] '(' args_decl_list ')' [types] (func_body | ';') ;
 
 // variant declaration
 variant_decl: 'VARIANT' (variant_func | variant_method) ;
@@ -109,6 +108,7 @@ stmt: ( var_decl
 | break_stmt
 | return_stmt
 | yield_stmt
+| resize_stmt
 ) ';' 
 ;
 
@@ -118,15 +118,22 @@ unpacking_var: '(' std_var ')' [extension] initializer ;
 std_var: var_id (',' var_id );
 
 // assignment or expression statement
-expr_stmt: simple_expr [(',' simple_expr)* assign_op assign_expr ] ;
-assign_op: [operator] '=' ;
+expr_stmt: mut_expr [(',' mut_expr)* assign_op assign_expr ] ;
+assign_op: ['+' | '-' | '*' | '/' | '%' | '~^' | '~/' | '|' | '&'] '=' ;
 assign_expr: expr (',' expr)* ;
+
+// variation of expression designed to be mutable/cause mutation
+mut_expr: [unary_mut_prefix] ['AWAIT'] ( 'IDENTIFIER' | '(' expr ')' ) trailer [increm_decrem] ;
+unary_mut_prefix: '*' ['?'] | increm_decrem ;
 
 // simple statements
 continue_stmt: 'CONTINUE' ;
 break_stmt: 'BREAK' ;
 return_stmt: 'RETURN' [expr (',' expr)*] ;
 yield_stmt: 'YIELD' expr (',' expr)* ;
+
+// resize (make to) statement
+resize_stmt: 'MAKE' simple_expr 'TO' heap_alloc_arg ;
 
 
 // EXPRESSIONS - basic unit of statements 
@@ -158,7 +165,7 @@ simple_expr: or ('~*' or)* ;
 // logical operators
 or: xor ('|' ['|']  xor)* ;
 xor: and ('^' and)* ;
-and: comparison (('AND' | '&') comparison)* ;
+and: comparison (('&' ['&']) comparison)* ;
 
 // comparisons
 comparison: not (comparison_op not)*;
@@ -175,8 +182,8 @@ term: factor (('*' | '/' | '%' | '~/') factor)* ;
 factor: unary_atom ('~^' unary_atom)*;
 
 // unary operators
-unary_atom: ('&' | '-' | '~' | '++' | '--' | '*' ['?'] ) atom
-| atom ['++' | '--']
+unary_atom: ('&' ['CONST'] | '-' | '~' | increm_decrem | '*' ['?'] ) atom
+| atom [increm_decrem]
 ;
 
 
@@ -191,8 +198,7 @@ trailer: '[' (expr [slice] | slice) ']'
 | ['!'] '(' args_list ')'
 | '{' [init_list] '}'
 | '.' ( 'IDENTIFIER' | 'INTEGER_LITERAL' )
-| '->' 'IDENTIFIER'
-| '?' '->' 'IDENTIFIER'
+| '?' '.' 'IDENTIFIER'
 | generic_spec
 | static_get
 ;
@@ -205,18 +211,15 @@ named_suffix: '=' expr ;
 init_list: 'IDENTIFIER' initializer (',' 'IDENTIFIER' initializer)* ;
 
 // allocate a type on the heap
-heap_alloc: 'MAKE' alloc_body ;
-alloc_body: '(' types ',' expr ')'
-| base trailer
-| types
-;
+heap_alloc: 'MAKE' heap_alloc_arg ;
+heap_alloc_arg: types [',' expr] ;
 
 // access the value of a type class
 from_expr: 'FROM' expr ;
 
 // the match expression
 match_expr: 'MATCH' match_kind expr 'TO' match_arr ;
-match_kind: '<' ('AND' | 'OR' | 'INTEGER_LITERAL') ',' ('!=' | '==' | 'IS') '>' ;
+match_kind: '<' ('&' '&' | '|' '|' | 'INTEGER_LITERAL') ',' ('!=' | '==' | 'IS') '>' ;
 match_arr: '{' expr (',' expr)+ '}' 
 | '{' types (',' types)+ '}'
 ;
@@ -234,7 +237,6 @@ base: 'INTEGER_LITERAL'
 | 'THIS'
 | 'IDENTIFIER'
 | 'NULL'
-| 'VALUE'
 | array_dict_builder
 | list_builder
 | comprehension
@@ -253,7 +255,7 @@ comp_suffix: '|' iterator ['WHEN' expr ];
 tupled_expr: '(' expr (',' expr)* ')' ;
 
 // inline functions (lambdas)
-lambda: '|' args_decl_list '|' ['ASYNC'] lambda_body ;
+lambda: ['ASYNC'] '|' args_decl_list '|' lambda_body ;
 lambda_body: '=>' expr
 | '{' [main] '}'
 ;
@@ -331,9 +333,9 @@ func_body: ('{' [main] '}'
 // standard block
 block: '{' [main] '}' ;
 
-// operator (wherever any operator can be used)
+// operators used in operator overloading (and possibly other situations)
 operator: '<' ['<'] | '>' ['>'] | '+' | '-' | '*' | '/' | '%' | '<=' | '>=' | '==' | '!='
-| '>>=' | '~^' | '~*' | '~/' | 'AND' | '&' | '|' ['|'] | '^' | '~' ;
+| '~^' | '~*' | '~/' | '&' ['&'] | '|' ['|'] | '^' | '~' | '[' [ ':' ] ']' | '.' '.' | '!';
 
 // generic tag (placed after several block declarations)
 generic_tag: '<' generic (',' generic)* '>' ;
@@ -348,3 +350,6 @@ get_op: ':' ':' ;
 
 // a general named value accessor
 named_value: 'IDENTIFIER' (static_get | generic_spec)* ;
+
+// increment and decrement operators
+increm_decrem: '++' | '--' ;

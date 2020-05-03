@@ -27,30 +27,26 @@ var keywords = map[string]struct{}{
 	"after":    struct{}{},
 	"match":    struct{}{},
 	"to":       struct{}{},
+	"loop":     struct{}{},
 
 	// function terminators
 	"return": struct{}{},
 	"yield":  struct{}{},
 
 	// memory management
-	"delete": struct{}{},
-	"from":   struct{}{},
-	"vol":    struct{}{},
-	"make":   struct{}{},
-	"static": struct{}{},
-	"dyn":    struct{}{},
-	"own":    struct{}{},
+	"vol":  struct{}{},
+	"make": struct{}{},
+	"dyn":  struct{}{},
 
 	// function definitions
-	"func":        struct{}{},
-	"async":       struct{}{},
-	"variant":     struct{}{},
-	"constructor": struct{}{},
-	"operator":    struct{}{},
+	"func":     struct{}{},
+	"async":    struct{}{},
+	"variant":  struct{}{},
+	"operator": struct{}{},
 
 	// type definitions
 	"type":   struct{}{},
-	"struct": struct{}{},
+	"closed": struct{}{},
 	"interf": struct{}{},
 
 	// package keywords
@@ -60,13 +56,11 @@ var keywords = map[string]struct{}{
 	// expression utils
 	"this":  struct{}{},
 	"super": struct{}{},
-	"new":   struct{}{},
 	"null":  struct{}{},
 	"is":    struct{}{},
-	"then":  struct{}{},
 	"await": struct{}{},
-	"value": struct{}{},
 	"as":    struct{}{},
+	"from":  struct{}{},
 }
 
 // store keyword type labels (separate so that token's name will be {VALUE}_TYPE)
@@ -92,7 +86,6 @@ var integralTypes = map[string]string{
 var multiParticles = map[rune]string{
 	'+': "+",
 	'-': "->",
-	'&': "&",
 	'~': "*^/",
 	'<': "-=",
 	'>': "=",
@@ -119,6 +112,7 @@ var singleParticles = map[rune]struct{}{
 	'^': struct{}{},
 	';': struct{}{},
 	'|': struct{}{},
+	'&': struct{}{}
 }
 
 // "." and "/" have special logic that determines their behavior

@@ -3,7 +3,6 @@
 - remove `->` operator, just use `.` for everything, update `?->` to `?.` accordingly
 - overload `?.` for interfaces
 - find some way of optimizing/simplifying interfaces
-- lambda syntax update `(x, y) => expr`, `() => expr`, `(x) => expr`
 - split up loops into two categories: `for` and `loop` 
   * `loop` is for infinite and conditional loops `loop (expr) { ... }`
     and `loop { }` for infinite loops
