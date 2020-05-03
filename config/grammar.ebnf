@@ -195,7 +195,7 @@ atom: [ 'AWAIT' ] base trailer*
 ;
 
 trailer: '[' (expr [slice] | slice) ']'
-| ['!'] '(' args_list ')'
+| '(' args_list ')'
 | '{' [init_list] '}'
 | '.' ( 'IDENTIFIER' | 'INTEGER_LITERAL' )
 | '?' '.' 'IDENTIFIER'
