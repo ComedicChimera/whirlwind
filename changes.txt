@@ -40,4 +40,8 @@
   * `make ... to size` is still valid (provided the size is multiple of the type)
 - cannot take a non-const reference to a constant value
 - remove `static`
+- value categories:
+  * lvalue (well-defined, mutable value, able to take both kinds of references to it)
+  * cvalue (well-defined, immutable value, only able to take a const reference to it, value constancy)
+  * rvalue (undefined, immutable value, unable to take any kind of reference to it)
 - PLUS: all the other changes that can be observed in grammar
