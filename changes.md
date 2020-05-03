@@ -44,4 +44,9 @@
   * lvalue (well-defined, mutable value, able to take both kinds of references to it)
   * cvalue (well-defined, immutable value, only able to take a const reference to it, value constancy)
   * rvalue (undefined, immutable value, unable to take any kind of reference to it)
+- partial function calling (replacement for old partial function syntax)
+  * `f(_, 23, _)` creates a function from f that accepts the two arguments left blank
+  * can allow for "currying" (not actually but...)
+  * more clear than implicit currying/argument omission (re. Haskell)
+  * another use of the `_` in a logical way
 - PLUS: all the other changes that can be observed in grammar
