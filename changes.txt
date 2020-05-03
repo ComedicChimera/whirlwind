@@ -36,7 +36,8 @@
     a constant value (ie. a constant variable)
     - includes all data structures (must be a constant valued data structure)
   * methods can be constant (explicitly)
-- const references can be realloced (moved)
+- const references can be realloced (moved) (?)
   * `make ... to size` is still valid (provided the size is multiple of the type)
+- cannot take a non-const reference to a constant value
 - remove `static`
 - PLUS: all the other changes that can be observed in grammar
