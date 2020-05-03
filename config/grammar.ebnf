@@ -204,10 +204,6 @@ arg: expr named_suffix;
 named_suffix: '=' expr ;
 init_list: 'IDENTIFIER' initializer (',' 'IDENTIFIER' initializer)* ;
 
-// comprehension
-comprehension: '{' comp_body '}' | '[' comp_body ']' ;
-comp_body: expr [':' expr] '|' iterator ['WHEN' expr] ;
-
 // allocate a type on the heap
 heap_alloc: 'MAKE' alloc_body ;
 alloc_body: '(' types ',' expr ')'
@@ -251,7 +247,7 @@ base: 'INTEGER_LITERAL'
 array_dict_builder: '{' expr [array_builder | dict_builder] '}' ;
 array_builder: (',' expr)* | comp_suffix ;
 dict_builder: ':' expr [(',' expr ':' expr)+ comp_suffix] ;
-comp_suffix: '|' iterator ;
+comp_suffix: '|' iterator ['WHEN' expr ];
 
 // tupled expressions (generate tuples or sub expressions)
 tupled_expr: '(' expr (',' expr)* ')' ;
