@@ -1,5 +1,5 @@
 ﻿// WHIRLWIND STANDARD GRAMMAR
-whirlwind: ( variable_decl ';'
+whirlwind: ( var_decl ';'
 | block_decl
 | import_stmt ';'
 | export_decl
@@ -23,82 +23,79 @@ import_set: '{' ( 'IDENTIFIER' (',' 'IDENTIFIER')* | '...' ) '}' ;
 // export declaration
 export_decl: 'EXPORT' ( block_decl
 | import_stmt ';'
-| variable_decl ';'
+| var_decl ';'
 ) ;
 
 
 // BLOCK DECLARATIONS
 block_decl: func_decl
-| interface_decl
-| type_class_decl
-| struct_decl
+| interf_decl
+| type_decl
 | variant_decl
 | decor_decl
-| interface_bind
 ;
+
+
+// type declaration
+type_decl: 'TYPE' 'IDENTIFIER' [generic_tag] ( type_alias | type_set | type_suffix ) ;
+type_alias: '=' types ( '|' types )* ;
+type_set: '|' type_set_elem ('|' type_set_elem)+ ;
+type_set_elem: 'IDENTIFIER' [ type_suffix ] ;
+type_suffix: '(' types (',' types)* ')' | '{' type_struct_elem (',' type_struct_elem)* '}' ;
+type_struct_elem: 'IDENTIFIER' (',' 'IDENTIFIER')* extension [initializer] ;
 
 // function declaration
 func_decl: ('FUNC' | 'ASYNC') 'IDENTIFIER' [generic_tag] '(' args_decl_list ')' [ types ] (func_body | ';') ;
 
-// interface declaration
-interface_decl: 'INTERF' 'IDENTIFIER' [generic_tag] '{' interface_main '}' ;
-interface_main: ( func_decl | variant_decl | operator_decl )+ ;
-
-// interface binding declaration
-interface_bind: 'INTERF' [generic_tag] 'FOR' types ['IS' implements] '{' interface_main '}' ;
+// interface declaration/binding
+interf_decl: 'INTERF' (interf_name | interf_bind) '{' interf_main '}' ;
+interf_name: 'IDENTIFIER' [generic_tag] ;
+interf_bind: [generic_tag] 'FOR' types ['IS' implements] ;
 implements: types (',' types)* ;
+interf_main: ( func_decl | variant_decl | operator_decl )+ ;
 
 // operator overload
 operator_decl: 'OPERATOR' '(' ( operator | ext_op ) ')' [generic_tag] '(' args_decl_list ')' [types] (func_body | ';') ;
 ext_op: '[' [ ':' ] ']' | ':>' | '.' '.' ;
 
-// type class declaration
-type_class_decl: 'TYPE' 'IDENTIFIER' [generic_tag] [ type_class_main | ( '|' type_class_main )+ ] ';' ;
-type_class_main: ( 'IDENTIFIER' type_constructor | types );
-type_constructor: '(' types ( ',' types )* ')' ;
-
-// struct declaration
-struct_decl: 'STRUCT' 'IDENTIFIER' [generic_tag] '{' struct_main '}' ;
-struct_main: (struct_var ';' | constructor_decl )+ ;
-struct_var: ['OWN'] ['VOL'] 'IDENTIFIER' (',' 'IDENTIFIER')* extension [initializer] ;
-
-// constructor declaration
-constructor_decl: 'CONSTRUCTOR' '(' args_decl_list ')' func_body ;
-
 // variant declaration
-variant_decl: 'VARIANT' '<' type_list '>' 'IDENTIFIER' func_body ;
-
-// method variant declaration
-method_variant_decl: 'VARIANT' 'WHEN' [generic_spec] 'IDENTIFIER' extension func_decl ;
+variant_decl: 'VARIANT' (variant_func | variant_method) ;
+variant_func: '<' type_list '>' 'IDENTIFIER' func_body ;
+variant_method: 'WHEN' [generic_spec] 'IDENTIFIER' extension func_decl ;
 
 // decorator declaration
 decor_decl: decor func_decl ;
 decor: '@' ( '[' decor_expr (',' decor_expr)* ']' | decor_expr ) ;
-decor_expr: 'IDENTIFIER' static_get* [ generic_spec ] [ '(' args_list ')' ];
+decor_expr: named_value [ '(' args_list ')' ];
 
 
 // BLOCK STATEMENTS (control flow)
 block_stmt: if_stmt
 | select_stmt
 | for_loop
+| cond_loop
 ;
 
 // if statement
-if_stmt: 'IF' '(' [ variable_decl ';' ] expr ')' block elif_block* [else_block] ;
-elif_block: 'ELIF' '(' [ variable_decl ';' ] expr ')' block ;
+if_stmt: 'IF' [ var_decl ';' ] expr block elif_block* [else_block] ;
+elif_block: 'ELIF' [ var_decl ';' ] expr block ;
 else_block: 'ELSE' block ;
 
 // select statement
-select_stmt: 'SELECT' '(' expr ')' '{' select_block '}' ;
+select_stmt: 'SELECT' expr '{' select_block '}' ;
 select_block: case+ [default] ;
-case: 'CASE' case_expr (',' case_expr)* ':' main ;
+case: 'CASE' expr (',' expr)* ':' main ;
 default: 'DEFAULT' ':' main ;
 
 // for loop
-for_loop: 'FOR' [for_body] block [after_clause] ;
-for_body: '(' (c_for | iterator | for_expr) ')' ;
-c_for: ['IDENTIFIER' '=' expr] ';' [expr] ';' [expr | assignment] ;
-for_expr: [ variable_decl ';' ] expr ;
+for_loop: 'FOR' for_body block [after_clause] ;
+for_body: 'IDENTIFIER' (iter_suffix | c_for_suffix) 
+| unpacking_iter_var iter_suffix ;
+c_for: ['=' expr] ';' [expr] ';' [expr_stmt] ;
+
+// conditional/infinite loop
+cond_loop: 'LOOP' [ expr ] block ;
+cond_loop_expr: [ var_decl ';' ] expr ;
 
 // after clause
 after_clause: 'AFTER' block ;
@@ -106,35 +103,24 @@ after_clause: 'AFTER' block ;
 
 // STATEMENTS
 // broken up for logical reasons - takes advantage of multiple solution parsing
-stmt: ( variable_decl
-| assignment
-| expr
+stmt: ( var_decl
+| expr_stmt
 | continue_stmt
 | break_stmt
-| delete_stmt
 | return_stmt
 | yield_stmt
 ) ';' 
 ;
 
 // variable declaration
-variable_decl: ('LET' | 'CONST') ['STATIC'] ['VOL'] var [extension] '=' expr  ;
-var: '(' var_id (',' var_id)* ')'
-| 'IDENTIFIER'
-;
+var_decl: ('LET' | 'CONST') ['VOL'] (unpacking_var | std_var) ;
+unpacking_var: '(' std_var ')' [extension] initializer ;
+std_var: var_id (',' var_id );
 
-var_id: 'IDENTIFIER' [extension] '=' expr
-| '_'
-;
-
-// variable assignment
-assignment: assign_var (',' assign_var)* assign_op expr (',' expr)* ;
-assign_var: '_' | expr ;
-assign_op: [ operator ] '=' ;
-
-// delete statement
-delete_stmt: 'DELETE' delete_id (',' delete_id)* ;
-delete_id: ['THIS' '.'] 'IDENTIFIER' trailer* ;
+// assignment or expression statement
+expr_stmt: simple_expr [(',' simple_expr)* assign_op assign_expr ] ;
+assign_op: [operator] '=' ;
+assign_expr: expr (',' expr)* ;
 
 // simple statements
 continue_stmt: 'CONTINUE' ;
@@ -144,34 +130,33 @@ yield_stmt: 'YIELD' expr (',' expr)* ;
 
 
 // EXPRESSIONS - basic unit of statements 
-expr: expr_var | func_op [expr_extension] ;
+expr: expr_var | simple_expr [expr_extension] ;
 expr_extension: select_extension+
-| 'IS' type_id [is_constr] [then_extension]
-| 'IF' expr 'ELSE' func_op
-| then_extension
+| 'IS' ['!'] is_expr [in_extension]
+| 'IF' expr 'ELSE' simple_expr
 | '.' '.' expr
 | 'AS' types
 ; 
 
 // expression local variable declaration
-expr_var: 'IDENTIFIER' '=' func_op then_extension ;
+expr_var: var_decl in_extension ;
 
-// then extension
-then_extension: 'THEN' expr ;
+// in extension
+in_extension: 'IN' expr ;
 
 // select extension
 select_extension: 'SELECT' '{' inline_case (',' inline_case)* [default_case] '}' ;
-inline_case: case_expr (',' case_expr)* '=>' expr ;
+inline_case: expr (',' expr)* '=>' expr ;
 default_case: ',' '_' '=>' expr ;
 
-// type constructor used is expression
-is_constr: '(' ('IDENTIFIER' | '_') (',' ('IDENTIFIER' | '_'))* ')' ;
+// type comparison expression used in `is` pattern
+is_expr: types [':' types] ['(' 'IDENTIFIER' (',' 'IDENTIFIER')* ')'] ;
 
-// functional operators
-func_op: or ('~*' or)* ;
+// highest level expression
+simple_expr: or ('~*' or)* ;
 
 // logical operators
-or: xor (('OR' | '|') xor)* ;
+or: xor ('|' ['|']  xor)* ;
 xor: and ('^' and)* ;
 and: comparison (('AND' | '&') comparison)* ;
 
@@ -196,7 +181,7 @@ unary_atom: ('&' | '-' | '~' | '++' | '--' | '*' ['?'] ) atom
 
 
 // ATOMS - basic unit of expressions
-atom: [ 'NEW' ] [ 'AWAIT' ] base trailer*
+atom: [ 'AWAIT' ] base trailer*
 | heap_alloc
 | from_expr
 | match_expr
@@ -204,7 +189,7 @@ atom: [ 'NEW' ] [ 'AWAIT' ] base trailer*
 
 trailer: '[' (expr [slice] | slice) ']'
 | ['!'] '(' args_list ')'
-| '{' init_list '}'
+| '{' [init_list] '}'
 | '.' ( 'IDENTIFIER' | 'INTEGER_LITERAL' )
 | '->' 'IDENTIFIER'
 | '?' '->' 'IDENTIFIER'
@@ -215,8 +200,8 @@ trailer: '[' (expr [slice] | slice) ']'
 // trailer components
 slice: ':' [expr [':' expr] | ':' expr] ;
 args_list: [arg (',' arg)*] ;
-arg: named_arg | expr ;
-named_arg: 'IDENTIFIER' '=' expr ;
+arg: expr named_suffix;
+named_suffix: '=' expr ;
 init_list: 'IDENTIFIER' initializer (',' 'IDENTIFIER' initializer)* ;
 
 // comprehension
@@ -254,48 +239,35 @@ base: 'INTEGER_LITERAL'
 | 'IDENTIFIER'
 | 'NULL'
 | 'VALUE'
-| array
-| list
-| dict
+| array_dict_builder
+| list_builder
 | comprehension
-| tuple
+| tupled_expr
 | lambda
-| sub_expr
-| partial_func
 | super_call
 ;
 
-// collection types
-array: '{' expr ( ',' expr )* '}' ;
-list: '[' expr ( ',' expr )* ']' ;
-dict: '{' expr ':' expr (',' expr ':' expr)* '}' ;
+// collection builders (comprehensions & literals)
+array_dict_builder: '{' expr [array_builder | dict_builder] '}' ;
+array_builder: (',' expr)* | comp_suffix ;
+dict_builder: ':' expr [(',' expr ':' expr)+ comp_suffix] ;
+comp_suffix: '|' iterator ;
 
-// tuple literal
-tuple: '(' expr (',' expr)+ ')' ;
+// tupled expressions (generate tuples or sub expressions)
+tupled_expr: '(' expr (',' expr)* ')' ;
 
 // inline functions (lambdas)
-lambda: ['ASYNC'] '|' args_decl_list '|' lambda_body ;
+lambda: '|' args_decl_list '|' ['ASYNC'] lambda_body ;
 lambda_body: '=>' expr
 | '{' [main] '}'
 ;
 
-// sub expr declared so that it could be easier to parse
-sub_expr: '(' expr ')' ;
-
-// convert function to partial function
-partial_func: '|' expr partial_arg (',' partial_arg)* ')' ;
-partial_arg: '_'
-| expr
-;
-
+// access the super form of a type
 super_call: 'SUPER' '(' [ 'IDENTIFIER' static_get* [ generic_spec ] ] ')' ;
 
 
 // DATA TYPES - data type literals
-types: ['CONST'] ( base_types
-| 'IDENTIFIER' (static_get | generic_spec)*
-)
-;
+types: base_types | named_value ;
 
 base_types: simple_types
 | collection_types
@@ -316,9 +288,10 @@ simple_types: 'BOOL_TYPE'
 | 'ANY_TYPE'
 ;
 
-collection_types: '[' [ expr ] ']' types
-| '[' types ']'
-| '[' types ':' types ']'
+collection_types: '[' collection_type_suffix ;
+collection_type_suffix: ']' expr
+| expr ']'
+| ':' expr ']'
 ;
 
 func_type: ('FUNC' | 'ASYNC') '(' func_arg_types ')' '(' [ type_list ] ')' ;
@@ -329,7 +302,7 @@ func_arg_indef: '...' [types] ;
 tuple_type: '(' tuple_type_list ')' ;
 tuple_type_list: types (',' types)+ ;
 
-pointer_type: ['DYN'] '*' types ;
+pointer_type: ['CONST'] ['DYN' | 'VOL'] '*' types ;
 
 
 // COMMON CONSTRUCTIONS - common structures used repeatedly in grammar
@@ -338,15 +311,16 @@ type_list: types (',' types)* ;
 
 // argument declaration syntax
 args_decl_list: [ decl_arg (',' decl_arg)* [',' ending_arg] | ending_arg ] ;
-decl_arg: ['OWN'] ['VOL'] 'IDENTIFIER' (',' 'IDENTIFIER')* extension [initializer] ;
+decl_arg: ['CONST'] ['VOL'] 'IDENTIFIER' (',' 'IDENTIFIER')* extension [initializer] ;
 ending_arg: '...' 'IDENTIFIER' [extension] ;
 
 // general purpose initializer
 initializer: '=' expr ;
 
 // iterator syntax
-iterator: iter_var (',' iter_var)* '<-' expr ;
-iter_var: 'IDENTIFIER' | '_' | tuple_iter_vars ;
+iterator: iter_var iter_suffix ;
+iter_suffix: (',' iter_var)* '<-' expr ;
+iter_var: 'IDENTIFIER' | unpacking_iter_var ;
 tuple_iter_vars: '(' iter_var (',' iter_var)+ ')' ;
 
 // type extension
@@ -359,13 +333,11 @@ func_body: ('{' [main] '}'
 ;
 
 // standard block
-block: '{' [main] '}'
-| stmt
-;
+block: '{' [main] '}' ;
 
 // operator (wherever any operator can be used)
-operator: '<' '<' | '>' '>' | '+' | '-' | '*' | '/' | '%' | '<' | '>' | '<=' | '>=' | '==' | '!='
-| '>>=' | '~^' | '~*' | '~/' | 'AND' | 'OR' | '&' | '|' | '^' | '~' ;
+operator: '<' ['<'] | '>' ['>'] | '+' | '-' | '*' | '/' | '%' | '<=' | '>=' | '==' | '!='
+| '>>=' | '~^' | '~*' | '~/' | 'AND' | '&' | '|' ['|'] | '^' | '~' ;
 
 // generic tag (placed after several block declarations)
 generic_tag: '<' generic (',' generic)* '>' ;
@@ -378,10 +350,5 @@ generic_spec: '<' type_list '>' ;
 static_get: get_op 'IDENTIFIER' ;
 get_op: ':' ':' ;
 
-// type identifier pair
-type_id: [ 'IDENTIFIER' ':' ] types ;
-
-// case-expressions and patterns
-case_expr: pattern | expr ;
-pattern: ['IDENTIFIER' static_get*] '(' pattern_elem (',' pattern_elem)* ')' ;
-pattern_elem: expr | '_' ;
+// a general named value accessor
+named_value: 'IDENTIFIER' (static_get | generic_spec)* ;

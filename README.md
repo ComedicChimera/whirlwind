@@ -21,26 +21,7 @@ language I aimed for an "85% solution" which effectively means close enough, but
 
 ### Notable Features:
 
-- Interface Binding
-- Generics
-- Concurrent Functions (Asyncs)
-- Lambdas and Closures
-- Comprehensions
-- Algebraic Data Types
-- Dynamic Pointer Types
-- Chaining (Complex Expressions)
-- Inline Select Statement
-- Captures
-- Shadowing
-- Constexpr Evaluation
-- Builtin List and Dictionary Types
-- Decorators
-- Higher Order Functions
-- Default Interface Members
-- Composition and Binding Operators
-- Operator Overloading
-- Exponentiation Operator
-- Packages
+*Rewriting this section.*
 
 Other features that are less unique to Whirlwind include interfaces, structs, functions, variables, and all the other usual suspects.
 
@@ -53,15 +34,16 @@ A FizzBuzz function in Whirlwind might look like the following:
     import { println } from io::std;
     
     func fizzBuzz() {
-        for (i = 0; i < 100; i++) {
-            if (i % 3 == 0 && i % 5 == 0)
+        for i = 0; i < 100; i++ {
+            if i % 3 == 0 && i % 5 == 0 {
                 println("FizzBuzz");
-            elif (i % 3 == 0)
+            } elif i % 3 == 0 {
                 println("Fizz");
-            elif (i % 5 == 0)
+            } elif i % 5 == 0 {
                 println("Buzz");
-            else
+            } else {
                 println(i);
+            }          
         }
     }
     
@@ -69,8 +51,8 @@ This is a very imperative approach to FizzBuzz, and there are innumerable other 
 
 Whirlwind's blended syntax also propagates to the higher level language constructs.  For example,
 
-    struct Vector3 {
-        x, y, z: int;
+    type Vector3 {
+        x, y, z: int
     }
     
 Again, we can see the concise nature of Whirlwind's syntax.  Whirlwind only makes your write what is necessary and this can
@@ -140,8 +122,8 @@ Fibonacci:
 
     import { println } from io::std;
 
-    func fib() const func()(int) {
-        let (a = 0, b = 1);
+    func fib() func()(int) {
+        let a = 0, b = 1;
 
         func f() int {
             yield a;
@@ -156,7 +138,7 @@ Fibonacci:
         let f = fib();
 
         // prints first 10 fibonacci numbers
-        for (i = 0; i < 10; i++) {
+        for i = 0; i < 10; i++ {
             println(f());
         }
 
@@ -171,11 +153,12 @@ Radix Sort:
     func radix_sort(list: [int]) [int] {
         let mx = list.max();
 
-        for (it = 0; 10 ~^ it < mx; it++) {
+        for it = 0; 10 ~^ it < mx; it++ {
             let buckets = [null as [int] | _ <- 1..10];
 
-            for (item <- list)
+            for item <- list {
                 buckets[item ~/ (10 ~^ it) % 10].push(item);
+            }             
 
             list = list.flatten().to_list();
         }
