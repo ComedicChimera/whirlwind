@@ -61,6 +61,7 @@ var keywords = map[string]struct{}{
 	"await": struct{}{},
 	"as":    struct{}{},
 	"from":  struct{}{},
+	"in":    struct{}{},
 }
 
 // store keyword type labels (separate so that token's name will be {VALUE}_TYPE)
@@ -112,7 +113,7 @@ var singleParticles = map[rune]struct{}{
 	'^': struct{}{},
 	';': struct{}{},
 	'|': struct{}{},
-	'&': struct{}{}
+	'&': struct{}{},
 }
 
 // "." and "/" have special logic that determines their behavior
