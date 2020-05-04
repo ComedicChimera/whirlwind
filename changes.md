@@ -32,12 +32,7 @@
   * value constancy is not
     - `const x = 10; let y = x;` (y is not constant)
   * casting rules: mutable -> constant, constant -/> mutable
-  * `make` returns a mutable reference, but expects to be initialized in
-    a constant value (ie. a constant variable)
-    - includes all data structures (must be a constant valued data structure)
   * methods can be constant (explicitly)
-- const references can be realloced (moved) (?)
-  * `make ... to size` is still valid (provided the size is multiple of the type)
 - cannot take a non-const reference to a constant value
 - remove `static`
 - value categories:
@@ -49,4 +44,18 @@
   * can allow for "currying" (not actually but...)
   * more clear than implicit currying/argument omission (re. Haskell)
   * another use of the `_` in a logical way
+- ownership model:
+  * heap memory managed by lifetimes (no explicit deletion)
+  * ownership is a value property that must be specified explicitly
+  * propagates across '=' when coming from an r-value, but not from an l-value or a c-value
+  * move (`:>`) valid on owned reference, set (`=`) valid on unowned references
+  * ownership cannot be transferred
+  * ownership is a value property that must be matched during initialization
+  * ways to use move
+    - reposition (classic move, `x :> p`)
+    - reallocate (move to a new value, `x :> make int`)
+    - "delete" (move to null, `x :> null`)
+  * exception: `vol*` ignores ownership semantics (not a good idea if not necessary)
+  * lifetime closing (delete) won't cause issues on null pointers (if move to null
+  deterministic, delete omitted; if not delete set, null checked)
 - PLUS: all the other changes that can be observed in grammar

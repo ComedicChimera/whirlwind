@@ -42,7 +42,7 @@ type_alias: '=' types ( '|' types )* ;
 type_set: '|' type_set_elem ('|' type_set_elem)+ ;
 type_set_elem: 'IDENTIFIER' [ type_suffix ] ;
 type_suffix: '(' types (',' types)* ')' | '{' type_struct_elem (',' type_struct_elem)* '}' ;
-type_struct_elem: 'IDENTIFIER' (',' 'IDENTIFIER')* extension [initializer] ;
+type_struct_elem: ['CONST'] [val_spec] 'IDENTIFIER' (',' 'IDENTIFIER')* extension [initializer] ;
 
 // function declaration
 func_decl: ('FUNC' | 'ASYNC') 'IDENTIFIER' [generic_tag] '(' args_decl_list ')' [ types ] (func_body | ';') ;
@@ -108,18 +108,17 @@ stmt: ( var_decl
 | break_stmt
 | return_stmt
 | yield_stmt
-| resize_stmt
 ) ';' 
 ;
 
 // variable declaration
-var_decl: ('LET' | 'CONST') ['VOL'] (unpacking_var | std_var) ;
+var_decl: ('LET' | 'CONST') [val_spec] (unpacking_var | std_var) ;
 unpacking_var: '(' std_var ')' [extension] initializer ;
 std_var: var_id (',' var_id );
 
 // assignment or expression statement
 expr_stmt: mut_expr [(',' mut_expr)* assign_op assign_expr ] ;
-assign_op: ['+' | '-' | '*' | '/' | '%' | '~^' | '~/' | '|' | '&'] '=' ;
+assign_op: ['+' | '-' | '*' | '/' | '%' | '~^' | '~/' | '|' | '&'] '=' | ':>' ; // also includes move operator
 assign_expr: expr (',' expr)* ;
 
 // variation of expression designed to be mutable/cause mutation
@@ -131,9 +130,6 @@ continue_stmt: 'CONTINUE' ;
 break_stmt: 'BREAK' ;
 return_stmt: 'RETURN' [expr (',' expr)*] ;
 yield_stmt: 'YIELD' expr (',' expr)* ;
-
-// resize (make to) statement
-resize_stmt: 'MAKE' simple_expr 'TO' heap_alloc_arg ;
 
 
 // EXPRESSIONS - basic unit of statements 
@@ -309,7 +305,7 @@ type_list: types (',' types)* ;
 
 // argument declaration syntax
 args_decl_list: [ decl_arg (',' decl_arg)* [',' ending_arg] | ending_arg ] ;
-decl_arg: ['CONST'] ['VOL'] 'IDENTIFIER' (',' 'IDENTIFIER')* extension [initializer] ;
+decl_arg: ['CONST'] [val_spec] 'IDENTIFIER' (',' 'IDENTIFIER')* extension [initializer] ;
 ending_arg: '...' 'IDENTIFIER' [extension] ;
 
 // general purpose initializer
@@ -353,3 +349,6 @@ named_value: 'IDENTIFIER' (static_get | generic_spec)* ;
 
 // increment and decrement operators
 increm_decrem: '++' | '--' ;
+
+// value specifiers
+val_spec: ('OWN' | 'VOL')+;

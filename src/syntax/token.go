@@ -37,6 +37,7 @@ var keywords = map[string]struct{}{
 	"vol":  struct{}{},
 	"make": struct{}{},
 	"dyn":  struct{}{},
+	"own":  struct{}{},
 
 	// function definitions
 	"func":     struct{}{},
@@ -92,6 +93,7 @@ var multiParticles = map[rune]string{
 	'>': "=",
 	'=': "=>",
 	'!': "=",
+	':': ">",
 }
 
 // store particles that have nothing following them (packaged as seen)
@@ -103,7 +105,6 @@ var singleParticles = map[rune]struct{}{
 	'}': struct{}{},
 	'[': struct{}{},
 	']': struct{}{},
-	':': struct{}{},
 	',': struct{}{},
 	'#': struct{}{},
 	'@': struct{}{},
