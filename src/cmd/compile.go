@@ -4,6 +4,8 @@ import (
 	"errors"
 	"os"
 	"strings"
+
+	"github.com/ComedicChimera/whirlwind/src/syntax"
 )
 
 const (
@@ -24,6 +26,9 @@ type Compiler struct {
 	outputPath          string
 	buildDirectory      string
 	outputFormat        int
+
+	// compiler state
+	parser *syntax.Parser
 }
 
 func (c *Compiler) AddLocalPackageDirectories(directories string) error {
