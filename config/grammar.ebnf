@@ -140,7 +140,7 @@ expr_extension: select_extension+
 | 'IF' expr 'ELSE' simple_expr
 | '.' '.' expr
 | 'AS' types
-| ':=' expr [in_extension]
+| ':=' simple_expr in_extension
 ; 
 
 // in extension
@@ -238,6 +238,7 @@ base: 'INTEGER_LITERAL'
 | tupled_expr
 | lambda
 | super_call
+| own_transfer
 ;
 
 // collection builders (comprehensions & literals)
@@ -257,6 +258,9 @@ lambda_body: '=>' expr
 
 // access the super form of a type
 super_call: 'SUPER' '(' [ 'IDENTIFIER' static_get* [ generic_spec ] ] ')' ;
+
+// syntax denoting an ownership transfer
+own_transfer: 'OWN' '(' expr ')' ;
 
 
 // DATA TYPES - data type literals

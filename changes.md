@@ -49,7 +49,6 @@
   * ownership is a value property that must be specified explicitly
   * propagates across '=' when coming from an r-value, but not from an l-value or a c-value
   * move (`:>`) valid on owned reference, set (`=`) valid on unowned references
-  * ownership cannot be transferred
   * ownership is a value property that must be matched during initialization
   * ways to use move
     - reposition (classic move, `x :> p`)
@@ -58,4 +57,9 @@
   * exception: `vol*` ignores ownership semantics (not a good idea if not necessary)
   * lifetime closing (delete) won't cause issues on null pointers (if move to null
   deterministic, delete omitted; if not delete set, null checked)
+  * ownership CAN be transferred
+    - must be done explicitly: `own(p)`
+    - in situations where Whirlwind cannot determine path of ownership deterministically,
+    it treats all possible owners as true owners and generates conditional lifetime semantics
+    - explicit transfer not necessary if no prior owner exists (eg. `f(make int)`)
 - PLUS: all the other changes that can be observed in grammar
