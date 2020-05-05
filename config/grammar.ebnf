@@ -24,6 +24,7 @@ import_set: '{' ( 'IDENTIFIER' (',' 'IDENTIFIER')* | '...' ) '}' ;
 export_decl: 'EXPORT' ( block_decl
 | import_stmt ';'
 | var_decl ';'
+| '{' whirlwind '}'
 ) ;
 
 
@@ -133,16 +134,14 @@ yield_stmt: 'YIELD' expr (',' expr)* ;
 
 
 // EXPRESSIONS - basic unit of statements 
-expr: expr_var | simple_expr [expr_extension] ;
+expr: simple_expr [expr_extension] ;
 expr_extension: select_extension+
 | 'IS' ['!'] is_expr [in_extension]
 | 'IF' expr 'ELSE' simple_expr
 | '.' '.' expr
 | 'AS' types
+| ':=' expr [in_extension]
 ; 
-
-// expression local variable declaration
-expr_var: var_decl in_extension ;
 
 // in extension
 in_extension: 'IN' expr ;

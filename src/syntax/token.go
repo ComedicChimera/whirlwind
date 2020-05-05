@@ -93,7 +93,7 @@ var multiParticles = map[rune]string{
 	'>': "=",
 	'=': "=>",
 	'!': "=",
-	':': ">",
+	':': ">=",
 }
 
 // store particles that have nothing following them (packaged as seen)
