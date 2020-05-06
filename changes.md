@@ -62,4 +62,8 @@
     - in situations where Whirlwind cannot determine path of ownership deterministically,
     it treats all possible owners as true owners and generates conditional lifetime semantics
     - explicit transfer not necessary if no prior owner exists (eg. `f(make int)`)
+  * move operator overloads outside of interfaces
+    - allows for more efficient overloads (defined in terms of functions, makes more sense)
+    - operators can be "left-handed" or "right-handed"
+    - logically, an operator doesn't have a "primary operand" (when we see `2 + 3`, we don't think `2.add(3)`)
 - PLUS: all the other changes that can be observed in grammar

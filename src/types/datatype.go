@@ -6,6 +6,8 @@ type DataType interface {
 	equals(other DataType) bool
 }
 
+// TODO: impl better operators for types
+
 func Generalize(dt ...DataType) (DataType, bool) {
 	return nil, false
 }

@@ -34,6 +34,7 @@ block_decl: func_decl
 | type_decl
 | variant_decl
 | decor_decl
+| operator_decl
 ;
 
 
@@ -53,10 +54,7 @@ interf_decl: 'INTERF' (interf_name | interf_bind) '{' interf_main '}' ;
 interf_name: 'IDENTIFIER' [generic_tag] ;
 interf_bind: [generic_tag] 'FOR' types ['IS' implements] ;
 implements: types (',' types)* ;
-interf_main: ( func_decl | variant_decl | operator_decl )+ ;
-
-// operator overload
-operator_decl: 'OPERATOR' '(' operator ')' [generic_tag] '(' args_decl_list ')' [types] (func_body | ';') ;
+interf_main: ( func_decl | variant_decl )+ ;
 
 // variant declaration
 variant_decl: 'VARIANT' (variant_func | variant_method) ;
@@ -67,6 +65,9 @@ variant_method: 'WHEN' [generic_spec] 'IDENTIFIER' extension func_decl ;
 decor_decl: decor func_decl ;
 decor: '@' ( '[' decor_expr (',' decor_expr)* ']' | decor_expr ) ;
 decor_expr: named_value [ '(' args_list ')' ];
+
+// operator overload
+operator_decl: 'OPERATOR' '(' operator ')' [generic_tag] '(' args_decl_list ')' [types] (func_body | ';') ;
 
 
 // BLOCK STATEMENTS (control flow)
