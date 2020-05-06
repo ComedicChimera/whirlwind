@@ -81,9 +81,9 @@ func (gl *gramLoader) next() bool {
 	if err != nil {
 		if err == io.EOF {
 			return false
-		} else {
-			log.Fatal(err)
 		}
+
+		log.Fatal(err)
 	}
 
 	gl.curr = r
@@ -110,7 +110,7 @@ func (gl *gramLoader) skipComment() {
 
 // returns an unexpected token error
 func (gl *gramLoader) unexpectedToken() error {
-	return errors.New(fmt.Sprintf("Unexpected token '%c'", gl.curr))
+	return fmt.Errorf("Unexpected token '%c'", gl.curr)
 }
 
 // load and parse a production
@@ -166,17 +166,17 @@ func (gl *gramLoader) parseGroupContent(expectedCloser rune) ([]GrammaticalEleme
 
 			if err != nil {
 				return nil, err
-			} else {
-				groupContent = append(groupContent, NewGroupingElement(GKIND_GROUP, gelems))
 			}
+
+			groupContent = append(groupContent, NewGroupingElement(GKIND_GROUP, gelems))
 		case '[':
 			gelems, err := gl.parseGroupContent(']')
 
 			if err != nil {
 				return nil, err
-			} else {
-				groupContent = append(groupContent, NewGroupingElement(GKIND_OPTIONAL, gelems))
 			}
+
+			groupContent = append(groupContent, NewGroupingElement(GKIND_OPTIONAL, gelems))
 		case '*', '+':
 			// repeaters must be applied to some form of grammatical element
 			if len(groupContent) == 0 {
@@ -208,9 +208,9 @@ func (gl *gramLoader) parseGroupContent(expectedCloser rune) ([]GrammaticalEleme
 				alternator := tailContent[0].(AlternatorElement)
 				alternator.PushFront(groupContent)
 				return []GrammaticalElement{alternator}, nil
-			} else {
-				return []GrammaticalElement{NewAlternatorElement(groupContent, tailContent)}, nil
 			}
+
+			return []GrammaticalElement{NewAlternatorElement(groupContent, tailContent)}, nil
 		case '\'':
 			terminal, ok := gl.readTerminal()
 
@@ -249,9 +249,9 @@ func (gl *gramLoader) readTerminal() (string, bool) {
 	for gl.next() {
 		if gl.curr == '\'' {
 			return string(terminal), true
-		} else {
-			terminal = append(terminal, gl.curr)
 		}
+
+		terminal = append(terminal, gl.curr)
 	}
 
 	// if the token is not closed before EOF, then it is malformed (and we reach here)

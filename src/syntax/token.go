@@ -1,5 +1,8 @@
 package syntax
 
+// Token represents a token read in by
+// the scanner (and incorporated into
+// the AST by an alias definition)
 type Token struct {
 	Name  string
 	Value string

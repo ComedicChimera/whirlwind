@@ -2,41 +2,34 @@ package syntax
 
 import "log"
 
-// represent the positional range of an AST node
-// in the source text (for error handling)
+// TextPosition represents the positional range of an
+// AST node in the source text (for error handling)
 type TextPosition struct {
 	StartLn, StartCol int // starting line, starting 0-indexed column
 	EndLn, EndCol     int // ending Line, column trailing token (one over)
 }
 
-// represents a piece of the Abstract Syntax Tree (AST)
+// ASTNode represents a piece of the Abstract Syntax Tree (AST)
 type ASTNode interface {
-	IsLeaf() bool // really just a property getter (for checking)
 	Position() *TextPosition
 }
 
-// an AST leaf is simply a token (at the end of branch)
+// ASTLeaf is simply a token in the AST (at the end of branch)
 type ASTLeaf Token
 
-func (*ASTLeaf) IsLeaf() bool {
-	return true
-}
-
-// text position of leaf is just the position of the token it contains
+// Position of a leaf is just the position of the token it contains
 func (a *ASTLeaf) Position() *TextPosition {
 	return &TextPosition{StartLn: a.Line, StartCol: a.Col, EndLn: a.Line, EndCol: a.Col + len(a.Value)}
 }
 
-// an AST branch is a named set of leaves and branches
+// ASTBranch is a named set of leaves and branches
 type ASTBranch struct {
 	Name    string
 	Content []ASTNode
 }
 
-func (*ASTBranch) IsLeaf() bool {
-	return false
-}
-
+// Position of a branch is the starting position of its first node
+// and the ending position of its last node (node can be leaf or branch)
 func (a *ASTBranch) Position() *TextPosition {
 	// Note: empty AST nodes SHOULD never occur, but we check anyway (so if they do, we see the error)
 	if len(a.Content) == 0 {

@@ -23,19 +23,20 @@ type GrammaticalElement interface {
 	Kind() int
 }
 
-// create renames for singular grammatical elements
-// ie. Terminals and Nonterminals, both of which are strings
+// Terminal grammatical element (rename of string)
 type Terminal string
+
+// Nonterminal grammatical element (rename of string)
 type Nonterminal string
 
-// create a struct to represent all of the other grouping
+// GroupingElement represents all of the other grouping
 // grammatical elements (eg. groups, optionals, repeats, etc.)
 type GroupingElement struct {
 	kind     int
 	elements []GrammaticalElement
 }
 
-// create a new grouping element
+// NewGroupingElement creates a new grouping element
 func NewGroupingElement(kind int, elems []GrammaticalElement) GroupingElement {
 	return GroupingElement{kind: kind, elements: elems}
 }
