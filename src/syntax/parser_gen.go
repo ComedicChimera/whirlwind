@@ -17,8 +17,15 @@ const (
 // store the global start symbol of the grammar
 const _START_SYMBOL = "whirlwind"
 
-// define all the necessary types for the parsing table
+// ParsingTable represents an LL(1) parsing table
+// that is implemented as a table where the row keys
+// are the names of productions and the column keys
+// are the names of tokens and the contents are rules
 type ParsingTable map[string]map[string][]*PTableElement
+
+// PTableElement represents a single element of the
+// parsing table whose kind is characterized by the
+// constants prefixed PTF (terminal, nonterminal, epsilon)
 type PTableElement struct {
 	Kind  int
 	Value string
@@ -121,10 +128,11 @@ func reduceGrammar(g Grammar) *ReducedGrammar {
 	return rg
 }
 
-// represent the reduced grammar (extracted from more
-// complex grammar). notably, this structure also contains
-// several methods and data structures that help in the
-// creation of the parsing table (determining firsts and follows)
+// ReducedGrammar represents the reduced grammar (extracted from
+// the more complex grammar). notably, this structure also contains
+// several methods and data structures that help in the creation
+// of the parsing table (determining firsts and follows). it acts
+// as an intermediary between the grammar and the parsing table
 type ReducedGrammar struct {
 	Productions map[string]ReducedProduction
 
@@ -138,6 +146,7 @@ type ReducedGrammar struct {
 	followTable map[string][]string
 }
 
+// ReducedProduction represents a production in the reduced grammar
 type ReducedProduction [][]*PTableElement
 
 // this function handles the high level aspects of the productions
@@ -293,12 +302,12 @@ func (rg *ReducedGrammar) first(rule []*PTableElement) []string {
 		}
 
 		return firstSet
-		// catches both terminals and epsilon since
-		// Fi(epsilon) = { epsilon } and
-		// Fi(a) where a is a terminal = { a }
-	} else {
-		return []string{rule[0].Value}
 	}
+
+	// catches both terminals and epsilon since
+	// Fi(epsilon) = { epsilon } and
+	// Fi(a) where a is a terminal = { a }
+	return []string{rule[0].Value}
 }
 
 // follow finds all of the follows of given production where

@@ -2,7 +2,6 @@ package syntax
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -10,7 +9,7 @@ import (
 	"strings"
 )
 
-// create a scanner for the given file
+// NewScanner creates a scanner for the given file
 func NewScanner(fpath string) (*Scanner, error) {
 	f, err := os.Open(fpath)
 
@@ -32,7 +31,7 @@ func isDigit(r rune) bool {
 	return r > '/' && r < ':'
 }
 
-// works like an io.Reader for a file (outputting tokens)
+// Scanner works like an io.Reader for a file (outputting tokens)
 type Scanner struct {
 	file  *bufio.Reader
 	fpath string
@@ -47,8 +46,8 @@ type Scanner struct {
 	currValid bool // tells us whether or not the scanner has hit an EOF (without checking output from readNext)
 }
 
-// read a single token from the stream, error can
-// indicate malformed token or end of token stream
+// ReadToken reads a single token from the stream, error
+// can indicate malformed token or end of token stream
 func (s *Scanner) ReadToken() (*Token, error) {
 	for s.readNext() {
 		malformed := false
@@ -123,10 +122,10 @@ func (s *Scanner) ReadToken() (*Token, error) {
 
 		// error out on any malformed tokens (along with contents of token buffer)
 		if malformed {
-			return nil, errors.New(fmt.Sprintf("Malformed Token \"%s\" at (Ln: %d, Col: %d)", string(s.tokBuff), s.line, s.col))
-		} else {
-			return tok, nil
+			return nil, fmt.Errorf("Malformed Token \"%s\" at (Ln: %d, Col: %d)", string(s.tokBuff), s.line, s.col)
 		}
+
+		return tok, nil
 	}
 
 	// end of file
@@ -170,9 +169,9 @@ func (s *Scanner) readNext() bool {
 		if err == io.EOF {
 			s.currValid = false
 			return false
-		} else {
-			log.Fatal("Error reading file " + s.fpath)
 		}
+
+		log.Fatal("Error reading file " + s.fpath)
 	}
 
 	// do line and column counting
@@ -196,9 +195,9 @@ func (s *Scanner) skipNext() bool {
 		if err == io.EOF {
 			s.currValid = false
 			return false
-		} else {
-			log.Fatal("Error reading file " + s.fpath)
 		}
+
+		log.Fatal("Error reading file " + s.fpath)
 	}
 
 	// do line and column counting

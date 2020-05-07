@@ -1,9 +1,9 @@
 package syntax
 
-// a grammar is defined to be a set of named productions
+// Grammar is defined to be a set of named productions
 type Grammar map[string]Production
 
-// a production itself is simply a set of grammatical elements
+// Production itself is simply a set of grammatical elements
 type Production []GrammaticalElement
 
 const (
@@ -16,9 +16,8 @@ const (
 	GKIND_NONTERMINAL
 )
 
-// there are many kinds of grammatical elements as
-// enumerated above that this interface accounts
-// for, meant to be used as a check before a type assert
+// GrammaticalElement represents a piece of the grammar
+// once it is serialized into an object
 type GrammaticalElement interface {
 	Kind() int
 }
@@ -41,38 +40,39 @@ func NewGroupingElement(kind int, elems []GrammaticalElement) GroupingElement {
 	return GroupingElement{kind: kind, elements: elems}
 }
 
-// return the known Kind of the two singular grammatical elements
+// Kind of a terminal is GKIND_TERMINAL
 func (Terminal) Kind() int {
 	return GKIND_TERMINAL
 }
 
+// Kind of a nonterminal is GKIND_NONTERMINAL
 func (Nonterminal) Kind() int {
 	return GKIND_NONTERMINAL
 }
 
-// return the kind of grouping elements
+// Kind returns the kind of grouping elements
 // based on the stored kind member variable
 func (g GroupingElement) Kind() int {
 	return g.kind
 }
 
-// represents a grammatical alternator storing
-// a slice of the subgroups it alternates between
+// AlternatorElementsrepresents a grammatical alternator
+// storing a slice of the subgroups it alternates between
 type AlternatorElement struct {
 	groups [][]GrammaticalElement
 }
 
-// create a new alternator element from some number of groups efficiently
+// NewAlternatorElement create a new alternator element from some number of groups efficiently
 func NewAlternatorElement(groups ...[]GrammaticalElement) AlternatorElement {
 	return AlternatorElement{groups: groups}
 }
 
-// known kind implementation
+// Kind of alternator is GKIND_ALTERNATOR
 func (AlternatorElement) Kind() int {
 	return GKIND_ALTERNATOR
 }
 
-// pushes a group onto the front of alternator element
+// PushFront pushes a group onto the front of alternator element
 func (ae *AlternatorElement) PushFront(group []GrammaticalElement) {
 	ae.groups = append([][]GrammaticalElement{group}, ae.groups...)
 }

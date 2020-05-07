@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// the parser is meant to be created once and reset for different
+// Parser is meant to be created once and reset for different
 // parses (generates and stores one parsing table for repeated use)
 type Parser struct {
 	table         ParsingTable
@@ -17,10 +17,10 @@ type Parser struct {
 	startSymbol   string
 }
 
-// loads in a grammar from the specified path and then creates
-// an LL(1) parser for the grammar if possible (fails if grammar
-// is ambiguous or cannot be loaded), should only be called once
-// note: uses globally defined start symbol
+// NewParser loads in a grammar from the specified path and then
+// creates an LL(1) parser for the grammar if possible (fails if
+// grammar is ambiguous or cannot be loaded), should only be
+// called once. note: uses globally defined start symbol
 func NewParser(path string) (*Parser, error) {
 	g, err := loadGrammar(path)
 
@@ -37,7 +37,7 @@ func NewParser(path string) (*Parser, error) {
 	return &Parser{table: pTable, startSymbol: _START_SYMBOL}, nil
 }
 
-// parses a stream of tokens read from a scanner
+// Parse a stream of tokens read from a scanner
 func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 	// set the parser into its starting state
 	p.scanner = sc
@@ -105,15 +105,15 @@ func (p *Parser) doParse(name string) error {
 
 			if err != nil {
 				return err
-			} else {
-				lastNdx := len(p.semanticStack) - 1
-
-				if len(p.semanticStack[lastNdx].Content) > 0 {
-					p.semanticStack[lastNdx-1].Content = append(p.semanticStack[lastNdx-1].Content, p.semanticStack[lastNdx])
-				}
-
-				p.semanticStack = p.semanticStack[:lastNdx]
 			}
+
+			lastNdx := len(p.semanticStack) - 1
+
+			if len(p.semanticStack[lastNdx].Content) > 0 {
+				p.semanticStack[lastNdx-1].Content = append(p.semanticStack[lastNdx-1].Content, p.semanticStack[lastNdx])
+			}
+
+			p.semanticStack = p.semanticStack[:lastNdx]
 		case PTF_EPSILON:
 			// if the rule contains an epsilon at this point, we can assume that the token is
 			// allowed not to match and we can carry on with business as usual
@@ -153,5 +153,5 @@ func (p *Parser) unexpectedToken() error {
 		return errors.New("Unexpected end of file")
 	}
 
-	return errors.New(fmt.Sprintf("Unexpected token '%s' at (Ln: %d, Col: %d)", p.curr.Value, p.curr.Line, p.curr.Col))
+	return fmt.Errorf("Unexpected token '%s' at (Ln: %d, Col: %d)", p.curr.Value, p.curr.Line, p.curr.Col)
 }

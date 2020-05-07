@@ -1,11 +1,55 @@
 package types
 
-// DataType is general interface used to represent all
+import "reflect"
+
+// NOTE: equality between data types can be tested using
+// `==` because although the data types are pointers stored
+// in interfaces, they are pointers to singular references
+// created once and stored in the type table and so since
+// each type should have exactly one address, this works
+
+// DataType is a general interface used to represent all
 // data types provides basic characteristics of all types:
 // coercion and casting (equality compares by identity)
 type DataType interface {
 	cast(other DataType) bool
 	coerce(other DataType) bool
+}
+
+// TypeInfo is a data structure unique to each data type
+// representing any type information shared between
+// data types and instances (should only be created once).
+// this information must be stored in the type table (each
+// type must have a type info entry).
+type TypeInfo struct {
+	PackageName string
+}
+
+// the type table represents a common storage place
+// for all type references so that each data type is only
+// defined once and any modifications to that type propagate
+// to all known "instances" of that type.  It also stores
+// an necessary type information (such as interfaces) so that
+// this information can be accessed and modified in a similar
+// manner to that of the type itself.  For these reasons, any
+// NewType() methods should always return an entry in this table.
+var typeTable = make(map[DataType]*TypeInfo)
+
+// newType is a common function that should be included in the
+// new type methods of any data type so as to ensure that the
+// type is properly added to the type table or retrieved if it
+// already exists (such a check should be performed for all usages)
+func newType(dt DataType, pkgName string) DataType {
+	for entry, ti := range typeTable {
+		if reflect.TypeOf(entry) == reflect.TypeOf(dt) && reflect.ValueOf(dt).Elem() == reflect.ValueOf(entry).Elem() {
+			if ti.PackageName == pkgName {
+				return entry
+			}
+		}
+	}
+
+	typeTable[dt] = &TypeInfo{PackageName: pkgName}
+	return dt
 }
 
 // Unify finds the unified type of a set if possible
@@ -35,17 +79,6 @@ func Unify(dts ...DataType) (DataType, bool) {
 // Note: Mainly meant for use in Unification
 func Generalize(dt ...DataType) (DataType, bool) {
 	return nil, false
-}
-
-// InstOf checks whether or not a data type is a valid
-// element of a type set both checking whether or not
-// it is a preexisting element or whether or not it
-// could be an element based on the quantifiers of the
-// type set.  If no quantifiers exist and the data type
-// is not already an element of the type set, it assumes
-// that the type passed in is NOT an element of the type set
-func InstOf(elem DataType, set DataType) bool {
-	return false
 }
 
 // CoerceTo acts as wrapper to a types built in coercion
