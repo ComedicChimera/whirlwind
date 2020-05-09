@@ -23,6 +23,7 @@ type DataType interface {
 // type must have a type info entry).
 type TypeInfo struct {
 	PackageName string
+	Interf      *TypeInterf
 }
 
 // the type table represents a common storage place

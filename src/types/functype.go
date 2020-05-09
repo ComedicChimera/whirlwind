@@ -10,3 +10,16 @@ type FuncType struct {
 	ReturnType DataType
 	Async      bool
 }
+
+func (ft *FuncType) coerce(other DataType) bool {
+	return ft == other
+}
+
+func (ft *FuncType) cast(other DataType) bool {
+	return false
+}
+
+type FuncGroup struct {
+	Group []*FuncType
+	Name  string
+}
