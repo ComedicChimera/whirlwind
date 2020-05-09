@@ -37,10 +37,12 @@ var keywords = map[string]struct{}{
 	"yield":  struct{}{},
 
 	// memory management
-	"vol":  struct{}{},
-	"make": struct{}{},
-	"dyn":  struct{}{},
-	"own":  struct{}{},
+	"vol":    struct{}{},
+	"make":   struct{}{},
+	"dyn":    struct{}{},
+	"own":    struct{}{},
+	"delete": struct{}{},
+	"always": struct{}{},
 
 	// function definitions
 	"func":     struct{}{},
