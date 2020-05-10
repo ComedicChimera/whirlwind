@@ -97,7 +97,7 @@ Three Ways to Resolve This:
             delete x;
         }
 
-        // No error: x has polyformic but determinate lifetime
+        // No error: x has polymorphic but determinate lifetime
     }
 
     // CLAIM
