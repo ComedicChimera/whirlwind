@@ -248,7 +248,7 @@ In the following two examples, we see situations where move is valid and where i
     }
 
 The reason the second example is inconsistent is that although it is consistent with the lifetime of parameter (as a resource holder), it is not consistent with
-the lifetime of the resource itself (the function could be "deleting" a resource unexpectedly)
+the lifetime of the resource itself (the function could be "deleting" a resource unexpectedly).
 
 ## Volatile Pointers
 
