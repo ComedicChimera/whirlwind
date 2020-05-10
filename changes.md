@@ -70,6 +70,11 @@
     - regular dereference operators on both known kinds of pointers have checks that cause runtime panics
     if null pointer is encountered
     - nullable dereference operators have same behavior as regular but return null instead of panicing
+  * assignment is only valid in certain situations:
+    - it doesn't cause a lifetime violation (see docs)
+    - it doesn't lead to an inconsistent or indeterminate lifetime
+  * move is valid everywhere delete is valid and:
+    - when deletion would cause an indeterminate lifetime (see example at end of docs)
   * see examples in docs
 - move operator overloads outside of interfaces
   * allows for more efficient overloads (defined in terms of functions, makes more sense)
