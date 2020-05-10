@@ -14,10 +14,20 @@ prevents undefined behavior but does have a mild performance cost (due to checks
 you to maximize Whirlwind's performance at the cost of safety, a file or function can be labeled as "unsafe" via an annotation
 in which case all checks related to memory (and to other features of the language as well) are disabled.
 
-## Basic Lifetime Determination
+## Basic Lifetime Characteristics
 
-By default, there are several different kinds of lifetimes that can occur.  The most basic is the local lifetime in which a resource's
-lifetime is bound to its current enclosing scope.  For example:
+Whirlwind provides five different lifetime categories that can either be user-specified or compiler-determined.  It is important
+to note that lifetimes appear relative to the scope in which they are enclosed (eg. a resource could have one kind of lifetime
+in an upper scope but a different kind of lifetime in a lower scope).  The five kinds of lifetimes are as follows:
+
+- Local
+- Nonlocal
+- Global
+- Duplicate
+- Polymorphic
+
+Local lifetimes are the simplest.  A resource with a local lifetime is deleted whenever its enclosing scope closes.  For example,
+in the following code `x` has a local lifetime.
 
     func f() {
         let x = make int;
@@ -25,48 +35,64 @@ lifetime is bound to its current enclosing scope.  For example:
         // -- SNIP --
     }
 
-The variable `x` has a local lifetime: it is deleted when the scope closes (like a stack resource).  Note that this applies
-to **any** scope not just function scopes.  So a resource created with a local lifetime in an `if` block would be deleted at the
-end of said block.
+This means that `x` will be deleted when the function returns.  The next kind of lifetime is a bit more complex: the nonlocal lifetime.
+Resources with a nonlocal lifetime have the opposite characteristics to those of the local lifetime: they are not deleted whenever the
+current enclosing scope closes.  Note that this scope may not necessarily be their (ie. a resource can be local to "higher" scope and
+nonlocal in a "lower" scope).
 
-The next kind of lifetime is the nonlocal lifetime.  This kind of lifetime occurs whenever an owner or resource is **elevated** from
-its enclosing scope by an assignment or a value-yielding terminator.  For example,
+There are a number of ways a resource or owner can have a nonlocal lifetime.  The first an most obvious is if a resource is a created
+in a higher scope.
 
-    func f2() dyn* int {
+    func f() {
+        let x = make int;
+
+        if some_cond {
+            // -- SNIP --
+            // x is nonlocal to the scope
+        }
+    }
+
+However, a resource can also be elevated to a nonlocal lifetime.  The most common ways for this happen are function returns and assignment.
+We will talk about the latter a bit later since it is a bit more complicated.  However, we can observe function return lifetime elevation
+in action here.
+
+    func f() own dyn* x {
         let x = make int;
 
         return x;
     }
 
-In this case, `x` has a nonlocal lifetime.  Note that a nonlocal lifetime is simply the lifetime of whatever scope the resource was elevated
-into.  In this case, `x` will acquire the lifetime of the enclosing scope in which `f2` was called (unless of course it is returned again or
-its lifetime is otherwise altered).
+In this context, `x` is elevated to having a nonlocal lifetime in its enclosing scope.  Note the use of the `own` keyword here.  We use this
+keyword to indicate that we want Whirlwind to elevate the lifetime of `x` to be local to the scope in which `f` is called (this also means
+an owner is expected to receive the value returned by `f`).  If we were to omit the `own` keyword, `x` would default to its normal lifetime
+within `x` (ie. a local lifetime) and be deleted before it ever reached the caller.  Note that if `x` has been nonlocal (or global) to the
+enclosing function, it would retain its original lifetime and also become nonlocal to the calling scope.  This can be useful for accessing
+and managing shared resources.
 
-The next kind of lifetime is the foreign lifetime.  This lifetime is assigned by default to dynamic function parameters within the
-context of that function.  For example,
+The final way for a nonlocal lifetime to be induced is in a function parameter.  If we accept a dynamic argument to a function, we expect it
+to by default assume a nonlocal lifetime in relation to the function receiving it.
 
-    func f3(x: dyn* int) {
+    func f(x: dyn* int) {
         // -- SNIP --
     }
 
-In this context, `x` has a foreign lifetime.  Note that parameters can also be given a local lifetime via the parameter specifier `own`.
+The parameter `x` is nonlocal to the function `f` in this context.  We can also make a parameter local to a function by using the
+`own` prefix as follows.
 
-    func f4(own x: dyn* int) {
+    func f(own x: dyn* int) {
         // -- SNIP --
     }
 
-The lifetime of `x` is local to scope of the function `f4`.
+`x` will now be deleted when our function closes.
 
-Note that foreign lifetimes are also given to copies of a value with a local lifetime.  For example,
+The next two kinds of lifetimes are much simpler.  The first is the global lifetime.  Owners with a global lifetime are global to the
+current package, and resources must be explicitly elevated to the global lifetime via assignment or movement.  Note that resources with
+a global owner cannot be and are never deleted; however, they can be moved (as we will see later).
 
-    func f5() {
-        let x = make int;
-        let y = x;
-    }
+The fourth kind of lifetime is the duplicate lifetime which is essentially an owner with no lifetime at all.  This used whenever a copy
+of a resource is stored in another named value.  Note that values with a duplicate lifetime are not considered owners.
 
-The variable `y` has a foreign lifetime (viz. no known lifetime at all!).
-
-There are two other kinds of lifetimes that we will see later.
+The final kind of lifetime will be explored in the next section as will the semantics for all of the lifetimes (enumerated or not).
 
 ## Lifetime Indeterminance
 
