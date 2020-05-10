@@ -135,7 +135,7 @@ break_stmt: 'BREAK' ;
 return_stmt: 'RETURN' [expr (',' expr)*] ;
 yield_stmt: 'YIELD' expr (',' expr)* ;
 delete_stmt: 'DELETE' expr (',' expr)* ;
-always_stmt: 'ALWAYS' (delete_stmt | return_stmt | yield_stmt) ;
+always_stmt: 'ALWAYS' stmt ;
 
 
 // EXPRESSIONS - basic unit of statements 
