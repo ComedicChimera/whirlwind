@@ -75,6 +75,7 @@
     - it doesn't lead to an inconsistent or indeterminate lifetime
   * move is valid everywhere delete is valid and:
     - when deletion would cause an indeterminate lifetime (see example at end of docs)
+    - ie. it is only valid on direct resource holders (where the lifetime is predetermined)
   * see examples in docs
 - move operator overloads outside of interfaces
   * allows for more efficient overloads (defined in terms of functions, makes more sense)
