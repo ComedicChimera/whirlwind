@@ -69,14 +69,20 @@ within `x` (ie. a local lifetime) and be deleted before it ever reached the call
 enclosing function, it would retain its original lifetime and also become nonlocal to the calling scope.  This can be useful for accessing
 and managing shared resources.
 
-The final way for a nonlocal lifetime to be induced is in a function parameter.  If we accept a dynamic argument to a function, we expect it
-to by default assume a nonlocal lifetime in relation to the function receiving it.
+The next two kinds of lifetimes are much simpler.  The first is the global lifetime.  Owners with a global lifetime are global to the
+current package, and resources must be explicitly elevated to the global lifetime via assignment or movement.  Note that resources with
+a global owner cannot be and are never deleted; however, they can be moved (as we will see later).
+
+The fourth kind of lifetime is the duplicate lifetime which is essentially an owner with no lifetime at all.  This used whenever a copy
+of a resource is stored in another named value.
+
+Notably, dynamic function arguments are by default considered to have duplicate lifetimes (this is because they are copied before being passed in).
 
     func f(x: dyn* int) {
         // -- SNIP --
     }
 
-The parameter `x` is nonlocal to the function `f` in this context.  We can also make a parameter local to a function by using the
+The parameter `x` has a duplicate lifetime in this context.  We can also make a parameter local to a function by using the
 `own` prefix as follows.
 
     func f(own x: dyn* int) {
@@ -85,20 +91,13 @@ The parameter `x` is nonlocal to the function `f` in this context.  We can also 
 
 `x` will now be deleted when our function closes.
 
-The next two kinds of lifetimes are much simpler.  The first is the global lifetime.  Owners with a global lifetime are global to the
-current package, and resources must be explicitly elevated to the global lifetime via assignment or movement.  Note that resources with
-a global owner cannot be and are never deleted; however, they can be moved (as we will see later).
-
-The fourth kind of lifetime is the duplicate lifetime which is essentially an owner with no lifetime at all.  This used whenever a copy
-of a resource is stored in another named value.  Note that values with a duplicate lifetime are not considered owners.
-
-The final kind of lifetime will be explored in the next section as will the semantics for all of the lifetimes (enumerated or not).
+The final kind of lifetime will be explored in later sections as will the semantics for all of the lifetimes (enumerated or not).
 
 ## Lifetime Indeterminance
 
 Sometimes it may not be possible for the compiler to clearly determine a lifetime for a resource.
 
-    func g() dyn* int {
+    func g() own dyn* int {
         let x = make int;
 
         if some_cond {
@@ -114,7 +113,7 @@ In this situation, `x` has an indeterminate lifetime.  What happens if the funct
 expressivity and if the compiler were to delete our resource here implicitly, the behavior would not be obvious
 to a reader and so Whirlwind requires you to explicitly delete the resource.
 
-    func g() dyn* int {
+    func g() own dyn* int {
         let x = make int;
 
         if some_cond {
@@ -128,7 +127,7 @@ to a reader and so Whirlwind requires you to explicitly delete the resource.
 Another reason for this requirement is that it helps reveal to the programmer in unintentional bugs.  Imagine if
 instead the programmer had meant to write:
 
-    func g() dyn* int {
+    func g() own dyn* int {
         let x = make int;
 
         if some_cond {
@@ -154,7 +153,7 @@ To allow its memory model to be more robust, Whirlwind allows to make "claims" a
 these claims go way beyond just the memory model but we will limit ourselves to just their use there.  Let's consider
 a simple example:
 
-    func h() dyn* int {
+    func h() own dyn* int {
         let x = make int;
 
         for i = 0; i < 10; i++ {
@@ -173,7 +172,7 @@ it can be annoying when trying to compile your program for it to give you genera
 that adds nothing to your code.  Now, imagine if you could somehow communicate to the compiler your higher knowledge of the program.
 Well, with claims you can.  Let's rewrite our above code using a claim.
 
-    func h() dyn* int {
+    func h() own dyn* int {
         let x = make int;
 
         for i = 0; i < 10; i++ {
@@ -190,101 +189,27 @@ Now, Whirlwind knows that you are sometimes going to lie to it even if unintenti
 that you don't experience any undefined behavior from say, your function not returning but in the context of the memory model, it will not insert
 an additional delete as you have told it that it doesn't need to (I hope you weren't lying!).
 
-## The Curse of Mutability
+## Lifetime Consistency
 
-In the real world, we need to mutate things: that much is obvious.  While functional programming is great, I would say that there is a pretty gaping
-whole in this area that really has never been filled in a way that doesn't lead to immense suffering for new learners or a complete discarding of the
-functional programming style (ie. there actually is mutability @scala).  Obviously, Whirlwind is not a functional programming language and so we have
-to deal with mutability.  This poses a problem for memory management as in the mutable world, we can do things like this:
+Whirlwind requires that a resource's lifetime be able to be made consistent with the lifetime of its owner.  This fundamental principle is
+how Whirlwind prevents memory leaks and has interesting ramifications for how Whirlwind code is written.  This rule also has an incredibly
+important implication that is worth mentioning: a resource's lifetime must remain consistent with the lifetime of its owner.
 
-    func p() {
-        let ll = make_linked_list(10); // returns dyn* LLNode
+So how do we realize these rules?  We begin by defining the usage of two keys operators (`=` and `:>`) and the `delete` statement. All
+of these operators have the ability to change the lifetime of an owner's resource.  Before we get to theory, let's look at a simple
+table to determine what operations are valid on each kind of lifetime.
 
-        for i = 0; i < 10; i++ {
-            println(ll);
-            ll = ll.next;
-        }
-    }
+| Lifetime | `=` | `:>` | `delete` |
+| -------- | --- | ---- | -------- |
+| Local | ❌ | ✔️ | ✔️ |
+| Nonlocal | ❌ | ✔️ | ❌ |
+| Global | ❌ | ✔️ | ❌ |
+| Duplicate | ✔️ | ❌ | ❌ |
 
-If you've ever used Whirlwind, you know this code doesn't compile which is a good thing.  Otherwise, you would've inadvertently leaked an entire linked
-list by trying to print it.  Mutability is awesome right? (note that if you hadn't modified the pointer there wouldn't be a leak becuase Whirlwind is
-awesome and would delete the entire data structure and its members recursively for you :D)
+*Note: Polymorphic lifetime variables have different semantics depending on what lifetime is evaluated (eg. in each branch of an `if`)*
 
-So how do we resolve this, and moreover, how do we detect this?  Not just here, but in the general case.  To answer the first and arguably easier question:
+*Note: `=` means direct assignment to the owner not mutation of the value it stores (eg. `*x = 2` is acceptable even when `=` is not).*
 
-- Foreign Lifetimes (copies)
-- Move Semantics
+*Note: Not all usages in the above table are entirely axiomatic (lifetime polymorphism shakes things up a bit).*
 
-Depending on your situation, you will want to employ one of these two in any given situation like this (in almost all cases).  Here, we would probably
-want to go with the former since we want to be able to use our list again after we have printed it.  That solution looks like this:
-
-    func p() {
-        let ll = make_linked_list(10); // returns dyn* LLNode
-
-        let it = ll; // copy
-        for i = 0; i < 10; i++ {
-            println(it);
-            it = it.next;
-        }
-    }
-
-Now this solution raises the obvious question, how do we detect these kinds of problems in the first place?  Well, the solution is with **lifetime proofs**.
-
-## Lifetime Proofs
-
-Lifetime proofs are how Whirlwind enforces its second principle and actually prevents memory leaks.  So how do they work?  They work by trying to substantiate
-the following claim about any given resource:
-
-> The resource's lifetime can be made consistent with that of its owner.
-
-Note the language of "made consistent."  This means that even if a resource might not have the desired lifetime upon its creation, Whirlwind can safely modify
-its lifetime to comply with that of the resource it is being stored into.  For example,
-
-    func f() {
-        let x = make int;
-
-        // -- SNIP --
-
-        if some_cond {
-            let p = make int;
-
-            // -- SNIP --
-
-            x = p; // ERROR
-        }
-    }
-
-The although `p` does not have the same lifetime as `x`, we can elevate its local lifetime into a nonlocal lifetime so that its lifetime is consistent with
-`x`.  However, there is a problem.  What about the original resource stored in `x`?  Wouldn't it be leaked here?  YES!  In fact, Whirlwind will not compile
-this code.  How does our lifetime proof catch this problem?  Well, by assigning a new resource into `x`, we are also affecting the viability of the lifetime
-of the resource originally owned by `x` has now been changed: it can no longer have to local lifetime `x` was expecting an so we get an error.
-
-The solution to this the problem is to employ the move operator.
-
-    func f() {
-        let x = make int;
-
-        // -- SNIP --
-
-        if some_cond {
-            let p = make int;
-
-            // -- SNIP --
-
-            x :> p;
-        }
-    }
-
-The move operator has unique semantics in terms of both lifetime proofs and in terms of the idea of a lifetime itself.  
-
-Notes:
-
-    func f() {
-        let x = make int;
-
-        if some_cond {
-            delete x; // what happens here?
-        }
-
-        // what happens if `x` is used again after?
-    }
+As should be clear from this table, the usages for basic lifetimes are fairly straightforward.
