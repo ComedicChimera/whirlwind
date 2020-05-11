@@ -89,4 +89,11 @@
   - allows for more efficient overloads (defined in terms of functions, makes more sense)
   - operators can be "left-handed" or "right-handed"
   - logically, an operator doesn't have a "primary operand" (when we see `2 + 3`, we don't think `2.add(3)`)
+- builtin support for vectorization (maybe, still in consideration)
+  - vector constructor: `<value : const_len>` or `<{elems...}>`
+  - vector data type: `<size>type` (only valid on integral, floating point or pointer types)
+  - vector generics: `<T, in N>` (N is a size parameter to a vector data type)
+  - all basic arithmetic operations are valid on vectors (scalar and vector mult)
+  - additional intrinsics and utilities
+  - `#vec_unroll` annotation to cause vector functions to be optimized (as much as possible)
 - PLUS: all the other changes that can be observed in grammar
