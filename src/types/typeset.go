@@ -54,3 +54,11 @@ func (ts *TypeSet) coerce(other DataType) bool {
 func (ts *TypeSet) cast(other DataType) bool {
 	return ts.coerce(other)
 }
+
+func (ts *TypeSet) SizeOf() uint {
+	return 0
+}
+
+func (ts *TypeSet) AlignOf() uint {
+	return 0
+}

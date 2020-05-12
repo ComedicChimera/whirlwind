@@ -12,7 +12,7 @@ type FuncType struct {
 }
 
 func (ft *FuncType) coerce(other DataType) bool {
-	return ft == other
+	return false
 }
 
 func (ft *FuncType) cast(other DataType) bool {

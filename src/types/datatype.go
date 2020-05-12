@@ -12,8 +12,16 @@ import "reflect"
 // data types provides basic characteristics of all types:
 // coercion and casting (equality compares by identity)
 type DataType interface {
-	cast(other DataType) bool
-	coerce(other DataType) bool
+	// both methods work in terms of other to self
+	cast(other DataType) bool   // coercion checked before running
+	coerce(other DataType) bool // equality checked before running
+
+	// SizeOf determines the size of a data type in bytes
+	SizeOf() uint
+
+	// AlignOf determines the maximum possible alignment
+	// of the data type in bytes (should be conservative)
+	AlignOf() uint
 }
 
 // TypeInfo is a data structure unique to each data type
@@ -22,8 +30,8 @@ type DataType interface {
 // this information must be stored in the type table (each
 // type must have a type info entry).
 type TypeInfo struct {
-	PackageName string
-	Interf      *TypeInterf
+	Interf *TypeInterf
+	// TODO: Type structs
 }
 
 // the type table represents a common storage place
@@ -40,16 +48,14 @@ var typeTable = make(map[DataType]*TypeInfo)
 // new type methods of any data type so as to ensure that the
 // type is properly added to the type table or retrieved if it
 // already exists (such a check should be performed for all usages)
-func newType(dt DataType, pkgName string) DataType {
-	for entry, ti := range typeTable {
+func newType(dt DataType) DataType {
+	for entry := range typeTable {
 		if reflect.TypeOf(entry) == reflect.TypeOf(dt) && reflect.ValueOf(dt).Elem() == reflect.ValueOf(entry).Elem() {
-			if ti.PackageName == pkgName {
-				return entry
-			}
+			return entry
 		}
 	}
 
-	typeTable[dt] = &TypeInfo{PackageName: pkgName}
+	typeTable[dt] = &TypeInfo{}
 	return dt
 }
 
@@ -99,4 +105,11 @@ func CoerceTo(src DataType, dest DataType) bool {
 // by this function thus why DataType.cast is not exposed
 func CastTo(src DataType, dest DataType) bool {
 	return false
+}
+
+// GetMethod checks if the data has the specified method and
+// if it does returns the data type of that method and if
+// not returns that it could not find a match for the given method
+func GetMethod(dt DataType, methodName string) (DataType, bool) {
+	return nil, false
 }
