@@ -94,8 +94,14 @@
   - vector data type: `<size>type` (only valid on integral, floating point or pointer types)
   - vector generics: `<T, in N>` (N is a size parameter to a vector data type)
   - all basic arithmetic operations are valid on vectors (scalar and vector mult)
-  - additional intrinsics and utilities
-  - `#vec_unroll` annotation to cause vector functions to be optimized (as much as possible)'
+  - additional intrinsics and utilities (eg. `__vec_sum(v)` and `__shuffle_vec(v1, v2, mask)`)
+  - `#vec_unroll` annotation to cause vector functions to be optimized (as much as possible)
   - extended (later) as part of math library (intended for general purpose use, also used in matrices and complex numbers)
+  - vector array initializers should be compiled as `shufflevector` if possible
   - VECTORS ARE ITERABLE
+- intrinsic implementation
+  - prevent intrinsics from being converted to first class functions
+  - allow for generic intrinsics
+  - `#intrinsic` annotation (implementation)
+- inline method calls (as much as possible)
 - PLUS: all the other changes that can be observed in grammar
