@@ -4,9 +4,11 @@ Whirlwind is a compiled, modern, and multipurpose language designed with intenti
 It is strongly-typed, versatile, expressive, concurrent, and relatively easy to learn.
 It boasts numerous new and old features and is designed to represent the needs of any software developer.
 
-*Language and Source Code Copyright &copy; Jordan Gaines 2019-2020*
+***Language and Source Code Copyright &copy; Jordan Gaines 2019-2020***
 
 *Note: Most of this will be moved to a formal website at some point.*
+
+*Note: All here is subject to change.*
 
 ## Table of Contents
 
@@ -30,7 +32,7 @@ Whirlwind tries to achieve all of these goals, and admittedly falls short in som
 there is often a trade off between ease of thought and writing and speed of compilation and execution.  When designing this
 language I aimed for an "85% solution" which effectively means close enough, but not perfect: each construct fulfills the majority of our speed goals, but not all at once.  In essence, instead of trying to make each and every construct perfect, I provide a variety of constructs and approaches each of which is suited to one of the goals, this design allowing you to choose what you find most important.
 
-## Notable Features:
+## <a name="features"/> Notable Features:
 
 - Versatile Type System
 - Intelligent Memory Model (no GC)
@@ -47,33 +49,11 @@ language I aimed for an "85% solution" which effectively means close enough, but
 
 *Note: This is not a complete list.  Also, many of the more unique features have additional information about them below.*
 
+## <a name="demos"/> Feature Demos
 
+***TODO: Insert some demos and explanations!***
 
-## Resources:
-
-You can learn more about Whirlwind and its design on *whirlwind-lang.org*.  This site provides a formal language specification, a
-basic guide to the language, and many other useful tidbits of information and functionality.
-
-If you are looking for a more personal and interactive experience, you can look at our social media links down [below](#compiler-info).
-
-## Compiler Information and Contributing <a name="compiler-info">
-
-Information about the compiler and all of its
-components can be found [here](https://github.com/ComedicChimera/Whirlwind/blob/master/Whirlwind/docs/compiler_info.md).
-
-A comprehensive language documentation can be found [here](website/docs) *insert link*
-
-If you would like to contribute to this compiler or this language, please review the information above
-and join our Discord and other social media to get up to speed on the language in its current state.
-
- - [Discord](insert link here) *insert link*
- - [Slack](insert link here) *insert link*
- - [Reddit](insert link here) *insert link*
- 
-*Please read the full reference provided above before contributing the
-repository.*
-
-## Additional Examples
+## <a name="examples"/> Examples
 
 Fibonacci:
 
@@ -131,7 +111,21 @@ Radix Sort:
         println(list); // [0, 0, 1, 2, 3, 4, 7, 8, 9, 9]
     }
    
-## Author's Note
+## <a name="contributing"/> Contributing
+
+Information about the compiler and all of its components can be found ***DEADLINK*** [here](https://github.com/ComedicChimera/Whirlwind/blob/master/Whirlwind/docs/compiler_info.md).
+
+If you would like to contribute to this compiler or this language, please review the information above
+and join our Discord and other social media to get up to speed on the language in its current state.
+
+ - [Discord](insert link here) ***insert link***
+ - [Slack](insert link here) ***insert link***
+ - [Reddit](insert link here) ***insert link***
+ 
+*Please read the full reference provided above before contributing the
+repository.*
+   
+## <a name="note"/> Author's Note
 This compiler is the realization of my vision as a programmer. I have been obsessed with languages
 and language design pretty much since the first day I picked up programming. I hope that this language
 can be as amazing to you as it is to me. I am always happy to have people who want to make
