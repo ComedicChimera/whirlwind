@@ -61,7 +61,7 @@ func newType(dt DataType) DataType {
 
 // Unify finds the unified type of a set if possible
 // of data types (unified meaning type all types
-// in the set are able to casted to: set != typeset here)
+// in the set are able to coerced to: set != typeset here)
 func Unify(dts ...DataType) (DataType, bool) {
 	unifiedType := dts[0]
 

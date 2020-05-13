@@ -43,6 +43,7 @@ var keywords = map[string]struct{}{
 	"own":    struct{}{},
 	"delete": struct{}{},
 	"always": struct{}{},
+	"ref":    struct{}{},
 
 	// function definitions
 	"func":     struct{}{},

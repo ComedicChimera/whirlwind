@@ -85,7 +85,7 @@ else_block: 'ELSE' block ;
 // select statement
 select_stmt: 'SELECT' expr '{' select_block '}' ;
 select_block: case+ [default] ;
-case: 'CASE' expr (',' expr)* ':' main ;
+case: 'CASE' expr_list ':' main ;
 default: 'DEFAULT' ':' main ;
 
 // for loop
@@ -121,9 +121,8 @@ unpacking_var: '(' std_var ')' [extension] initializer ;
 std_var: var_id (',' var_id );
 
 // assignment or expression statement
-expr_stmt: mut_expr [(',' mut_expr)* assign_op assign_expr ] ;
+expr_stmt: mut_expr [(',' mut_expr)* assign_op expr_list ] ;
 assign_op: ['+' | '-' | '*' | '/' | '%' | '~^' | '~/' | '|' | '&'] '=' | ':>' ; // also includes move operator
-assign_expr: expr (',' expr)* ;
 
 // variation of expression designed to be mutable/cause mutation
 mut_expr: [unary_mut_prefix] ['AWAIT'] ( 'IDENTIFIER' | '(' expr ')' ) trailer [increm_decrem] ;
@@ -132,9 +131,9 @@ unary_mut_prefix: '*' ['?'] | increm_decrem ;
 // simple statements
 continue_stmt: 'CONTINUE' ;
 break_stmt: 'BREAK' ;
-return_stmt: 'RETURN' [expr (',' expr)*] ;
-yield_stmt: 'YIELD' expr (',' expr)* ;
-delete_stmt: 'DELETE' expr (',' expr)* ;
+return_stmt: 'RETURN' [expr_list] ;
+yield_stmt: 'YIELD' expr_list ;
+delete_stmt: 'DELETE' expr_list ;
 always_stmt: 'ALWAYS' stmt ;
 
 
@@ -153,7 +152,7 @@ in_extension: 'IN' expr ;
 
 // select extension
 select_extension: 'SELECT' '{' inline_case (',' inline_case)* [default_case] '}' ;
-inline_case: expr (',' expr)* '=>' expr ;
+inline_case: expr_list '=>' expr ;
 default_case: ',' '_' '=>' expr ;
 
 // type comparison expression used in `is` pattern
@@ -197,7 +196,7 @@ atom: [ 'AWAIT' ] base trailer*
 trailer: '[' (expr [slice] | slice) ']'
 | '(' args_list ')'
 | '{' [init_list] '}'
-| '.' ( 'IDENTIFIER' | 'INTEGER_LITERAL' )
+| '.' ( 'IDENTIFIER' | 'INT_LITERAL' )
 | '?' '.' 'IDENTIFIER'
 | generic_spec
 | static_get
@@ -219,13 +218,13 @@ from_expr: 'FROM' expr ;
 
 // the match expression
 match_expr: 'MATCH' match_kind expr 'TO' match_arr ;
-match_kind: '<' ('&' '&' | '|' '|' | 'INTEGER_LITERAL') ',' ('!=' | '==' | 'IS') '>' ;
+match_kind: '<' ('&' '&' | '|' '|' | 'INT_LITERAL') ',' ('!=' | '==' | 'IS') '>' ;
 match_arr: '{' expr (',' expr)+ '}' 
 | '{' types (',' types)+ '}'
 ;
 
 // BASES - lowest component of an atom
-base: 'INTEGER_LITERAL'
+base: 'INT_LITERAL'
 | 'FLOAT_LITERAL'
 | 'BOOL_LITERAL'
 | 'STRING_LITERAL'
@@ -243,6 +242,7 @@ base: 'INTEGER_LITERAL'
 | tupled_expr
 | lambda
 | super_call
+| vec_builder
 ;
 
 // collection builders (comprehensions & literals)
@@ -252,7 +252,7 @@ dict_builder: ':' expr [(',' expr ':' expr)+ comp_suffix] ;
 comp_suffix: '|' iterator ['WHEN' expr ];
 
 // tupled expressions (generate tuples or sub expressions)
-tupled_expr: '(' expr (',' expr)* ')' ;
+tupled_expr: '(' expr_list ')' ;
 
 // inline functions (lambdas)
 lambda: ['ASYNC'] '|' args_decl_list '|' lambda_body ;
@@ -263,18 +263,22 @@ lambda_body: '=>' expr
 // access the super form of a type
 super_call: 'SUPER' '(' [ 'IDENTIFIER' static_get* [ generic_spec ] ] ')' ;
 
+// vector builder (fills and const arrays)
+vec_builder: '<' expr [ ':' 'INT_LITERAL' ] '>' ;
+
 
 // DATA TYPES - data type literals
-types: base_types | named_value ;
+types: unnamed_types | named_value ;
 
-base_types: simple_types
+unnamed_types: prim_types
 | collection_types
+| pointer_types
 | func_type
 | tuple_type
-| pointer_type
+| vector_type
 ;
 
-simple_types: 'BOOL_TYPE'
+prim_types: 'BOOL_TYPE'
 | 'FLOAT_TYPE'
 | 'INT_TYPE'
 | 'STRING_TYPE'
@@ -294,23 +298,28 @@ collection_type_suffix: ']' expr
 
 func_type: ('FUNC' | 'ASYNC') '(' func_arg_types ')' '(' [ type_list ] ')' ;
 func_arg_types: [ func_arg_type (',' func_arg_type)* ] [func_arg_indef] ;
-func_arg_type: ['OWN'] types ['~'] ;
+func_arg_type: ['REF'] ['OWN'] types ['~'] ;
 func_arg_indef: '...' [types] ;
 
 tuple_type: '(' tuple_type_list ')' ;
 tuple_type_list: types (',' types)+ ;
 
-pointer_type: ['CONST'] ['DYN' | 'VOL'] '*' types ;
+pointer_types: ['CONST'] ['DYN' | 'VOL'] '*' types ;
+
+vector_type: '<' 'INT_LITERAL' '>' types ;
 
 
 // COMMON CONSTRUCTIONS - common structures used repeatedly in grammar
 // a series of types delimited by commas
 type_list: types (',' types)* ;
 
+// a series of expressions delimited by commas
+expr_list: expr (',' expr)* ;
+
 // argument declaration syntax
 args_decl_list: [ decl_arg (',' decl_arg)* [',' ending_arg] | ending_arg ] ;
-decl_arg: ['CONST'] ('VOL' | 'OWN')* 'IDENTIFIER' (',' 'IDENTIFIER')* extension [initializer] ;
-ending_arg: '...' 'IDENTIFIER' [extension] ;
+decl_arg: ['CONST'] ['REF'] ('VOL' | 'OWN')* 'IDENTIFIER' (',' 'IDENTIFIER')* extension [initializer] ;
+ending_arg: '...' ['CONST'] 'IDENTIFIER' [extension] ;
 
 // general purpose initializer
 initializer: '=' expr ;
@@ -326,7 +335,7 @@ extension: ':' types ;
 
 // function body
 func_body: ('{' [main] '}'
-| '=>' expr (',' expr)* ';'
+| '=>' expr_list ';'
 )
 ;
 
@@ -339,7 +348,7 @@ operator: '<' ['<'] | '>' ['>'] | '+' | '-' | '*' | '/' | '%' | '<=' | '>=' | '=
 
 // generic tag (placed after several block declarations)
 generic_tag: '<' generic (',' generic)* '>' ;
-generic: 'IDENTIFIER' [':' type_list] ;
+generic: ['IN'] 'IDENTIFIER' [':' type_list] ;
 
 // generic specifier
 generic_spec: '<' type_list '>' ;
