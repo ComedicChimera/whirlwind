@@ -42,46 +42,35 @@
   - `f(_, 23, _)` creates a function from f that accepts the two arguments left blank
   - can allow for "currying" (not actually but...)
   - more clear than implicit currying/argument omission (re. Haskell)
-- memory model
-  - three kinds of pointers: stack, dynamic, volatile
-  - stack pointers have standard stack lifetimes unconditionally
-  - dynamic pointers have compiled-determined and/or user-specified lifetimes
-  - lifetimes can be conditional (eg. one branch of if returns value, other deletes it)
-  - if the compiler cannot determine the lifetime of the resource, then error
-  - if the use of a resource is inconsistent with its specified lifetime, then error
-  - `delete` statement used to ensure resource has a proper lifetime
-    - delete must not violate an established lifetime
-    - used when the compiler thinks a resource may not be able to user-managed (see examples)
-  - `always` statement used to "prove" that a loop or conditional branch always occurs
-    - like a promise to the compiler
-    - can cause the compiler to identify and error on deadcode
-  - `own` keyword used in certain contexts to indicate that a value's lifetime is bound to its current scope
-    - eg. function arguments
-  - all dynamic allocations in any particular scope must have an "owner"
-    - eg. if a function returns a dynamic value, but that value is not stored anywhere that is an error
-  - use of move operator (`:>`) for efficient dynamic assignment (and deletion)
-    - similar semantics to delete operator
-  - all lifetimes are compiler-managed on a resource level (not name level)
-    - eg. you can assign to a resource's owner without a move call (bad practice) without necessarily violating
-    the lifetime b/c the compiler simply caches that resource if its lifetime needs to be enforced
-    - may be a problem if the compiler determines that that resource has an inconsistent lifetime as a result
-  - null pointer errors handled in two ways
-    - regular dereference operators on both known kinds of pointers have checks that cause runtime panics
-    if null pointer is encountered
-    - nullable dereference operators have same behavior as regular but return null instead of panicing
-  - assignment is only valid in certain situations:
-    - it doesn't cause a lifetime violation (see docs)
-    - it doesn't lead to an inconsistent or indeterminate lifetime
-  - move is valid everywhere delete is valid and:
-    - when deletion would cause an indeterminate lifetime (see example at end of docs)
-    - ie. it is only valid on direct resource holders (where the lifetime is predetermined)
-  - lifetimes operate in terms of proofs (so while some items are general rules, the nuances of the lifetime proof
-  may actually lead to their violation)
-    - compiler has to prove that the lifetime of the resource can be made equal to the lifetime of the resource
-    holder
-    - moreover, it has to prove that every resource a resource holder stores is consistent in this way
-    - there are certain situations in which the lifetime can actually be unequal to that of the holder
-  - see examples in docs
+- memory model **MORE CONSIDERATION NECESSARY**
+  - most memory management done in terms of references
+  - a reference is like a pointer except you can't mutate the pointer directly
+  - two kinds of references: regular and const references
+  - `make` returns a reference
+    - if it is a single item, it returns a reference to that item
+    - if it is a block, returns a reference to an array
+    - can be resized via `make &arr to new_size`
+  - references can never be explicitly dereferenced and have virtually identical semantics
+  to their non-reference counterparts
+  - created with syntax `&value` or `&const value`
+  - type label: `&type` or `const& type`
+  - dereferences are implicit (eg. storing a non-reference variable or passing as a non-reference argument)
+  - compiler-determined lifetimes, user-defined ownership status
+  - sometimes user will need to specify (ie. nonlocal lifetimes)
+  - protective semantics
+    - lifetime congruence (eg. can't return a stack reference, can't make a stack reference global)
+    - `own` is a type specifier that determines what type of reference we are dealing with
+    - ownership status must match exactly
+    - notably, it maintains on rvalues across equals and drops for all other value categories
+    - operator usage: `:>`, `delete`, and resize on mutable owned references, `=` on unowned references
+  - remove nullable dereference (keep nullable get item)
+  - make all/some trailers nullable **(?)**
+  - usages of pointers
+    - considered unsafe (perhaps only allow direct use in an `unsafe` block **(?)**)
+    - no real protection
+    - can be cast to and from references
+    - only recommended for use where absolutely necessary
+  - some form of null coalescion **(?)**
 - move operator overloads outside of interfaces
   - allows for more efficient overloads (defined in terms of functions, makes more sense)
   - operators can be "left-handed" or "right-handed"
@@ -108,4 +97,3 @@
   - trims down on unnecessary pointers and dereferences (use of pointers where pointers make no sense)
   - makes code more readable
 - allow tuple unpacking in inline vars `(x, y) := fn() in expr`
-- find some way of properly dealing with structured ownership (if necessary)

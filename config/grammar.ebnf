@@ -111,7 +111,7 @@ stmt: ( var_decl
 | return_stmt
 | yield_stmt
 | delete_stmt
-| always_stmt
+| resize_stmt
 ) ';' 
 ;
 
@@ -134,7 +134,9 @@ break_stmt: 'BREAK' ;
 return_stmt: 'RETURN' [expr_list] ;
 yield_stmt: 'YIELD' expr_list ;
 delete_stmt: 'DELETE' expr_list ;
-always_stmt: 'ALWAYS' stmt ;
+
+// resize a block of memory
+resize_stmt: 'MAKE' expr 'TO' heap_alloc_arg ;
 
 
 // EXPRESSIONS - basic unit of statements 
@@ -142,7 +144,7 @@ expr: simple_expr [expr_extension] ;
 expr_extension: select_extension+
 | 'IS' ['!'] is_expr [in_extension]
 | 'IF' expr 'ELSE' simple_expr
-| '.' '.' expr
+| '..' expr
 | 'AS' types
 | ':=' simple_expr in_extension
 ; 
@@ -181,7 +183,7 @@ term: factor (('*' | '/' | '%' | '~/') factor)* ;
 factor: unary_atom ('~^' unary_atom)*;
 
 // unary operators
-unary_atom: ('&' ['CONST'] | '-' | '~' | increm_decrem | '*' ['?'] ) atom
+unary_atom: ('&' ['CONST'] | '-' | '~' | increm_decrem | '*' ) atom
 | atom [increm_decrem]
 ;
 
@@ -268,11 +270,11 @@ vec_builder: '<' expr [ ':' 'INT_LITERAL' ] '>' ;
 
 
 // DATA TYPES - data type literals
-types: unnamed_types | named_value ;
+types: value_types | ref_types | named_value ;
 
-unnamed_types: prim_types
+// pure-value types
+value_types: prim_types
 | collection_types
-| pointer_types
 | func_type
 | tuple_type
 | vector_type
@@ -298,15 +300,18 @@ collection_type_suffix: ']' expr
 
 func_type: ('FUNC' | 'ASYNC') '(' func_arg_types ')' '(' [ type_list ] ')' ;
 func_arg_types: [ func_arg_type (',' func_arg_type)* ] [func_arg_indef] ;
-func_arg_type: ['REF'] ['OWN'] types ['~'] ;
+func_arg_type: types ['~'] ;
 func_arg_indef: '...' [types] ;
 
 tuple_type: '(' tuple_type_list ')' ;
 tuple_type_list: types (',' types)+ ;
 
-pointer_types: ['CONST'] ['DYN' | 'VOL'] '*' types ;
-
 vector_type: '<' 'INT_LITERAL' '>' types ;
+
+// reference-like types
+ref_types: ['CONST'] (pointer_type | ref_type) ;
+ref_type ['OWN'] '&' types ;
+pointer_type: '*' types ;
 
 
 // COMMON CONSTRUCTIONS - common structures used repeatedly in grammar
@@ -318,7 +323,7 @@ expr_list: expr (',' expr)* ;
 
 // argument declaration syntax
 args_decl_list: [ decl_arg (',' decl_arg)* [',' ending_arg] | ending_arg ] ;
-decl_arg: ['CONST'] ['REF'] ('VOL' | 'OWN')* 'IDENTIFIER' (',' 'IDENTIFIER')* extension [initializer] ;
+decl_arg: ['CONST'] ['VOL'] 'IDENTIFIER' (',' 'IDENTIFIER')* extension [initializer] ;
 ending_arg: '...' ['CONST'] 'IDENTIFIER' [extension] ;
 
 // general purpose initializer

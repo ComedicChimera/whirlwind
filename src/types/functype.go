@@ -1,7 +1,7 @@
 package types
 
 type FuncParam struct {
-	Type               DataType
+	Type               DataType // actually contains value :)
 	Optional, Variadic bool
 }
 
@@ -17,9 +17,4 @@ func (ft *FuncType) coerce(other DataType) bool {
 
 func (ft *FuncType) cast(other DataType) bool {
 	return false
-}
-
-type FuncGroup struct {
-	Group []*FuncType
-	Name  string
 }
