@@ -107,3 +107,5 @@
   - only used function arguments so not ambiguous
   - trims down on unnecessary pointers and dereferences (use of pointers where pointers make no sense)
   - makes code more readable
+- allow tuple unpacking in inline vars `(x, y) := fn() in expr`
+- find some way of properly dealing with structured ownership (if necessary)

@@ -19,20 +19,20 @@ It boasts numerous new and old features and is designed to represent the needs o
 - [Contributing](#contributing)
 - [Author's Note](#note)
 
-## <a name="goals"/> Goals:
+## <a name="goals"/> Goals
 
 Whirlwind has several main goals all of which can be enscapsulated in the idea of speed.
 
- * Speed of writing.
- * Speed of thinking.
- * Speed of compiling.
- * Speed of running.
- 
+- Speed of writing.
+- Speed of thinking.
+- Speed of compiling.
+- Speed of running.
+
 Whirlwind tries to achieve all of these goals, and admittedly falls short in some areas.  When using more high level constructs,
 there is often a trade off between ease of thought and writing and speed of compilation and execution.  When designing this
 language, I aimed for an "85% solution" which effectively means close enough but not perfect: each construct fulfills the majority of our speed goals but not all at once.  In essence, instead of trying to make each and every construct perfect, I provide a variety of constructs and approaches each of which is suited to one or more of the goals, this design allowing you to choose what you find most important.
 
-## <a name="features"/> Notable Features:
+## <a name="features"/> Notable Features
 
 - Versatile Type System
 - Intelligent Memory Model (no GC)
@@ -112,7 +112,34 @@ Radix Sort:
 
         println(list); // [0, 0, 1, 2, 3, 4, 7, 8, 9, 9]
     }
-   
+
+Linked List:
+
+    import { println } from io::std;
+
+    type LLNode {
+        value: int,
+        next: dyn* LLNode
+    }
+
+    func ll_range(val: int) own dyn* LLNode {
+        if val == 0 {
+            return make LLNode{value=val};
+        }
+
+        return make LLNode{value=val, next=ll_range(val - 1)};
+    }
+
+    func main() {
+        let ll = ll_range(10);
+
+        let p = ll;
+        for i = 0; i < 11; i++ {
+            println(p.value);
+            p = ll.next;
+        }
+    }
+
 ## <a name="contributing"/> Contributing
 
 ***TODO: Insert links***
@@ -122,14 +149,15 @@ Information about the compiler and all of its components can be found [here](ins
 If you would like to contribute to this compiler or this language, please review the information above
 and join our Discord and other social media to get up to speed on the language in its current state.
 
- - [Discord](insert link here)
- - [Slack](insert link here)
- - [Reddit](insert link here
- 
+- [Discord](insert link here)
+- [Slack](insert link here)
+- [Reddit](insert link here
+
 **Please read the full reference provided above before contributing the
 repository.**
-   
+
 ## <a name="note"/> Author's Note
+
 This compiler is the realization of my vision as a programmer. I have been obsessed with languages
 and language design pretty much since the first day I picked up programming. I hope that this language
 can be as amazing to you as it is to me. I am always happy to have people who want to make
