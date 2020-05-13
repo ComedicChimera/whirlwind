@@ -30,7 +30,7 @@ Whirlwind has several main goals all of which can be enscapsulated in the idea o
  
 Whirlwind tries to achieve all of these goals, and admittedly falls short in some areas.  When using more high level constructs,
 there is often a trade off between ease of thought and writing and speed of compilation and execution.  When designing this
-language I aimed for an "85% solution" which effectively means close enough, but not perfect: each construct fulfills the majority of our speed goals, but not all at once.  In essence, instead of trying to make each and every construct perfect, I provide a variety of constructs and approaches each of which is suited to one of the goals, this design allowing you to choose what you find most important.
+language, I aimed for an "85% solution" which effectively means close enough but not perfect: each construct fulfills the majority of our speed goals but not all at once.  In essence, instead of trying to make each and every construct perfect, I provide a variety of constructs and approaches each of which is suited to one or more of the goals, this design allowing you to choose what you find most important.
 
 ## <a name="features"/> Notable Features:
 
@@ -54,6 +54,8 @@ language I aimed for an "85% solution" which effectively means close enough, but
 ***TODO: Insert some demos and explanations!***
 
 ## <a name="examples"/> Examples
+
+***TODO: Add some more examples!***
 
 Fibonacci:
 
@@ -113,17 +115,19 @@ Radix Sort:
    
 ## <a name="contributing"/> Contributing
 
-Information about the compiler and all of its components can be found ***DEADLINK*** [here](https://github.com/ComedicChimera/Whirlwind/blob/master/Whirlwind/docs/compiler_info.md).
+***TODO: Insert links
+
+Information about the compiler and all of its components can be found [here](insert link here).
 
 If you would like to contribute to this compiler or this language, please review the information above
 and join our Discord and other social media to get up to speed on the language in its current state.
 
- - [Discord](insert link here) ***insert link***
- - [Slack](insert link here) ***insert link***
- - [Reddit](insert link here) ***insert link***
+ - [Discord](insert link here)
+ - [Slack](insert link here)
+ - [Reddit](insert link here
  
-*Please read the full reference provided above before contributing the
-repository.*
+**Please read the full reference provided above before contributing the
+repository.**
    
 ## <a name="note"/> Author's Note
 This compiler is the realization of my vision as a programmer. I have been obsessed with languages
