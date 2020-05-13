@@ -136,7 +136,7 @@ Linked List:
         let p = ll;
         for i = 0; i < 11; i++ {
             println(p.value);
-            p = ll.next;
+            p = p.next;
         }
     }
 
