@@ -36,7 +36,6 @@ block_decl: func_decl
 | operator_decl
 ;
 
-
 // type declaration
 type_decl: ['CLOSED'] 'TYPE' 'IDENTIFIER' [generic_tag] ( type_alias | type_set | type_suffix ) ;
 type_alias: '=' types ( '|' types )* ;
@@ -84,7 +83,8 @@ else_block: 'ELSE' block ;
 // select statement
 select_stmt: 'SELECT' expr '{' select_block '}' ;
 select_block: case+ [default] ;
-case: 'CASE' expr_list ':' main ;
+case: 'CASE' expr_list [when_cond] ':' main [fallthrough] ;
+fallthrough: 'FALLTHROUGH' ';' ;
 default: 'DEFAULT' ':' main ;
 
 // for loop
@@ -135,7 +135,7 @@ yield_stmt: 'YIELD' expr_list ;
 delete_stmt: 'DELETE' expr_list ;
 
 // resize a block of memory
-resize_stmt: 'MAKE' expr 'TO' heap_alloc_arg ;
+resize_stmt: 'MAKE' expr 'TO' type_alloc ;
 
 
 // EXPRESSIONS - basic unit of statements 
@@ -146,6 +146,7 @@ expr_extension: select_extension+
 | '..' expr
 | 'AS' types
 | ':=' simple_expr in_extension
+| 'CASE' expr [in_extension]
 ; 
 
 // in extension
@@ -194,14 +195,16 @@ atom: [ 'AWAIT' ] base trailer*
 | match_expr
 ;
 
-trailer: '[' (expr [slice] | slice) ']'
-| '(' args_list ')'
+trailer: nullable_trailer
 | '{' [init_list] '}'
-| '.' ( 'IDENTIFIER' | 'INT_LITERAL' )
-| '?' '.' 'IDENTIFIER'
 | generic_spec
 | static_get
 ;
+
+nullable_trailer: ['?'] ('[' (expr [slice] | slice) ']'
+| '(' args_list ')'
+| '.' ( 'IDENTIFIER' | 'INT_LITERAL' )
+);
 
 // trailer components
 slice: ':' [expr [':' expr] | ':' expr] ;
@@ -210,9 +213,9 @@ arg: expr named_suffix;
 named_suffix: '=' expr ;
 init_list: 'IDENTIFIER' initializer (',' 'IDENTIFIER' initializer)* ;
 
-// allocate a type on the heap
-heap_alloc: 'MAKE' heap_alloc_arg ;
-heap_alloc_arg: types [',' expr] ;
+// allocate on the heap
+heap_alloc: 'MAKE' ('FOR' type_alloc | expr) ;
+type_alloc: types ['*' expr] ;
 
 // access the value of a type class
 from_expr: 'FROM' expr ;
@@ -250,7 +253,7 @@ base: 'INT_LITERAL'
 array_dict_builder: '{' expr [array_builder | dict_builder] '}' ;
 array_builder: (',' expr)* | comp_suffix ;
 dict_builder: ':' expr [(',' expr ':' expr)+ comp_suffix] ;
-comp_suffix: '|' iterator ['WHEN' expr ];
+comp_suffix: '|' iterator [when_cond];
 
 // tupled expressions (generate tuples or sub expressions)
 tupled_expr: '(' expr_list ')' ;
@@ -366,3 +369,6 @@ named_value: 'IDENTIFIER' (static_get | generic_spec)* ;
 
 // increment and decrement operators
 increm_decrem: '++' | '--' ;
+
+// expression when condition
+when_cond: 'WHEN' expr ;

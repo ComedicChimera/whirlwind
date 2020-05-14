@@ -64,13 +64,13 @@
     - notably, it maintains on rvalues across equals and drops for all other value categories
     - operator usage: `:>`, `delete`, and resize on mutable owned references, `=` on unowned references
   - remove nullable dereference (keep nullable get item)
-  - make all/some trailers nullable **(?)**
+  - make some trailers nullable
+    - not allowed on generic specs, static gets, or init lists
   - usages of pointers
-    - considered unsafe (perhaps only allow direct use in an `unsafe` block **(?)**)
+    - considered unsafe
     - no real protection
     - can be cast to and from references
     - only recommended for use where absolutely necessary
-  - some form of null coalescion **(?)**
 - move operator overloads outside of interfaces
   - allows for more efficient overloads (defined in terms of functions, makes more sense)
   - operators can be "left-handed" or "right-handed"
@@ -97,3 +97,15 @@
   - trims down on unnecessary pointers and dereferences (use of pointers where pointers make no sense)
   - makes code more readable
 - allow tuple unpacking in inline vars `(x, y) := fn() in expr`
+- add singleton "case" expression (outside of `is`)
+  - eg. `tup case (3.14, s)`
+  - useful extension of pattern matching
+- select statement extensions
+  - `fallthrough` probably useful
+  - `when cond` conditions on select case
+  - only for statements (breaks completeness of expressions)
+- heap alloc synactic "overhaul"
+  - to allocate types: `make for type`
+  - to allocate a block of types: `make for type * numtypes`
+  - to allocate a value `make expr`
+
