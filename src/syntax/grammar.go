@@ -6,14 +6,15 @@ type Grammar map[string]Production
 // Production itself is simply a set of grammatical elements
 type Production []GrammaticalElement
 
+// Used to designate the different kinds of grammatical constructs
 const (
-	GKIND_ALTERNATOR = iota
-	GKIND_REPEAT
-	GKIND_REPEAT_MULTIPLE
-	GKIND_GROUP
-	GKIND_OPTIONAL
-	GKIND_TERMINAL
-	GKIND_NONTERMINAL
+	GKindAlternator = iota
+	GKindRepeat
+	GKindRepeatMultiple
+	GKindGroup
+	GKindOptional
+	GKindTerminal
+	GKindNonterminal
 )
 
 // GrammaticalElement represents a piece of the grammar
@@ -40,14 +41,14 @@ func NewGroupingElement(kind int, elems []GrammaticalElement) GroupingElement {
 	return GroupingElement{kind: kind, elements: elems}
 }
 
-// Kind of a terminal is GKIND_TERMINAL
+// Kind of a terminal is GKindTerminal
 func (Terminal) Kind() int {
-	return GKIND_TERMINAL
+	return GKindTerminal
 }
 
-// Kind of a nonterminal is GKIND_NONTERMINAL
+// Kind of a nonterminal is GKindNonterminal
 func (Nonterminal) Kind() int {
-	return GKIND_NONTERMINAL
+	return GKindNonterminal
 }
 
 // Kind returns the kind of grouping elements
@@ -56,7 +57,7 @@ func (g GroupingElement) Kind() int {
 	return g.kind
 }
 
-// AlternatorElementsrepresents a grammatical alternator
+// AlternatorElement represents a grammatical alternator
 // storing a slice of the subgroups it alternates between
 type AlternatorElement struct {
 	groups [][]GrammaticalElement
@@ -67,9 +68,9 @@ func NewAlternatorElement(groups ...[]GrammaticalElement) AlternatorElement {
 	return AlternatorElement{groups: groups}
 }
 
-// Kind of alternator is GKIND_ALTERNATOR
+// Kind of alternator is GKindAlternator
 func (AlternatorElement) Kind() int {
-	return GKIND_ALTERNATOR
+	return GKindAlternator
 }
 
 // PushFront pushes a group onto the front of alternator element

@@ -2,12 +2,6 @@ package types
 
 import "reflect"
 
-// NOTE: equality between data types can be tested using
-// `==` because although the data types are pointers stored
-// in interfaces, they are pointers to singular references
-// created once and stored in the type table and so since
-// each type should have exactly one address, this works
-
 // DataType is a general interface used to represent all
 // data types provides basic characteristics of all types:
 // coercion and casting (equality compares by identity)
@@ -23,6 +17,11 @@ type DataType interface {
 	// of the data type in bytes (should be conservative)
 	AlignOf() uint
 }
+
+// PointerSize is a variable storing the size of a pointer
+// for architecture being compiled for.  This variable
+// must be set by the compiler before it begins compiling
+var PointerSize uint = 0
 
 // TypeInfo is a data structure unique to each data type
 // representing any type information shared between
@@ -57,6 +56,20 @@ func newType(dt DataType) DataType {
 
 	typeTable[dt] = &TypeInfo{}
 	return dt
+}
+
+// Equals takes two types and determines if they are effectively
+// identical to each other (note that types cannot provide custom
+// definitions of equality and that for most types the function
+// acts as an identity comparison: it only adds additional functionality
+// where necessary)
+func Equals(a DataType, b DataType) bool {
+	// identity equality between data types can be tested using
+	// `==` because although the data types are pointers stored
+	// in interfaces, they are pointers to singular references
+	// created once and stored in the type table and so since
+	// each type should have exactly one address (most of the time)
+	return a == b
 }
 
 // Unify finds the unified type of a set if possible

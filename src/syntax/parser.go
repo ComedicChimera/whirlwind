@@ -34,7 +34,7 @@ func NewParser(path string) (*Parser, error) {
 		return nil, err
 	}
 
-	return &Parser{table: pTable, startSymbol: _START_SYMBOL}, nil
+	return &Parser{table: pTable, startSymbol: _startSymbol}, nil
 }
 
 // Parse a stream of tokens read from a scanner
@@ -81,7 +81,7 @@ func (p *Parser) doParse(name string) error {
 	// iterate through each grammatical element in the rule entry
 	for _, item := range rule {
 		switch item.Kind {
-		case PTF_TERMINAL:
+		case PTFTerminal:
 			// if we have a terminal, we do a simple match to see if it is valid.
 			// if it is, we push it onto the top node on the semantic stack and
 			// read the next token from the scanner (and bubble an errors that occur
@@ -96,7 +96,7 @@ func (p *Parser) doParse(name string) error {
 			} else {
 				return p.unexpectedToken()
 			}
-		case PTF_NONTERMINAL:
+		case PTFNonterminal:
 			// if we have a nonterminal, we parse on the appopriate production. if the
 			// parse is successful, we merge the branch created into the branch before it
 			// on the semantic stack (thereby building the tree); otherwise, we return the
@@ -114,7 +114,7 @@ func (p *Parser) doParse(name string) error {
 			}
 
 			p.semanticStack = p.semanticStack[:lastNdx]
-		case PTF_EPSILON:
+		case PTFEpsilon:
 			// if the rule contains an epsilon at this point, we can assume that the token is
 			// allowed not to match and we can carry on with business as usual
 			continue

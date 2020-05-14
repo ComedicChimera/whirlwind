@@ -9,13 +9,13 @@ import (
 // represent the different kinds of parsing
 // table elements (PTR = parsing table feature)
 const (
-	PTF_NONTERMINAL = iota
-	PTF_TERMINAL
-	PTF_EPSILON
+	PTFNonterminal = iota
+	PTFTerminal
+	PTFEpsilon
 )
 
 // store the global start symbol of the grammar
-const _START_SYMBOL = "whirlwind"
+const _startSymbol = "whirlwind"
 
 // ParsingTable represents an LL(1) parsing table
 // that is implemented as a table where the row keys
@@ -33,11 +33,11 @@ type PTableElement struct {
 
 // create some reusable methods to build the parsing table
 func newPTableNonterminal(name string) *PTableElement {
-	return &PTableElement{Kind: PTF_NONTERMINAL, Value: name}
+	return &PTableElement{Kind: PTFNonterminal, Value: name}
 }
 
 func epsilonRule() []*PTableElement {
-	return []*PTableElement{&PTableElement{Kind: PTF_EPSILON}}
+	return []*PTableElement{&PTableElement{Kind: PTFEpsilon}}
 }
 
 // convert the grammar into a parsing table (meant
@@ -85,14 +85,14 @@ func createParsingTable(g Grammar) (ParsingTable, error) {
 				if first == "" {
 					for _, follow := range rg.follow(name) {
 						if _, ok := table[name][follow]; ok {
-							return nil, errors.New(fmt.Sprintf("Ambiguous terminal '%s' following '%s'", follow, name))
+							return nil, fmt.Errorf("Ambiguous terminal '%s' following '%s'", follow, name)
 						}
 
 						table[name][follow] = rule
 					}
 				} else {
 					if _, ok := table[name][first]; ok {
-						return nil, errors.New(fmt.Sprintf("Ambiguous terminal '%s' in '%s", first, name))
+						return nil, fmt.Errorf("Ambiguous terminal '%s' in '%s", first, name)
 					}
 
 					table[name][first] = rule
@@ -116,7 +116,7 @@ func reduceGrammar(g Grammar) *ReducedGrammar {
 	// create a basic reduced grammar from the global start symbol
 	// (and allocate all of the necessary data structures)
 	rg := &ReducedGrammar{Productions: make(map[string]ReducedProduction), src: g,
-		startSymbol: _START_SYMBOL, followTable: make(map[string][]string),
+		startSymbol: _startSymbol, followTable: make(map[string][]string),
 	}
 
 	// reduce each production in the grammar
@@ -158,7 +158,7 @@ func (rg *ReducedGrammar) reduceProduction(name string, p Production) {
 
 	// split alternators into rules (see parsing table
 	// gen algo description for "definition" of a rule)
-	if p[0].Kind() == GKIND_ALTERNATOR {
+	if p[0].Kind() == GKindAlternator {
 		alternator := p[0].(AlternatorElement)
 
 		rp = make(ReducedProduction, len(alternator.groups))
@@ -183,17 +183,17 @@ func (rg *ReducedGrammar) reduceGroup(elems []GrammaticalElement) []*PTableEleme
 		// terminals and non terminals are essentially added as is (just converted
 		// to PTableElements which doesn't actually change their behavior)
 		switch item.Kind() {
-		case GKIND_TERMINAL:
-			group[i] = &PTableElement{Kind: PTF_TERMINAL, Value: string(item.(Terminal))}
-		case GKIND_NONTERMINAL:
+		case GKindTerminal:
+			group[i] = &PTableElement{Kind: PTFTerminal, Value: string(item.(Terminal))}
+		case GKindNonterminal:
 			group[i] = newPTableNonterminal(string(item.(Nonterminal)))
 		// groups are made into anonymous productions and inserted as nonterminals
-		case GKIND_GROUP:
+		case GKindGroup:
 			group[i] = newPTableNonterminal(
 				rg.insertAnonProduction(item.(GroupingElement).elements, false),
 			)
 		// same deals as groups, but with an epsilon rule included
-		case GKIND_OPTIONAL:
+		case GKindOptional:
 			group[i] = newPTableNonterminal(
 				rg.insertAnonProduction(item.(GroupingElement).elements, true),
 			)
@@ -202,7 +202,7 @@ func (rg *ReducedGrammar) reduceGroup(elems []GrammaticalElement) []*PTableEleme
 		// and a reference to initial production followed by a reference to itself
 		// we then put this production in place of the repeat group in the production
 		// note: reference == nonterminal reference (shorthand, used subsequently)
-		case GKIND_REPEAT:
+		case GKindRepeat:
 			prodName := rg.insertAnonProduction(item.(GroupingElement).elements, false)
 
 			rAnonName := rg.createAnonName()
@@ -218,7 +218,7 @@ func (rg *ReducedGrammar) reduceGroup(elems []GrammaticalElement) []*PTableEleme
 		// that begins with a reference to our first production (the group we want
 		// to repeat) and follow it with a reference to our standard repeat production
 		// and then insert a reference to the additional production in place of the repeat-m
-		case GKIND_REPEAT_MULTIPLE:
+		case GKindRepeatMultiple:
 			prodName := rg.insertAnonProduction(item.(GroupingElement).elements, false)
 
 			rAnonName := rg.createAnonName()
@@ -273,7 +273,7 @@ func (rg *ReducedGrammar) createAnonName() string {
 // recursively meaning it will accept slices of rules (ie. it
 // simply finds the firsts of the set of elements it is given)
 func (rg *ReducedGrammar) first(rule []*PTableElement) []string {
-	if rule[0].Kind == PTF_NONTERMINAL {
+	if rule[0].Kind == PTFNonterminal {
 		var firstSet []string
 
 		// accumulate all of the firsts of the nonterminal
@@ -382,7 +382,7 @@ func (rg *ReducedGrammar) follow(symbol string) []string {
 					if n == len(firstSet) {
 						break
 					}
-				} else if item.Kind == PTF_NONTERMINAL && item.Value == symbol {
+				} else if item.Kind == PTFNonterminal && item.Value == symbol {
 					takingFollows = true
 					continue
 				}

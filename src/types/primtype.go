@@ -28,9 +28,9 @@ const (
 // a constant of the form PrimName), should use NewPrimitive even though just a rename!
 type PrimitiveType int
 
-// NewPrimitive calls our internal newType method and then returns an appropriate
-// primitive of the desired kind (creates necessary type table entry)
-func NewPrimitive(primKind int) DataType {
+// NewPrimitiveType calls our internal newType method and then returns an
+//  appropriate primitive of the desired kind (creates necessary type table entry)
+func NewPrimitiveType(primKind int) DataType {
 	return newType(PrimitiveType(primKind))
 }
 

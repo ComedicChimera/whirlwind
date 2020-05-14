@@ -16,8 +16,7 @@ annotation: '#' 'IDENTIFIER' ['STRING_LITERAL'] ;
 
 // import statement
 import_stmt: 'IMPORT' ( pkg_name ['AS' 'IDENTIFIER'] | import_set 'FROM' pkg_name ) ;
-pkg_name: [pkg_back_move] 'IDENTIFIER' (':' ':' 'IDENTIFIER' | pkg_back_move 'IDENTIFIER')* ;
-pkg_back_move: '.' '.' ;
+pkg_name: 'IDENTIFIER' static_get* ;
 import_set: '{' ( 'IDENTIFIER' (',' 'IDENTIFIER')* | '...' ) '}' ;
 
 // export declaration

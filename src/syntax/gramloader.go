@@ -168,7 +168,7 @@ func (gl *gramLoader) parseGroupContent(expectedCloser rune) ([]GrammaticalEleme
 				return nil, err
 			}
 
-			groupContent = append(groupContent, NewGroupingElement(GKIND_GROUP, gelems))
+			groupContent = append(groupContent, NewGroupingElement(GKindGroup, gelems))
 		case '[':
 			gelems, err := gl.parseGroupContent(']')
 
@@ -176,7 +176,7 @@ func (gl *gramLoader) parseGroupContent(expectedCloser rune) ([]GrammaticalEleme
 				return nil, err
 			}
 
-			groupContent = append(groupContent, NewGroupingElement(GKIND_OPTIONAL, gelems))
+			groupContent = append(groupContent, NewGroupingElement(GKindOptional, gelems))
 		case '*', '+':
 			// repeaters must be applied to some form of grammatical element
 			if len(groupContent) == 0 {
@@ -186,9 +186,9 @@ func (gl *gramLoader) parseGroupContent(expectedCloser rune) ([]GrammaticalEleme
 			lastNdx := len(groupContent) - 1
 
 			if gl.curr == '*' {
-				groupContent[lastNdx] = NewGroupingElement(GKIND_REPEAT, groupContent[lastNdx:])
+				groupContent[lastNdx] = NewGroupingElement(GKindRepeat, groupContent[lastNdx:])
 			} else {
-				groupContent[lastNdx] = NewGroupingElement(GKIND_REPEAT_MULTIPLE, groupContent[lastNdx:])
+				groupContent[lastNdx] = NewGroupingElement(GKindRepeatMultiple, groupContent[lastNdx:])
 			}
 		// alternators interrupt the current parsing group and create a new one to the same
 		// closer so that they can combine the tailing elements with the elements before them.
@@ -204,7 +204,7 @@ func (gl *gramLoader) parseGroupContent(expectedCloser rune) ([]GrammaticalEleme
 				return nil, err
 			}
 
-			if tailContent[0].Kind() == GKIND_ALTERNATOR {
+			if tailContent[0].Kind() == GKindAlternator {
 				alternator := tailContent[0].(AlternatorElement)
 				alternator.PushFront(groupContent)
 				return []GrammaticalElement{alternator}, nil

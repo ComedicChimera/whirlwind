@@ -39,11 +39,8 @@ var keywords = map[string]struct{}{
 	// memory management
 	"vol":    struct{}{},
 	"make":   struct{}{},
-	"dyn":    struct{}{},
 	"own":    struct{}{},
 	"delete": struct{}{},
-	"always": struct{}{},
-	"ref":    struct{}{},
 
 	// function definitions
 	"func":     struct{}{},
