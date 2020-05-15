@@ -139,21 +139,19 @@ resize_stmt: 'MAKE' expr 'TO' type_alloc ;
 
 
 // EXPRESSIONS - basic unit of statements 
-expr: simple_expr [expr_extension] ;
-expr_extension: select_extension+
-| 'IS' ['!'] is_expr [in_extension]
-| 'IF' expr 'ELSE' simple_expr
-| '..' expr
+expr: suffixed_expr [cond_suffix] ;
+cond_suffix: 'IF' suffixed_expr 'ELSE' suffixed_expr ;
+
+suffixed_expr: simple_expr [expr_suffix] ;
+expr_suffix: select_suffix+
+| 'IS' ['!'] is_expr
+| '..' simple_expr
 | 'AS' types
-| ':=' simple_expr in_extension
-| 'CASE' expr [in_extension]
+| 'CASE' simple_expr
 ; 
 
-// in extension
-in_extension: 'IN' expr ;
-
-// select extension
-select_extension: 'SELECT' '{' inline_case (',' inline_case)* [default_case] '}' ;
+// select expression
+select_suffix: 'SELECT' '{' inline_case (',' inline_case)* [default_case] '}' ;
 inline_case: expr_list '=>' expr ;
 default_case: ',' '_' '=>' expr ;
 

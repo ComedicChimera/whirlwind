@@ -1,17 +1,12 @@
 # Changes
 
 - make errors include positions (TokenError, ASTError, etc.)
-- `closed` type definitions
 - remove `->` operator, just use `.` for everything (inc. methods), update `?->` to `?.` accordingly
 - overload `?.` for interfaces
 - split up loops into two categories: `for` and `loop`
   - `loop` is for infinite and conditional loops `loop (expr) { ... }`
     and `loop { }` for infinite loops
   - `for` is for iterative for loops (c-style, iterators)
-- change expression local syntax to `x := value in expr`
-- remove `then`
-- remove necessity of `new` keyword (can keep `make` syntax tho)
-- remove constructors (can be implemented as `NewType()` methods if really necessary)
 - make init lists main way to initialize structured types
   - don't have to provide values for everything
 - constancy only applies to references and variables (mutable, named values)
@@ -32,8 +27,7 @@
     - `const x = 10; let y = x;` (y is not constant)
   - casting rules: mutable -> constant, constant -/> mutable
   - methods can be constant (explicitly)
-- cannot take a non-const reference to a constant value
-- remove `static`
+  - cannot take a non-const reference to a constant value
 - value categories
   - lvalue (well-defined, mutable value, able to take both kinds of references to it)
   - cvalue (well-defined, immutable value, only able to take a const reference to it, value constancy)
@@ -42,7 +36,7 @@
   - `f(_, 23, _)` creates a function from f that accepts the two arguments left blank
   - can allow for "currying" (not actually but...)
   - more clear than implicit currying/argument omission (re. Haskell)
-- memory model **MORE CONSIDERATION NECESSARY**
+- memory model
   - most memory management done in terms of references
   - a reference is like a pointer except you can't mutate the pointer directly
   - two kinds of references: regular and const references
@@ -96,7 +90,6 @@
   - only used function arguments so not ambiguous
   - trims down on unnecessary pointers and dereferences (use of pointers where pointers make no sense)
   - makes code more readable
-- allow tuple unpacking in inline vars `(x, y) := fn() in expr`
 - add singleton "case" expression (outside of `is`)
   - eg. `tup case (3.14, s)`
   - useful extension of pattern matching
@@ -108,4 +101,8 @@
   - to allocate types: `make for type`
   - to allocate a block of types: `make for type * numtypes`
   - to allocate a value `make expr`
-
+- make `ctx_strand()` intrinsic and access the current running strand from TLS
+- restructure expressions
+  - removed expression locals of all forms (confusing, not really helpful)
+  - completely removed expression local bindings, allowed pattern matching to remain but not local
+  - split up expression types (cond suffix now works on all expressions except other cond suffixes)
