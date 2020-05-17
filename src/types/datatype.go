@@ -9,6 +9,11 @@ type DataType interface {
 	// both methods work in terms of other to self
 	cast(other DataType) bool   // coercion checked before running
 	coerce(other DataType) bool // equality checked before running
+	equals(other DataType) bool // compare for exact equality and handle free types
+
+	// Repr returns a string that represents the data type;
+	// should match type label of data type wherever possible
+	Repr() string
 
 	// SizeOf determines the size of a data type in bytes
 	SizeOf() uint
@@ -61,44 +66,12 @@ func newType(dt DataType) DataType {
 // Equals takes two types and determines if they are effectively
 // identical to each other (note that types cannot provide custom
 // definitions of equality and that for most types the function
-// acts as an identity comparison: it only adds additional functionality
-// where necessary)
+// acts as an identity comparison.  However, on free types, it attempts
+// to bind their values to whatever they are being compared to.
 func Equals(a DataType, b DataType) bool {
-	// identity equality between data types can be tested using
-	// `==` because although the data types are pointers stored
-	// in interfaces, they are pointers to singular references
-	// created once and stored in the type table and so since
-	// each type should have exactly one address (most of the time)
-	return a == b
-}
+	// TODO: initial free type check
 
-// Unify finds the unified type of a set if possible
-// of data types (unified meaning type all types
-// in the set are able to coerced to: set != typeset here)
-func Unify(dts ...DataType) (DataType, bool) {
-	unifiedType := dts[0]
-
-	for i := 1; i < len(dts); i++ {
-		dt := dts[i]
-
-		if CoerceTo(dt, unifiedType) {
-			continue
-		} else if CoerceTo(unifiedType, dt) {
-			unifiedType = dt
-		} else {
-			return Generalize(dts...)
-		}
-	}
-
-	return unifiedType, true
-}
-
-// Generalize finds the lowest type set that can
-// accurately represent the types it is given.
-// If no such type set exists, it returns nil, false
-// Note: Mainly meant for use in Unification
-func Generalize(dt ...DataType) (DataType, bool) {
-	return nil, false
+	return a.equals(b)
 }
 
 // CoerceTo acts as wrapper to a types built in coercion
@@ -118,11 +91,4 @@ func CoerceTo(src DataType, dest DataType) bool {
 // by this function thus why DataType.cast is not exposed
 func CastTo(src DataType, dest DataType) bool {
 	return false
-}
-
-// GetMethod checks if the data has the specified method and
-// if it does returns the data type of that method and if
-// not returns that it could not find a match for the given method
-func GetMethod(dt DataType, methodName string) (DataType, bool) {
-	return nil, false
 }

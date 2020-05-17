@@ -45,7 +45,7 @@ type_suffix: '(' types (',' types)* ')' | '{' type_struct_elem (',' type_struct_
 type_struct_elem: ['CONST'] ['VOL'] 'IDENTIFIER' (',' 'IDENTIFIER')* extension [initializer] ;
 
 // function declaration
-func_decl: ('FUNC' | 'ASYNC') 'IDENTIFIER' [generic_tag] '(' args_decl_list ')' [ types ] (func_body | ';') ;
+func_decl: ('FUNC' | 'ASYNC') 'IDENTIFIER' [generic_tag] '(' args_decl_list ')' [ types ] ['CONST'] (func_body | ';') ;
 
 // interface declaration/binding
 interf_decl: 'INTERF' (interf_name | interf_bind) '{' interf_main '}' ;
@@ -68,11 +68,12 @@ decor_expr: named_value [ '(' args_list ')' ];
 operator_decl: 'OPERATOR' '(' operator ')' [generic_tag] '(' args_decl_list ')' [types] (func_body | ';') ;
 
 
-// BLOCK STATEMENTS (control flow)
+// BLOCK STATEMENTS (control flow, ctx management)
 block_stmt: if_stmt
 | select_stmt
 | for_loop
 | cond_loop
+| with_block
 ;
 
 // if statement
@@ -96,6 +97,10 @@ c_for: ['=' expr] ';' [expr] ';' [expr_stmt] ;
 // conditional/infinite loop
 cond_loop: 'LOOP' [ expr ] block ;
 cond_loop_expr: [ var_decl ';' ] expr ;
+
+// context manager (with block)
+with_block: 'WITH' with_var (',' with_var)* block [after_clause] ;
+with_var: 'IDENTIFIER' '=' expr ;
 
 // after clause
 after_clause: 'AFTER' block ;
@@ -156,7 +161,7 @@ inline_case: expr_list '=>' expr ;
 default_case: ',' '_' '=>' expr ;
 
 // type comparison expression used in `is` pattern
-is_expr: types [':' types] ['(' 'IDENTIFIER' (',' 'IDENTIFIER')* ')'] ;
+is_expr: types [':' types] ;
 
 // highest level expression
 simple_expr: or ('~*' or)* ;
@@ -189,7 +194,6 @@ unary_atom: ('&' ['CONST'] | '-' | '~' | increm_decrem | '*' ) atom
 // ATOMS - basic unit of expressions
 atom: [ 'AWAIT' ] base trailer*
 | heap_alloc
-| from_expr
 | match_expr
 ;
 
@@ -214,9 +218,6 @@ init_list: 'IDENTIFIER' initializer (',' 'IDENTIFIER' initializer)* ;
 // allocate on the heap
 heap_alloc: 'MAKE' ('FOR' type_alloc | expr) ;
 type_alloc: types ['*' expr] ;
-
-// access the value of a type class
-from_expr: 'FROM' expr ;
 
 // the match expression
 match_expr: 'MATCH' match_kind expr 'TO' match_arr ;

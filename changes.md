@@ -65,6 +65,7 @@
     - no real protection
     - can be cast to and from references
     - only recommended for use where absolutely necessary
+  - lifetimes can be bound to data structures (selectively, via. `own` keyword)
 - move operator overloads outside of interfaces
   - allows for more efficient overloads (defined in terms of functions, makes more sense)
   - operators can be "left-handed" or "right-handed"
@@ -106,3 +107,17 @@
   - removed expression locals of all forms (confusing, not really helpful)
   - completely removed expression local bindings, allowed pattern matching to remain but not local
   - split up expression types (cond suffix now works on all expressions except other cond suffixes)
+- remove `from ... as ...` syntax: just use pattern matching (safer)
+- added context managers (and `with` keyword)
+  - ensure that resources are cleaned up before they close (via. `close()` method)
+  - even in case of runtime panic
+  - same guarantee about `after` block
+  - even circumvents breaks and returns (temporarily)
+  - used when handling "hot" resources that must be properly disposed (at all costs, in all cases)
+- remove "special" methods - no need for them (anymore)
+- builtin collections implement as references to special type declarations
+  - `[]T` -> `core::__array<T>`
+  - `[T]` -> `core::__list<T>`
+  - `[K: V]` -> `core::__dict<K, V>`
+  - implement initializations as such
+- allow for stacked annotations

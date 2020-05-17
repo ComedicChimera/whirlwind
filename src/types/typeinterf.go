@@ -36,3 +36,19 @@ func (ti *TypeInterf) AddMethod(name string, dt DataType, mk int) bool {
 	ti.Methods[name] = &Method{FnType: dt, Kind: mk}
 	return true
 }
+
+// MatchType attempts to determine whether or not the given data type
+// can be a member of the given interface based on its included type
+// interface.  It does NOT connote an implementation: it is simply a
+// quantification check.
+func (ti *TypeInterf) MatchType(dt DataType) bool {
+	return false
+}
+
+// ImplementOn implements the given type interface on the type interface
+// of the data type.  This does NOT check whether or not the type can
+// implement this interface, it just adds in all virtual members and
+// updates method status in accordance with the interface being implemented
+func (ti *TypeInterf) ImplementOn(dt DataType) {
+
+}

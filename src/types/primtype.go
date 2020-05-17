@@ -74,6 +74,15 @@ func (p PrimitiveType) coerce(other DataType) bool {
 	return false
 }
 
+// primitives can just be compared by value
+func (p PrimitiveType) equals(other DataType) bool {
+	if po, ok := other.(PrimitiveType); ok {
+		return p == po
+	}
+
+	return false
+}
+
 // AlignOf a primitive type is simply the size of that type
 func (p PrimitiveType) AlignOf() uint {
 	return p.SizeOf()
@@ -94,4 +103,40 @@ func (p PrimitiveType) SizeOf() uint {
 
 	// unreachable
 	return 0
+}
+
+// maps the type labels for a given primitive type to its actual type value keys
+//  and values are in this order because it is more common to create a primitive
+// type than it is to get one's repr this variable is a constant: DO NOT MUTATE
+var primLabelTable = map[string]PrimitiveType{
+	"sbyte":  PrimSByte,
+	"byte":   PrimByte,
+	"short":  PrimShort,
+	"ushort": PrimUShort,
+	"int":    PrimInt,
+	"uint":   PrimUInt,
+	"long":   PrimLong,
+	"ulong":  PrimULong,
+	"float":  PrimFloat,
+	"double": PrimDouble,
+	"char":   PrimChar,
+	"string": PrimString,
+	"bool":   PrimBool,
+}
+
+// NewPrimitiveTypeFromLabel takes in the type label as a string and returns the corresponding
+// primitive type (implements full newType semantics), common operation used by visitor
+func NewPrimitiveTypeFromLabel(label string) DataType {
+	return newType(primLabelTable[label])
+}
+
+// Repr of a primitive type is calculated by using label table in reverse
+func (p PrimitiveType) Repr() string {
+	for k, v := range primLabelTable {
+		if v == p {
+			return k
+		}
+	}
+
+	return ""
 }

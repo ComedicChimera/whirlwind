@@ -1,0 +1,65 @@
+#unsafe_all
+#nowarn_all
+
+// SAMPLE CODE - untested, probably broken
+
+export {
+    type __array<T> {
+        _ptr: *T,
+        _len: uint
+    }
+
+    #inline
+    operator(+) <T>(a: []T, b: []T) []T {
+        let arr_block = make T * (a._len + b._len);
+
+        arr_block[:a._len] = a
+        arr_block[a._len:] = b
+
+        return arr_block
+    } 
+
+    #inline
+    operator([]) <T>(arr: []T, ndx: uint) T {
+        if ndx < arr._len {
+            return *(arr._ptr + ndx);
+        }
+
+        panic(index_error());
+        return null;
+    } 
+
+    #inline
+    operator([]) <T>(arr: []T, ndx: uint, value: T) {
+        if ndx < arr._len {
+            *(arr._ptr + ndx) = value;
+        }
+
+        panic(index_error());
+    }
+
+    #inline
+    operator([:]) <T>(arr: []T, begin: uint=0, end: uint=-1, step: int=1) []T {
+        end = arr._len if end == -1 else end;
+
+        if begin < arr._len && end <= arr._len && step != 0 {
+            let new_arr_size = (end - begin) ~/ step;
+
+            if new_arr_size < 0 {
+                panic(slice_error("Invalid slice"));
+            } 
+
+            let new_arr = make T * new_arr_size;
+
+            let new_arr_ndx = 0;
+            for i = begin; i != end; i += step {
+                new_arr[new_arr_ndx++] = arr[i];
+            }
+
+            return new_arr;
+        }
+
+        panic(slice_error("Unable to slice with a step of 0" if step == 0 else "Slice parameters out of bounds"));
+        return null;
+    }
+}

@@ -9,11 +9,13 @@ import (
 	"runtime"
 )
 
-var WHIRL_PATH = os.Getenv("WHIRL_PATH")
+// WhirlPath is global path to the Whirlwind compiler directory (when lib is located)
+var WhirlPath = os.Getenv("WHIRL_PATH")
 
+// Execute should be called from main and initializes the compiler
 func Execute() {
 	// check for WHIRL_PATH (if it doesn't exist, we error out)
-	if WHIRL_PATH == "" {
+	if WhirlPath == "" {
 		log.Fatal("Unable to locate WHIRL_PATH")
 	}
 
@@ -39,6 +41,7 @@ func Execute() {
 	}
 }
 
+// Execute a `build` command
 func build() error {
 	// setup the build command and its flags
 	buildCommand := flag.NewFlagSet("build", flag.ContinueOnError)
@@ -51,6 +54,7 @@ func build() error {
 	buildCommand.String("l", "", "Specify additional package directories")
 	buildCommand.Bool("v", false, "Set compiler to display verbose output")
 
+	// parse and check the command line arguments from the build command
 	err := buildCommand.Parse(os.Args[2:])
 
 	if err != nil {
@@ -61,6 +65,7 @@ func build() error {
 		return errors.New("Expecting exactly one argument which is the path to the build directory")
 	}
 
+	// collect all necessary information from the arguments
 	buildDir := buildCommand.Arg(0)
 
 	outputPath := buildCommand.Lookup("o").Value.String()
@@ -68,15 +73,17 @@ func build() error {
 		outputPath = path.Join(buildDir, "main")
 	}
 
-	c, err := NewCompiler(buildCommand.Lookup("p").Value.String(), buildCommand.Lookup("a").Value.String(), outputPath, buildDir)
+	// try to create a compiler with that information
+	err = NewCompiler(buildCommand.Lookup("p").Value.String(), buildCommand.Lookup("a").Value.String(), outputPath, buildDir)
 
 	if err != nil {
 		return err
 	}
 
+	// setup compiler state with any optional arguments the user specified (if nothing given, assume sensible defaults)
 	format := buildCommand.Lookup("f").Value.String()
 	if format != "" {
-		cerr := c.SetOutputFormat(format)
+		cerr := C.SetOutputFormat(format)
 
 		if cerr != nil {
 			return cerr
@@ -85,7 +92,7 @@ func build() error {
 
 	localDirs := buildCommand.Lookup("l").Value.String()
 	if localDirs != "" {
-		cerr := c.AddLocalPackageDirectories(localDirs)
+		cerr := C.AddLocalPackageDirectories(localDirs)
 
 		if cerr != nil {
 			return cerr
@@ -94,12 +101,16 @@ func build() error {
 
 	staticLibs := buildCommand.Lookup("s").Value.String()
 	if staticLibs != "" {
-		cerr := c.AddStaticLibraries(staticLibs)
+		cerr := C.AddStaticLibraries(staticLibs)
 
 		if cerr != nil {
 			return cerr
 		}
 	}
 
+	// run the main compilation algorithm
+	C.Compile()
+
+	// the compiler will handle its own errors
 	return nil
 }

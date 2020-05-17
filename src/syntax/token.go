@@ -28,10 +28,9 @@ var keywords = map[string]struct{}{
 	"continue":    struct{}{},
 	"when":        struct{}{},
 	"after":       struct{}{},
-	"match":       struct{}{},
-	"to":          struct{}{},
 	"loop":        struct{}{},
 	"fallthrough": struct{}{},
+	"with":        struct{}{},
 
 	// function terminators
 	"return": struct{}{},
@@ -65,14 +64,14 @@ var keywords = map[string]struct{}{
 	"is":    struct{}{},
 	"await": struct{}{},
 	"as":    struct{}{},
-	"from":  struct{}{},
-	"in":    struct{}{},
+	"match": struct{}{},
+	"to":    struct{}{},
 }
 
 // store keyword type labels (separate so that token's name will be {VALUE}_TYPE)
 // again, map for fast look ups
 var keywordDataTypes = map[string]struct{}{
-	"str":    struct{}{},
+	"string": struct{}{},
 	"float":  struct{}{},
 	"bool":   struct{}{},
 	"char":   struct{}{},
