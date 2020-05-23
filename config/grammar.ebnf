@@ -354,7 +354,7 @@ operator: '<' ['<'] | '>' ['>'] | '+' | '-' | '*' | '/' | '%' | '<=' | '>=' | '=
 
 // generic tag (placed after several block declarations)
 generic_tag: '<' generic (',' generic)* '>' ;
-generic: ['IN'] 'IDENTIFIER' [':' type_list] ;
+generic: ['VSIZE'] 'IDENTIFIER' [':' type_list] ;
 
 // generic specifier
 generic_spec: '<' type_list '>' ;

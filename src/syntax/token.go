@@ -66,6 +66,7 @@ var keywords = map[string]struct{}{
 	"as":    struct{}{},
 	"match": struct{}{},
 	"to":    struct{}{},
+	"vsize": struct{}{},
 }
 
 // store keyword type labels (separate so that token's name will be {VALUE}_TYPE)

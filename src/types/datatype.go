@@ -54,7 +54,7 @@ var typeTable = make(map[DataType]*TypeInfo)
 // already exists (such a check should be performed for all usages)
 func newType(dt DataType) DataType {
 	for entry := range typeTable {
-		if reflect.TypeOf(entry) == reflect.TypeOf(dt) && reflect.ValueOf(dt).Elem() == reflect.ValueOf(entry).Elem() {
+		if reflect.DeepEqual(dt, entry) {
 			return entry
 		}
 	}

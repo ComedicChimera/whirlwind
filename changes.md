@@ -66,6 +66,11 @@
     - can be cast to and from references
     - only recommended for use where absolutely necessary
   - lifetimes can be bound to data structures (selectively, via. `own` keyword)
+  - double references are not allowed (and of course triple, quadruple, etc. are also disallowed)
+    - can use combo of `own` or `const` to achieve equivalent behavior to C++
+  - support for memory operator overloads
+    - `:>` move operator (maybe... could lead to some unsafety/ambiguity)
+    - `delete` operator (implement finalizers - ran before deletion occurs)
 - move operator overloads outside of interfaces
   - allows for more efficient overloads (defined in terms of functions, makes more sense)
   - operators can be "left-handed" or "right-handed"
@@ -86,14 +91,10 @@
   - `#intrinsic` annotation (implementation)
 - inline method calls (as much as possible - may only be possible in type interfaces)
 - remove group overloading (it just seems awkward - leads to duplication and ambiguity)
-- allow pass by reference arguments (for ease of use of collections)
-  - avoids us having to implement reference semantics on collections for usability
-  - only used function arguments so not ambiguous
-  - trims down on unnecessary pointers and dereferences (use of pointers where pointers make no sense)
-  - makes code more readable
 - add singleton "case" expression (outside of `is`)
   - eg. `tup case (3.14, s)`
   - useful extension of pattern matching
+  - simplifies usage of `is` (no need for `x is Some(v)`, instead do `x case some(V)`)
 - select statement extensions
   - `fallthrough` probably useful
   - `when cond` conditions on select case

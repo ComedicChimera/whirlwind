@@ -56,7 +56,7 @@ func (s *Scanner) ReadToken() (*Token, error) {
 		switch s.curr {
 		// skip white space, line counting done
 		// on read int
-		case ' ', '\t', '\n':
+		case ' ', '\t', '\n', '\r':
 			continue
 		// handle string-like
 		case '"':
