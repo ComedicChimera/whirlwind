@@ -43,16 +43,15 @@ func (st *StructType) Repr() string {
 // SizeOf a structure depends on whether or not it
 // is packed.  If it is packed then it is the sum
 // of the individual element sizes.  Otherwise, it
-// is the padded size of the data structure (ie.
-// max element size * number of elements, size in IR)
+// is the padded size of the data structure (for alignment)
 func (st *StructType) SizeOf() uint {
+	var packedSize uint = 0
+
+	for _, m := range st.Members {
+		packedSize += m.Type.SizeOf()
+	}
+
 	if st.Packed {
-		var packedSize uint = 0
-
-		for _, m := range st.Members {
-			packedSize += m.Type.SizeOf()
-		}
-
 		return packedSize
 	}
 
@@ -66,15 +65,32 @@ func (st *StructType) SizeOf() uint {
 		}
 	}
 
-	return maxSize * uint(len(st.Members))
+	return SmallestMultiple(packedSize, maxSize)
 }
 
 // AlignOf a struct depends on whether or not
-// it is packed. (TODO: fix calculations for size and alignment)
+// it is packed. If it is padded, then the
+// alignment is the largest alignment of its
+// members.  Otherwise, it is (TODO)
 // NOTE: On the backend, structs are more
 // often implemented as pointers which means
 // that within data structures, their alignment
 // should be that of a pointer (!IMPORTANT)
 func (st *StructType) AlignOf() uint {
-	return PointerSize
+	if st.Packed {
+		// TODO: packed alignment
+		return 0
+	}
+
+	var maxAlign uint = 0
+
+	for _, m := range st.Members {
+		malign := m.Type.AlignOf()
+
+		if malign > maxAlign {
+			maxAlign = malign
+		}
+	}
+
+	return maxAlign
 }

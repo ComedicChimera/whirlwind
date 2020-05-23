@@ -81,3 +81,22 @@ func TypeListEquals(tla []DataType, tlb []DataType) bool {
 
 	return true
 }
+
+// SmallestMultiple takes into two arguments (n, m) and finds
+// the smallest multiple of m greater than or equal to n where
+// both n and m are uints (used for size calculation => uint)
+func SmallestMultiple(n, m uint) uint {
+	return n + m - n%m
+}
+
+// TypeListSize takes in a list of data types and returns the
+// padded size of the list (as if they were stored in a struct)
+func TypeListSize(dts []DataType) uint {
+	var packedSize uint = 0
+
+	for _, dt := range dts {
+		packedSize += dt.SizeOf()
+	}
+
+	return SmallestMultiple(packedSize, MaxSize(dts))
+}

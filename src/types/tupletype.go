@@ -63,7 +63,7 @@ func (tt TupleType) Repr() string {
 // SizeOf a tuple is the size of a non-packed struct
 // containing the types of a tuple (size of its IR)
 func (tt TupleType) SizeOf() uint {
-	return MaxSize(tt) * uint(len(tt))
+	return TypeListSize(tt)
 }
 
 // AlignOf a tuple is just the maximum alignment
