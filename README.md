@@ -10,6 +10,8 @@ It boasts numerous new and old features and is designed to represent the needs o
 
 *Note: All here is subject to change.*
 
+***NOTE: This language is still in development!***
+
 ## Table of Contents
 
 - [Goals](#goals)
