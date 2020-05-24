@@ -9,7 +9,8 @@ import (
 	"runtime"
 )
 
-// WhirlPath is global path to the Whirlwind compiler directory (when lib is located)
+// WhirlPath is global path to the Whirlwind compiler directory (when lib is
+// located)
 var WhirlPath = os.Getenv("WHIRL_PATH")
 
 // Execute should be called from main and initializes the compiler
@@ -24,8 +25,8 @@ func Execute() {
 		log.Fatal("A valid subcommand is required")
 	}
 
-	// if any of these functions return some kind of error, we display it
-	// and exit with status code 1, otherwise exit successfully
+	// if any of these functions return some kind of error, we display it and
+	// exit with status code 1, otherwise exit successfully
 	var err error
 
 	switch os.Args[1] {
@@ -80,7 +81,8 @@ func build() error {
 		return err
 	}
 
-	// setup compiler state with any optional arguments the user specified (if nothing given, assume sensible defaults)
+	// setup compiler state with any optional arguments the user specified (if
+	// nothing given, assume sensible defaults)
 	format := buildCommand.Lookup("f").Value.String()
 	if format != "" {
 		cerr := C.SetOutputFormat(format)

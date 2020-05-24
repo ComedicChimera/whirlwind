@@ -48,7 +48,9 @@
   to their non-reference counterparts
   - created with syntax `&value` or `&const value`
   - type label: `&type` or `const& type`
-  - dereferences are implicit (eg. storing a non-reference variable or passing as a non-reference argument)
+  - dereferences must be explicit; however,
+    - many operators have reference forms (as well as nullable forms)
+    - eg. `ref_struct.x`, `ref_array[2]`
   - compiler-determined lifetimes, user-defined ownership status
   - sometimes user will need to specify (ie. nonlocal lifetimes)
   - protective semantics
@@ -60,11 +62,7 @@
   - remove nullable dereference (keep nullable get item)
   - make some trailers nullable
     - not allowed on generic specs, static gets, or init lists
-  - usages of pointers
-    - considered unsafe
-    - no real protection
-    - can be cast to and from references
-    - only recommended for use where absolutely necessary
+  - no pointers (no pointer arithmetic, direct address manipulation)
   - lifetimes can be bound to data structures (selectively, via. `own` keyword)
   - double references are not allowed (and of course triple, quadruple, etc. are also disallowed)
     - can use combo of `own` or `const` to achieve equivalent behavior to C++

@@ -24,8 +24,9 @@ const (
 	PrimString
 )
 
-// PrimitiveType represents one of Whirlwind's primitive types (intended to store
-// a constant of the form PrimName), should use NewPrimitive even though just a rename!
+// PrimitiveType represents one of Whirlwind's primitive types (intended to
+// store a constant of the form PrimName), should use NewPrimitive even though
+// just a rename!
 type PrimitiveType int
 
 // NewPrimitiveType calls our internal newType method and then returns an
@@ -40,7 +41,8 @@ func (p PrimitiveType) cast(other DataType) bool {
 			// casting between all numeric, byte, and boolean types
 			return true
 		} else if p.SizeOf() == po.SizeOf() {
-			// coercion between 32bit integrals and char type (using SizeOf workaround/shorthand)
+			// coercion between 32bit integrals and char type (using SizeOf
+			// workaround/shorthand)
 			return true
 		}
 	}
@@ -52,8 +54,8 @@ func (p PrimitiveType) coerce(other DataType) bool {
 	// check coercion between primitive types
 	if po, ok := other.(PrimitiveType); ok {
 		if p < PrimBool {
-			// coercion between integral and byte types
-			// (integral upward coercion)
+			// coercion between integral and byte types (integral upward
+			// coercion)
 			return po < p
 
 		} else if p == PrimDouble {
@@ -88,7 +90,8 @@ func (p PrimitiveType) AlignOf() uint {
 	return p.SizeOf()
 }
 
-// SizeOf a primitive type is determined statically as specified in specification
+// SizeOf a primitive type is determined statically as specified in
+// specification
 func (p PrimitiveType) SizeOf() uint {
 	switch p {
 	case PrimBool, PrimByte, PrimSByte:
@@ -124,8 +127,9 @@ var primLabelTable = map[string]PrimitiveType{
 	"bool":   PrimBool,
 }
 
-// NewPrimitiveTypeFromLabel takes in the type label as a string and returns the corresponding
-// primitive type (implements full newType semantics), common operation used by visitor
+// NewPrimitiveTypeFromLabel takes in the type label as a string and returns the
+// corresponding primitive type (implements full newType semantics), common
+// operation used by visitor
 func NewPrimitiveTypeFromLabel(label string) DataType {
 	return newType(primLabelTable[label])
 }
@@ -139,4 +143,8 @@ func (p PrimitiveType) Repr() string {
 	}
 
 	return ""
+}
+
+func (p PrimitiveType) copyTemplate() DataType {
+	return p
 }

@@ -6,8 +6,8 @@ import (
 	"strconv"
 )
 
-// represent the different kinds of parsing
-// table elements (PTR = parsing table feature)
+// represent the different kinds of parsing table elements (PTR = parsing table
+// feature)
 const (
 	PTFNonterminal = iota
 	PTFTerminal
@@ -17,15 +17,13 @@ const (
 // store the global start symbol of the grammar
 const _startSymbol = "whirlwind"
 
-// ParsingTable represents an LL(1) parsing table
-// that is implemented as a table where the row keys
-// are the names of productions and the column keys
-// are the names of tokens and the contents are rules
+// ParsingTable represents an LL(1) parsing table that is implemented as a table
+// where the row keys are the names of productions and the column keys are the
+// names of tokens and the contents are rules
 type ParsingTable map[string]map[string][]*PTableElement
 
-// PTableElement represents a single element of the
-// parsing table whose kind is characterized by the
-// constants prefixed PTF (terminal, nonterminal, epsilon)
+// PTableElement represents a single element of the parsing table whose kind is
+// characterized by the constants prefixed PTF (terminal, nonterminal, epsilon)
 type PTableElement struct {
 	Kind  int
 	Value string
@@ -40,18 +38,18 @@ func epsilonRule() []*PTableElement {
 	return []*PTableElement{&PTableElement{Kind: PTFEpsilon}}
 }
 
-// convert the grammar into a parsing table (meant
-// to be called once at the start of the compiler)
+// convert the grammar into a parsing table (meant to be called once at the
+// start of the compiler)
 func createParsingTable(g Grammar) (ParsingTable, error) {
-	// first, we need to "reduce" the grammar (read
-	// the part about grammatical reduction to understand why)
+	// first, we need to "reduce" the grammar (read the part about grammatical
+	// reduction to understand why)
 	rg := reduceGrammar(g)
 
 	// allocate the parsing table (empty by default)
 	table := make(ParsingTable)
 
-	// iterate through each production in the reduced grammar
-	// and create parsing table entries for it
+	// iterate through each production in the reduced grammar and create parsing
+	// table entries for it
 	for name, prod := range rg.Productions {
 		table[name] = make(map[string][]*PTableElement)
 
@@ -59,27 +57,31 @@ func createParsingTable(g Grammar) (ParsingTable, error) {
 		// an alternated group of a production.  For example, if you had the
 		// production `A | B | C`, the rules would be A, B, and C respectively.
 		for _, rule := range prod {
-			// this *should* never happen. mainly here just to check the integrity
-			// of the grammar during development. a bug filter if you will.
+			// this *should* never happen. mainly here just to check the
+			// integrity of the grammar during development. a bug filter if you
+			// will.
 			if len(rule) == 0 {
 				return nil, errors.New("Empty grammatical rule in production '" + name + "'")
 			}
 
-			// we are using a standard LL(1) parser generation algorithm at this point.
-			// see the wikipedia entry as my implementation essentially follows the
-			// description given here (based on the formal definition, not the examples):
+			// we are using a standard LL(1) parser generation algorithm at this
+			// point. see the wikipedia entry as my implementation essentially
+			// follows the description given here (based on the formal
+			// definition, not the examples):
 			// https://en.wikipedia.org/wiki/LL_parser#Constructing_an_LL(1)_parsing_table
 
-			// a couple notes:
-			// - the empty string represents an epsilon (should never occur as a valid token)
-			// - the set of firsts *should* at most only contain one epsilon (we rely on that)
-			// - this section will return errors if the grammar is determined to be ambiguous
+			// a couple notes: - the empty string represents an epsilon (should
+			// never occur as a valid token) - the set of firsts *should* at
+			// most only contain one epsilon (we rely on that) - this section
+			// will return errors if the grammar is determined to be ambiguous
 
-			// the actual algorithm implementation for building the parsing table is as follows:
-			// we iterate through each of the firsts, and if no epsilons are detected, we simply
-			// add them and their associated rules as is to the parsing table. if there is an
-			// epsilon, we replace that epsilon's entry in the parsing table with those of the
-			// follows of the production. note that the epsilon is NOT added (as one would expect)
+			// the actual algorithm implementation for building the parsing
+			// table is as follows: we iterate through each of the firsts, and
+			// if no epsilons are detected, we simply add them and their
+			// associated rules as is to the parsing table. if there is an
+			// epsilon, we replace that epsilon's entry in the parsing table
+			// with those of the follows of the production. note that the
+			// epsilon is NOT added (as one would expect)
 			firstSet := rg.first(rule)
 			for _, first := range firstSet {
 				if first == "" {
@@ -104,17 +106,15 @@ func createParsingTable(g Grammar) (ParsingTable, error) {
 	return table, nil
 }
 
-// reducing the grammar means removing all of the
-// syntactic sugar in the grammar. This is accomplished
-// by splitting the grammar into anonymous productions
-// that will not be compiled into the main tree but can
-// allow us to avoid unnecessary complexity when creating
-// the parsing table.  notably, this reduction also
-// introduces epsilons to handle optional patterns
-// (which is expected by the larger parser generator)
+// reducing the grammar means removing all of the syntactic sugar in the
+// grammar. This is accomplished by splitting the grammar into anonymous
+// productions that will not be compiled into the main tree but can allow us to
+// avoid unnecessary complexity when creating the parsing table.  notably, this
+// reduction also introduces epsilons to handle optional patterns (which is
+// expected by the larger parser generator)
 func reduceGrammar(g Grammar) *ReducedGrammar {
-	// create a basic reduced grammar from the global start symbol
-	// (and allocate all of the necessary data structures)
+	// create a basic reduced grammar from the global start symbol (and allocate
+	// all of the necessary data structures)
 	rg := &ReducedGrammar{Productions: make(map[string]ReducedProduction), src: g,
 		startSymbol: _startSymbol, followTable: make(map[string][]string),
 	}
@@ -128,11 +128,11 @@ func reduceGrammar(g Grammar) *ReducedGrammar {
 	return rg
 }
 
-// ReducedGrammar represents the reduced grammar (extracted from
-// the more complex grammar). notably, this structure also contains
-// several methods and data structures that help in the creation
-// of the parsing table (determining firsts and follows). it acts
-// as an intermediary between the grammar and the parsing table
+// ReducedGrammar represents the reduced grammar (extracted from the more
+// complex grammar). notably, this structure also contains several methods and
+// data structures that help in the creation of the parsing table (determining
+// firsts and follows). it acts as an intermediary between the grammar and the
+// parsing table
 type ReducedGrammar struct {
 	Productions map[string]ReducedProduction
 
@@ -149,15 +149,15 @@ type ReducedGrammar struct {
 // ReducedProduction represents a production in the reduced grammar
 type ReducedProduction [][]*PTableElement
 
-// this function handles the high level aspects of the productions
-// ie. alternators and addition to the reduced grammar the lower
-// level group reduction is done by another function. note that this
-// function works for anonymous productions as well as named ones
+// this function handles the high level aspects of the productions ie.
+// alternators and addition to the reduced grammar the lower level group
+// reduction is done by another function. note that this function works for
+// anonymous productions as well as named ones
 func (rg *ReducedGrammar) reduceProduction(name string, p Production) {
 	var rp ReducedProduction
 
-	// split alternators into rules (see parsing table
-	// gen algo description for "definition" of a rule)
+	// split alternators into rules (see parsing table gen algo description for
+	// "definition" of a rule)
 	if p[0].Kind() == GKindAlternator {
 		alternator := p[0].(AlternatorElement)
 
@@ -180,14 +180,16 @@ func (rg *ReducedGrammar) reduceGroup(elems []GrammaticalElement) []*PTableEleme
 	group := make([]*PTableElement, len(elems))
 
 	for i, item := range elems {
-		// terminals and non terminals are essentially added as is (just converted
-		// to PTableElements which doesn't actually change their behavior)
+		// terminals and non terminals are essentially added as is (just
+		// converted to PTableElements which doesn't actually change their
+		// behavior)
 		switch item.Kind() {
 		case GKindTerminal:
 			group[i] = &PTableElement{Kind: PTFTerminal, Value: string(item.(Terminal))}
 		case GKindNonterminal:
 			group[i] = newPTableNonterminal(string(item.(Nonterminal)))
-		// groups are made into anonymous productions and inserted as nonterminals
+		// groups are made into anonymous productions and inserted as
+		// nonterminals
 		case GKindGroup:
 			group[i] = newPTableNonterminal(
 				rg.insertAnonProduction(item.(GroupingElement).elements, false),
@@ -198,10 +200,11 @@ func (rg *ReducedGrammar) reduceGroup(elems []GrammaticalElement) []*PTableEleme
 				rg.insertAnonProduction(item.(GroupingElement).elements, true),
 			)
 		// repeats first lower the group or item they are repeating into an anon
-		// production. then create another production with an epsilon rule
-		// and a reference to initial production followed by a reference to itself
-		// we then put this production in place of the repeat group in the production
-		// note: reference == nonterminal reference (shorthand, used subsequently)
+		// production. then create another production with an epsilon rule and a
+		// reference to initial production followed by a reference to itself we
+		// then put this production in place of the repeat group in the
+		// production note: reference == nonterminal reference (shorthand, used
+		// subsequently)
 		case GKindRepeat:
 			prodName := rg.insertAnonProduction(item.(GroupingElement).elements, false)
 
@@ -215,9 +218,10 @@ func (rg *ReducedGrammar) reduceGroup(elems []GrammaticalElement) []*PTableEleme
 
 			group[i] = rnt
 		// same initial setup as repeat, but we create an additional production
-		// that begins with a reference to our first production (the group we want
-		// to repeat) and follow it with a reference to our standard repeat production
-		// and then insert a reference to the additional production in place of the repeat-m
+		// that begins with a reference to our first production (the group we
+		// want to repeat) and follow it with a reference to our standard repeat
+		// production and then insert a reference to the additional production
+		// in place of the repeat-m
 		case GKindRepeatMultiple:
 			prodName := rg.insertAnonProduction(item.(GroupingElement).elements, false)
 
@@ -249,8 +253,8 @@ func (rg *ReducedGrammar) insertAnonProduction(elements []GrammaticalElement, ha
 
 	rg.reduceProduction(anonName, elements)
 
-	// hasEpsilon means that an epsilon rule will be appended
-	// at the end of the new anonymous production
+	// hasEpsilon means that an epsilon rule will be appended at the end of the
+	// new anonymous production
 	if hasEpsilon {
 		rg.Productions[anonName] = append(rg.Productions[anonName], epsilonRule())
 	}
@@ -258,26 +262,26 @@ func (rg *ReducedGrammar) insertAnonProduction(elements []GrammaticalElement, ha
 	return anonName
 }
 
-// note that this function returns a new name every time it
-// is called ie. it is not an accessor for the the anonCounter
+// note that this function returns a new name every time it is called ie. it is
+// not an accessor for the the anonCounter
 func (rg *ReducedGrammar) createAnonName() string {
 	anonName := "$" + strconv.Itoa(rg.anonCounter)
 	rg.anonCounter++
 	return anonName
 }
 
-// the following two functions are used to create the parsing table
-// from the reduced grammar and behave as their names would imply
+// the following two functions are used to create the parsing table from the
+// reduced grammar and behave as their names would imply
 
-// finds the firsts of a given *rule*. it is intended to be used
-// recursively meaning it will accept slices of rules (ie. it
-// simply finds the firsts of the set of elements it is given)
+// finds the firsts of a given *rule*. it is intended to be used recursively
+// meaning it will accept slices of rules (ie. it simply finds the firsts of the
+// set of elements it is given)
 func (rg *ReducedGrammar) first(rule []*PTableElement) []string {
 	if rule[0].Kind == PTFNonterminal {
 		var firstSet []string
 
-		// accumulate all of the firsts of the nonterminal
-		// before applying additional filtering logic
+		// accumulate all of the firsts of the nonterminal before applying
+		// additional filtering logic
 		for _, r := range rg.Productions[rule[0].Value] {
 			ntFirst := rg.first(r)
 
@@ -293,9 +297,9 @@ func (rg *ReducedGrammar) first(rule []*PTableElement) []string {
 			}
 		}
 
-		// if the length has changed, epsilon values were removed
-		// and therefore, we need to consider the firsts of what
-		// follows are first element as valid firsts for the rule
+		// if the length has changed, epsilon values were removed and therefore,
+		// we need to consider the firsts of what follows are first element as
+		// valid firsts for the rule
 		if n != len(firstSet) {
 			firstSet = firstSet[:n]
 			firstSet = append(firstSet, rg.first(rule[1:])...)
@@ -304,18 +308,16 @@ func (rg *ReducedGrammar) first(rule []*PTableElement) []string {
 		return firstSet
 	}
 
-	// catches both terminals and epsilon since
-	// Fi(epsilon) = { epsilon } and
+	// catches both terminals and epsilon since Fi(epsilon) = { epsilon } and
 	// Fi(a) where a is a terminal = { a }
 	return []string{rule[0].Value}
 }
 
-// follow finds all of the follows of given production where
-// "symbol" is the name of said production in the reduced grammar
+// follow finds all of the follows of given production where "symbol" is the
+// name of said production in the reduced grammar
 func (rg *ReducedGrammar) follow(symbol string) []string {
-	// if we have already evaluated the follows of this
-	// symbol we return what we have (since follow is
-	// an expensive operaton and unlike firsts is based
+	// if we have already evaluated the follows of this symbol we return what we
+	// have (since follow is an expensive operaton and unlike firsts is based
 	//  on the name as opposed to a rule list)
 	if f, ok := rg.followTable[symbol]; ok {
 		return f
@@ -323,36 +325,30 @@ func (rg *ReducedGrammar) follow(symbol string) []string {
 
 	var followSet []string
 
-	// the follow set of the start symbol contains a special
-	// token representing the end of the token stream ("$$")
-	// not be confused with token "$" used for macros :)
+	// the follow set of the start symbol contains a special token representing
+	// the end of the token stream ("$$") not be confused with token "$" used
+	// for macros :)
 	if symbol == rg.startSymbol {
 		followSet = []string{"$$"}
 	}
 
 	for name, prod := range rg.Productions {
 		for _, rule := range prod {
-			// we use this boolean as a flag to tell
-			// us whether or not we have encountered
-			// a reference to our symbol's production
-			// in the current rule. note that we might
-			// not encounter any such reference
+			// we use this boolean as a flag to tell us whether or not we have
+			// encountered a reference to our symbol's production in the current
+			// rule. note that we might not encounter any such reference
 			takingFollows := false
 
-			// iterate through the rule until we encounter
-			// a reference to our symbol or until we have
-			// exhausted the rule. if we encounter a reference
-			// then we begin taking follows from the following
-			// symbol. if not, we simply finish iteration
-			// and move on to the next rule
+			// iterate through the rule until we encounter a reference to our
+			// symbol or until we have exhausted the rule. if we encounter a
+			// reference then we begin taking follows from the following symbol.
+			// if not, we simply finish iteration and move on to the next rule
 			for i, item := range rule {
-				// if we are taking follows, then we continue
-				// taking follows until we encounter a first
-				// set that does not contain and epsilon
-				// at which point we exit out.  if we encounter
-				// a first set that contains nothing, we add the
-				// follows of the current production the the follows
-				// of our symbol's production
+				// if we are taking follows, then we continue taking follows
+				// until we encounter a first set that does not contain and
+				// epsilon at which point we exit out.  if we encounter a first
+				// set that contains nothing, we add the follows of the current
+				// production the the follows of our symbol's production
 				if takingFollows {
 					firstSet := rg.first(rule[i:])
 
@@ -370,15 +366,13 @@ func (rg *ReducedGrammar) follow(symbol string) []string {
 						}
 					}
 
-					// we want to keep the length of the
-					// first set so we know whether or not to
-					// exit so we don't modify the length of
-					// the first set here and just slice in
-					// the argument
+					// we want to keep the length of the first set so we know
+					// whether or not to exit so we don't modify the length of
+					// the first set here and just slice in the argument
 					followSet = append(followSet, firstSet[:n]...)
 
-					// if filtering for epsilons did not change
-					// the length, then there was no epsilon
+					// if filtering for epsilons did not change the length, then
+					// there was no epsilon
 					if n == len(firstSet) {
 						break
 					}

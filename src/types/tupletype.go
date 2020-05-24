@@ -1,12 +1,11 @@
 package types
 
-// TupleType is just a renamed list of data types
-// since tuples have no additional modifiers
+// TupleType is just a renamed list of data types since tuples have no
+// additional modifiers
 type TupleType []DataType
 
-// NewTupleType get a new tuple type from a
-// list of data types and adds its entry to
-// the global type table
+// NewTupleType get a new tuple type from a list of data types and adds its
+// entry to the global type table
 func NewTupleType(types []DataType) DataType {
 	return newType(TupleType(types))
 }
@@ -60,14 +59,24 @@ func (tt TupleType) Repr() string {
 	return "(" + typeString + ")"
 }
 
-// SizeOf a tuple is the size of a non-packed struct
-// containing the types of a tuple (size of its IR)
+// SizeOf a tuple is the size of a non-packed struct containing the types of a
+// tuple (size of its IR)
 func (tt TupleType) SizeOf() uint {
 	return TypeListSize(tt)
 }
 
-// AlignOf a tuple is just the maximum alignment
-// of its element types (padded as much as necessary)
+// AlignOf a tuple is just the maximum alignment of its element types (padded as
+// much as necessary)
 func (tt TupleType) AlignOf() uint {
 	return MaxAlign(tt)
+}
+
+func (tt TupleType) copyTemplate() DataType {
+	newtuple := make([]DataType, len(tt))
+
+	for i, v := range tt {
+		newtuple[i] = v.copyTemplate()
+	}
+
+	return NewTupleType(newtuple)
 }

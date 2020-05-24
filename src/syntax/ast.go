@@ -2,8 +2,8 @@ package syntax
 
 import "log"
 
-// TextPosition represents the positional range of an
-// AST node in the source text (for error handling)
+// TextPosition represents the positional range of an AST node in the source
+// text (for error handling)
 type TextPosition struct {
 	StartLn, StartCol int // starting line, starting 0-indexed column
 	EndLn, EndCol     int // ending Line, column trailing token (one over)
@@ -28,16 +28,19 @@ type ASTBranch struct {
 	Content []ASTNode
 }
 
-// Position of a branch is the starting position of its first node
-// and the ending position of its last node (node can be leaf or branch)
+// Position of a branch is the starting position of its first node and the
+// ending position of its last node (node can be leaf or branch)
 func (a *ASTBranch) Position() *TextPosition {
-	// Note: empty AST nodes SHOULD never occur, but we check anyway (so if they do, we see the error)
+	// Note: empty AST nodes SHOULD never occur, but we check anyway (so if they
+	// do, we see the error)
 	if len(a.Content) == 0 {
 		log.Fatal("Unable to take position of empty AST node")
-		// if there is just one item in the branch, just return the position of that item
+		// if there is just one item in the branch, just return the position of
+		// that item
 	} else if len(a.Content) == 1 {
 		return a.Content[0].Position()
-		// otherwise, it is the positions that border the leaves (they occur in order so we can take their position as such)
+		// otherwise, it is the positions that border the leaves (they occur in
+		// order so we can take their position as such)
 	} else {
 		first, last := a.Content[0].Position(), a.Content[len(a.Content)-1].Position()
 

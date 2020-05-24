@@ -1,8 +1,7 @@
 package syntax
 
-// Token represents a token read in by
-// the scanner (and incorporated into
-// the AST by an alias definition)
+// Token represents a token read in by the scanner (and incorporated into the
+// AST by an alias definition)
 type Token struct {
 	Name  string
 	Value string
@@ -69,8 +68,8 @@ var keywords = map[string]struct{}{
 	"vsize": struct{}{},
 }
 
-// store keyword type labels (separate so that token's name will be {VALUE}_TYPE)
-// again, map for fast look ups
+// store keyword type labels (separate so that token's name will be
+// {VALUE}_TYPE) again, map for fast look ups
 var keywordDataTypes = map[string]struct{}{
 	"string": struct{}{},
 	"float":  struct{}{},
@@ -100,8 +99,8 @@ var multiParticles = map[rune]string{
 	':': ">=",
 }
 
-// store particles that have nothing following them (packaged as seen)
-// map for fast lookups
+// store particles that have nothing following them (packaged as seen) map for
+// fast lookups
 var singleParticles = map[rune]struct{}{
 	'(': struct{}{},
 	')': struct{}{},

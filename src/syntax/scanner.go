@@ -46,16 +46,15 @@ type Scanner struct {
 	currValid bool // tells us whether or not the scanner has hit an EOF (without checking output from readNext)
 }
 
-// ReadToken reads a single token from the stream, error
-// can indicate malformed token or end of token stream
+// ReadToken reads a single token from the stream, error can indicate malformed
+// token or end of token stream
 func (s *Scanner) ReadToken() (*Token, error) {
 	for s.readNext() {
 		malformed := false
 		tok := &Token{}
 
 		switch s.curr {
-		// skip white space, line counting done
-		// on read int
+		// skip white space, line counting done on read int
 		case ' ', '\t', '\n', '\r':
 			continue
 		// handle string-like
@@ -120,7 +119,8 @@ func (s *Scanner) ReadToken() (*Token, error) {
 		// discard the buff for the current scanned token
 		s.discardBuff()
 
-		// error out on any malformed tokens (along with contents of token buffer)
+		// error out on any malformed tokens (along with contents of token
+		// buffer)
 		if malformed {
 			return nil, fmt.Errorf("Malformed Token \"%s\" at (Ln: %d, Col: %d)", string(s.tokBuff), s.line, s.col)
 		}
@@ -140,9 +140,9 @@ func (s *Scanner) makeToken(name string, value string) *Token {
 	return tok
 }
 
-// collect the current contents of the token buff into a string
-// and create a token at the current position with a key and value
-// both equal to the current contents of the token buffer
+// collect the current contents of the token buff into a string and create a
+// token at the current position with a key and value both equal to the current
+// contents of the token buffer
 func (s *Scanner) getToken() *Token {
 	tokValue := string(s.tokBuff)
 	return s.makeToken(tokValue, tokValue)
@@ -159,9 +159,9 @@ func (s *Scanner) discardBuff() {
 	s.tokBuff = s.tokBuff[:0] // keep buff allocated so we don't have to keep reallocating it everytime
 }
 
-// reads a rune from the file stream into the rune token
-// content buffer and returns whether or not there are more
-// runes to be read (true = no EOF, false = EOF),
+// reads a rune from the file stream into the rune token content buffer and
+// returns whether or not there are more runes to be read (true = no EOF, false
+// = EOF),
 func (s *Scanner) readNext() bool {
 	r, _, err := s.file.ReadRune()
 
@@ -186,8 +186,8 @@ func (s *Scanner) readNext() bool {
 	return true
 }
 
-// same behavior as readNext but doesn't populate the token buffer
-// used for comments where it makes sense
+// same behavior as readNext but doesn't populate the token buffer used for
+// comments where it makes sense
 func (s *Scanner) skipNext() bool {
 	r, _, err := s.file.ReadRune()
 
@@ -211,10 +211,10 @@ func (s *Scanner) skipNext() bool {
 	return true
 }
 
-// peek a rune ahead on the scanner (used to test for malformed tokens)
-// note that this functions peeks a single byte ahead and converts to
-// a rune so if a more complex rune follows in the source text, the peek
-// will not recognize it and instead return a possibly invalid utf-8 bit pattern
+// peek a rune ahead on the scanner (used to test for malformed tokens) note
+// that this functions peeks a single byte ahead and converts to a rune so if a
+// more complex rune follows in the source text, the peek will not recognize it
+// and instead return a possibly invalid utf-8 bit pattern
 func (s *Scanner) peek() (rune, bool) {
 	bytes, err := s.file.Peek(1)
 
@@ -225,14 +225,14 @@ func (s *Scanner) peek() (rune, bool) {
 	return rune(bytes[0]), true
 }
 
-// reads an identifier or a keyword from the input stream
-// determines based on contents of stream (matches to all possible keywords)
+// reads an identifier or a keyword from the input stream determines based on
+// contents of stream (matches to all possible keywords)
 func (s *Scanner) readWord() *Token {
 	keywordValid := true
 
-	// we know that whatever it started on was valid so we continue
-	// additionally where know we are inside an identifier so we can
-	// allow numbers and _, use a peek look ahead
+	// we know that whatever it started on was valid so we continue additionally
+	// where know we are inside an identifier so we can allow numbers and _, use
+	// a peek look ahead
 	for c, more := s.peek(); more; s.readNext() {
 		if isDigit(c) || c == '_' {
 			keywordValid = false
@@ -243,9 +243,10 @@ func (s *Scanner) readWord() *Token {
 
 	tokValue := string(s.tokBuff)
 
-	// note that invalid character at the end of tokBuff should both be processed
-	// and not included in the token, return out of all of these checks so that
-	// duplicate tokens aren't created if the check is successful (found match)
+	// note that invalid character at the end of tokBuff should both be
+	// processed and not included in the token, return out of all of these
+	// checks so that duplicate tokens aren't created if the check is successful
+	// (found match)
 	if keywordValid {
 		if _, ok := keywords[tokValue]; ok {
 			return s.makeToken(strings.ToUpper(tokValue), tokValue)
@@ -276,20 +277,20 @@ func (s *Scanner) readNumberLiteral() (*Token, bool) {
 	// if we previous was an 'e' then we can expect a '-'
 	expectNeg := false
 
-	// if we triggered a floating point using '.' instead of 'e'
-	// than 'e' could still be valid
+	// if we triggered a floating point using '.' instead of 'e' than 'e' could
+	// still be valid
 	eValid := false
 
 	// use loop break label to break out loop from within switch case
 loop:
 
-	// move forward at end of parsing to creating left overs
-	// in the token buff (peek is not necessary here since we do still want to
-	// move forward each iteration, just at the end)
+	// move forward at end of parsing to creating left overs in the token buff
+	// (peek is not necessary here since we do still want to move forward each
+	// iteration, just at the end)
 	for ok := true; ok; ok = s.readNext() {
 		// if we have identified signage or sign, then we are not expecting
-		// anymore values and so exit out if an additional values are encountered
-		// besides sign and size specifiers
+		// anymore values and so exit out if an additional values are
+		// encountered besides sign and size specifiers
 		if isLong && isUns {
 			break
 		} else if isLong {
@@ -308,9 +309,9 @@ loop:
 			}
 		}
 
-		// if we are expecting a negative and get another character
-		// then we simply update the state (no longer expecting a negative)
-		// and continue on (expect is not a hard expectation)
+		// if we are expecting a negative and get another character then we
+		// simply update the state (no longer expecting a negative) and continue
+		// on (expect is not a hard expectation)
 		if expectNeg && s.curr != '-' {
 			expectNeg = false
 		}
@@ -340,8 +341,8 @@ loop:
 		// check for validity of hex literal
 		if isHex && (s.curr < 'A' || s.curr > 'F') && (s.curr < 'a' || s.curr > 'f') {
 			break
-			// after hitting floating point detector, we can only expect numbers, 'e', and '-'
-			// and only under certain conditions
+			// after hitting floating point detector, we can only expect
+			// numbers, 'e', and '-' and only under certain conditions
 		} else if isFloat {
 			switch s.curr {
 			case 'e':
@@ -361,7 +362,8 @@ loop:
 						return nil, true
 					}
 
-					// if it is not a digit, assume 3 separate tokens, continue scanning after
+					// if it is not a digit, assume 3 separate tokens, continue
+					// scanning after
 					if !isDigit(pr) {
 						break loop
 					}
@@ -455,15 +457,15 @@ func (s *Scanner) readCharLiteral() (*Token, bool) {
 		return nil, true
 	}
 
-	// if there is an escape sequence, read it
-	// and if it is invalid, char lit is malformed
+	// if there is an escape sequence, read it and if it is invalid, char lit is
+	// malformed
 	if s.curr == '\\' && !s.readEscapeSequence() {
 		return nil, true
 	}
 
-	// if the next token after processing the escape sequence
-	// is not a closing quote than the char literal is too long
-	// on we are at EOF => malformed in either case
+	// if the next token after processing the escape sequence is not a closing
+	// quote than the char literal is too long on we are at EOF => malformed in
+	// either case
 	if !s.readNext() || s.curr != '\'' {
 		return nil, true
 	}

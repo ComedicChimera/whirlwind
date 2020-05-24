@@ -17,8 +17,8 @@ const (
 	GKindNonterminal
 )
 
-// GrammaticalElement represents a piece of the grammar
-// once it is serialized into an object
+// GrammaticalElement represents a piece of the grammar once it is serialized
+// into an object
 type GrammaticalElement interface {
 	Kind() int
 }
@@ -29,8 +29,8 @@ type Terminal string
 // Nonterminal grammatical element (rename of string)
 type Nonterminal string
 
-// GroupingElement represents all of the other grouping
-// grammatical elements (eg. groups, optionals, repeats, etc.)
+// GroupingElement represents all of the other grouping grammatical elements
+// (eg. groups, optionals, repeats, etc.)
 type GroupingElement struct {
 	kind     int
 	elements []GrammaticalElement
@@ -51,19 +51,20 @@ func (Nonterminal) Kind() int {
 	return GKindNonterminal
 }
 
-// Kind returns the kind of grouping elements
-// based on the stored kind member variable
+// Kind returns the kind of grouping elements based on the stored kind member
+// variable
 func (g GroupingElement) Kind() int {
 	return g.kind
 }
 
-// AlternatorElement represents a grammatical alternator
-// storing a slice of the subgroups it alternates between
+// AlternatorElement represents a grammatical alternator storing a slice of the
+// subgroups it alternates between
 type AlternatorElement struct {
 	groups [][]GrammaticalElement
 }
 
-// NewAlternatorElement create a new alternator element from some number of groups efficiently
+// NewAlternatorElement create a new alternator element from some number of
+// groups efficiently
 func NewAlternatorElement(groups ...[]GrammaticalElement) AlternatorElement {
 	return AlternatorElement{groups: groups}
 }

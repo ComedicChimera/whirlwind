@@ -1,8 +1,8 @@
 package types
 
-// Unify finds the unified type of a set if possible
-// of data types (unified meaning type all types
-// in the set are able to coerced to: set != typeset here)
+// Unify finds the unified type of a set if possible of data types (unified
+// meaning type all types in the set are able to coerced to: set != typeset
+// here)
 func Unify(dts ...DataType) (DataType, bool) {
 	unifiedType := dts[0]
 
@@ -21,23 +21,22 @@ func Unify(dts ...DataType) (DataType, bool) {
 	return unifiedType, true
 }
 
-// Generalize finds the lowest type set that can
-// accurately represent the types it is given.
-// If no such type set exists, it returns nil, false
-// Note: Mainly meant for use in Unification
+// Generalize finds the lowest type set that can accurately represent the types
+// it is given. If no such type set exists, it returns nil, false Note: Mainly
+// meant for use in Unification
 func Generalize(dt ...DataType) (DataType, bool) {
 	return nil, false
 }
 
-// GetMethod checks if the data has the specified method and
-// if it does returns the data type of that method and if
-// not returns that it could not find a match for the given method
+// GetMethod checks if the data has the specified method and if it does returns
+// the data type of that method and if not returns that it could not find a
+// match for the given method
 func GetMethod(dt DataType, methodName string) (DataType, bool) {
 	return nil, false
 }
 
-// MaxSize is a utlity function that takes a set of data types
-// and returns the SizeOf of the data type with largest size
+// MaxSize is a utlity function that takes a set of data types and returns the
+// SizeOf of the data type with largest size
 func MaxSize(dts []DataType) uint {
 	var maxSize uint
 
@@ -82,15 +81,15 @@ func TypeListEquals(tla []DataType, tlb []DataType) bool {
 	return true
 }
 
-// SmallestMultiple takes into two arguments (n, m) and finds
-// the smallest multiple of m greater than or equal to n where
-// both n and m are uints (used for size calculation => uint)
+// SmallestMultiple takes into two arguments (n, m) and finds the smallest
+// multiple of m greater than or equal to n where both n and m are uints (used
+// for size calculation => uint)
 func SmallestMultiple(n, m uint) uint {
 	return n + m - n%m
 }
 
-// TypeListSize takes in a list of data types and returns the
-// padded size of the list (as if they were stored in a struct)
+// TypeListSize takes in a list of data types and returns the padded size of the
+// list (as if they were stored in a struct)
 func TypeListSize(dts []DataType) uint {
 	var packedSize uint = 0
 

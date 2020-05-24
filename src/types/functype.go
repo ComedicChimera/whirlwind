@@ -5,8 +5,8 @@ import (
 	"strings"
 )
 
-// FuncParam represents a function parameter used in the function
-// data type (note that parameter value specifiers are not included)
+// FuncParam represents a function parameter used in the function data type
+// (note that parameter value specifiers are not included)
 type FuncParam struct {
 	Name               string
 	Type               DataType // actually contains value :)
@@ -23,8 +23,8 @@ func (fp *FuncParam) Equals(other *FuncParam) bool {
 	return fp.compareNames(other.Name) && Equals(fp.Type, other.Type) && fp.Optional == other.Optional && fp.Variadic == other.Variadic
 }
 
-// typeRepr returns a string represents how the parameter
-// appears in a type label (used in repr for function type)
+// typeRepr returns a string represents how the parameter appears in a type
+// label (used in repr for function type)
 func (fp *FuncParam) typeRepr() string {
 	var prefix string
 
@@ -37,8 +37,9 @@ func (fp *FuncParam) typeRepr() string {
 	return prefix + fp.Type.Repr()
 }
 
-// compareNames takes in the name of another parameter and determines if the function
-// names are effectively equivalent (ie. unnamed parameters will match any named parameter)
+// compareNames takes in the name of another parameter and determines if the
+// function names are effectively equivalent (ie. unnamed parameters will match
+// any named parameter)
 func (fp *FuncParam) compareNames(otherName string) bool {
 	if fp.Name == "" || otherName == "" {
 		return true
@@ -83,14 +84,16 @@ func (ft *FuncType) cast(other DataType) bool {
 
 func (ft *FuncType) equals(other DataType) bool {
 	if oft, ok := other.(*FuncType); ok {
-		// note: an intrinsic signature and a non-intrinsic signature for the same function are not identical
+		// note: an intrinsic signature and a non-intrinsic signature for the
+		// same function are not identical
 		return ft.compareParams(oft) && Equals(ft.ReturnType, oft.ReturnType) && ft.Async == oft.Async && ft.Boxed == oft.Boxed && ft.Boxable == oft.Boxable
 	}
 
 	return false
 }
 
-// compareParams compares to function's parameters for equality (or usable equality)
+// compareParams compares to function's parameters for equality (or usable
+// equality)
 func (ft *FuncType) compareParams(oft *FuncType) bool {
 	if len(ft.Params) != len(oft.Params) {
 		return false
@@ -105,9 +108,8 @@ func (ft *FuncType) compareParams(oft *FuncType) bool {
 	return true
 }
 
-// SizeOf a function type depends on whether or not
-// it is boxed: if it is not, it is simply the size of
-// a pointer.  If it is not boxed, then it is the size
+// SizeOf a function type depends on whether or not it is boxed: if it is not,
+// it is simply the size of a pointer.  If it is not boxed, then it is the size
 // of a 2 pointers (one for func pointer, one for state pointer)
 func (ft *FuncType) SizeOf() uint {
 	if ft.Boxed {
@@ -117,15 +119,15 @@ func (ft *FuncType) SizeOf() uint {
 	return PointerSize
 }
 
-// AlignOf a function is always the size of a pointer
-// since it will either itself be a pointer or be a struct
-// whose largest element is a pointer, either of which work here
+// AlignOf a function is always the size of a pointer since it will either
+// itself be a pointer or be a struct whose largest element is a pointer, either
+// of which work here
 func (ft *FuncType) AlignOf() uint {
 	return PointerSize
 }
 
-// Repr generates a type label for the function
-// type and returns it as the repr string
+// Repr generates a type label for the function type and returns it as the repr
+// string
 func (ft *FuncType) Repr() string {
 	paramReprs := make([]string, len(ft.Params))
 
@@ -140,4 +142,20 @@ func (ft *FuncType) Repr() string {
 	}
 
 	return fmt.Sprintf("func(%s)(%s)", paramRepr, ft.ReturnType.Repr())
+}
+
+func (ft *FuncType) copyTemplate() DataType {
+	newParams := make([]*FuncParam, len(ft.Params))
+
+	for i, p := range ft.Params {
+		newParams[i] = &FuncParam{Type: p.Type.copyTemplate(), Name: p.Name, Optional: p.Optional, Variadic: p.Variadic}
+	}
+
+	return newType(&FuncType{
+		ReturnType: ft.ReturnType.copyTemplate(),
+		Params:     newParams,
+		Async:      ft.Async,
+		Boxed:      ft.Boxed,
+		Boxable:    ft.Boxable,
+	})
 }

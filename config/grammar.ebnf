@@ -130,7 +130,7 @@ assign_op: ['+' | '-' | '*' | '/' | '%' | '~^' | '~/' | '|' | '&'] '=' | ':>' ; 
 
 // variation of expression designed to be mutable/cause mutation
 mut_expr: [unary_mut_prefix] ['AWAIT'] ( 'IDENTIFIER' | '(' expr ')' ) trailer [increm_decrem] ;
-unary_mut_prefix: '*' ['?'] | increm_decrem ;
+unary_mut_prefix: '*' | increm_decrem ;
 
 // simple statements
 continue_stmt: 'CONTINUE' ;
@@ -186,7 +186,7 @@ term: factor (('*' | '/' | '%' | '~/') factor)* ;
 factor: unary_atom ('~^' unary_atom)*;
 
 // unary operators
-unary_atom: ('&' ['CONST'] | '-' | '~' | increm_decrem | '*' ) atom
+unary_atom: ('&' ['CONST'] | '-' | '~' | increm_decrem | ['?'] '*' ) atom
 | atom [increm_decrem]
 ;
 
@@ -271,14 +271,15 @@ vec_builder: '<' expr [ ':' 'INT_LITERAL' ] '>' ;
 
 
 // DATA TYPES - data type literals
-types: value_types | ref_types | named_value ;
+types: core_types | named_value ;
 
 // pure-value types
-value_types: prim_types
+core_types: prim_types
 | collection_types
 | func_type
 | tuple_type
 | vector_type
+| ref_type
 ;
 
 prim_types: 'BOOL_TYPE'
@@ -310,9 +311,7 @@ tuple_type_list: types (',' types)+ ;
 vector_type: '<' 'INT_LITERAL' '>' types ;
 
 // reference-like types
-ref_types: ['CONST'] (pointer_type | ref_type) ;
-ref_type ['OWN'] '&' types ;
-pointer_type: '*' types ;
+ref_type: ['CONST'] ['OWN'] '&' types  ;
 
 
 // COMMON CONSTRUCTIONS - common structures used repeatedly in grammar

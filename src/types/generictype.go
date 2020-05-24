@@ -39,7 +39,7 @@ func (gt *GenericType) CreateGenerate(typeList []DataType) (DataType, bool) {
 		}
 	}
 
-	generate := gt.copyTemplate()
+	generate := gt.Template.copyTemplate()
 	gt.Forms = append(gt.Forms, &GenericForm{Generate: generate, TypeList: typeList})
 
 	// clear the stored values from the type parameters (so that
@@ -51,23 +51,16 @@ func (gt *GenericType) CreateGenerate(typeList []DataType) (DataType, bool) {
 	return generate, true
 }
 
-// copyTemplate creates a duplicate of the generic template assuming
-// that the placeholders have already been filled.  It only provides
-// implementations for the types that can be form into generics.
-func (gt *GenericType) copyTemplate() DataType {
-	return nil
-}
-
 // All type relational operators between raw generics are nonsensical (no way
 // of determining which form, too polymorphic) and are therefore undefined
 
 func (gt *GenericType) coerce(other DataType) bool {
-	log.Fatal("Unable to apply coercion to a generic type")
+	log.Fatalln("Unable to apply coercion to a generic type")
 	return false
 }
 
 func (gt *GenericType) cast(other DataType) bool {
-	log.Fatal("Unable to apply casting to a generic type")
+	log.Fatalln("Unable to apply casting to a generic type")
 	return false
 }
 
@@ -98,6 +91,12 @@ func (gt *GenericType) Repr() string {
 	}
 
 	return gt.Template.Repr() + "<" + strings.Join(typeParamSlice, ", ") + ">"
+}
+
+// copyTemplate on a generic is undefined
+func (gt *GenericType) copyTemplate() DataType {
+	log.Fatalln("Unable to perform a type copy on a generic")
+	return nil
 }
 
 // TypeParam represents a generic type parameter. They contain
@@ -221,4 +220,10 @@ func (tpp *TypeParamPlaceholder) AlignOf() uint {
 	}
 
 	return (*tpp.placeholderRef).AlignOf()
+}
+
+// copyTemplate on a type parameter placeholder removes the reference
+//boxing on it and returns the current value of its type reference
+func (tpp *TypeParamPlaceholder) copyTemplate() DataType {
+	return (*tpp.placeholderRef).copyTemplate()
 }

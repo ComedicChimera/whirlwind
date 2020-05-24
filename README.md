@@ -91,7 +91,7 @@ Radix Sort:
 
     import { println } from io::std;
 
-    func radix_sort(ref list: [int]) [int] {
+    func radix_sort(list: [uint]) [uint] {
         let mx = list.max();
 
         for it = 0; 10 ~^ it < mx; it++ {
@@ -124,7 +124,7 @@ Linked List:
         own next: dyn* LLNode
     }
 
-    func ll_range(val: int) own dyn* LLNode {
+    func ll_range(val: int) own &LLNode {
         if val == 0 {
             return make LLNode{value=val};
         }
