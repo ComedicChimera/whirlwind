@@ -4,9 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"strings"
+
+	"github.com/ComedicChimera/whirlwind/src/util"
 )
 
 // NewScanner creates a scanner for the given file
@@ -122,7 +123,10 @@ func (s *Scanner) ReadToken() (*Token, error) {
 		// error out on any malformed tokens (along with contents of token
 		// buffer)
 		if malformed {
-			return nil, fmt.Errorf("Malformed Token \"%s\" at (Ln: %d, Col: %d)", string(s.tokBuff), s.line, s.col)
+			return nil, util.NewWhirlError(
+				fmt.Sprintf("Malformed Token \"%s\"", string(s.tokBuff)),
+				&util.TextPosition{StartLn: s.line, StartCol: s.col, EndLn: s.line, EndCol: len(s.tokBuff)},
+			)
 		}
 
 		return tok, nil
@@ -171,7 +175,7 @@ func (s *Scanner) readNext() bool {
 			return false
 		}
 
-		log.Fatal("Error reading file " + s.fpath)
+		util.LogMod.LogFatal("Error reading file " + s.fpath)
 	}
 
 	// do line and column counting
@@ -197,7 +201,7 @@ func (s *Scanner) skipNext() bool {
 			return false
 		}
 
-		log.Fatal("Error reading file " + s.fpath)
+		util.LogMod.LogFatal("Error reading file " + s.fpath)
 	}
 
 	// do line and column counting

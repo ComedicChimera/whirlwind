@@ -3,6 +3,8 @@ package types
 import (
 	"fmt"
 	"strings"
+
+	"github.com/ComedicChimera/whirlwind/src/util"
 )
 
 // FuncParam represents a function parameter used in the function data type
@@ -113,17 +115,17 @@ func (ft *FuncType) compareParams(oft *FuncType) bool {
 // of a 2 pointers (one for func pointer, one for state pointer)
 func (ft *FuncType) SizeOf() uint {
 	if ft.Boxed {
-		return PointerSize * 2
+		return util.PointerSize * 2
 	}
 
-	return PointerSize
+	return util.PointerSize
 }
 
 // AlignOf a function is always the size of a pointer since it will either
 // itself be a pointer or be a struct whose largest element is a pointer, either
 // of which work here
 func (ft *FuncType) AlignOf() uint {
-	return PointerSize
+	return util.PointerSize
 }
 
 // Repr generates a type label for the function type and returns it as the repr

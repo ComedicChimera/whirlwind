@@ -1,8 +1,9 @@
 package types
 
 import (
-	"log"
 	"strings"
+
+	"github.com/ComedicChimera/whirlwind/src/util"
 )
 
 // GenericType is an abstraction used to represent
@@ -55,29 +56,29 @@ func (gt *GenericType) CreateGenerate(typeList []DataType) (DataType, bool) {
 // of determining which form, too polymorphic) and are therefore undefined
 
 func (gt *GenericType) coerce(other DataType) bool {
-	log.Fatalln("Unable to apply coercion to a generic type")
+	util.LogMod.LogFatal("Unable to apply coercion to a generic type")
 	return false
 }
 
 func (gt *GenericType) cast(other DataType) bool {
-	log.Fatalln("Unable to apply casting to a generic type")
+	util.LogMod.LogFatal("Unable to apply casting to a generic type")
 	return false
 }
 
 func (gt *GenericType) equals(other DataType) bool {
-	log.Fatal("Unable to test equality between a generic type and another type")
+	util.LogMod.LogFatal("Unable to test equality between a generic type and another type")
 	return false
 }
 
 // SizeOf a generic type is undefined (causes fatal error)
 func (gt *GenericType) SizeOf() uint {
-	log.Fatalln("Unable to calculate the size of a generic type")
+	util.LogMod.LogFatal("Unable to calculate the size of a generic type")
 	return 0
 }
 
 // AlignOf a generic type is undefined (causes fatal error)
 func (gt *GenericType) AlignOf() uint {
-	log.Fatalln("Unable to calculate the alignment of a generic type")
+	util.LogMod.LogFatal("Unable to calculate the alignment of a generic type")
 	return 0
 }
 
@@ -95,7 +96,7 @@ func (gt *GenericType) Repr() string {
 
 // copyTemplate on a generic is undefined
 func (gt *GenericType) copyTemplate() DataType {
-	log.Fatalln("Unable to perform a type copy on a generic")
+	util.LogMod.LogFatal("Unable to perform a type copy on a generic")
 	return nil
 }
 
@@ -206,7 +207,7 @@ func (tpp *TypeParamPlaceholder) Repr() string {
 // a type value. Otherwise, it is the size of the type value.
 func (tpp *TypeParamPlaceholder) SizeOf() uint {
 	if *tpp.placeholderRef == nil {
-		log.Fatal("Unable to calculate size of unsatisfied placeholder")
+		util.LogMod.LogFatal("Unable to calculate size of unsatisfied placeholder")
 	}
 
 	return (*tpp.placeholderRef).SizeOf()
@@ -216,7 +217,7 @@ func (tpp *TypeParamPlaceholder) SizeOf() uint {
 // type value. Otherwise, it is the alignment of the type value.
 func (tpp *TypeParamPlaceholder) AlignOf() uint {
 	if *tpp.placeholderRef == nil {
-		log.Fatal("Unable to calculate alignment of unsatisfied placeholder")
+		util.LogMod.LogFatal("Unable to calculate alignment of unsatisfied placeholder")
 	}
 
 	return (*tpp.placeholderRef).AlignOf()

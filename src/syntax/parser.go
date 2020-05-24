@@ -1,10 +1,10 @@
 package syntax
 
 import (
-	"errors"
-	"fmt"
 	"io"
 	"strings"
+
+	"github.com/ComedicChimera/whirlwind/src/util"
 )
 
 // Parser is meant to be created once and reset for different parses (generates
@@ -148,8 +148,8 @@ func (p *Parser) next() error {
 // file if the current token was an EOF token ie. had a name of '$$')
 func (p *Parser) unexpectedToken() error {
 	if p.curr.Name == "$$" {
-		return errors.New("Unexpected end of file")
+		return util.NewWhirlError("Unexpected end of file", nil)
 	}
 
-	return fmt.Errorf("Unexpected token '%s' at (Ln: %d, Col: %d)", p.curr.Value, p.curr.Line, p.curr.Col)
+	return util.NewWhirlError("Unexpected token '%s'", TextPositionOfToken(p.curr))
 }

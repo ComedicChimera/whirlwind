@@ -31,11 +31,6 @@ type DataType interface {
 	copyTemplate() DataType
 }
 
-// PointerSize is a variable storing the size of a pointer for architecture
-// being compiled for.  This variable must be set by the compiler before it
-// begins compiling
-var PointerSize uint = 0
-
 // TypeInfo is a data structure unique to each data type representing any type
 // information shared between data types and instances (should only be created
 // once). this information must be stored in the type table (each type must have

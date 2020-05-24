@@ -7,6 +7,8 @@ import (
 	"os"
 	"path"
 	"runtime"
+
+	"github.com/ComedicChimera/whirlwind/src/util"
 )
 
 // WhirlPath is global path to the Whirlwind compiler directory (when lib is
@@ -38,7 +40,7 @@ func Execute() {
 	}
 
 	if err != nil {
-		log.Fatal(err)
+		util.LogMod.LogFatal(err.Error())
 	}
 }
 
@@ -75,7 +77,7 @@ func build() error {
 	}
 
 	// try to create a compiler with that information
-	err = NewCompiler(buildCommand.Lookup("p").Value.String(), buildCommand.Lookup("a").Value.String(), outputPath, buildDir)
+	compiler, err := NewCompiler(buildCommand.Lookup("p").Value.String(), buildCommand.Lookup("a").Value.String(), outputPath, buildDir)
 
 	if err != nil {
 		return err
@@ -85,7 +87,7 @@ func build() error {
 	// nothing given, assume sensible defaults)
 	format := buildCommand.Lookup("f").Value.String()
 	if format != "" {
-		cerr := C.SetOutputFormat(format)
+		cerr := compiler.SetOutputFormat(format)
 
 		if cerr != nil {
 			return cerr
@@ -94,7 +96,7 @@ func build() error {
 
 	localDirs := buildCommand.Lookup("l").Value.String()
 	if localDirs != "" {
-		cerr := C.AddLocalPackageDirectories(localDirs)
+		cerr := compiler.AddLocalPackageDirectories(localDirs)
 
 		if cerr != nil {
 			return cerr
@@ -103,15 +105,18 @@ func build() error {
 
 	staticLibs := buildCommand.Lookup("s").Value.String()
 	if staticLibs != "" {
-		cerr := C.AddStaticLibraries(staticLibs)
+		cerr := compiler.AddStaticLibraries(staticLibs)
 
 		if cerr != nil {
 			return cerr
 		}
 	}
 
+	// setup the global LogModule
+	util.LogMod = &util.LogModule{}
+
 	// run the main compilation algorithm
-	C.Compile()
+	compiler.Compile()
 
 	// the compiler will handle its own errors
 	return nil

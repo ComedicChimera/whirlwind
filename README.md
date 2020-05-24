@@ -121,7 +121,7 @@ Linked List:
 
     type LLNode {
         value: int,
-        own next: dyn* LLNode
+        next: own& LLNode
     }
 
     func ll_range(val: int) own &LLNode {

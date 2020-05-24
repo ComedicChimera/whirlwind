@@ -1,5 +1,7 @@
 package types
 
+import "github.com/ComedicChimera/whirlwind/src/util"
+
 // various kinds of a type sets that can be produced
 const (
 	TSKindInterf = iota
@@ -90,11 +92,11 @@ func (ts *TypeSet) equals(other DataType) bool {
 func (ts *TypeSet) SizeOf() uint {
 	switch ts.SetKind {
 	case TSKindAlgebraic:
-		return PointerSize * 3
+		return util.PointerSize * 3
 	case TSKindEnum:
 		return 2
 	case TSKindInterf:
-		return PointerSize * 4
+		return util.PointerSize * 4
 	default:
 		// TSKindUnion
 		return MaxSize(ts.members)
@@ -106,11 +108,11 @@ func (ts *TypeSet) SizeOf() uint {
 func (ts *TypeSet) AlignOf() uint {
 	switch ts.SetKind {
 	case TSKindAlgebraic:
-		return PointerSize
+		return util.PointerSize
 	case TSKindEnum:
 		return 2
 	case TSKindInterf:
-		return PointerSize
+		return util.PointerSize
 	default:
 		// TSKindUnion
 		return MaxAlign(ts.members)

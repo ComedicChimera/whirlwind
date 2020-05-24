@@ -1,5 +1,7 @@
 package types
 
+import "github.com/ComedicChimera/whirlwind/src/util"
+
 // ReferenceType represents the type of reference (eg. &int)
 type ReferenceType struct {
 	ElemType        DataType
@@ -39,12 +41,12 @@ func (rt *ReferenceType) equals(other DataType) bool {
 
 // SizeOf a reference type is just the size of a pointer
 func (*ReferenceType) SizeOf() uint {
-	return PointerSize
+	return util.PointerSize
 }
 
 // AlignOf a reference type is also the alignment of a pointer
 func (*ReferenceType) AlignOf() uint {
-	return PointerSize
+	return util.PointerSize
 }
 
 // Borrow returns an unowned "copy" of a ReferenceType

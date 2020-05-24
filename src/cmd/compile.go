@@ -6,12 +6,8 @@ import (
 	"strings"
 
 	"github.com/ComedicChimera/whirlwind/src/syntax"
-	"github.com/ComedicChimera/whirlwind/src/types"
+	"github.com/ComedicChimera/whirlwind/src/util"
 )
-
-// C is the globally active compiler (stored for general access) Initialized
-// whenever a new compiler is created
-var C *Compiler
 
 // Store the different possible output formats for the compiler
 const (
@@ -37,11 +33,6 @@ type Compiler struct {
 
 	// compiler state
 	parser *syntax.Parser
-
-	// exported compiler state information used in packages ran outside compiler
-	// struct
-	LogModule   *LogModule
-	CurrentFile string
 }
 
 // AddLocalPackageDirectories interprets a command-line input string for the
@@ -105,25 +96,23 @@ func (c *Compiler) SetOutputFormat(formatName string) error {
 // information (p: platform, a: architecture, op: output path, bd: build
 // directory). It then stores the compiler globally if its creation was
 // successful
-func NewCompiler(p string, a string, op string, bd string) error {
+func NewCompiler(p string, a string, op string, bd string) (*Compiler, error) {
 	switch p {
 	case "windows", "osx", "ubuntu", "debian", "freebsd":
 		break
 	default:
-		return errors.New("Unsupported platform")
+		return nil, errors.New("Unsupported platform")
 	}
 
 	if a != "x86" && a != "x64" {
-		return errors.New("Unsupported architecture")
+		return nil, errors.New("Unsupported architecture")
 	}
 
 	if _, err := os.Stat(bd); os.IsNotExist(err) {
-		return errors.New("Build directory does not exist")
+		return nil, errors.New("Build directory does not exist")
 	}
 
-	C = &Compiler{platform: p, architecture: a, outputPath: op, buildDirectory: bd}
-
-	return nil
+	return &Compiler{platform: p, architecture: a, outputPath: op, buildDirectory: bd}, nil
 }
 
 // Compile runs the main compilation algorithm: it returns no value and does all
@@ -139,8 +128,8 @@ func (c *Compiler) Compile() {
 func (c *Compiler) setPointerSize() {
 	switch c.architecture {
 	case "x86":
-		types.PointerSize = 4
+		util.PointerSize = 4
 	case "x64":
-		types.PointerSize = 8
+		util.PointerSize = 8
 	}
 }

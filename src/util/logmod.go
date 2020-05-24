@@ -1,22 +1,27 @@
-package cmd
+package util
 
 import (
 	"fmt"
 	"log"
-
-	"github.com/ComedicChimera/whirlwind/src/syntax"
 )
+
+// TextPosition represents the positional range of an AST node in the source
+// text (for error handling)
+type TextPosition struct {
+	StartLn, StartCol int // starting line, starting 0-indexed column
+	EndLn, EndCol     int // ending Line, column trailing token (one over)
+}
 
 // WhirlError respresents a positioned Whirlwind error (created by compiler)
 type WhirlError struct {
 	Message  string
 	File     string
-	Position *syntax.TextPosition
+	Position *TextPosition
 }
 
 // NewWhirlError creates a new Whirlwind error from a message and text position
-func NewWhirlError(message string, tp *syntax.TextPosition) *WhirlError {
-	return &WhirlError{Message: message, Position: tp, File: C.CurrentFile}
+func NewWhirlError(message string, tp *TextPosition) *WhirlError {
+	return &WhirlError{Message: message, Position: tp, File: CurrentFile}
 }
 
 func (we *WhirlError) Error() string {
@@ -95,5 +100,4 @@ func (lm *LogModule) LogFatal(m string) {
 	fmt.Println(fatalErrorMessage)
 
 	log.Fatalln("\nCompilation Failed.")
-
 }
