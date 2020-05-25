@@ -45,9 +45,30 @@ const (
 // logistical component.  It should be notified of every error to ensure proper
 // logging behavior as well as proper exit semantics
 type LogModule struct {
-	errors   []*WhirlError
+	errors   []error
 	warnings []string
 	loglevel int
+}
+
+// NewLogModule creates a new global log module based on the given loglevel
+// string if possible.
+func NewLogModule(loglevelstr string) bool {
+	LogMod = &LogModule{}
+
+	switch loglevelstr {
+	case "warn":
+		LogMod.loglevel = LogLevelWarn
+	case "fatal":
+		LogMod.loglevel = LogLevelFatal
+	case "none":
+		LogMod.loglevel = LogLevelNone
+	case "verbose":
+		LogMod.loglevel = LogLevelVerbose
+	default:
+		return false
+	}
+
+	return true
 }
 
 // Display displays both the errors and the warnings on screen as well as the
@@ -75,8 +96,8 @@ func (lm *LogModule) LogStateChange(state string) {
 // not immediately cause an exit: it simply records the error so it can be
 // properly displayed later so that errors can selectively bubble (in terms of
 // compilation)
-func (lm *LogModule) LogError(we *WhirlError) {
-	lm.errors = append(lm.errors, we)
+func (lm *LogModule) LogError(err error) {
+	lm.errors = append(lm.errors, err)
 }
 
 // LogWarning logs a warning message with the error module

@@ -22,13 +22,13 @@ func NewScanner(fpath string) (*Scanner, error) {
 	return s, nil
 }
 
-// test if a rune is an ASCII character
-func isLetter(r rune) bool {
-	return r > '`' && r < '{' || r > '@' && r < '[' // avoid using <= and >= by checking characters on boundaries (same for isDigit)
+// IsLetter tests if a rune is an ASCII character
+func IsLetter(r rune) bool {
+	return r > '`' && r < '{' || r > '@' && r < '[' // avoid using <= and >= by checking characters on boundaries (same for IsDigit)
 }
 
-// test if a rune is an ASCII digit
-func isDigit(r rune) bool {
+// IsDigit tests if a rune is an ASCII digit
+func IsDigit(r rune) bool {
 	return r > '/' && r < ':'
 }
 
@@ -95,9 +95,9 @@ func (s *Scanner) ReadToken() (*Token, error) {
 			tok = s.getToken()
 		default:
 			// check for identifiers
-			if isLetter(s.curr) || s.curr == '_' {
+			if IsLetter(s.curr) || s.curr == '_' {
 				tok = s.readWord()
-			} else if isDigit(s.curr) {
+			} else if IsDigit(s.curr) {
 				// check numeric literals
 				tok, malformed = s.readNumberLiteral()
 			} else if follows, ok := multiParticles[s.curr]; ok {
@@ -243,9 +243,9 @@ func (s *Scanner) readWord() *Token {
 	// where know we are inside an identifier so we can allow numbers and _, use
 	// a peek look ahead
 	for c, more := s.peek(); more; s.readNext() {
-		if isDigit(c) || c == '_' {
+		if IsDigit(c) || c == '_' {
 			keywordValid = false
-		} else if !isLetter(c) {
+		} else if !IsLetter(c) {
 			break
 		}
 	}
@@ -343,7 +343,7 @@ loop:
 			}
 		}
 
-		if isDigit(s.curr) {
+		if IsDigit(s.curr) {
 			continue
 		}
 
@@ -373,7 +373,7 @@ loop:
 
 					// if it is not a digit, assume 3 separate tokens, continue
 					// scanning after
-					if !isDigit(ahead) {
+					if !IsDigit(ahead) {
 						break loop
 					}
 
@@ -499,7 +499,7 @@ func (s *Scanner) readEscapeSequence() bool {
 
 			r := s.curr
 
-			if !isDigit(r) && (r < 'A' || r > 'F') && (r < 'a' || r > 'f') {
+			if !IsDigit(r) && (r < 'A' || r > 'F') && (r < 'a' || r > 'f') {
 				return false
 			}
 		}

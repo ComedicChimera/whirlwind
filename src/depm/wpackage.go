@@ -5,7 +5,7 @@ import "github.com/ComedicChimera/whirlwind/src/syntax"
 // WhirlFile represents a single program file in a package
 type WhirlFile struct {
 	// Stores the root AST for the file (`whirlwind`)
-	AST *syntax.ASTBranch
+	AST syntax.ASTNode
 
 	// Stores all definitions local to this file.  No exported symbols should be
 	// placed in this table
@@ -18,7 +18,16 @@ type WhirlFile struct {
 
 // WhirlPackage represents a full, Whirlwind package (translation unit)
 type WhirlPackage struct {
-	Name          string
+	// PackageID is a randomly-generated string assigned to every package to be
+	// placed before exported definitions to prevent name clashes and is used as
+	// its entry the dependency graph and for import resolution
+	PackageID string
+
+	// Name is the inferred name of the package based on its directory name
+	Name string
+
+	// RootDirectory is the directory the package's files are stored in (package
+	// directory)
 	RootDirectory string
 
 	// Stores all of the files in a package
@@ -29,10 +38,6 @@ type WhirlPackage struct {
 
 	// Stores all remote exports of this package (decl status = shared)
 	RemoteExports map[string]*Symbol
-
-	// RandPrefix is a randomly-generated string assigned to every package to be
-	// placed before exported definitions to prevent name clashes
-	RandPrefix string
 
 	// Imports stores all of the packages that this package imports as well as
 	// what items it imports (useful in building LLVM modules)

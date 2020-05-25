@@ -12,3 +12,7 @@ var CurrentFile string
 // PointerSize is the size of a pointer on the target architecture.  Initialized
 // by the compiler when it is created
 var PointerSize uint
+
+// SrcFileExtension is used to indicate what the file extension is for a Whirlwind
+// source file
+const SrcFileExtension = ".wrl"

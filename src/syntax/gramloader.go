@@ -58,7 +58,7 @@ func (gl *gramLoader) load() error {
 		// productions, so we only look to see if we have a valid beginning to a
 		// production here instead of checking more generally
 		default:
-			if isLetter(gl.curr) {
+			if IsLetter(gl.curr) {
 				perr := gl.readProduction()
 
 				if perr != nil {
@@ -121,7 +121,7 @@ func (gl *gramLoader) readProduction() error {
 	for ok := true; ok; ok = gl.next() {
 		// accepts letters and underscores in production name collect them into
 		// the prodName slice of runes
-		if isLetter(gl.curr) || gl.curr == '_' {
+		if IsLetter(gl.curr) || gl.curr == '_' {
 			prodName = append(prodName, gl.curr)
 			// if we encounter a ':' we have reached end of production name so
 			// we begin parsing content
@@ -230,7 +230,7 @@ func (gl *gramLoader) parseGroupContent(expectedCloser rune) ([]GrammaticalEleme
 			return groupContent, nil
 		default:
 			// nonterminals only contain letters and underscores
-			if isLetter(gl.curr) || gl.curr == '_' {
+			if IsLetter(gl.curr) || gl.curr == '_' {
 				nonTerminal := gl.readNonterminal()
 
 				groupContent = append(groupContent, Nonterminal(nonTerminal))
@@ -266,7 +266,7 @@ func (gl *gramLoader) readNonterminal() string {
 	nonterminal := []rune{gl.curr}
 
 	for gl.next() {
-		if isLetter(gl.curr) || gl.curr == '_' {
+		if IsLetter(gl.curr) || gl.curr == '_' {
 			nonterminal = append(nonterminal, gl.curr)
 		} else {
 			break

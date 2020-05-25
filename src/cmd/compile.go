@@ -3,8 +3,10 @@ package cmd
 import (
 	"errors"
 	"os"
+	"path"
 	"strings"
 
+	"github.com/ComedicChimera/whirlwind/src/depm"
 	"github.com/ComedicChimera/whirlwind/src/syntax"
 	"github.com/ComedicChimera/whirlwind/src/util"
 )
@@ -30,9 +32,11 @@ type Compiler struct {
 	outputPath          string
 	buildDirectory      string
 	outputFormat        int
+	debugTarget         bool
 
 	// compiler state
 	parser *syntax.Parser
+	depG   depm.DependencyGraph
 }
 
 // AddLocalPackageDirectories interprets a command-line input string for the
@@ -96,7 +100,7 @@ func (c *Compiler) SetOutputFormat(formatName string) error {
 // information (p: platform, a: architecture, op: output path, bd: build
 // directory). It then stores the compiler globally if its creation was
 // successful
-func NewCompiler(p string, a string, op string, bd string) (*Compiler, error) {
+func NewCompiler(p string, a string, op string, bd string, debugT bool) (*Compiler, error) {
 	switch p {
 	case "windows", "osx", "ubuntu", "debian", "freebsd":
 		break
@@ -112,15 +116,7 @@ func NewCompiler(p string, a string, op string, bd string) (*Compiler, error) {
 		return nil, errors.New("Build directory does not exist")
 	}
 
-	return &Compiler{platform: p, architecture: a, outputPath: op, buildDirectory: bd}, nil
-}
-
-// Compile runs the main compilation algorithm: it returns no value and does all
-// necessary creation and error handling (program should simply exit after this
-// returns)
-func (c *Compiler) Compile() {
-	// initialize any necessary globals
-	c.setPointerSize()
+	return &Compiler{platform: p, architecture: a, outputPath: op, buildDirectory: bd, debugTarget: debugT}, nil
 }
 
 // determines the pointer size for any given architecture (and/or platform)
@@ -132,4 +128,44 @@ func (c *Compiler) setPointerSize() {
 	case "x64":
 		util.PointerSize = 8
 	}
+}
+
+// Compile runs the main compilation algorithm: it returns no value and does all
+// necessary creation and error handling (program should simply exit after this
+// returns)
+func (c *Compiler) Compile() {
+	// initialize any necessary globals
+	c.setPointerSize()
+
+	// create and setup the parser
+	parser, err := syntax.NewParser(path.Join(WhirlPath, "/config/grammar.ebnf"))
+
+	if err != nil {
+		util.LogMod.LogFatal(err.Error())
+	}
+
+	c.parser = parser
+	c.depG = make(depm.DependencyGraph)
+
+	if c.loadPackage(c.buildDirectory) {
+		return
+	}
+}
+
+// loadPackage loads a package directory and initializes a package in the
+// dependency graph based on its contents.  If it encounters any errors while
+// loading the package, it displays them and indicates that the compiler should
+// exit gracefully.
+func (c *Compiler) loadPackage(pkgPath string) bool {
+	pkg, err := depm.InitPackage(c.depG, pkgPath, c.parser)
+
+	if err != nil {
+		util.LogMod.LogError(err)
+		util.LogMod.Display()
+		return true
+	}
+
+	c.depG[pkg.PackageID] = pkg
+	return util.LogMod.CanProceed()
+
 }

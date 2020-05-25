@@ -55,7 +55,10 @@ func build() error {
 	buildCommand.String("s", "", "List any static libraries that need to be linked with the binary")
 	buildCommand.String("o", "", "Set the output file path")
 	buildCommand.String("l", "", "Specify additional package directories")
-	buildCommand.Bool("v", false, "Set compiler to display verbose output")
+	buildCommand.String("log", "warn", "Set compiler to display verbose output")
+	buildCommand.String("dl", "", "List any dynamic libraries that need to be linked with the binary") // subject to change
+
+	buildCommand.Bool("d", false, "Compile target in debug mode")
 
 	// parse and check the command line arguments from the build command
 	err := buildCommand.Parse(os.Args[2:])
@@ -76,8 +79,11 @@ func build() error {
 		outputPath = path.Join(buildDir, "main")
 	}
 
+	// get the debug flag
+	debugFlag := buildCommand.Lookup("d").Value.String() == "true"
+
 	// try to create a compiler with that information
-	compiler, err := NewCompiler(buildCommand.Lookup("p").Value.String(), buildCommand.Lookup("a").Value.String(), outputPath, buildDir)
+	compiler, err := NewCompiler(buildCommand.Lookup("p").Value.String(), buildCommand.Lookup("a").Value.String(), outputPath, buildDir, debugFlag)
 
 	if err != nil {
 		return err
@@ -112,8 +118,8 @@ func build() error {
 		}
 	}
 
-	// setup the global LogModule
-	util.LogMod = &util.LogModule{}
+	// setup the global LogModule (based on log level)
+	util.NewLogModule(buildCommand.Lookup("log").Value.String())
 
 	// run the main compilation algorithm
 	compiler.Compile()
