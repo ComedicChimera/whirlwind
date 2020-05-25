@@ -31,13 +31,19 @@ type DataType interface {
 	copyTemplate() DataType
 }
 
-// TypeInfo is a data structure unique to each data type representing any type
-// information shared between data types and instances (should only be created
-// once). this information must be stored in the type table (each type must have
-// a type info entry).
-type TypeInfo struct {
-	Interf *TypeInterf
-	// TODO: Type structs
+// InterfBinding is a data structure unique to each data type representing the
+// various non-generic bindings (local and global) shared between data types and
+// instances (should only be created once). this information must be stored in
+// the type table (each type must have a type info entry).
+type InterfBinding struct {
+	// Enumerates all bindings available at a file level (eg. by a remote
+	// import) and in which files they are available (local bindings)
+	ByFile map[string][]*TypeInterf
+
+	// Enumerates all bindings available at a package level (eg. by package
+	// level declaration) and in which packages they are available (global
+	// bindings)
+	ByPackage map[string][]*TypeInterf
 }
 
 // the type table represents a common storage place for all type references so
@@ -47,7 +53,7 @@ type TypeInfo struct {
 // accessed and modified in a similar manner to that of the type itself.  For
 // these reasons, any NewType() methods should always return an entry in this
 // table.
-var typeTable = make(map[DataType]*TypeInfo)
+var typeTable = make(map[DataType]*InterfBinding)
 
 // newType is a common function that should be included in the new type methods
 // of any data type so as to ensure that the type is properly added to the type
@@ -60,7 +66,7 @@ func newType(dt DataType) DataType {
 		}
 	}
 
-	typeTable[dt] = &TypeInfo{}
+	typeTable[dt] = &InterfBinding{}
 	return dt
 }
 

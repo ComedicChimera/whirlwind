@@ -33,4 +33,5 @@ const (
 	SKindBinding
 	SKindImport
 	SKindFuncDef
+	SKindNamedValue
 )

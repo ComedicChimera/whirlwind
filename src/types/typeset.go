@@ -55,7 +55,7 @@ func InstOf(elem DataType, set *TypeSet) bool {
 func (ts *TypeSet) coerce(other DataType) bool {
 	if InstOf(other, ts) {
 		return true
-	} else if ts.interf != nil && ts.interf.MatchType(other) {
+	} else if ts.interf != nil && ts.interf.MatchType(other) == nil {
 		ts.members = append(ts.members, other)
 		return true
 	}

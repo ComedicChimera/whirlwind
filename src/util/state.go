@@ -6,13 +6,17 @@ package util
 // to log and report compile error, warnings, and fatal errors as necessary
 var LogMod *LogModule
 
-// CurrentFile is the current file being compiled by the compiler
+// CurrentFile is the path to the current file being compiled by the compiler
 var CurrentFile string
+
+// CurrentPackage is the ID of the current package being compiled. This is not
+// meant for display: facilitates global bindings, etc.
+var CurrentPackage string
 
 // PointerSize is the size of a pointer on the target architecture.  Initialized
 // by the compiler when it is created
 var PointerSize uint
 
-// SrcFileExtension is used to indicate what the file extension is for a Whirlwind
-// source file
+// SrcFileExtension is used to indicate what the file extension is for a
+// Whirlwind source file
 const SrcFileExtension = ".wrl"

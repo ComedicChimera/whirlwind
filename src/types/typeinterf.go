@@ -20,7 +20,8 @@ type Method struct {
 // itself: rather it is a property of a specific type set or a type aspect bound
 // onto a particular type
 type TypeInterf struct {
-	Methods map[string]*Method
+	Methods    map[string]*Method
+	Implements []*TypeInterf
 }
 
 // AddMethod attempts to add method to a type interface. If a method of the
@@ -38,15 +39,17 @@ func (ti *TypeInterf) AddMethod(name string, dt DataType, mk int) bool {
 
 // MatchType attempts to determine whether or not the given data type can be a
 // member of the given interface based on its included type interface.  It does
-// NOT connote an implementation: it is simply a quantification check.
-func (ti *TypeInterf) MatchType(dt DataType) bool {
-	return false
+// NOT connote an implementation: it is simply a quantification check.  The
+// error returned indicates (if not nil) why the type does not match (for better
+// error messages)
+func (ti *TypeInterf) MatchType(dt DataType) error {
+	return nil
 }
 
 // ImplementOn implements the given type interface on the type interface of the
 // data type.  This does NOT check whether or not the type can implement this
-// interface, it just adds in all virtual members and updates method status in
-// accordance with the interface being implemented
-func (ti *TypeInterf) ImplementOn(dt DataType) {
+// interface, it just adds itself as to the binding of the data type in
+// appropriate index (local or global).
+func (ti *TypeInterf) ImplementOn(dt DataType, global bool) {
 
 }

@@ -159,6 +159,9 @@ func (c *Compiler) Compile() {
 func (c *Compiler) loadPackage(pkgPath string) bool {
 	pkg, err := depm.InitPackage(c.depG, pkgPath, c.parser)
 
+	// TODO move this elsewhere (when relevant)
+	util.CurrentPackage = pkg.PackageID
+
 	if err != nil {
 		util.LogMod.LogError(err)
 		util.LogMod.Display()
