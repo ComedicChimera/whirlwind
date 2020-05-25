@@ -51,29 +51,33 @@ type Scanner struct {
 // token or end of token stream
 func (s *Scanner) ReadToken() (*Token, error) {
 	for s.readNext() {
-		malformed := false
 		tok := &Token{}
+		malformed := false
 
 		switch s.curr {
-		// skip white space, line counting done on read int
+		// skip white space, line counting done in readNext
 		case ' ', '\t', '\n', '\r':
 			continue
 		// handle string-like
 		case '"':
-			tok, malformed = s.readStringLiteral()
+			tok, malformed = s.readStdStringLiteral()
 		case '\'':
 			tok, malformed = s.readCharLiteral()
+		case '`':
+			tok, malformed = s.readRawStringLiteral()
 		// handle comments
 		case '/':
-			p, more := s.peek()
+			ahead, more := s.peek()
 
 			if !more {
 				tok = s.getToken()
-			} else if p == '/' {
+			} else if ahead == '/' {
 				s.skipLineComment()
+				s.discardBuff() // get rid of lingering `/`
 				continue
-			} else if p == '*' {
+			} else if ahead == '*' {
 				s.skipBlockComment()
+				s.discardBuff() // get rid of lingering `/`
 				continue
 			} else {
 				tok = s.getToken()
@@ -81,9 +85,9 @@ func (s *Scanner) ReadToken() (*Token, error) {
 		// read in the '.', '..', and '...' tokens
 		case '.':
 			for i := 0; i < 2; i++ {
-				p, more := s.peek()
+				ahead, more := s.peek()
 
-				if more && p == '.' {
+				if more && ahead == '.' {
 					s.readNext()
 				}
 			}
@@ -93,23 +97,24 @@ func (s *Scanner) ReadToken() (*Token, error) {
 			// check for identifiers
 			if isLetter(s.curr) || s.curr == '_' {
 				tok = s.readWord()
-				// check numeric literals
 			} else if isDigit(s.curr) {
+				// check numeric literals
 				tok, malformed = s.readNumberLiteral()
-				// handle compound operators
 			} else if follows, ok := multiParticles[s.curr]; ok {
+				// handle compound operators
+
 				// peek to see the follows
-				p, more := s.peek()
+				ahead, more := s.peek()
 
 				// if there are follows and they are accepted by the operator
 				// compound them together
-				if more && strings.Contains(follows, string(p)) {
+				if more && strings.Contains(follows, string(ahead)) {
 					s.readNext()
 				}
 
 				tok = s.getToken()
-				// simple, single token operators
 			} else if _, ok := singleParticles[s.curr]; ok {
+				// simple, single token operators
 				tok = s.getToken()
 			} else {
 				// any other token must be malformed in some way
@@ -359,7 +364,7 @@ loop:
 				if expectNeg {
 					// check if there is a non-number ahead then we actually
 					// have 3 tokens and have to scan the other two separately
-					pr, valid := s.peek()
+					ahead, valid := s.peek()
 
 					// hit EOF on peek, malformed token
 					if !valid {
@@ -368,7 +373,7 @@ loop:
 
 					// if it is not a digit, assume 3 separate tokens, continue
 					// scanning after
-					if !isDigit(pr) {
+					if !isDigit(ahead) {
 						break loop
 					}
 
@@ -392,7 +397,7 @@ loop:
 		case '.':
 			isFloat = true
 			eValid = true
-		case 'e':
+		case 'e', 'E':
 			isFloat = true
 			expectNeg = true
 		case 'u':
@@ -419,8 +424,8 @@ loop:
 	return s.getTokenOf(name), false
 }
 
-// read in a string literal
-func (s *Scanner) readStringLiteral() (*Token, bool) {
+// read in a standard string literal
+func (s *Scanner) readStdStringLiteral() (*Token, bool) {
 	expectingEscape := false
 
 	// no lookahead pattern necessary here
@@ -440,6 +445,9 @@ func (s *Scanner) readStringLiteral() (*Token, bool) {
 			continue
 		} else if s.curr == '"' {
 			break
+		} else if s.curr == '\n' {
+			// catch newlines in strings
+			return nil, true
 		}
 	}
 
@@ -483,37 +491,46 @@ func (s *Scanner) readEscapeSequence() bool {
 		return false
 	}
 
-	invalidUEscape := func(r rune) bool {
-		return !isDigit(r) && (r < 'A' || r > 'F') && (r < 'a' || r > 'f')
+	readUnicodeSequence := func(count int) bool {
+		for i := 0; i < count; i++ {
+			if !s.readNext() {
+				return false
+			}
+
+			r := s.curr
+
+			if !isDigit(r) && (r < 'A' || r > 'F') && (r < 'a' || r > 'f') {
+				return false
+			}
+		}
+
+		return true
 	}
 
 	switch s.curr {
 	case 'a', 'b', 'n', 'f', 'r', 't', 'v', '0', 's', '"', '\'', '\\':
 		return true
+	case 'x':
+		return readUnicodeSequence(2)
 	case 'u':
-		for i := 0; i < 4; i++ {
-			if !s.readNext() {
-				return false
-			}
-
-			if invalidUEscape(s.curr) {
-				return false
-			}
-		}
+		return readUnicodeSequence(4)
 	case 'U':
-		for i := 0; i < 8; i++ {
-			if !s.readNext() {
-				return false
-			}
-
-			if invalidUEscape(s.curr) {
-				return false
-			}
-
-		}
+		return readUnicodeSequence(8)
 	}
 
 	return true
+}
+
+// read in a raw string literal
+func (s *Scanner) readRawStringLiteral() (*Token, bool) {
+	for ok := true; ok; ok = s.curr == '`' {
+		// catch incomplete raw string literals
+		if !s.readNext() {
+			return nil, true
+		}
+	}
+
+	return s.getTokenOf("STRING_LITERAL"), false
 }
 
 func (s *Scanner) skipLineComment() {
