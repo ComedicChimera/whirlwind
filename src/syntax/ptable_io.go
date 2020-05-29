@@ -17,6 +17,8 @@ func loadParsingTable(path string) (ParsingTable, error) {
 		return nil, err
 	}
 
+	defer file.Close()
+
 	pt := make(ParsingTable)
 	r := bufio.NewReader(file)
 
