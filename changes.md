@@ -69,12 +69,17 @@
   - support for memory operator overloads
     - `delete` operator (implement finalizers - ran before deletion occurs)
   - references have a nullability status
-    - designated like so `&?byte` -- syntax WIP
+    - designated like so `&? byte`
     - non-nullable references cannot be deleted (implicitly or explicitly)
     - nullable operators only valid on nullable references
     - type logic:
       - cannot be casted or coerced (given or taken away) on lvalue or cvalue references
       - rvalue references can become nullable but cannot become non-nullable
+      - null coalescence (and possible null checking if exprs) can cause it to disappear.
+  - null coalescence operator ('??')
+  - null safety verification
+    - nullable operators must be used on nullable types unless compiler determines that
+    you have already checked nullability
 - move operator overloads outside of interfaces
   - allows for more efficient overloads (defined in terms of functions, makes more sense)
   - operators can be "left-handed" or "right-handed"
@@ -82,7 +87,7 @@
 - builtin support for vectorization
   - vector constructor: `<value : const_len>` or `<{elems...}>`
   - vector data type: `<size>type` (only valid on integral, floating point or pointer types)
-  - vector generics: `<T, in N>` (N is a size parameter to a vector data type)
+  - vector generics: `<T, vsize N>` (N is a size parameter to a vector data type)
   - all basic arithmetic operations are valid on vectors (scalar and vector mult)
   - additional intrinsics and utilities (eg. `__vec_sum(v)` and `__shuffle_vec(v1, v2, mask)`)
   - `#vec_unroll` annotation to cause vector functions to be optimized (as much as possible)
@@ -140,3 +145,6 @@
 - classifier values (cvals) should be i32 not i16
   - alignment of all data structures where they are used means the
   memory that would be saved is padded away anyways
+- **CONSIDER** experimenting with the none type.
+  - usable as generic type parameter (eg. in Futures)
+  - perhaps some additional checks required

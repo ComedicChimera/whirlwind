@@ -157,6 +157,7 @@ expr_suffix: select_suffix+
 | '..' simple_expr
 | 'AS' types
 | 'CASE' simple_expr
+| '?' '?' simple_expr
 ; 
 
 // select expression
@@ -190,7 +191,7 @@ term: factor (('*' | '/' | '%' | '~/') factor)* ;
 factor: unary_atom ('~^' unary_atom)*;
 
 // unary operators
-unary_atom: ('&' ['CONST'] | '-' | '~' | increm_decrem | ['?'] '*' ) atom
+unary_atom: ('&' ['CONST'] | '-' | '~' | increm_decrem | '*' ['?'] ) atom
 | atom [increm_decrem]
 ;
 
@@ -315,7 +316,7 @@ tuple_type_list: types (',' types)+ ;
 vector_type: '<' 'INT_LITERAL' '>' types ;
 
 // reference-like types
-ref_type: ['CONST'] ['OWN'] '&' types  ;
+ref_type: ['CONST'] ['OWN'] '&' ['?'] types  ;
 
 
 // COMMON CONSTRUCTIONS - common structures used repeatedly in grammar
