@@ -18,22 +18,37 @@ type Parser struct {
 	startSymbol   string
 }
 
-// NewParser loads in a grammar from the specified path and then creates an
-// LL(1) parser for the grammar if possible (fails if grammar is ambiguous or
-// cannot be loaded), should only be called once. note: uses globally defined
-// start symbol
-func NewParser(path string) (*Parser, error) {
+// NewParser attempts to load a preexisting parsing table for the given grammar
+// path.  If no parsing table exists or the forceCreate flag is set to true,
+// then the functions loads in a grammar from the specified path and then
+// creates an LL(1) parser for the grammar if possible (fails if grammar is
+// ambiguous or cannot be loaded). If the parsing table is created (by whatever
+// circumstance), this function stores the created parsing table at the
+// determined parsing table path for the given grammar.  This function should
+// only be called once and uses a globally defined start symbol.
+func NewParser(path string, forceCreate bool) (*Parser, error) {
+	var pTable ParsingTable
+	pTablePath := getParsingTablePath(path)
+
+	if !forceCreate {
+		if pTable, err := loadParsingTable(pTablePath); err == nil {
+			return &Parser{table: pTable, startSymbol: _startSymbol}, nil
+		}
+	}
+
 	g, err := loadGrammar(path)
 
 	if err != nil {
 		return nil, err
 	}
 
-	pTable, err := createParsingTable(g)
+	pTable, err = createParsingTable(g)
 
 	if err != nil {
 		return nil, err
 	}
+
+	saveParsingTable(pTablePath, pTable)
 
 	return &Parser{table: pTable, startSymbol: _startSymbol}, nil
 }

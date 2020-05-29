@@ -132,13 +132,13 @@ func (c *Compiler) setPointerSize() {
 
 // Compile runs the main compilation algorithm: it returns no value and does all
 // necessary creation and error handling (program should simply exit after this
-// returns)
+// returns).
 func (c *Compiler) Compile() {
 	// initialize any necessary globals
 	c.setPointerSize()
 
 	// create and setup the parser
-	parser, err := syntax.NewParser(path.Join(WhirlPath, "/config/grammar.ebnf"))
+	parser, err := syntax.NewParser(path.Join(WhirlPath, "/config/grammar.ebnf"), true)
 
 	if err != nil {
 		util.LogMod.LogFatal(err.Error())
