@@ -65,7 +65,7 @@ decor: '@' ( '[' decor_expr (',' decor_expr)* ']' | decor_expr ) ;
 decor_expr: named_value [ '(' args_list ')' ];
 
 // operator overload
-operator_decl: 'OPERATOR' '(' operator ')' [generic_tag] '(' args_decl_list ')' [types] (func_body | ';') ;
+operator_decl: 'OPERATOR' ( '(' operator ')' | 'DELETE') [generic_tag] '(' args_decl_list ')' [types] (func_body | ';') ;
 
 
 // BLOCK STATEMENTS (control flow, ctx management)

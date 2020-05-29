@@ -136,6 +136,7 @@
 - all typesets have **no** null value
   - compiler should error if a null is used to satisfy a typeset
   - interfaces and `any` are considered typesets (reminder)
+  - this includes anywhere where null is implicit (eg. null initialization)
 - classifier values (cvals) should be i32 not i16
   - alignment of all data structures where they are used means the
   memory that would be saved is padded away anyways
