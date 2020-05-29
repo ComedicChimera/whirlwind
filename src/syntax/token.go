@@ -51,6 +51,7 @@ var keywords = map[string]struct{}{
 	"type":   struct{}{},
 	"closed": struct{}{},
 	"interf": struct{}{},
+	"vsize":  struct{}{},
 
 	// package keywords
 	"import": struct{}{},
@@ -65,7 +66,7 @@ var keywords = map[string]struct{}{
 	"as":    struct{}{},
 	"match": struct{}{},
 	"to":    struct{}{},
-	"vsize": struct{}{},
+	"in":    struct{}{},
 }
 
 // store keyword type labels (separate so that token's name will be
@@ -92,7 +93,7 @@ var multiParticles = map[rune]string{
 	'+': "+",
 	'-': "->",
 	'~': "*^/",
-	'<': "-=",
+	'<': "=",
 	'>': "=",
 	'=': "=>",
 	'!': "=",

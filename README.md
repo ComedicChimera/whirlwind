@@ -95,9 +95,9 @@ Radix Sort:
         let mx = list.max();
 
         for it = 0; 10 ~^ it < mx; it++ {
-            let buckets = [null as [int] | _ <- 1..10];
+            let buckets = [null as [int] for _ in 1..10];
 
-            for item <- list {
+            for item in list {
                 buckets[item ~/ (10 ~^ it) % 10].push(item);
             }             
 

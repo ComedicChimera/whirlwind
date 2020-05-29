@@ -74,6 +74,7 @@ block_stmt: if_stmt
 | for_loop
 | cond_loop
 | with_block
+| await_block_or_stmt
 ;
 
 // if statement
@@ -105,6 +106,9 @@ with_var: 'IDENTIFIER' '=' expr ;
 // after clause
 after_clause: 'AFTER' block ;
 
+// await for loops and expr statements including await
+await_block_or_stmt: 'AWAIT' ('FOR' iterator block | expr_stmt) ;
+
 
 // STATEMENTS
 // broken up for logical reasons - takes advantage of multiple solution parsing
@@ -129,7 +133,7 @@ expr_stmt: mut_expr [(',' mut_expr)* assign_op expr_list ] ;
 assign_op: ['+' | '-' | '*' | '/' | '%' | '~^' | '~/' | '|' | '&'] '=' | ':>' ; // also includes move operator
 
 // variation of expression designed to be mutable/cause mutation
-mut_expr: [unary_mut_prefix] ['AWAIT'] ( 'IDENTIFIER' | '(' expr ')' ) trailer [increm_decrem] ;
+mut_expr: [unary_mut_prefix] ( 'IDENTIFIER' | '(' expr ')' ) trailer [increm_decrem] ;
 unary_mut_prefix: '*' | increm_decrem ;
 
 // simple statements
@@ -252,7 +256,7 @@ base: 'INT_LITERAL'
 array_dict_builder: '{' expr [array_builder | dict_builder] '}' ;
 array_builder: (',' expr)* | comp_suffix ;
 dict_builder: ':' expr [(',' expr ':' expr)+ comp_suffix] ;
-comp_suffix: '|' iterator [when_cond];
+comp_suffix: 'FOR' iterator [when_cond];
 
 // tupled expressions (generate tuples or sub expressions)
 tupled_expr: '(' expr_list ')' ;
@@ -331,7 +335,7 @@ initializer: '=' expr ;
 
 // iterator syntax
 iterator: iter_var iter_suffix ;
-iter_suffix: (',' iter_var)* '<-' expr ;
+iter_suffix: (',' iter_var)* 'IN' expr ;
 iter_var: 'IDENTIFIER' | unpacking_iter_var ;
 tuple_iter_vars: '(' iter_var (',' iter_var)+ ')' ;
 

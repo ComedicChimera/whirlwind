@@ -120,3 +120,10 @@
   - `[K: V]` -> `core::__dict<K, V>`
   - implement initializations as such
 - allow for stacked annotations
+- revised iterator syntax
+  - use `in` instead of `<-` (easier to type and looks better)
+  - use `for` instead of `|` in comprehensions (looks better, removed ambiguity)
+  - "Python style"
+- support for async iterators (possibly need a better name)
+  - `await for` loops (not in comprehensions, too complex)
+  - fits in rest of language
