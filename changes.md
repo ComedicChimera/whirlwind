@@ -59,27 +59,34 @@
     - ownership status must match exactly
     - notably, it maintains on rvalues across equals and drops for all other value categories
     - operator usage: `:>`, `delete`, and resize on mutable owned references, `=` on unowned references
-  - remove nullable dereference (keep nullable get item)
-  - make some trailers nullable
-    - not allowed on generic specs, static gets, or init lists
+    - **note**: the move operator can be elided to an assignment operator if the compiler can determine
+    that the reference stores no meaningful value (eg. open-form initialization, `null`)
   - no pointers (no pointer arithmetic, direct address manipulation)
   - lifetimes can be bound to data structures (selectively, via. `own` keyword)
   - double references are not allowed (and of course triple, quadruple, etc. are also disallowed)
-    - can use combo of `own` or `const` to achieve equivalent behavior to C++
+    - can use combo of `own` or `const` to achieve equivalent behavior to C++ (rvalue references)
   - support for memory operator overloads
     - `delete` operator (implement finalizers - ran before deletion occurs)
   - references have a nullability status
-    - designated like so `&? byte`
+    - designated like so `&byte?`
     - non-nullable references cannot be deleted (implicitly or explicitly)
     - nullable operators only valid on nullable references
     - type logic:
       - cannot be casted or coerced (given or taken away) on lvalue or cvalue references
       - rvalue references can become nullable but cannot become non-nullable
       - null coalescence (and possible null checking if exprs) can cause it to disappear.
-  - null coalescence operator ('??')
   - null safety verification
     - nullable operators must be used on nullable types unless compiler determines that
     you have already checked nullability
+  - in place of several nullable operators, use single null-test operator `?`
+    - added as a trailer suffix (`?`)
+    - combines with the nearest operation if possible
+    - denotes that if the type is null (or invalid), will accumulate to null
+    - if not, it simply accumulates the value to null if it is invalid
+      - eg. `ref? == null` would be a way to test if a reference is invalid
+    - makes dereference syntax a bit nicer `*ref?`
+    - solves reference validity vs. reference nullability
+  - remove null coalescion
 - move operator overloads outside of interfaces
   - allows for more efficient overloads (defined in terms of functions, makes more sense)
   - operators can be "left-handed" or "right-handed"
@@ -142,6 +149,8 @@
   - compiler should error if a null is used to satisfy a typeset
   - interfaces and `any` are considered typesets (reminder)
   - this includes anywhere where null is implicit (eg. null initialization)
+    - if the compiler can determine that null value is never used (ie. open-form initialization)
+    before it given a proper value, the compiler should not throw an error
 - classifier values (cvals) should be i32 not i16
   - alignment of all data structures where they are used means the
   memory that would be saved is padded away anyways

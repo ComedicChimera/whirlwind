@@ -157,7 +157,6 @@ expr_suffix: select_suffix+
 | '..' simple_expr
 | 'AS' types
 | 'CASE' simple_expr
-| '?' '?' simple_expr
 ; 
 
 // select expression
@@ -191,7 +190,7 @@ term: factor (('*' | '/' | '%' | '~/') factor)* ;
 factor: unary_atom ('~^' unary_atom)*;
 
 // unary operators
-unary_atom: ('&' ['CONST'] | '-' | '~' | increm_decrem | '*' ['?'] ) atom
+unary_atom: ('&' ['CONST'] | '-' | '~' | increm_decrem | '*' ) atom
 | atom [increm_decrem]
 ;
 
@@ -202,16 +201,14 @@ atom: [ 'AWAIT' ] base trailer*
 | match_expr
 ;
 
-trailer: nullable_trailer
+trailer: '[' (expr [slice] | slice) ']'
+| '(' args_list ')'
+| '.' ( 'IDENTIFIER' | 'INT_LITERAL' )
 | '{' [init_list] '}'
+| '?'
 | generic_spec
 | static_get
 ;
-
-nullable_trailer: ['?'] ('[' (expr [slice] | slice) ']'
-| '(' args_list ')'
-| '.' ( 'IDENTIFIER' | 'INT_LITERAL' )
-);
 
 // trailer components
 slice: ':' [expr [':' expr] | ':' expr] ;
@@ -315,8 +312,8 @@ tuple_type_list: types (',' types)+ ;
 
 vector_type: '<' 'INT_LITERAL' '>' types ;
 
-// reference-like types
-ref_type: ['CONST'] ['OWN'] '&' ['?'] types  ;
+// reference-like types (might be ambiguous!)
+ref_type: ['CONST'] ['OWN'] '&' types ['?'] ;
 
 
 // COMMON CONSTRUCTIONS - common structures used repeatedly in grammar
