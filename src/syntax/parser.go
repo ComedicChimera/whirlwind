@@ -62,23 +62,32 @@ func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 
 // run the main parsing algorithm on a production
 func (p *Parser) doParse(name string) error {
-	// if the production has a $ prefix, it is an anonymous production and
-	// should NOT appear on the resulting tree; otherwise, we can assume it is a
-	// named production in which case we add a node for it
-	if !strings.HasPrefix(name, "$") {
-		p.semanticStack = append(p.semanticStack, &ASTBranch{Name: name})
-	}
+	// put the current production name on the semantic stack note: since
+	// anonymous productions are inlined we can assume that any call to doParse
+	// with be on a production that should be built into the final AST
+	p.semanticStack = append(p.semanticStack, &ASTBranch{Name: name})
 
 	// try and get the rule from the current token in the current production. if
 	// no such rule exists, the token doesn't match to production and is
-	// therefore to be marked as unexpected
-	rule, ok := p.table[name][p.curr.Name]
+	// therefore to be marked as unexpected.  note: the rule is used as the
+	// basis for the parsing queue (FIFO) for the current production thus the
+	// name
+	parsingQueue, ok := p.table[name][p.curr.Name]
 	if !ok {
 		return p.unexpectedToken()
 	}
 
-	// iterate through each grammatical element in the rule entry
-	for _, item := range rule {
+	// since items are removed from the queue as they are parsed, we can simply
+	// loop until the queue has no more items left to parse and take the current
+	// item to be the first element in the queue (since previous are sliced off)
+	for len(parsingQueue) > 0 {
+		item := parsingQueue[0]
+
+		// we skip all epsilon rules during parsing so there is no case for them
+		// note: since epsilons are never explicitly written in the actual
+		// grammar; they tend to occur in anonymous productions and therefore
+		// rarely even need to be skipped explicitly (they are just dropped
+		// during inlining)
 		switch item.Kind {
 		case PTFTerminal:
 			// if we have a terminal, we do a simple match to see if it is
@@ -97,29 +106,56 @@ func (p *Parser) doParse(name string) error {
 				return p.unexpectedToken()
 			}
 		case PTFNonterminal:
-			// if we have a nonterminal, we parse on the appopriate production.
-			// if the parse is successful, we merge the branch created into the
-			// branch before it on the semantic stack (thereby building the
-			// tree); otherwise, we return the appropriate error
-			err := p.doParse(item.Value)
+			// test for anonymous productions (ie. anonymously-named
+			// nonterminals)
+			if strings.HasPrefix(item.Value, "$") {
+				// if the production is anonymous, we try to load its elements
+				// and replace the anomymous production with them.
+				anonRule, ok := p.table[item.Value][p.curr.Name]
 
-			if err != nil {
-				return err
+				// if we could not match the token, we throw an error (like
+				// above)
+				if !ok {
+					return p.unexpectedToken()
+				}
+
+				// if we can, we then inline the rule IF it contains more than
+				// an epsilon. note: we avoid modifying the original production
+				// rule with an implicit copy
+				if len(anonRule) > 1 || anonRule[0].Kind != PTFEpsilon {
+					parsingQueue = append(anonRule, parsingQueue[1:]...)
+
+					// we now need to evaluate the new first term in queue and
+					// so we avoid the slice at the end of the loop
+					continue
+				}
+
+				// production was an epsilon rule and so we can simply move on
+				// to the next element (small optimization)
+			} else {
+				// if we have a normal, named production we parse on the
+				// appopriate production. if the parse is successful, we merge
+				// the branch created into the branch before it on the semantic
+				// stack (thereby building the tree); otherwise, we return the
+				// appropriate error
+				err := p.doParse(item.Value)
+
+				if err != nil {
+					return err
+				}
+
+				lastNdx := len(p.semanticStack) - 1
+
+				if len(p.semanticStack[lastNdx].Content) > 0 {
+					p.semanticStack[lastNdx-1].Content = append(p.semanticStack[lastNdx-1].Content, p.semanticStack[lastNdx])
+				}
+
+				p.semanticStack = p.semanticStack[:lastNdx]
 			}
-
-			lastNdx := len(p.semanticStack) - 1
-
-			if len(p.semanticStack[lastNdx].Content) > 0 {
-				p.semanticStack[lastNdx-1].Content = append(p.semanticStack[lastNdx-1].Content, p.semanticStack[lastNdx])
-			}
-
-			p.semanticStack = p.semanticStack[:lastNdx]
-		case PTFEpsilon:
-			// if the rule contains an epsilon at this point, we can assume that
-			// the token is allowed not to match and we can carry on with
-			// business as usual
-			continue
 		}
+
+		// slice off the first element (we have already evaluated it)
+		parsingQueue = parsingQueue[1:]
 	}
 
 	return nil
