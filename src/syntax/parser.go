@@ -1,6 +1,7 @@
 package syntax
 
 import (
+	"errors"
 	"io"
 	"strings"
 
@@ -184,7 +185,7 @@ func (p *Parser) next() error {
 // file if the current token was an EOF token ie. had a name of '$$')
 func (p *Parser) unexpectedToken() error {
 	if p.curr.Name == "$$" {
-		return util.NewWhirlError("Unexpected end of file", nil)
+		return errors.New("Unexpected end of file")
 	}
 
 	return util.NewWhirlError("Unexpected token '%s'", TextPositionOfToken(p.curr))
