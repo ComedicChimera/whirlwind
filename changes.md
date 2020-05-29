@@ -67,8 +67,14 @@
   - double references are not allowed (and of course triple, quadruple, etc. are also disallowed)
     - can use combo of `own` or `const` to achieve equivalent behavior to C++
   - support for memory operator overloads
-    - `:>` move operator (maybe... could lead to some unsafety/ambiguity)
     - `delete` operator (implement finalizers - ran before deletion occurs)
+  - references have a nullability status
+    - designated like so `&?byte` -- syntax WIP
+    - non-nullable references cannot be deleted (implicitly or explicitly)
+    - nullable operators only valid on nullable references
+    - type logic:
+      - cannot be casted or coerced (given or taken away) on lvalue or cvalue references
+      - rvalue references can become nullable but cannot become non-nullable
 - move operator overloads outside of interfaces
   - allows for more efficient overloads (defined in terms of functions, makes more sense)
   - operators can be "left-handed" or "right-handed"
@@ -127,3 +133,9 @@
 - support for async iterators (possibly need a better name)
   - `await for` loops (not in comprehensions, too complex)
   - fits in rest of language
+- all typesets have **no** null value
+  - compiler should error if a null is used to satisfy a typeset
+  - interfaces and `any` are considered typesets (reminder)
+- classifier values (cvals) should be i32 not i16
+  - alignment of all data structures where they are used means the
+  memory that would be saved is padded away anyways
