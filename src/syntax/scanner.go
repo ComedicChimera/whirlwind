@@ -129,7 +129,7 @@ func (s *Scanner) ReadToken() (*Token, error) {
 		// buffer)
 		if malformed {
 			return nil, util.NewWhirlError(
-				fmt.Sprintf("Malformed Token \"%s\"", string(s.tokBuff)),
+				fmt.Sprintf("Malformed Token \"%s\"", string(s.tokBuff)), "Token",
 				&util.TextPosition{StartLn: s.line, StartCol: s.col, EndLn: s.line, EndCol: len(s.tokBuff)},
 			)
 		}

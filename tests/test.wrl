@@ -1,0 +1,69 @@
+type Point {
+    x, y: int
+}
+
+type Option<T>
+    | Some(T)
+    | None
+
+func println<T>(x: T) {
+    // do print
+}
+
+const message = `
+test test
+test
+`;
+
+func main() {
+    let x = 120;
+
+    select x {
+        case 12:
+            println("What?");
+        case 120:
+            println(`expected""''`);
+    }
+}
+
+func radix_sort(list: [uint]) [uint] {
+    let buckets = [null as [uint] for _ in 1..10];
+    let max = list.max();
+
+    for it = 0; 10 ~^ it < max; it++ {
+        for item in list {
+            buckets[item ~/ (10 ~^ it) % 10].push(item);
+        }
+
+        list = buckets.flatten().to_list();
+        
+        for i = 0; i < 10; i++ {
+            buckets[i].clear();
+        }
+    }
+
+    return list;
+}
+
+type LLNode {
+    value: int,
+    next: own& LLNode
+}
+
+func ll_range(val: int) own &LLNode {
+    if val == 0 {
+        return make LLNode{value=val};
+    }
+
+    return make LLNode{value=val, next=ll_range(val - 1)};
+}
+
+func main() {
+    let ll = ll_range(10);
+
+    let p = ll;
+    for i = 0; i < 11; i++ {
+        println(p.value);
+        p = p.next;
+    }
+}

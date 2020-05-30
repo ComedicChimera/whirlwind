@@ -41,7 +41,7 @@ type_decl: ['CLOSED'] 'TYPE' 'IDENTIFIER' [generic_tag] ( type_alias | type_set 
 type_alias: '=' types ( '|' types )* ;
 type_set: '|' type_set_elem ('|' type_set_elem)+ ;
 type_set_elem: 'IDENTIFIER' [ type_suffix ] ;
-type_suffix: '(' types (',' types)* ')' | '{' type_struct_elem (',' type_struct_elem)* '}' ;
+type_suffix: '(' type_list ')' | '{' type_struct_elem (',' type_struct_elem)* '}' ;
 type_struct_elem: ['CONST'] ['VOL'] 'IDENTIFIER' (',' 'IDENTIFIER')* extension [initializer] ;
 
 // function declaration
@@ -50,8 +50,7 @@ func_decl: ('FUNC' | 'ASYNC') 'IDENTIFIER' [generic_tag] '(' args_decl_list ')' 
 // interface declaration/binding
 interf_decl: 'INTERF' (interf_name | interf_bind) '{' interf_main '}' ;
 interf_name: 'IDENTIFIER' [generic_tag] ;
-interf_bind: [generic_tag] 'FOR' types ['IS' implements] ;
-implements: types (',' types)* ;
+interf_bind: [generic_tag] 'FOR' types ['IS' type_list] ;
 interf_main: ( func_decl | variant_decl )+ ;
 
 // variant declaration

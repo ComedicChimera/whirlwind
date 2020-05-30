@@ -17,15 +17,32 @@ type WhirlError struct {
 	Message  string
 	File     string
 	Position *TextPosition
+
+	// indicates what type of error was thrown: used in display (--- $Kind Error ----)
+	Kind string
+
+	// optional filed indicating that there is a suggested correction for the
+	// error. if this field is empty (""), then no suggestion is displayed (no
+	// suggestion exists)
+	Suggestion string
 }
 
 // NewWhirlError creates a new Whirlwind error from a message and text position
-func NewWhirlError(message string, tp *TextPosition) *WhirlError {
-	return &WhirlError{Message: message, Position: tp, File: CurrentFile}
+func NewWhirlError(message, errorKind string, tp *TextPosition) *WhirlError {
+	return &WhirlError{Message: message, Kind: errorKind, Position: tp, File: CurrentFile}
 }
 
+// NewWhirlErrorWithSuggestion creates a new Whirlwind error with a suggested
+// correction. It has the same behavior as the first function except it also
+// populates the Suggestion field
+func NewWhirlErrorWithSuggestion(message, errorKind, suggestion string, tp *TextPosition) *WhirlError {
+	return &WhirlError{Message: message, Kind: errorKind, Suggestion: suggestion, Position: tp, File: CurrentFile}
+}
+
+// Error does not produce the full error message: it simply produces the top
+// line ie. the error details (message, line, and column)
 func (we *WhirlError) Error() string {
-	return fmt.Sprintf(we.Message+" at (Ln: %d, Col: %d) in %s\n", we.Position.StartLn, we.Position.StartCol, we.File)
+	return we.Message + fmt.Sprintf(" at (Ln: %d, Col: %d)\n", we.Position.StartLn, we.Position.StartCol)
 }
 
 // constants represent the different log levels the compiler can be set at None:

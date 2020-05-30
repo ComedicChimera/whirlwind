@@ -161,9 +161,18 @@ func (p *Parser) doParse(name string) error {
 				}
 
 				lastNdx := len(p.semanticStack) - 1
+				lastTree := p.semanticStack[lastNdx]
 
-				if len(p.semanticStack[lastNdx].Content) > 0 {
-					p.semanticStack[lastNdx-1].Content = append(p.semanticStack[lastNdx-1].Content, p.semanticStack[lastNdx])
+				if len(lastTree.Content) > 0 {
+					// remove trees that only contain one item to flatten the
+					// tree structure: reduce the number of unnecessary nodes.
+					// however, we want to preserve the start symbol nodes
+					// (makes visiting easier)
+					if len(lastTree.Content) == 1 && lastTree.Name != _startSymbol {
+						p.semanticStack[lastNdx-1].Content = append(p.semanticStack[lastNdx-1].Content, lastTree.Content[0])
+					} else {
+						p.semanticStack[lastNdx-1].Content = append(p.semanticStack[lastNdx-1].Content, lastTree)
+					}
 				}
 
 				p.semanticStack = p.semanticStack[:lastNdx]
@@ -203,5 +212,5 @@ func (p *Parser) unexpectedToken() error {
 		return errors.New("Unexpected end of file")
 	}
 
-	return util.NewWhirlError("Unexpected token '%s'", TextPositionOfToken(p.curr))
+	return util.NewWhirlError("Unexpected token '%s'", "Syntax", TextPositionOfToken(p.curr))
 }
