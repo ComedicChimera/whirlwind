@@ -1,6 +1,9 @@
 # Changes
 
-- make errors include positions (TokenError, ASTError, etc.)
+- **TODO** MORE FRIENDLY ERROR MESSAGES
+  - include category, shorten lines, add suggestions where possible
+  - specific descriptions
+  - separate position an file (see example errors file in `Whirlwind Notes`)
 - remove `->` operator, just use `.` for everything (inc. methods), update `?->` to `?.` accordingly
 - overload `?.` for interfaces
 - split up loops into two categories: `for` and `loop`
