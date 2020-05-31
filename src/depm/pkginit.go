@@ -34,7 +34,12 @@ func InitPackage(depG DependencyGraph, pkgpath string, parser *syntax.Parser) (*
 			return nil, fmt.Errorf("Invalid package name: `%s`", pkgName)
 		}
 
-		pkg := &WhirlPackage{PackageID: depG.newPackageID(), Name: pkgName, RootDirectory: pkgpath}
+		pkg := &WhirlPackage{
+			PackageID:     depG.newPackageID(),
+			Name:          pkgName,
+			RootDirectory: pkgpath,
+			Files:         make(map[string]*WhirlFile),
+		}
 
 		// all file level errors are logged with the log module for display
 		// later

@@ -3,7 +3,7 @@ package syntax
 import (
 	"errors"
 	"fmt"
-	"strconv"
+	"strings"
 )
 
 // represent the different kinds of parsing table elements (PTR = parsing table
@@ -87,14 +87,14 @@ func createParsingTable(g Grammar) (ParsingTable, error) {
 				if first == "" {
 					for _, follow := range rg.follow(name) {
 						if _, ok := table[name][follow]; ok {
-							return nil, fmt.Errorf("Ambiguous terminal '%s' following '%s'", follow, name)
+							return nil, fmt.Errorf("Grammar Error: Ambiguous terminal `%s` following `%s`", follow, name)
 						}
 
 						table[name][follow] = rule
 					}
 				} else {
 					if _, ok := table[name][first]; ok {
-						return nil, fmt.Errorf("Ambiguous terminal '%s' in '%s", first, name)
+						return nil, fmt.Errorf("Grammar Error: Ambiguous terminal `%s` in `%s`", first, name)
 					}
 
 					table[name][first] = rule
@@ -144,6 +144,10 @@ type ReducedGrammar struct {
 
 	// allows us to avoid unnecessarily recalculating follows
 	followTable map[string][]string
+
+	// store the current, named production being evaluated so that anonymous
+	// productions can indicate which production they are apart of
+	currNamedProduction string
 }
 
 // ReducedProduction represents a production in the reduced grammar
@@ -155,6 +159,11 @@ type ReducedProduction [][]*PTableElement
 // anonymous productions as well as named ones
 func (rg *ReducedGrammar) reduceProduction(name string, p Production) {
 	var rp ReducedProduction
+
+	// if we are dealing with named production, update the reducer
+	if !strings.HasPrefix(name, "$") {
+		rg.currNamedProduction = name
+	}
 
 	// split alternators into rules (see parsing table gen algo description for
 	// "definition" of a rule)
@@ -199,29 +208,33 @@ func (rg *ReducedGrammar) reduceGroup(elems []GrammaticalElement) []*PTableEleme
 			group[i] = newPTableNonterminal(
 				rg.insertAnonProduction(item.(GroupingElement).elements, true),
 			)
-		// repeats first lower the group or item they are repeating into an anon
-		// production. then create another production with an epsilon rule and a
-		// reference to initial production followed by a reference to itself we
-		// then put this production in place of the repeat group in the
-		// production note: reference == nonterminal reference (shorthand, used
-		// subsequently)
+		// 0+ repeats create a single anonymous production of the form with two
+		// rules: the contents of the repeat element + a nonterminal reference
+		// to the new production and an epsilon rule.  This produces the desired
+		// repition behavior
 		case GKindRepeat:
-			prodName := rg.insertAnonProduction(item.(GroupingElement).elements, false)
+			baseGroup := rg.reduceGroup(item.(GroupingElement).elements)
 
 			rAnonName := rg.createAnonName()
 			rnt := newPTableNonterminal(rAnonName)
 
 			rg.Productions[rAnonName] = [][]*PTableElement{
-				[]*PTableElement{newPTableNonterminal(prodName), rnt},
+				append(baseGroup, rnt),
 				epsilonRule(),
 			}
 
 			group[i] = rnt
-		// same initial setup as repeat, but we create an additional production
-		// that begins with a reference to our first production (the group we
-		// want to repeat) and follow it with a reference to our standard repeat
-		// production and then insert a reference to the additional production
-		// in place of the repeat-m
+		// 1+ repeats first lower the original contents of the element into
+		// their own anonymous production.  Then, they create an anonymous
+		// production of a form identical to that of a 0+ repeat but with a
+		// reference to first anonymous production (the one holding the original
+		// content) instead of the original content of the production. Finally,
+		// they create one new anonymous production that begins with a reference
+		// to the original production followed by a reference to the 0+ repeat
+		// production.  They then insert a reference to this final production
+		// into the current production. (note: the reason for not inlining the
+		// final production is to allow the size of the initial production to
+		// predictable - avoid time loss of a resize)
 		case GKindRepeatMultiple:
 			prodName := rg.insertAnonProduction(item.(GroupingElement).elements, false)
 
@@ -240,6 +253,14 @@ func (rg *ReducedGrammar) reduceGroup(elems []GrammaticalElement) []*PTableEleme
 			}
 
 			group[i] = newPTableNonterminal(rmAnonName)
+		// occassionally, alternators can show up as raw groups (due to
+		// grammatical simplification: attempting to reduce number of groups) so
+		// we need handle them which is fairly simple: just create a new
+		// anonymous production for them (reduceProduction will handle rest)
+		case GKindAlternator:
+			prodName := rg.insertAnonProduction([]GrammaticalElement{item}, false)
+
+			group[i] = newPTableNonterminal(prodName)
 		}
 	}
 
@@ -265,7 +286,7 @@ func (rg *ReducedGrammar) insertAnonProduction(elements []GrammaticalElement, ha
 // note that this function returns a new name every time it is called ie. it is
 // not an accessor for the the anonCounter
 func (rg *ReducedGrammar) createAnonName() string {
-	anonName := "$" + strconv.Itoa(rg.anonCounter)
+	anonName := fmt.Sprintf("$%d-%s", rg.anonCounter, rg.currNamedProduction)
 	rg.anonCounter++
 	return anonName
 }
@@ -281,14 +302,21 @@ func (rg *ReducedGrammar) first(rule []*PTableElement) []string {
 		var firstSet []string
 
 		// accumulate all of the firsts of the nonterminal before applying
-		// additional filtering logic
+		// additional first calculation logic
 		for _, r := range rg.Productions[rule[0].Value] {
 			ntFirst := rg.first(r)
 
 			firstSet = append(firstSet, ntFirst...)
 		}
 
-		// remove all of the epsilon values from the firsts
+		// if there are no elements following a given production, then any
+		// epsilons will remain in the first set (as nothing follows)
+		if len(rule) == 1 {
+			return firstSet
+		}
+
+		// if there are more elements that follow the current element in our
+		// rule, then we first remove any epsilons from our first set
 		n := 0
 		for _, f := range firstSet {
 			if f != "" {
@@ -298,8 +326,8 @@ func (rg *ReducedGrammar) first(rule []*PTableElement) []string {
 		}
 
 		// if the length has changed, epsilon values were removed and therefore,
-		// we need to consider the firsts of what follows are first element as
-		// valid firsts for the rule
+		// we need to consider the firsts of what follows our first element as
+		// valid firsts for the rule (ie. Fi(Aw') = Fi(A) \ { epsilon } U Fi(w'))
 		if n != len(firstSet) {
 			firstSet = firstSet[:n]
 			firstSet = append(firstSet, rg.first(rule[1:])...)
@@ -320,8 +348,15 @@ func (rg *ReducedGrammar) follow(symbol string) []string {
 	// have (since follow is an expensive operaton and unlike firsts is based
 	//  on the name as opposed to a rule list)
 	if f, ok := rg.followTable[symbol]; ok {
+		if f == nil {
+			// fmt.Println("Caught Error?")
+			return []string{}
+		}
+
 		return f
 	}
+
+	rg.followTable[symbol] = nil
 
 	var followSet []string
 
@@ -374,14 +409,40 @@ func (rg *ReducedGrammar) follow(symbol string) []string {
 					// if filtering for epsilons did not change the length, then
 					// there was no epsilon
 					if n == len(firstSet) {
+						// clear taking follows before we break so that we don't
+						// collect follows of the current production
+						takingFollows = false
 						break
 					}
 				} else if item.Kind == PTFNonterminal && item.Value == symbol {
 					takingFollows = true
-					continue
 				}
 			}
+
+			// if we are still taking follows at this point, then we know we
+			// reached the end of the rule which means that the we also need to
+			// take into account the follows of the current production.
+			// However, if we are actually searching the production that our
+			// symbol links to, then we don't collect follows because we are
+			// already doing that (prevent infinite recursion :D)
+			if takingFollows && name != symbol {
+				followSet = append(followSet, rg.follow(name)...)
+			}
 		}
+	}
+
+	// remove duplicates from follow set (it is a set after all :D)
+	followHT := make(map[string]struct{})
+	for _, item := range followSet {
+		followHT[item] = struct{}{}
+	}
+
+	followSet = followSet[:len(followHT)]
+
+	i := 0
+	for k := range followHT {
+		followSet[i] = k
+		i++
 	}
 
 	// create an entry for any follow sets that weren't already determined

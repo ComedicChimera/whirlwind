@@ -1,1 +1,1 @@
-go build -o bin/whirl.exe main.go
+go build -o bin/whirl.exe src/main.go

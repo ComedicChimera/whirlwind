@@ -3,7 +3,7 @@ package cmd
 import (
 	"errors"
 	"flag"
-	"log"
+	"fmt"
 	"os"
 	"path"
 	"runtime"
@@ -19,12 +19,14 @@ var WhirlPath = os.Getenv("WHIRL_PATH")
 func Execute() {
 	// check for WHIRL_PATH (if it doesn't exist, we error out)
 	if WhirlPath == "" {
-		log.Fatal("Unable to locate WHIRL_PATH")
+		fmt.Println("Unable to locate WHIRL_PATH")
+		os.Exit(1)
 	}
 
 	// ensure that a subcommand is passed to the compiler
 	if len(os.Args) < 2 {
-		log.Fatal("A valid subcommand is required")
+		fmt.Println("A valid subcommand is required")
+		os.Exit(1)
 	}
 
 	// if any of these functions return some kind of error, we display it and
@@ -35,12 +37,15 @@ func Execute() {
 	case "build":
 		err = build()
 	default:
-		flag.PrintDefaults()
+		fmt.Printf("Config Error: Unknown Command `%s`\n", os.Args[1])
+		// flag.PrintDefaults()
 		os.Exit(1)
 	}
 
 	if err != nil {
-		util.LogMod.LogFatal(err.Error())
+		fmt.Println("Config Error: " + err.Error())
+		os.Exit(1)
+		// util.LogMod.LogError(err)
 	}
 }
 
@@ -55,10 +60,11 @@ func build() error {
 	buildCommand.String("s", "", "List any static libraries that need to be linked with the binary")
 	buildCommand.String("o", "", "Set the output file path")
 	buildCommand.String("l", "", "Specify additional package directories")
-	buildCommand.String("log", "warn", "Set compiler to display verbose output")
+	buildCommand.String("loglevel", "warn", "Set compiler log level")
 	buildCommand.String("dl", "", "List any dynamic libraries that need to be linked with the binary") // subject to change
 
 	buildCommand.Bool("d", false, "Compile target in debug mode")
+	buildCommand.Bool("forcegrebuild", false, "DEV OPTION: Force the compiler to rebuild grammar")
 
 	// parse and check the command line arguments from the build command
 	err := buildCommand.Parse(os.Args[2:])
@@ -76,7 +82,7 @@ func build() error {
 
 	outputPath := buildCommand.Lookup("o").Value.String()
 	if outputPath == "" {
-		outputPath = path.Join(buildDir, "main")
+		outputPath = path.Join(buildDir, "bin")
 	}
 
 	// get the debug flag
@@ -119,10 +125,10 @@ func build() error {
 	}
 
 	// setup the global LogModule (based on log level)
-	util.NewLogModule(buildCommand.Lookup("log").Value.String())
+	util.NewLogModule(buildCommand.Lookup("loglevel").Value.String())
 
 	// run the main compilation algorithm
-	compiler.Compile()
+	compiler.Compile(buildCommand.Lookup("forcegrebuild").Value.String() == "true")
 
 	// the compiler will handle its own errors
 	return nil

@@ -55,8 +55,8 @@ func (s *Scanner) ReadToken() (*Token, error) {
 		malformed := false
 
 		switch s.curr {
-		// skip white space, line counting done in readNext
-		case ' ', '\t', '\n', '\r':
+		// skip whitespace and byte order marks, line counting done in readNext
+		case ' ', '\t', '\n', '\r', 65279:
 			continue
 		// handle string-like
 		case '"':
@@ -237,17 +237,29 @@ func (s *Scanner) peek() (rune, bool) {
 // reads an identifier or a keyword from the input stream determines based on
 // contents of stream (matches to all possible keywords)
 func (s *Scanner) readWord() *Token {
-	keywordValid := true
+	// if our word starts with an '_', it cannot be a keyword (simple check here)
+	keywordValid := s.curr != '_'
 
-	// we know that whatever it started on was valid so we continue additionally
-	// where know we are inside an identifier so we can allow numbers and _, use
-	// a peek look ahead
-	for c, more := s.peek(); more; s.readNext() {
-		if IsDigit(c) || c == '_' {
+	// to read a word, we assume that current character is valid and already in
+	// the token buffer (guaranteed by caller or previous loop cycle). we then
+	// use a look-ahead to check if the next token will be valid. If it is, we
+	// continue looping (and the logic outlined above holds). If not, we exit.
+	// Additionally, if at any point in the middle of the word, we encounter a
+	// digit or an underscore, we know we are not reading a keyword and set the
+	// corresponding flag.  This function is never called on words that begin
+	// with numbers so no need to check for first-character rules in it.
+	for {
+		c, more := s.peek()
+
+		if !more {
+			break
+		} else if IsDigit(c) || c == '_' {
 			keywordValid = false
 		} else if !IsLetter(c) {
 			break
 		}
+
+		s.readNext()
 	}
 
 	tokValue := string(s.tokBuff)
@@ -269,7 +281,6 @@ func (s *Scanner) readWord() *Token {
 					return s.makeToken(strings.ToUpper(tokValue)+"_TYPE", tokValue)
 				} else if tokValue == v+k {
 					return s.makeToken(strings.ToUpper(k)+"_TYPE", tokValue)
-
 				}
 			}
 		}

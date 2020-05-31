@@ -5,8 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
+
+	"github.com/ComedicChimera/whirlwind/src/util"
 )
 
 // simple scanner/parser to read in and create grammar
@@ -14,6 +15,7 @@ type gramLoader struct {
 	file    *bufio.Reader
 	grammar Grammar
 	curr    rune
+	line    uint
 }
 
 // load the grammar using a gramLoader and return whether or not loading was
@@ -27,7 +29,7 @@ func loadGrammar(path string) (Grammar, error) {
 	}
 
 	// create a gramLoader using bufio.Reader to load the file
-	gl := &gramLoader{file: bufio.NewReader(f), grammar: make(map[string]Production)}
+	gl := &gramLoader{file: bufio.NewReader(f), grammar: make(map[string]Production), line: 1}
 
 	// check for gramLoader errors
 	err = gl.load()
@@ -43,9 +45,9 @@ func loadGrammar(path string) (Grammar, error) {
 // load the grammar into a grammar struct
 func (gl *gramLoader) load() error {
 	for gl.next() {
-		// ignore whitespace
 		switch gl.curr {
-		case ' ', '\n', '\t':
+		// skip whitespace and byte order marks, lines counted in next()
+		case ' ', '\t', '\n', '\r', 65279:
 			break
 		// handle comments (double / = ok, single = invalid)
 		case '/':
@@ -83,7 +85,11 @@ func (gl *gramLoader) next() bool {
 			return false
 		}
 
-		log.Fatal(err)
+		util.LogMod.LogFatal(err.Error())
+	}
+
+	if r == '\n' {
+		gl.line++
 	}
 
 	gl.curr = r
@@ -109,7 +115,7 @@ func (gl *gramLoader) skipComment() {
 
 // returns an unexpected token error
 func (gl *gramLoader) unexpectedToken() error {
-	return fmt.Errorf("Unexpected token '%c'", gl.curr)
+	return fmt.Errorf("Grammar Error: Unexpected token `%c` at line %d", gl.curr, gl.line)
 }
 
 // load and parse a production
@@ -154,7 +160,7 @@ func (gl *gramLoader) parseGroupContent(expectedCloser rune) ([]GrammaticalEleme
 
 	for gl.next() {
 		switch gl.curr {
-		case ' ', '\t', '\n':
+		case ' ', '\t', '\n', '\r':
 			// ignore whitespace
 			continue
 		// for groups and optionals, parse group just reads up to closing paren
@@ -183,11 +189,26 @@ func (gl *gramLoader) parseGroupContent(expectedCloser rune) ([]GrammaticalEleme
 			}
 
 			lastNdx := len(groupContent) - 1
+			lastElem := groupContent[lastNdx]
+
+			var newGroup []GrammaticalElement
+
+			// create a new group for the repeat operator
+			if lastElem.Kind() == GKindGroup {
+				// if we are applying a repeater to a group, we just turn the
+				// group into a repeat group
+				newGroup = lastElem.(GroupingElement).elements
+			} else {
+				// otherwise, create a new group containing the last element to
+				// be replaced (use this method instead of slice to force a
+				// copy)
+				newGroup = append(newGroup, lastElem)
+			}
 
 			if gl.curr == '*' {
-				groupContent[lastNdx] = NewGroupingElement(GKindRepeat, groupContent[lastNdx:])
+				groupContent[lastNdx] = NewGroupingElement(GKindRepeat, newGroup)
 			} else {
-				groupContent[lastNdx] = NewGroupingElement(GKindRepeatMultiple, groupContent[lastNdx:])
+				groupContent[lastNdx] = NewGroupingElement(GKindRepeatMultiple, newGroup)
 			}
 		// alternators interrupt the current parsing group and create a new one
 		// to the same closer so that they can combine the tailing elements with
@@ -238,6 +259,7 @@ func (gl *gramLoader) parseGroupContent(expectedCloser rune) ([]GrammaticalEleme
 				// (some kind of rogue particle or perhaps the residue of a
 				// malformed production or group
 			} else {
+				fmt.Println("Expected Closer: " + string(expectedCloser))
 				return nil, gl.unexpectedToken()
 			}
 		}
@@ -247,9 +269,12 @@ func (gl *gramLoader) parseGroupContent(expectedCloser rune) ([]GrammaticalEleme
 }
 
 func (gl *gramLoader) readTerminal() (string, bool) {
-	terminal := []rune{gl.curr}
+	// ignore the leading `'` in our terminal (start with empty slice)
+	terminal := []rune{}
 
 	for gl.next() {
+		// the ending `'` is skipped implicitly (never included in token,
+		// dropped in next loop cycle)
 		if gl.curr == '\'' {
 			return string(terminal), true
 		}
@@ -263,11 +288,18 @@ func (gl *gramLoader) readTerminal() (string, bool) {
 }
 
 func (gl *gramLoader) readNonterminal() string {
-	nonterminal := []rune{gl.curr}
+	nonterminal := []rune{}
 
-	for gl.next() {
-		if IsLetter(gl.curr) || gl.curr == '_' {
-			nonterminal = append(nonterminal, gl.curr)
+	// to read a nonterminal, we assume the current character is valid
+	// (guaranteed be caller or loop logic) and add it to the nonterminal. Then,
+	// we peek the next character: if it is valid, we continue looping. If it is
+	// not, we exit and avoid adding it.
+	for {
+		nonterminal = append(nonterminal, gl.curr)
+
+		c, err := gl.peek()
+		if err == nil && (IsLetter(c) || c == '_') {
+			gl.next()
 		} else {
 			break
 		}

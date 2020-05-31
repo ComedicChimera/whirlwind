@@ -9,9 +9,10 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "${fileDirname}",
+            "program": "${workspaceRoot}/src/main.go",
+            "cwd": "${workspaceRoot}",
             "env": {},
-            "args": []
+            "args": ["build", "--forcegrebuild", "tests"]
         }
     ]
 }

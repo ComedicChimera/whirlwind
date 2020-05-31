@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path"
 	"strings"
@@ -102,13 +103,18 @@ func (c *Compiler) SetOutputFormat(formatName string) error {
 // successful
 func NewCompiler(p string, a string, op string, bd string, debugT bool) (*Compiler, error) {
 	switch p {
-	case "windows", "osx", "ubuntu", "debian", "freebsd":
+	// TODO: add more platforms (GOOS)
+	case "windows", "darwin", "linux", "dragonfly", "freebsd":
 		break
 	default:
 		return nil, errors.New("Unsupported platform")
 	}
 
-	if a != "x86" && a != "x64" {
+	switch a {
+	// TODO: add more architectures
+	case "386", "amd64", "arm", "arm64":
+		break
+	default:
 		return nil, errors.New("Unsupported architecture")
 	}
 
@@ -133,15 +139,16 @@ func (c *Compiler) setPointerSize() {
 // Compile runs the main compilation algorithm: it returns no value and does all
 // necessary creation and error handling (program should simply exit after this
 // returns).
-func (c *Compiler) Compile() {
+func (c *Compiler) Compile(forceGrammarRebuild bool) {
 	// initialize any necessary globals
 	c.setPointerSize()
 
 	// create and setup the parser
-	parser, err := syntax.NewParser(path.Join(WhirlPath, "/config/grammar.ebnf"), true)
+	parser, err := syntax.NewParser(path.Join(WhirlPath, "/config/grammar.ebnf"), forceGrammarRebuild)
 
 	if err != nil {
-		util.LogMod.LogFatal(err.Error())
+		fmt.Println(err)
+		return
 	}
 
 	c.parser = parser

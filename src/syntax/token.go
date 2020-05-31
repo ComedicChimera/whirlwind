@@ -98,6 +98,8 @@ var multiParticles = map[rune]string{
 	'=': "=>",
 	'!': "=",
 	':': ">=",
+	'&': "&",
+	'|': "|",
 }
 
 // store particles that have nothing following them (packaged as seen) map for
@@ -117,8 +119,6 @@ var singleParticles = map[rune]struct{}{
 	'%': struct{}{},
 	'^': struct{}{},
 	';': struct{}{},
-	'|': struct{}{},
-	'&': struct{}{},
 }
 
 // "." and "/" have special logic that determines their behavior

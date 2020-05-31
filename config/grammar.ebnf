@@ -45,7 +45,7 @@ type_suffix: '(' type_list ')' | '{' type_struct_elem (',' type_struct_elem)* '}
 type_struct_elem: ['CONST'] ['VOL'] 'IDENTIFIER' (',' 'IDENTIFIER')* extension [initializer] ;
 
 // function declaration
-func_decl: ('FUNC' | 'ASYNC') 'IDENTIFIER' [generic_tag] '(' args_decl_list ')' [ types ] ['CONST'] (func_body | ';') ;
+func_decl: ('FUNC' | 'ASYNC') 'IDENTIFIER' [generic_tag] '(' args_decl_list ')' [ types ] (func_body | ';') ;
 
 // interface declaration/binding
 interf_decl: 'INTERF' (interf_name | interf_bind) '{' interf_main '}' ;
@@ -132,7 +132,7 @@ expr_stmt: mut_expr [(',' mut_expr)* assign_op expr_list ] ;
 assign_op: ['+' | '-' | '*' | '/' | '%' | '~^' | '~/' | '|' | '&'] '=' | ':>' ; // also includes move operator
 
 // variation of expression designed to be mutable/cause mutation
-mut_expr: [unary_mut_prefix] ( 'IDENTIFIER' | '(' expr ')' ) trailer [increm_decrem] ;
+mut_expr: [unary_mut_prefix] ( 'IDENTIFIER' | '(' expr ')' ) trailer* [increm_decrem] ;
 unary_mut_prefix: '*' | increm_decrem ;
 
 // simple statements
@@ -159,9 +159,8 @@ expr_suffix: select_suffix+
 ; 
 
 // select expression
-select_suffix: 'SELECT' '{' inline_case (',' inline_case)* [default_case] '}' ;
+select_suffix: 'SELECT' '{' inline_case (',' inline_case)* '}' ;
 inline_case: expr_list '=>' expr ;
-default_case: ',' '_' '=>' expr ;
 
 // type comparison expression used in `is` pattern
 is_expr: types [':' types] ;
@@ -170,9 +169,9 @@ is_expr: types [':' types] ;
 simple_expr: or ('~*' or)* ;
 
 // logical operators
-or: xor ('|' ['|']  xor)* ;
+or: xor (('|' | '||')  xor)* ;
 xor: and ('^' and)* ;
-and: comparison (('&' ['&']) comparison)* ;
+and: comparison (('&' | '&&') comparison)* ;
 
 // comparisons
 comparison: not (comparison_op not)*;
@@ -221,11 +220,11 @@ heap_alloc: 'MAKE' ('FOR' type_alloc | expr) ;
 type_alloc: types ['*' expr] ;
 
 // the match expression
-match_expr: 'MATCH' match_kind expr 'TO' match_arr ;
-match_kind: '<' ('&' '&' | '|' '|' | 'INT_LITERAL') ',' ('!=' | '==' | 'IS') '>' ;
-match_arr: '{' expr (',' expr)+ '}' 
-| '{' types (',' types)+ '}'
-;
+match_expr: 'MATCH' match_join ( match_relate_type | match_relate_value) ;
+match_join: '<' ('&' '&' | '|' '|' | 'INT_LITERAL') ',' ;
+match_relate_type: 'IS' ['!'] '>' expr 'TO' '{' type_list '}' ;
+match_relate_value: ('==' | '!=') '>' expr 'TO' '{' expr_list '}' ;
+
 
 // BASES - lowest component of an atom
 base: 'INT_LITERAL'
@@ -252,14 +251,14 @@ base: 'INT_LITERAL'
 // collection builders (comprehensions & literals)
 array_dict_builder: '{' expr [array_builder | dict_builder] '}' ;
 array_builder: (',' expr)* | comp_suffix ;
-dict_builder: ':' expr [(',' expr ':' expr)+ comp_suffix] ;
+dict_builder: ':' expr [(',' expr ':' expr)+ | comp_suffix] ;
 comp_suffix: 'FOR' iterator [when_cond];
 
 // tupled expressions (generate tuples or sub expressions)
 tupled_expr: '(' expr_list ')' ;
 
 // inline functions (lambdas)
-lambda: ['ASYNC'] '|' args_decl_list '|' lambda_body ;
+lambda: ['ASYNC'] ('|' args_decl_list '|' | '||') lambda_body ;
 lambda_body: '=>' expr
 | '{' [main] '}'
 ;
@@ -322,9 +321,10 @@ type_list: types (',' types)* ;
 expr_list: expr (',' expr)* ;
 
 // argument declaration syntax
-args_decl_list: [ decl_arg (',' decl_arg)* [',' ending_arg] | ending_arg ] ;
+args_decl_list: [ decl_arg next_decl_arg | indef_decl_arg ] ;
+next_decl_arg: [',' ( decl_arg next_decl_arg | indef_decl_arg ) ] ;
 decl_arg: ['CONST'] ['VOL'] 'IDENTIFIER' (',' 'IDENTIFIER')* extension [initializer] ;
-ending_arg: '...' ['CONST'] 'IDENTIFIER' [extension] ;
+indef_decl_arg: '...' ['CONST'] 'IDENTIFIER' [extension] ;
 
 // general purpose initializer
 initializer: '=' expr ;
