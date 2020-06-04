@@ -21,9 +21,10 @@ import (
 
 // LRItem represents an LR(1) item used to construct the LALR(1) parsing table.
 type LRItem struct {
-	Name         string
-	Rule, DotPos int
-	Lookaheads   []string
+	Name       string
+	Rule       []*SGElement
+	DotPos     int
+	Lookaheads []string
 }
 
 // addItem takes a slice of LRItems and a new LRItem and attempts to add the
@@ -56,9 +57,11 @@ func order(items []*LRItem) {
 	sort.Slice(items, func(i, j int) bool {
 		iitem, jitem := items[i], items[j]
 
-		if iitem.Name < jitem.Name || iitem.Rule < jitem.Rule || iitem.DotPos < jitem.DotPos {
+		if len(iitem.Rule) < len(jitem.Rule) {
 			return true
 		}
+
+		// fix ordering algo
 
 		if len(iitem.Lookaheads) < len(jitem.Lookaheads) {
 			return true
@@ -136,16 +139,13 @@ type TableGenerator struct {
 }
 
 // collectSets creates the state graph for the given simplified grammar. This
-// operation represents the collection of items for the LALR(1) parsing table.
+// operation represents the collection of LR(1) items for the parsing table.
 func (tg *TableGenerator) collectSets() {
-	// augment the simplified grammar with the modified goal symbol
-	tg.SG[_augmGoalSymbol] = SimplifiedProduction{[]*SGElement{newSGNonterminal(_goalSymbol)}}
-
-	// create our initial item set starting from our augmented goal symbol
+	// create our initial item set (implicitly augmenting grammar)
 	initialSet := []*LRItem{
 		&LRItem{
 			Name:       _augmGoalSymbol,
-			Rule:       0,
+			Rule:       []*SGElement{newSGNonterminal(_goalSymbol)},
 			DotPos:     0,
 			Lookaheads: []string{"$$"},
 		},
@@ -154,44 +154,95 @@ func (tg *TableGenerator) collectSets() {
 	// take the closure of our initial item set and make it state 0 (I0)
 	initialSet = tg.closureOf(initialSet)
 
+	// put our initial set in order before it is added to the graph
+	order(initialSet)
+
+	// add it our starting state to the graph so we can begin construction
+	tg.Sets = append(tg.Sets, &LRItemSet{Items: initialSet, Conns: make(map[string]int)})
+
 	// begin constructing the state graph with our initial set
-	tg.nextSets(initialSet)
+	tg.nextSets(tg.Sets[0])
 }
 
 // nextSets takes in a starting set and computes all of the valid sets that
 // follow it and then adds them if they don't already exist.  It then creates
 // connections to the appropriate states in the graph of all states and then
 // calls nextSets recursively on all of the newly produced states so that one
-// call from the initial set fully constructs the graph.  NOTE: expects its
-// input to be a raw set not an LRItemSet (analog for graph node).
-func (tg *TableGenerator) nextSets(startingSet []*LRItem) {
+// call from the initial set fully constructs the graph.  It expects an already
+// created and added LRItemSet
+func (tg *TableGenerator) nextSets(startingSet *LRItemSet) {
+	// go through each item and examine the element that the dot is pointing to
+	for _, item := range startingSet.Items {
+		// if the dot is at the end of the rule, then there are no more
+		// connections to create.  Moreover, since epsilons only appear in
+		// isolated rules, if we have an epsilon rule, it is equivalent to a
+		// rule with the dot at the end and so we can skip it
+		if item.DotPos == len(item.Rule) || item.Rule[item.DotPos].Kind == SGEEpsilon {
+			continue
+		}
 
+		// get the element at the dot (used repeatedly)
+		dottedElem := item.Rule[item.DotPos]
+
+		// if we have already calculated the connections for this element, skip it
+		if _, ok := startingSet.Conns[dottedElem.Value]; ok {
+			continue
+		}
+
+		// otherwise compute the GOTO of the item set and determine whether or
+		// not to add it to the graph.  NOTE: the goto logic handles epsilons so
+		// we don't need to check for them here.
+		gotoSet := tg.gotoOf(startingSet.Items, dottedElem)
+
+		// if the goto set is empty, then we have reached the end of the current
+		// item (most likely encountered epsilons all the way to the end)
+		if len(gotoSet) == 0 {
+			continue
+		}
+
+		// order and compare out goto set to see if have already calculated its state
+		order(gotoSet)
+
+		gotoMatched := false
+		for i, set := range tg.Sets {
+			if equals(set.Items, gotoSet) {
+				// if we have already calculated the state, create a connection
+				// back to that precreated state, set the matched flag, and exit
+				// the loop (b/c we don't need to search anymore)
+				gotoMatched = true
+				startingSet.Conns[dottedElem.Value] = i
+				break
+			}
+		}
+
+		// if we have matched, then the connection is already added as is the
+		// state so we don't need to add it. (we can skip this last stage)
+		if !gotoMatched {
+			// add the set to our graph along with a new connection map
+			lrGotoSet := &LRItemSet{Items: gotoSet, Conns: make(map[string]int)}
+			tg.Sets = append(tg.Sets, lrGotoSet)
+
+			// recursively progress for the goto state (building up states)
+			tg.nextSets(lrGotoSet)
+		}
+	}
 }
 
 // gotoOf calculates the new item set expected when the given item set
 // encounters the element (NOT EPSILON) provided in the argument.  NOTE: returns
 // a new set AND expects that the input item set contains no items where the dot
-// is at the end (should be filtered out by larger construction logic)
+// is at the end (should be filtered out by larger construction logic).
 func (tg *TableGenerator) gotoOf(itemSet []*LRItem, element *SGElement) []*LRItem {
 	var newSet []*LRItem
 
 	for _, item := range itemSet {
-		// rule is used repeatedly so we don't look it up again
-		rule := tg.SG[item.Name][item.Rule]
-
 		// only calculate goto if the element on rules that match the element
-		if rule[item.DotPos] == element {
+		if item.Rule[item.DotPos] == element {
 			// create a temporary copy of the item (may be discarded after)
 			newItem := *item
 
-			// move the dot forward unconditionally once and then continue
-			// moving forward until it is on a non-epsilon or the end of the
-			// rule is found
-			for ok := true; ok; {
-				newItem.DotPos++
-
-				ok = newItem.DotPos < len(rule) && rule[newItem.DotPos].Kind == SGEEpsilon
-			}
+			// move the dot forward unconditionally
+			newItem.DotPos++
 
 			// NOTE: in both of the following cases, the lookaheads of the
 			// original items with dots moved remain the same (only change on
@@ -200,7 +251,7 @@ func (tg *TableGenerator) gotoOf(itemSet []*LRItem, element *SGElement) []*LRIte
 			// if the dotPos is now at the end of the rule, we do not need to
 			// calculate the closure of the rule: we can simply add it in its
 			// new form
-			if newItem.DotPos == len(rule) {
+			if newItem.DotPos == len(item.Rule) {
 				newSet = addItem(newSet, &newItem)
 			} else {
 				// we need to calculate the closure since we are not at the end
@@ -220,7 +271,7 @@ func (tg *TableGenerator) gotoOf(itemSet []*LRItem, element *SGElement) []*LRIte
 // associated look-aheads of all the new elements.  It returns a new item set.
 func (tg *TableGenerator) closureOf(itemSet []*LRItem) []*LRItem {
 	for _, item := range itemSet {
-		dottedElem := tg.dottedElemOf(item)
+		dottedElem := item.Rule[item.DotPos]
 
 		// if we had a nonterminal, we need to close over its items.  Otherwise,
 		// we don't care (no sets need to be added)
@@ -228,11 +279,11 @@ func (tg *TableGenerator) closureOf(itemSet []*LRItem) []*LRItem {
 			var lookaheads []string
 			// if the dot will be moved to the end of an item set then, we use
 			// its lookaheads instead of the firsts of the symbol after its dot
-			if item.DotPos == len(tg.SG[item.Name][item.Rule])-1 {
+			if item.DotPos == len(item.Rule)-1 {
 				lookaheads = item.Lookaheads
 			} else {
 				// start by finding the base first set of the following rule
-				lookaheads = tg.first(tg.SG[item.Name][item.Rule][item.DotPos+1:])
+				lookaheads = tg.first(item.Rule[item.DotPos+1:])
 
 				// remove all epsilons from the first set (mutably - first
 				// creates a new array ever time so we need to copy)
@@ -254,14 +305,17 @@ func (tg *TableGenerator) closureOf(itemSet []*LRItem) []*LRItem {
 				}
 			}
 
+			// get the new rules to be added as part of the items
+			newRules := tg.SG[dottedElem.Value]
+
 			// allocate a base buffer for all the new items (don't actually care
 			// about rule contents since they are being added as items in order)
-			newItems := make([]*LRItem, len(tg.SG[dottedElem.Value]))
+			newItems := make([]*LRItem, len(newRules))
 
 			// add the starting set of new items to the base list using the
 			// calculated lookaheads and with the dot at the start of the rule
 			for i := range newItems {
-				newItems[i] = &LRItem{Name: dottedElem.Value, Rule: i, DotPos: 0, Lookaheads: lookaheads}
+				newItems[i] = &LRItem{Name: dottedElem.Value, Rule: newRules[i], DotPos: 0, Lookaheads: lookaheads}
 			}
 
 			// calculate the closure of the new item set (recursively)
@@ -321,10 +375,4 @@ func (tg *TableGenerator) first(rule []*SGElement) []string {
 	// catches both terminals and epsilon since Fi(epsilon) = { epsilon } and
 	// Fi(a) where a is a terminal = { a }
 	return []string{rule[0].Value}
-}
-
-// dottedElemOf takes an item and returns the element after the dot.  NOTE: does
-// not handle the case of the dot being at the end of a given item!
-func (tg *TableGenerator) dottedElemOf(item *LRItem) *SGElement {
-	return tg.SG[item.Name][item.Rule][item.DotPos]
 }

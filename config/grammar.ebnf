@@ -93,7 +93,7 @@ for_loop: 'FOR' (iterator | c_for) block [after_clause] ;
 c_for: ['IDENTIFIER' '=' expr] ';' [expr] ';' [expr_stmt] ;
 
 // conditional/infinite loop
-cond_loop: 'LOOP' [ expr ] block ;
+cond_loop: 'LOOP' [ cond_loop_expr] block ;
 cond_loop_expr: [ var_decl ';' ] expr ;
 
 // async-for loop
