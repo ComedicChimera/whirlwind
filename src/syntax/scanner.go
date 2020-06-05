@@ -17,7 +17,7 @@ func NewScanner(fpath string) (*Scanner, error) {
 		return nil, err
 	}
 
-	s := &Scanner{file: bufio.NewReader(f), fpath: fpath, line: 1, ignoreWhitespace: true}
+	s := &Scanner{file: bufio.NewReader(f), fpath: fpath, line: 1}
 	return s, nil
 }
 
@@ -43,10 +43,6 @@ type Scanner struct {
 	pos     int // store the position of the scanner (one ahead of the last scanned token)
 
 	curr rune
-
-	// allows parser to selectively ignore whitespace tokens where other
-	// groupings symbols take precedence (ie. in arrays, type defs, etc.)
-	ignoreWhitespace bool
 }
 
 // ReadToken reads a single token from the stream, error can indicate malformed
@@ -60,18 +56,10 @@ func (s *Scanner) ReadToken() (*Token, error) {
 		// skip spaces, carriage returns, and byte order marks
 		case ' ', '\r', 65279:
 			continue
-		// handle meaningful whitespace if it is not ignored
+		// handle meaningful whitespace
 		case '\t':
-			if s.ignoreWhitespace {
-				continue
-			}
-
 			tok = s.getToken(INDENT)
 		case '\n':
-			if s.ignoreWhitespace {
-				continue
-			}
-
 			// line counting handled in readNext
 			tok = s.getToken(NEWLINE)
 		// handle string-like
