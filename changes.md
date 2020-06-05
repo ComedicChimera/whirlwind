@@ -11,6 +11,9 @@ List of Adjustments from Previous Version
 - semicolons sometimes used in compound statements
 - eg. c-style for loops
 - cleans up code
+- allow for argument parentheses to be elided if
+the function takes no arguments
+  - eg. `func main do`
 
 ## Removals
 
