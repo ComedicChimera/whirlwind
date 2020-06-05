@@ -19,7 +19,6 @@ const (
 	ELIF
 	ELSE
 	FOR
-	SELECT
 	CASE
 	DEFAULT
 	BREAK
@@ -31,6 +30,8 @@ const (
 	WITH
 	DO
 	OF
+	MATCH
+	TO
 
 	// function terminators
 	RETURN
@@ -64,8 +65,6 @@ const (
 	IS
 	AWAIT
 	AS
-	MATCH
-	TO
 	IN
 
 	// whitespace
@@ -139,6 +138,7 @@ const (
 	COMMA
 	SEMICOLON
 	COLON
+	ARROW
 
 	// literals (and identifiers)
 	IDENTIFIER
@@ -157,7 +157,6 @@ var keywordPatterns = map[string]int{
 	"elif":        ELIF,
 	"else":        ELSE,
 	"for":         FOR,
-	"select":      SELECT,
 	"case":        CASE,
 	"default":     DEFAULT,
 	"break":       BREAK,
@@ -251,6 +250,8 @@ var symbolPatterns = map[string]int{
 	",":   COMMA,
 	";":   SEMICOLON,
 	":":   COLON,
+	":>":  MOVE,
+	"=>":  ARROW,
 }
 
 // "/" has special logic that determines its behavior

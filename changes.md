@@ -1,18 +1,149 @@
 # Changes
 
-- **TODO** MORE FRIENDLY ERROR MESSAGES
-  - include category, shorten lines, add suggestions where possible
-  - specific descriptions
-  - separate position an file (see example errors file in `Whirlwind Notes`)
-- remove `->` operator, just use `.` for everything (inc. methods), update `?->` to `?.` accordingly
-- overload `?.` for interfaces
-- split up loops into two categories: `for` and `loop`
-  - `loop` is for infinite and conditional loops `loop (expr) { ... }`
-    and `loop { }` for infinite loops
-  - `for` is for iterative for loops (c-style, iterators)
-- make init lists main way to initialize structured types
-  - don't have to provide values for everything
-- constancy only applies to references and variables (mutable, named values)
+List of Adjustments from Previous Version
+
+## Syntax Update
+
+- no more semicolons and braces
+- use `do`, `of`, and `to` as beginnings of blocks
+- whitespace sensitive (sometimes)
+- use newlines and indentations
+- semicolons sometimes used in compound statements
+- eg. c-style for loops
+- cleans up code
+
+## Removals
+
+- `->` operator, just use `.` for everything
+- constructors (use init-lists)
+- group overloading
+- old `match` statement (ie. `match<...> expr to ...`)
+- `select` keyword => replaced by match
+- pattern matching on `is`
+  - moved into `match` logic
+- `from ... as` syntax
+  - just use pattern matching
+- special methods: not necessary anymore
+  - hide functionality
+- expression local bindings
+  - no expression local variables or expression local chaining
+  - all symbols declared in expressions are declared in enclosing
+  scope
+  - cleaner, move obvious, less bad code
+- old partial function syntax
+  - `|f ...)` just looks noisy
+  - still a feature, done much more logically
+    - eg. `f(_, 2)`
+    - see **Syntactic Sugar and Smaller Adjustments** for details
+
+## Control Flow/Conditionals Update
+
+- two kinds of loops
+  - `loop` is for infinite and conditional loops
+    - omitting the header expression => infinite
+  - `for` is for iteration-based loops
+    - c-style and iterator-based
+- the `match` upgrade (and condensing)
+  - all use `to` to begin their blocks
+  - match statement
+    - works like old select statement
+    - allow for `when` conditions
+    - made for values
+    - allow for `fallthrough`
+      - continue to next case
+    - uses `case` and `default`
+      - both use `do` blocks
+    - full pattern matching
+    - written as `match expr to`
+  - match type statement
+    - used to match over multiple possible
+    types
+    - no pattern matching (not necessary)
+    - same mechanics as regular match statement
+    but it compares types instead of values
+    - written as `match expr type to`
+    - `type` is keyword!
+  - match expression
+    - works like old select expression
+    - full pattern matching
+    - exhaustive
+    - suffix: `match to`
+    - requires block indentation
+    - no commas, use newlines (whitespace sensitive)
+  - match type expression
+    - similar mechanics to match expression
+    but for comparing types inline
+    - no pattern matching
+      - except for `_ =>` for default case
+    - suffix: `match type to`
+  - match operator
+    - used to implement single value pattern matching
+      - replacement for "case expression"
+    - replaces pattern matching behavior of `is`
+      - eg. `expr match Some(v)`
+    - no block, distinguishing factor, also suffix
+
+## Memory Update (Ownership, Nullability, Constancy, Category)
+
+- Ownership
+  - use references instead of pointers
+    - like a pointer except they are not treated as memory addresses
+    - no pointer arithmetic (no direct address manipulation)
+      - can be supplemented (unsafely) via intrinsics
+    - cleaner syntax
+  - two kinds of references: regular and const references
+  - `make` returns a reference
+    - if it is a single item, it returns a reference to that item
+    - if it is a block, returns a reference to an array
+    - can be resized via `make ref to new_size`
+      - called resize statement
+      - new_size has same semantics as regular make
+  - created with syntax `&value` or `&const value`
+  - type label: `&type` or `const& type`
+  - dereferences must be explicit; however,
+    - many operators have reference forms (as well as nullable forms)
+    - eg. `ref_struct.x`, `ref_array[2]`
+  - compiler-determined lifetimes, user-defined ownership status
+    - ownership informs lifetime
+  - protective semantics
+    - lifetime congruence (eg. can't return a stack reference, can't make a stack reference global)
+    - `own` is a type specifier that determines what type of reference we are dealing with
+    - ownership status must match exactly
+      - maintained when value categories differ
+      - dropped when they are the same
+    - operator usage: `:>`, `delete`, and resize on mutable owned references, `=` on unowned references
+    - **note**: the move operator can be elided to an assignment operator if the compiler can determine
+    that the reference stores no meaningful value
+      - via nullability checks / open-form initialization / explicit `null`
+  - lifetimes can be bound to data structures (selectively, via. `own` keyword)
+    - ownership => lifetime therefore lifetime bound to owner
+  - double references are not allowed (and of course triple, quadruple, etc. are also disallowed)
+    - can use combo of `own` or `const` to achieve equivalent behavior to C++ (rvalue references)
+  - support for memory operator overloads
+    - `delete` operator (implement finalizers - ran before deletion occurs)
+- Nullability
+  -references have a nullability status
+  - designated like so `&byte?`
+  - non-nullable references cannot be deleted (implicitly or explicitly)
+  - nullable operators only valid on nullable references
+  - type logic:
+    - cannot be casted or coerced (given or taken away) on lvalue or cvalue references
+    - rvalue references can become nullable but cannot become non-nullable
+    - null coalescence (and possible null checking if exprs) can cause it to disappear.
+  - null safety verification
+  - nullable operators must be used on nullable types unless compiler determines that
+  you have already checked nullability
+    - combines with ownership model
+  - in place of several nullable operators, use single null-test operator `?`
+  - added as a trailer suffix (`?`)
+  - combines with the nearest operation if possible
+  - denotes that if the type is null (or invalid), will accumulate to null
+  - if not, it simply accumulates the value to null if it is invalid
+    - eg. `ref? == null` would be a way to test if a reference is invalid
+  - makes dereference syntax a bit nicer `*ref?`
+  - solves reference validity vs. reference nullability
+- Constancy
+  - only applies to references and variables (mutable, named values)
   - for variable declarators:
     - `const x ...`
     - constancy will be applied as an optimization after semantic checking
@@ -24,139 +155,104 @@
     - `const* x` (const stack reference)
     - `const vol* x` (constant volatile reference)
   - reference constancy is viral
-    - `let x = &const y;` (x is now a const reference)
+    - `let x = &const y` (x is now a const reference)
     - x can still be mutated, the reference cannot be
   - value constancy is not
-    - `const x = 10; let y = x;` (y is not constant)
+    - `const x = 10; let y = x` (y is not constant)
+    - (semicolons for demonstration purposes)
   - casting rules: mutable -> constant, constant -/> mutable
-  - methods can be constant (explicitly)
+  - methods can be constant (explicitly - via `const` keyword)
   - cannot take a non-const reference to a constant value
-- value categories
+- Value Categories
   - lvalue (well-defined, mutable value, able to take both kinds of references to it)
-  - cvalue (well-defined, immutable value, only able to take a const reference to it, value constancy)
   - rvalue (undefined, immutable value, unable to take any kind of reference to it)
-- partial function calling (replacement for old partial function syntax)
-  - `f(_, 23, _)` creates a function from f that accepts the two arguments left blank
-  - can allow for "currying" (not actually but...)
-  - more clear than implicit currying/argument omission (re. Haskell)
-- memory model
-  - most memory management done in terms of references
-  - a reference is like a pointer except you can't mutate the pointer directly
-  - two kinds of references: regular and const references
-  - `make` returns a reference
-    - if it is a single item, it returns a reference to that item
-    - if it is a block, returns a reference to an array
-    - can be resized via `make &arr to new_size`
-  - references can never be explicitly dereferenced and have virtually identical semantics
-  to their non-reference counterparts
-  - created with syntax `&value` or `&const value`
-  - type label: `&type` or `const& type`
-  - dereferences must be explicit; however,
-    - many operators have reference forms (as well as nullable forms)
-    - eg. `ref_struct.x`, `ref_array[2]`
-  - compiler-determined lifetimes, user-defined ownership status
-  - sometimes user will need to specify (ie. nonlocal lifetimes)
-  - protective semantics
-    - lifetime congruence (eg. can't return a stack reference, can't make a stack reference global)
-    - `own` is a type specifier that determines what type of reference we are dealing with
-    - ownership status must match exactly
-    - notably, it maintains on rvalues across equals and drops for all other value categories
-    - operator usage: `:>`, `delete`, and resize on mutable owned references, `=` on unowned references
-    - **note**: the move operator can be elided to an assignment operator if the compiler can determine
-    that the reference stores no meaningful value (eg. open-form initialization, `null`)
-  - no pointers (no pointer arithmetic, direct address manipulation)
-  - lifetimes can be bound to data structures (selectively, via. `own` keyword)
-  - double references are not allowed (and of course triple, quadruple, etc. are also disallowed)
-    - can use combo of `own` or `const` to achieve equivalent behavior to C++ (rvalue references)
-  - support for memory operator overloads
-    - `delete` operator (implement finalizers - ran before deletion occurs)
-  - references have a nullability status
-    - designated like so `&byte?`
-    - non-nullable references cannot be deleted (implicitly or explicitly)
-    - nullable operators only valid on nullable references
-    - type logic:
-      - cannot be casted or coerced (given or taken away) on lvalue or cvalue references
-      - rvalue references can become nullable but cannot become non-nullable
-      - null coalescence (and possible null checking if exprs) can cause it to disappear.
-  - null safety verification
-    - nullable operators must be used on nullable types unless compiler determines that
-    you have already checked nullability
-  - in place of several nullable operators, use single null-test operator `?`
-    - added as a trailer suffix (`?`)
-    - combines with the nearest operation if possible
-    - denotes that if the type is null (or invalid), will accumulate to null
-    - if not, it simply accumulates the value to null if it is invalid
-      - eg. `ref? == null` would be a way to test if a reference is invalid
-    - makes dereference syntax a bit nicer `*ref?`
-    - solves reference validity vs. reference nullability
-  - remove null coalescion
+
+## Vectors
+
+- vector constructor: `<value : const_len>` or `<{elems...}>`
+- vector data type: `<size>type` (only valid on integral, floating point or pointer types)
+- vector generics: `<T, vsize N>` (N is a size parameter to a vector data type)
+- all basic arithmetic operations are valid on vectors (scalar and vector mult)
+- additional intrinsics and utilities (eg. `__vec_sum(v)` and `__shuffle_vec(v1, v2, mask)`)
+- `#vec_unroll` annotation to cause vector functions to be optimized (as much as possible)
+- extended (later) as part of math library (intended for general purpose use, also used in matrices and complex numbers)
+- vector array initializers should be compiled as `shufflevector` if possible
+- VECTORS ARE ITERABLE
+
+## Context Managers
+
+- syntax: `with name = expr do`
+  - name can be `_` (if using an already created resource)
+- ensure that resources are cleaned up before they close (via. `close()` method)
+- even in case of runtime panic
+- same guarantee about `after` block
+- even circumvents breaks and returns (temporarily)
+  - occurs before
+- used when handling "hot" resources that must be properly disposed (at all costs, in all cases)
+
+## Type System Adjustments
+
+- make init lists main way to initialize structured types
+  - don't have to provide values for everything
+  - allow for `...` operator to initialize a struct based
+  on a previous struct (called spread operator)
+    - looks like `Struct{...s, x=10}`
+    - emulates Elm struct value update syntax (kind of)
+    - can only spread on struct of same type
 - move operator overloads outside of interfaces
   - allows for more efficient overloads (defined in terms of functions, makes more sense)
   - operators can be "left-handed" or "right-handed"
   - logically, an operator doesn't have a "primary operand" (when we see `2 + 3`, we don't think `2.add(3)`)
-- builtin support for vectorization
-  - vector constructor: `<value : const_len>` or `<{elems...}>`
-  - vector data type: `<size>type` (only valid on integral, floating point or pointer types)
-  - vector generics: `<T, vsize N>` (N is a size parameter to a vector data type)
-  - all basic arithmetic operations are valid on vectors (scalar and vector mult)
-  - additional intrinsics and utilities (eg. `__vec_sum(v)` and `__shuffle_vec(v1, v2, mask)`)
-  - `#vec_unroll` annotation to cause vector functions to be optimized (as much as possible)
-  - extended (later) as part of math library (intended for general purpose use, also used in matrices and complex numbers)
-  - vector array initializers should be compiled as `shufflevector` if possible
-  - VECTORS ARE ITERABLE
-- intrinsic implementation
-  - prevent intrinsics from being converted to first class functions
-  - allow for generic intrinsics
-  - `#intrinsic` annotation (implementation)
-- inline method calls (as much as possible - may only be possible in type interfaces)
-- remove group overloading (it just seems awkward - leads to duplication and ambiguity)
-- add singleton "case" expression (outside of `is`)
-  - eg. `tup case (3.14, s)`
-  - useful extension of pattern matching
-  - simplifies usage of `is` (no need for `x is Some(v)`, instead do `x case some(V)`)
-- select statement extensions
-  - `fallthrough` probably useful
-  - `when cond` conditions on select case
-  - only for statements (breaks completeness of expressions)
-- heap alloc synactic "overhaul"
-  - to allocate types: `make for type`
-  - to allocate a block of types: `make for type * numtypes`
-  - to allocate a value `make expr`
-- make `ctx_strand()` intrinsic and access the current running strand from TLS
-- restructure expressions
-  - removed expression locals of all forms (confusing, not really helpful)
-  - completely removed expression local bindings, allowed pattern matching to remain but not local
-  - split up expression types (cond suffix now works on all expressions except other cond suffixes)
-- remove `from ... as ...` syntax: just use pattern matching (safer)
-- added context managers (and `with` keyword)
-  - ensure that resources are cleaned up before they close (via. `close()` method)
-  - even in case of runtime panic
-  - same guarantee about `after` block
-  - even circumvents breaks and returns (temporarily)
-  - used when handling "hot" resources that must be properly disposed (at all costs, in all cases)
-- remove "special" methods - no need for them (anymore)
-- builtin collections implement as references to special type declarations
-  - `[]T` -> `core::__array<T>`
-  - `[T]` -> `core::__list<T>`
-  - `[K: V]` -> `core::__dict<K, V>`
-  - implement initializations as such
-- allow for stacked annotations
-- revised iterator syntax
-  - use `in` instead of `<-` (easier to type and looks better)
-  - use `for` instead of `|` in comprehensions (looks better, removed ambiguity)
-  - "Python style"
-- support for async iterators (possibly need a better name)
-  - `await for` loops (not in comprehensions, too complex)
-  - fits in rest of language
+  - applied more as first-class citizens (if you will)
 - all typesets have **no** null value
   - compiler should error if a null is used to satisfy a typeset
   - interfaces and `any` are considered typesets (reminder)
   - this includes anywhere where null is implicit (eg. null initialization)
     - if the compiler can determine that null value is never used (ie. open-form initialization)
     before it given a proper value, the compiler should not throw an error
+
+## Syntactic Sugar and Smaller Adjustments
+
+- heap alloc synactic "overhaul"
+  - to allocate types: `make for type`
+  - to allocate a block of types: `make for type * numtypes`
+  - to allocate a value `make expr`
+- allow for stacked annotations
+- revised iterator syntax
+  - use `in` instead of `<-` (easier to type and looks better)
+  - use `for` instead of `|` in comprehensions (looks better, removed ambiguity)
+  - "Python style"
+- partial function calling (replacement for old partial function syntax)
+  - `f(_, 23, _)` creates a function from f that accepts the two arguments left blank
+  - can allow for "currying" (not actually but...)
+  - more clear than implicit currying/argument omission (re. Haskell)
+- support for async iterators (possibly need a better name)
+  - `async for` loops (not in comprehensions, too complex)
+  - fits in with rest of language
+  - mostly syntactic sugar and special iterator class
+
+## Internal Adjustments
+
+- intrinsic implementation
+  - prevent intrinsics from being converted to first class functions
+  - allow for generic intrinsics
+  - `#intrinsic` annotation (implementation)
+- inline method calls (as much as possible - may only be possible in type interfaces)
+- make `ctx_strand()` intrinsic and access the current running strand from TLS
 - classifier values (cvals) should be i32 not i16
   - alignment of all data structures where they are used means the
   memory that would be saved is padded away anyways
-- **CONSIDER** experimenting with the none type.
-  - usable as generic type parameter (eg. in Futures)
-  - perhaps some additional checks required
+- builtin collections implement as references to special type declarations
+  - `[]T` -> `core::__array<T>`
+  - `[T]` -> `core::__list<T>`
+  - `[K: V]` -> `core::__dict<K, V>`
+  - implement initializations as such
+
+## Compiler UX
+
+- more friendly error messages
+  - include category, shorten lines, add suggestions where possible
+  - specific descriptions
+  - separate position an file (see example errors file in `Whirlwind Notes`)
+  - give error, line, column, and display highlighted code with line numbers
+  - **consider** colored text
