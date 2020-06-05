@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 
 	"github.com/ComedicChimera/whirlwind/src/util"
 )
@@ -18,7 +17,7 @@ func NewScanner(fpath string) (*Scanner, error) {
 		return nil, err
 	}
 
-	s := &Scanner{file: bufio.NewReader(f), fpath: fpath, line: 1, currValid: true}
+	s := &Scanner{file: bufio.NewReader(f), fpath: fpath, line: 1, ignoreWhitespace: true}
 	return s, nil
 }
 
@@ -43,8 +42,11 @@ type Scanner struct {
 	tokBuff []rune
 	pos     int // store the position of the scanner (one ahead of the last scanned token)
 
-	curr      rune
-	currValid bool // tells us whether or not the scanner has hit an EOF (without checking output from readNext)
+	curr rune
+
+	// allows parser to selectively ignore whitespace tokens where other
+	// groupings symbols take precedence (ie. in arrays, type defs, etc.)
+	ignoreWhitespace bool
 }
 
 // ReadToken reads a single token from the stream, error can indicate malformed
@@ -55,9 +57,23 @@ func (s *Scanner) ReadToken() (*Token, error) {
 		malformed := false
 
 		switch s.curr {
-		// skip whitespace and byte order marks, line counting done in readNext
-		case ' ', '\t', '\n', '\r', 65279:
+		// skip spaces, carriage returns, and byte order marks
+		case ' ', '\r', 65279:
 			continue
+		// handle meaningful whitespace if it is not ignored
+		case '\t':
+			if s.ignoreWhitespace {
+				continue
+			}
+
+			tok = s.getToken(INDENT)
+		case '\n':
+			if s.ignoreWhitespace {
+				continue
+			}
+
+			// line counting handled in readNext
+			tok = s.getToken(NEWLINE)
 		// handle string-like
 		case '"':
 			tok, malformed = s.readStdStringLiteral()
@@ -70,7 +86,7 @@ func (s *Scanner) ReadToken() (*Token, error) {
 			ahead, more := s.peek()
 
 			if !more {
-				tok = s.getToken()
+				tok = s.getToken(FDIVIDE)
 			} else if ahead == '/' {
 				s.skipLineComment()
 				s.discardBuff() // get rid of lingering `/`
@@ -80,19 +96,8 @@ func (s *Scanner) ReadToken() (*Token, error) {
 				s.discardBuff() // get rid of lingering `/`
 				continue
 			} else {
-				tok = s.getToken()
+				tok = s.getToken(FDIVIDE)
 			}
-		// read in the '.', '..', and '...' tokens
-		case '.':
-			for i := 0; i < 2; i++ {
-				ahead, more := s.peek()
-
-				if more && ahead == '.' {
-					s.readNext()
-				}
-			}
-
-			tok = s.getToken()
 		default:
 			// check for identifiers
 			if IsLetter(s.curr) || s.curr == '_' {
@@ -100,22 +105,21 @@ func (s *Scanner) ReadToken() (*Token, error) {
 			} else if IsDigit(s.curr) {
 				// check numeric literals
 				tok, malformed = s.readNumberLiteral()
-			} else if follows, ok := multiParticles[s.curr]; ok {
-				// handle compound operators
+			} else if kind, ok := symbolPatterns[string(s.curr)]; ok {
+				// all compound tokens begin with valid single tokens so the
+				// check above will match the start of any symbolic token
 
-				// peek to see the follows
-				ahead, more := s.peek()
-
-				// if there are follows and they are accepted by the operator
-				// compound them together
-				if more && strings.Contains(follows, string(ahead)) {
-					s.readNext()
+				// keep reading as long as our lookahead is valid: avoids
+				// reading extra tokens (ie. in place of readNext)
+				for ahead, more := s.peek(); more; {
+					if skind, ok := symbolPatterns[string(s.tokBuff)+string(ahead)]; ok {
+						kind = skind
+						s.readNext()
+					}
 				}
 
-				tok = s.getToken()
-			} else if _, ok := singleParticles[s.curr]; ok {
-				// simple, single token operators
-				tok = s.getToken()
+				// turn whatever we managed to read into a token
+				s.getToken(kind)
 			} else {
 				// any other token must be malformed in some way
 				malformed = true
@@ -142,25 +146,18 @@ func (s *Scanner) ReadToken() (*Token, error) {
 }
 
 // create a token at the current position from the provided data
-func (s *Scanner) makeToken(name string, value string) *Token {
-	tok := &Token{Name: name, Value: value, Line: s.line, Col: s.col}
+func (s *Scanner) makeToken(kind int, value string) *Token {
+	tok := &Token{Kind: kind, Value: value, Line: s.line, Col: s.col}
 	s.col += len(value)
 
 	return tok
 }
 
-// collect the current contents of the token buff into a string and create a
-// token at the current position with a key and value both equal to the current
-// contents of the token buffer
-func (s *Scanner) getToken() *Token {
+// collect the contents of the token buffer into a string and create a token at
+// the current position with the provided kind and token string as its value
+func (s *Scanner) getToken(kind int) *Token {
 	tokValue := string(s.tokBuff)
-	return s.makeToken(tokValue, tokValue)
-}
-
-// same behavior as get token with no arguments except it accepts a token name
-func (s *Scanner) getTokenOf(name string) *Token {
-	tokValue := string(s.tokBuff)
-	return s.makeToken(name, tokValue)
+	return s.makeToken(kind, tokValue)
 }
 
 // discards the current token buffer (as it is no longer being used)
@@ -176,7 +173,6 @@ func (s *Scanner) readNext() bool {
 
 	if err != nil {
 		if err == io.EOF {
-			s.currValid = false
 			return false
 		}
 
@@ -202,7 +198,6 @@ func (s *Scanner) skipNext() bool {
 
 	if err != nil {
 		if err == io.EOF {
-			s.currValid = false
 			return false
 		}
 
@@ -264,30 +259,16 @@ func (s *Scanner) readWord() *Token {
 
 	tokValue := string(s.tokBuff)
 
-	// note that invalid character at the end of tokBuff should both be
-	// processed and not included in the token, return out of all of these
-	// checks so that duplicate tokens aren't created if the check is successful
-	// (found match)
+	// if a keyword is possible and our current token value matches a keyword
+	// pattern, create a new keyword token from the token buffer
 	if keywordValid {
-		if _, ok := keywords[tokValue]; ok {
-			return s.makeToken(strings.ToUpper(tokValue), tokValue)
-			// properly format token names of data types
-		} else if _, ok := keywordDataTypes[tokValue]; ok {
-			return s.makeToken(strings.ToUpper(tokValue)+"_TYPE", tokValue)
-		} else {
-			// handle special behavior of integral types
-			for k, v := range integralTypes {
-				if tokValue == k {
-					return s.makeToken(strings.ToUpper(tokValue)+"_TYPE", tokValue)
-				} else if tokValue == v+k {
-					return s.makeToken(strings.ToUpper(k)+"_TYPE", tokValue)
-				}
-			}
+		if kind, ok := keywordPatterns[tokValue]; ok {
+			return s.makeToken(kind, tokValue)
 		}
 	}
 
-	// assume that is just a pure identifier
-	return s.makeToken("IDENTIFIER", tokValue)
+	// otherwise, assume that it is just an identifier and act accordingly
+	return s.makeToken(IDENTIFIER, tokValue)
 }
 
 // read in a floating point or integral number
@@ -420,19 +401,14 @@ loop:
 		}
 	}
 
-	// get the appropriate numeric literal name
-	name := "INT_LITERAL"
+	// binary, octal, decimal, and hexadecimal literals are all considered
+	// integer literals and so the only decision here is whether or not to
+	// create a floating point literal (use already accumulated information)
 	if isFloat {
-		name = "FLOAT_LITERAL"
-	} else if isBin {
-		name = "BIN_LITERAL"
-	} else if isHex {
-		name = "HEX_LITERAL"
-	} else if isOct {
-		name = "OCT_LITERAL"
+		return s.getToken(FLOATLIT), false
 	}
 
-	return s.getTokenOf(name), false
+	return s.getToken(INTLIT), false
 }
 
 // read in a standard string literal
@@ -470,7 +446,7 @@ func (s *Scanner) readStdStringLiteral() (*Token, bool) {
 		return nil, true
 	}
 
-	return s.getTokenOf("STRING_LITERAL"), false
+	return s.getToken(STRINGLIT), false
 }
 
 // read in a char literal
@@ -494,7 +470,7 @@ func (s *Scanner) readCharLiteral() (*Token, bool) {
 	}
 
 	// assume it is properly formed
-	return s.getTokenOf("CHAR_LITERAL"), false
+	return s.getToken(CHARLIT), false
 }
 
 func (s *Scanner) readEscapeSequence() bool {
@@ -541,7 +517,7 @@ func (s *Scanner) readRawStringLiteral() (*Token, bool) {
 		}
 	}
 
-	return s.getTokenOf("STRING_LITERAL"), false
+	return s.getToken(STRINGLIT), false
 }
 
 func (s *Scanner) skipLineComment() {
