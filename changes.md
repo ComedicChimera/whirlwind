@@ -102,7 +102,7 @@ the function takes no arguments
       - called resize statement
       - new_size has same semantics as regular make
   - created with syntax `&value` or `&const value`
-  - type label: `&type` or `const& type`
+  - type label: `&type` or `&const type`
   - dereferences must be explicit; however,
     - many operators have reference forms (as well as nullable forms)
     - eg. `ref_struct.x`, `ref_array[2]`
@@ -125,7 +125,7 @@ the function takes no arguments
   - support for memory operator overloads
     - `delete` operator (implement finalizers - ran before deletion occurs)
 - Nullability
-  -references have a nullability status
+  - references have a nullability status
   - designated like so `&byte?`
   - non-nullable references cannot be deleted (implicitly or explicitly)
   - nullable operators only valid on nullable references
@@ -154,9 +154,7 @@ the function takes no arguments
   - same syntax for structs and function arguments
   - for references:
     - `&const x` (create a const reference to x)
-    - `const dyn* x` (constant dynamic reference)
-    - `const* x` (const stack reference)
-    - `const vol* x` (constant volatile reference)
+    - `&const type` (const reference of type)
   - reference constancy is viral
     - `let x = &const y` (x is now a const reference)
     - x can still be mutated, the reference cannot be
