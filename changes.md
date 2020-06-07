@@ -14,6 +14,12 @@ List of Adjustments from Previous Version
 - allow for argument parentheses to be elided if
 the function takes no arguments
   - eg. `func main do`
+- **CONSIDER** removing the `do` before certain control flow
+keywords.
+  - eg. `else` instead of `else do` (redundant)
+  - eg. `loop` instead of `loop do` (again, redundant)
+  - general rule: if the control flow keyword contains no
+  content -> drop the `do`
 
 ## Removals
 
@@ -195,9 +201,12 @@ the function takes no arguments
   - use `<-` instead of `=`, written the same way
   - apply monadic operators to extract values (very functional pattern)
   - also has an expression form when used monadically
-    - `with v1 <- f1(); v2 <- f2 => v1 + v2`
+    - `with v1 <- f1(); v2 <- f2() => v1 + v2`
     - can replace semicolons with newlines and put newline before the `=>`
   - works together with the `Monad` interface
+  - operates sequentially (values can be used in bindings)
+    - eg. `with v1 <- f1(); v2 <- f2(v1) => v2`
+  - basically just syntactic sugar for repeat calls of `apply`
 
 ## Type System Adjustments
 
