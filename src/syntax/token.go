@@ -70,6 +70,7 @@ const (
 	// whitespace
 	NEWLINE
 	INDENT
+	DEDENT
 
 	// type keywords
 	STRING
@@ -147,6 +148,9 @@ const (
 	FLOATLIT
 	CHARLIT
 	BOOLLIT
+
+	// used in parsing algorithm
+	EOF
 )
 
 // token patterns (matching strings) for keywords

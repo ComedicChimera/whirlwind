@@ -1,0 +1,57 @@
+(* 
+The Formal Whirlwind Language Grammar
+-------------------------------------
+- This grammar is ambiguous in a number of places (unavoidably) and has been
+  left as such to allow for a more clear AST to be generated.
+- It can be parsed without backtracking.
+- Indentation is managed by the lexer which produces the tokens INDENT and
+  DEDENT to denote changes in the level of indentation (an increase and a
+  decrease respectively)
+- NEWLINE is as the name would suggest a newline.  However, it does not
+  incorporate a carriage return, and it is produced separately from indentation
+  changes (ie. DEDENT happens after a NEWLINE).
+- All other tokens in all caps are simply special tokens produces by the lexer.
+  All tokens in lowercase are just raw strings.  However, all keyword tokens
+  assert an implicit word-boundary.   
+- The special sequence ? WSI ? indicates that for the current production, the
+  parser should become whitespace insensitive.  After the production is over,
+  the parser will confirm with the lexer that the indentation level has been
+  maintained.  Note that this flag does not propagate down to productions
+  included in a WSI production (inc. during parsing).  It mainly used to
+  facilitate a more flexible collection syntax.
+*)
+
+top_level = {"NEWLINE"} definition { "NEWLINE" {"NEWLINE"} definition } ;
+definition = import_stmt | export_block | interf_def | interf_bind | operator_def
+           | func_def | type_def | decorator | annotated_def | variable_decl | variant_def ;
+
+import_stmt = "import" ( package_name ["as", "IDENTIFIER"] | identifier_list "from" package_name ) ;
+package_name = "IDENTIFIER" { "::" "IDENTIFIER" } ;
+
+export_block = "export" "of" "INDENT" top_level "DEDENT" ;
+
+interf_def = "interf" "IDENTIFIER" [generic_tag] "of" interf_body ;
+interf_bind = "interf" [generic_tag] "for" type [ "is" type {"," type}] interf_body ;
+interf_body = "INDENT" interf_member { interf_member } "DEDENT" ;
+interf_member = func_def | variant_def ;
+
+operator_def = "operator" operator_value [generic_tag] [signature] func_body ;
+operator_value = "+" | "-" | "*" | "/" | "~/" | "~*" | "~^" | "%" 
+               | ">" [">"] | "<" ["<"] | "<=" | ">=" | "==" |
+               | "!" | "!=" | "&" ["&"] | "|", ["|"] | "^" | "[" [":"] "]" ;
+
+func_def = ("func" | "async") "IDENTIFIER" [signature] func_body ;
+signature = [args_decl] type ;
+args_decl = "(" (arg_decl {"," arg_decl } ["," var_arg_decl] | var_arg_decl ) ;
+arg_decl = "IDENTIFIER" {"," "IDENTIFIER"} type_ext [initializer] ;
+var_arg_decl = "..." "IDENTIFIER" type_ext ;
+func_body = ["CONST"] ( do_block | ["NEWLINE" "INDENT"] "=>" expr ) ;
+
+type_def = "type" "IDENTIFIER" [generic_tag] ["NEWLINE" "INDENT"] (typeset | newtype) ;
+typeset = "=" type {"|" type } ;
+newtype = enum_suffix | tupled_suffix | struct_suffix ;
+enum_suffix = "NEWLINE" "INDENT" enum_type_member {"NEWLINE" enum_type_member};
+enum_type_suffx = "|" "IDENTIFIER" [tupled_suffix | struct_suffix] ;
+tupled_suffix = "(" type {"," type} ")" ;
+struct_suffix = "{" "NEWLINE" "INDENT" struct_member { struct_member } "DEDENT" "}" ;
+

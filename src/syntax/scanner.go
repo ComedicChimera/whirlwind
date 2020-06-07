@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/ComedicChimera/whirlwind/src/util"
 )
@@ -39,10 +40,15 @@ type Scanner struct {
 	line int
 	col  int
 
-	tokBuff []rune
-	pos     int // store the position of the scanner (one ahead of the last scanned token)
+	tokBuilder strings.Builder
 
 	curr rune
+
+	indentLevel int
+
+	// set after the scanner reads a newline to prompt it to update the
+	// indentation level and produce tokens accordingly
+	updateIndentLevel bool
 }
 
 // ReadToken reads a single token from the stream, error can indicate malformed
@@ -55,13 +61,42 @@ func (s *Scanner) ReadToken() (*Token, error) {
 		switch s.curr {
 		// skip spaces, carriage returns, and byte order marks
 		case ' ', '\r', 65279:
+			s.tokBuilder.Reset()
 			continue
-		// handle meaningful whitespace
-		case '\t':
-			tok = s.getToken(INDENT)
+		// handle newlines where they are relevant
 		case '\n':
 			// line counting handled in readNext
 			tok = s.getToken(NEWLINE)
+			s.updateIndentLevel = true
+		// handle indentation calculation
+		case '\t':
+			if s.updateIndentLevel {
+				s.updateIndentLevel = false
+
+				for s.readNext() && s.curr == '\t' {
+				}
+
+				level := s.tokBuilder.Len()
+				s.tokBuilder.Reset()
+
+				// rune value of first character of INDENT and DEDENT tokens
+				// indicates by how much the level changed (parser should handle
+				// interpreting this -- avoids creating a bunch of useless
+				// INDENT and DEDENT tokens and weird control flow in ReadToken)
+				levelDiff := level - s.indentLevel
+				if levelDiff < 0 {
+					s.indentLevel = level
+					return s.makeToken(DEDENT, string(-levelDiff)), nil
+				} else if levelDiff > 0 {
+					s.indentLevel = level
+					return s.makeToken(INDENT, string(levelDiff)), nil
+				}
+			} else {
+				// drop the lingering tab
+				s.tokBuilder.Reset()
+			}
+
+			continue
 		// handle string-like
 		case '"':
 			tok, malformed = s.readStdStringLiteral()
@@ -77,11 +112,14 @@ func (s *Scanner) ReadToken() (*Token, error) {
 				tok = s.getToken(FDIVIDE)
 			} else if ahead == '/' {
 				s.skipLineComment()
-				s.discardBuff() // get rid of lingering `/`
-				continue
+				s.tokBuilder.Reset() // get rid of lingering `/`
+
+				// return a newline so that the indentation is measured
+				// correctly by the parser (position is still accurate)
+				return &Token{Kind: NEWLINE, Value: "\n", Line: s.line, Col: s.col}, nil
 			} else if ahead == '*' {
 				s.skipBlockComment()
-				s.discardBuff() // get rid of lingering `/`
+				s.tokBuilder.Reset() // get rid of lingering `/`
 				continue
 			} else {
 				tok = s.getToken(FDIVIDE)
@@ -100,7 +138,7 @@ func (s *Scanner) ReadToken() (*Token, error) {
 				// keep reading as long as our lookahead is valid: avoids
 				// reading extra tokens (ie. in place of readNext)
 				for ahead, more := s.peek(); more; {
-					if skind, ok := symbolPatterns[string(s.tokBuff)+string(ahead)]; ok {
+					if skind, ok := symbolPatterns[s.tokBuilder.String()+string(ahead)]; ok {
 						kind = skind
 						s.readNext()
 					}
@@ -114,15 +152,14 @@ func (s *Scanner) ReadToken() (*Token, error) {
 			}
 		}
 
-		// discard the buff for the current scanned token
-		s.discardBuff()
+		// discard the built contents for the current scanned token
+		s.tokBuilder.Reset()
 
-		// error out on any malformed tokens (along with contents of token
-		// buffer)
+		// error out on any malformed tokens (using contents of token builder)
 		if malformed {
 			return nil, util.NewWhirlError(
-				fmt.Sprintf("Malformed Token \"%s\"", string(s.tokBuff)), "Token",
-				&util.TextPosition{StartLn: s.line, StartCol: s.col, EndLn: s.line, EndCol: len(s.tokBuff)},
+				fmt.Sprintf("Malformed Token \"%s\"", s.tokBuilder.String()), "Token",
+				&util.TextPosition{StartLn: s.line, StartCol: s.col, EndLn: s.line, EndCol: s.col + s.tokBuilder.Len()},
 			)
 		}
 
@@ -141,21 +178,15 @@ func (s *Scanner) makeToken(kind int, value string) *Token {
 	return tok
 }
 
-// collect the contents of the token buffer into a string and create a token at
+// collect the contents of the token builder into a string and create a token at
 // the current position with the provided kind and token string as its value
 func (s *Scanner) getToken(kind int) *Token {
-	tokValue := string(s.tokBuff)
+	tokValue := s.tokBuilder.String()
 	return s.makeToken(kind, tokValue)
 }
 
-// discards the current token buffer (as it is no longer being used)
-func (s *Scanner) discardBuff() {
-	s.tokBuff = s.tokBuff[:0] // keep buff allocated so we don't have to keep reallocating it everytime
-}
-
-// reads a rune from the file stream into the rune token content buffer and
-// returns whether or not there are more runes to be read (true = no EOF, false
-// = EOF),
+// reads a rune from the file stream into the token builder and returns whether
+// or not there are more runes to be read (true = no EOF, false = EOF)
 func (s *Scanner) readNext() bool {
 	r, _, err := s.file.ReadRune()
 
@@ -167,19 +198,19 @@ func (s *Scanner) readNext() bool {
 		util.LogMod.LogFatal("Error reading file " + s.fpath)
 	}
 
-	// do line and column counting
-	if r == '\n' {
+	// do line and column counting after the newline token
+	// as been processed (so as to avoid positioning errors)
+	if s.curr == '\n' {
 		s.line++
 		s.col = 0
 	}
 
-	s.tokBuff = append(s.tokBuff, r)
+	s.tokBuilder.WriteRune(r)
 	s.curr = r
-	s.pos++
 	return true
 }
 
-// same behavior as readNext but doesn't populate the token buffer used for
+// same behavior as readNext but doesn't populate the token builder used for
 // comments where it makes sense
 func (s *Scanner) skipNext() bool {
 	r, _, err := s.file.ReadRune()
@@ -192,14 +223,14 @@ func (s *Scanner) skipNext() bool {
 		util.LogMod.LogFatal("Error reading file " + s.fpath)
 	}
 
-	// do line and column counting
-	if r == '\n' {
+	// do line and column counting after the newline token
+	// as been processed (so as to avoid positioning errors)
+	if s.curr == '\n' {
 		s.line++
 		s.col = 0
 	}
 
 	s.curr = r
-	s.pos++
 	return true
 }
 
@@ -224,7 +255,7 @@ func (s *Scanner) readWord() *Token {
 	keywordValid := s.curr != '_'
 
 	// to read a word, we assume that current character is valid and already in
-	// the token buffer (guaranteed by caller or previous loop cycle). we then
+	// the token builder (guaranteed by caller or previous loop cycle). we then
 	// use a look-ahead to check if the next token will be valid. If it is, we
 	// continue looping (and the logic outlined above holds). If not, we exit.
 	// Additionally, if at any point in the middle of the word, we encounter a
@@ -245,10 +276,10 @@ func (s *Scanner) readWord() *Token {
 		s.readNext()
 	}
 
-	tokValue := string(s.tokBuff)
+	tokValue := s.tokBuilder.String()
 
 	// if a keyword is possible and our current token value matches a keyword
-	// pattern, create a new keyword token from the token buffer
+	// pattern, create a new keyword token from the token builder
 	if keywordValid {
 		if kind, ok := keywordPatterns[tokValue]; ok {
 			return s.makeToken(kind, tokValue)
@@ -273,9 +304,9 @@ func (s *Scanner) readNumberLiteral() (*Token, bool) {
 	// use loop break label to break out loop from within switch case
 loop:
 
-	// move forward at end of parsing to creating left overs in the token buff
-	// (peek is not necessary here since we do still want to move forward each
-	// iteration, just at the end)
+	// move forward at end of parsing to creating left overs in the token
+	// builder (peek is not necessary here since we do still want to move
+	// forward each iteration, just at the end)
 	for ok := true; ok; ok = s.readNext() {
 		// if we have identified signage or sign, then we are not expecting
 		// anymore values and so exit out if an additional values are
@@ -430,7 +461,7 @@ func (s *Scanner) readStdStringLiteral() (*Token, bool) {
 	if expectingEscape {
 		return nil, true
 		// EOF occurred before end of string
-	} else if s.tokBuff[len(s.tokBuff)-1] != '"' {
+	} else if s.tokBuilder.String()[s.tokBuilder.Len()-1] != '"' {
 		return nil, true
 	}
 
