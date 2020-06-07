@@ -119,8 +119,11 @@ const (
 	RSHIFT
 	COMPL
 	MOVE
-	SET
 	NULLTEST
+
+	// assignment/declaration operators
+	SET    // =
+	BINDTO // <-
 
 	// dots
 	DOT
@@ -256,6 +259,7 @@ var symbolPatterns = map[string]int{
 	":":   COLON,
 	":>":  MOVE,
 	"=>":  ARROW,
+	"<-":  BINDTO,
 }
 
 // "/" has special logic that determines its behavior
