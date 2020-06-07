@@ -184,12 +184,20 @@ the function takes no arguments
 
 - syntax: `with name = expr do`
   - name can be `_` (if using an already created resource)
+  - can manage multiple resources (eg. `with name1 = expr1; name2 = expr2 do`)
 - ensure that resources are cleaned up before they close (via. `close()` method)
 - even in case of runtime panic
 - same guarantee about `after` block
 - even circumvents breaks and returns (temporarily)
   - occurs before
 - used when handling "hot" resources that must be properly disposed (at all costs, in all cases)
+- can be used "monadically" (to handle monadic types)
+  - use `<-` instead of `=`, written the same way
+  - apply monadic operators to extract values (very functional pattern)
+  - also has an expression form when used monadically
+    - `with v1 <- f1(); v2 <- f2 => v1 + v2`
+    - can replace semicolons with newlines and put newline before the `=>`
+  - works together with the `Monad` interface
 
 ## Type System Adjustments
 
@@ -211,6 +219,9 @@ the function takes no arguments
   - this includes anywhere where null is implicit (eg. null initialization)
     - if the compiler can determine that null value is never used (ie. open-form initialization)
     before it given a proper value, the compiler should not throw an error
+- higher-kinded generics (already a thing; just formalizing)
+  - `interf<T> for Type<T> is Interface<Type<T>>` should work
+  - as should `interf<M, V> Interface<M<V>>` (and with previous)
 
 ## Syntactic Sugar and Smaller Adjustments
 
