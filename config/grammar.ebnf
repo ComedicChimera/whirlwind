@@ -47,11 +47,11 @@ arg_decl = "IDENTIFIER" {"," "IDENTIFIER"} type_ext [initializer] ;
 var_arg_decl = "..." "IDENTIFIER" type_ext ;
 func_body = ["CONST"] ( do_block | ["NEWLINE" "INDENT"] "=>" expr ) ;
 
-type_def = "type" "IDENTIFIER" [generic_tag] ["NEWLINE" "INDENT"] (typeset | newtype) ;
+type_def = ["closed"] "type" "IDENTIFIER" [generic_tag] ["NEWLINE" "INDENT"] (typeset | newtype) ;
 typeset = "=" type {"|" type } ;
 newtype = enum_suffix | tupled_suffix | struct_suffix ;
 enum_suffix = "NEWLINE" "INDENT" enum_type_member {"NEWLINE" enum_type_member};
-enum_type_suffx = "|" "IDENTIFIER" [tupled_suffix | struct_suffix] ;
+enum_type_suffx = "|" "IDENTIFIER" [tupled_suffix] ;
 tupled_suffix = "(" type {"," type} ")" ;
 struct_suffix = "{" "NEWLINE" "INDENT" struct_member { struct_member } "DEDENT" "}" ;
 
