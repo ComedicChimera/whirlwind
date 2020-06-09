@@ -130,6 +130,9 @@ const (
 	RANGETO
 	VARARG
 
+	// name access (::)
+	GETNAME
+
 	// punctuation
 	DECORAT
 	ANNOTHASH
@@ -257,6 +260,7 @@ var symbolPatterns = map[string]int{
 	",":   COMMA,
 	";":   SEMICOLON,
 	":":   COLON,
+	"::":  GETNAME,
 	":>":  MOVE,
 	"=>":  ARROW,
 	"<-":  BINDTO,

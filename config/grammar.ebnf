@@ -13,45 +13,191 @@ The Formal Whirlwind Language Grammar
 - All other tokens in all caps are simply special tokens produces by the lexer.
   All tokens in lowercase are just raw strings.  However, all keyword tokens
   assert an implicit word-boundary.   
-- The special sequence ? WSI ? indicates that for the current production, the
-  parser should become whitespace insensitive.  After the production is over,
-  the parser will confirm with the lexer that the indentation level has been
-  maintained.  Note that this flag does not propagate down to productions
-  included in a WSI production (inc. during parsing).  It mainly used to
-  facilitate a more flexible collection syntax.
 *)
 
-top_level = {"NEWLINE"} definition { "NEWLINE" {"NEWLINE"} definition } ;
+top_level = definition { 'NEWLINE' definition } ;
 definition = import_stmt | export_block | interf_def | interf_bind | operator_def
            | func_def | type_def | decorator | annotated_def | variable_decl | variant_def ;
 
-import_stmt = "import" ( package_name ["as", "IDENTIFIER"] | identifier_list "from" package_name ) ;
-package_name = "IDENTIFIER" { "::" "IDENTIFIER" } ;
+import_stmt = 'import' ( package_name ['as', 'IDENTIFIER'] | identifier_list 'from' package_name ) ;
+package_name = 'IDENTIFIER' { '::' 'IDENTIFIER' } ;
 
-export_block = "export" "of" "INDENT" top_level "DEDENT" ;
+export_block = 'export' 'of' 'INDENT' top_level 'DEDENT' ;
 
-interf_def = "interf" "IDENTIFIER" [generic_tag] "of" interf_body ;
-interf_bind = "interf" [generic_tag] "for" type [ "is" type {"," type}] interf_body ;
-interf_body = "INDENT" interf_member { interf_member } "DEDENT" ;
-interf_member = func_def | variant_def ;
+interf_def = 'interf' 'IDENTIFIER' [generic_tag] 'of' interf_body ;
+interf_bind = 'interf' [generic_tag] 'for' type [ 'is' type {',' type}] interf_body ;
+interf_body = 'INDENT' interf_member { interf_member } 'DEDENT' ;
+interf_member = func_def | variant_def | method_variant ;
+method_variant = 'variant' [generic_tag] 'when' method_variant_cond {',' method_variant_cond} 'NEWLINE' func_def ;
+method_variant_cond = 'IDENTIFIER' 'is' type ;
 
-operator_def = "operator" operator_value [generic_tag] [signature] func_body ;
-operator_value = "+" | "-" | "*" | "/" | "~/" | "~*" | "~^" | "%" 
-               | ">" [">"] | "<" ["<"] | "<=" | ">=" | "==" |
-               | "!" | "!=" | "&" ["&"] | "|", ["|"] | "^" | "[" [":"] "]" ;
+operator_def = 'operator' operator_value [generic_tag] [signature] func_body ;
+operator_value = '+' | '-' | '*' | '/' | '~/' | '~*' | '~^' | '%' 
+               | '>' ['>'] | '<' ['<'] | '<=' | '>=' | '==' |
+               | '!' | '!=' | '&' ['&'] | '|', ['|'] | '^' | '[' [':'] ']' ;
 
-func_def = ("func" | "async") "IDENTIFIER" [signature] func_body ;
+func_def = ('func' | 'async') 'IDENTIFIER' [signature] func_body ;
 signature = [args_decl] type ;
-args_decl = "(" (arg_decl {"," arg_decl } ["," var_arg_decl] | var_arg_decl ) ;
-arg_decl = "IDENTIFIER" {"," "IDENTIFIER"} type_ext [initializer] ;
-var_arg_decl = "..." "IDENTIFIER" type_ext ;
-func_body = ["CONST"] ( do_block | ["NEWLINE" "INDENT"] "=>" expr ) ;
+args_decl = '(' (arg_decl {',' arg_decl } [',' var_arg_decl] | var_arg_decl ) ;
+arg_decl = 'IDENTIFIER' {',' 'IDENTIFIER'} type_ext [initializer] ;
+var_arg_decl = '...' 'IDENTIFIER' type_ext ;
+func_body = ['const'] ( do_block | '=>' expr ) ;
 
-type_def = ["closed"] "type" "IDENTIFIER" [generic_tag] ["NEWLINE" "INDENT"] (typeset | newtype) ;
-typeset = "=" type {"|" type } ;
+type_def = ['closed'] 'type' 'IDENTIFIER' [generic_tag] (typeset | newtype) ;
+typeset = '=' type {'|' type } ;
 newtype = enum_suffix | tupled_suffix | struct_suffix ;
-enum_suffix = "NEWLINE" "INDENT" enum_type_member {"NEWLINE" enum_type_member};
-enum_type_suffx = "|" "IDENTIFIER" [tupled_suffix] ;
-tupled_suffix = "(" type {"," type} ")" ;
-struct_suffix = "{" "NEWLINE" "INDENT" struct_member { struct_member } "DEDENT" "}" ;
+enum_suffix = 'NEWLINE' 'INDENT' enum_type_member {'NEWLINE' enum_type_member};
+enum_type_suffx = '|' 'IDENTIFIER' [tupled_suffix] ;
+tupled_suffix = '(' type {',' type} ')' ;
+struct_suffix = '{' 'NEWLINE' 'INDENT' struct_member { struct_member } 'DEDENT' '}' ;
+
+(* expr can be a list of decorators *)
+decorator = '@' expr 'NEWLINE' func_def ;
+
+annotated_def: annotation { annotation } (type_def | func_def) ;
+annotation = '#' 'IDENTIFIER' [ 'STRINGLIT' ] 'NEWLINE' ;
+
+variant_def = 'variant' '<' type_list '>' 'IDENTIFIER' func_body ;
+
+(* ellipsis is used to designate a block that hasn't been filled in yet *)
+do_block = 'do' block ;
+block = 'NEWLINE' 'INDENT' ( block_content {block_content} | '...') 'DEDENT' ;
+block_content = simple_stmt 'NEWLINE' | complex_stmt | func_def ;
+
+(* complex statements contain a block (eg. an if statement) *)
+complex_stmt = if_chain | match_stmt | for_loop | cond_loop | ctx_manager | async_for_loop ;
+
+if_chain = 'if' expr do_block {elif_block} [else_block] ;
+elif_block = 'elif' expr do_block ;
+else_block = 'else' (do_block | block) ;
+
+match_stmt = 'match' expr (type_match_block | val_match_block) ;
+type_match_block = 'type' 'to' 'NEWLINE' 'INDENT' type_case_block {type_case_block} [default_block] 'DEDENT' ;
+val_match_block = 'to' 'NEWLINE' 'INDENT' val_case_block {val_case_block} [default_block] 'DEDENT' ;
+type_case_block = 'case' type_pattern_list [when_cond] do_block ;
+val_case_block = 'case' expr_list do_block ;
+default_block = 'default' (do_block | block) ;
+
+for_loop = 'for' (c_for_expr | iterator) do_block [after_clause] ;
+c_for_expr = ['IDENTIFIER' '=' expr] ';' [expr] ';' [expr_stmt] ;
+
+async_for_loop = 'async' 'for' iterator do_block ;
+
+cond_loop = 'loop' (expr do_block | do_block | block) [after_clause] ;
+
+ctx_manager = 'with' full_ctx do_block [else_block] [after_clause];
+full_ctx = ctx_elem {(';' | 'NEWLINE') ctx_elem} ;
+ctx_elem = 'IDENTIFIER' ('=' | '<-') expr ;
+
+after_clause = 'after' (do_block | block) ;
+
+(* simple statements do not contain a block - newline suffix is added in block *)
+simple_stmt = 
+    break_stmt | continue_stmt | fallthrough_stmt | return_stmt | yield_stmt 
+    | delete_stmt | resize_stmt | expr_stmt | variable_decl ;
+
+break_stmt = 'break' ;
+continue_stmt = 'continue';
+fallthrough_stmt = 'fallthrough' ;
+return_stmt = 'return' expr_list ;
+yield_stmt = 'yield' expr_list ;
+delete_stmt = 'delete' expr_list ;
+resize_stmt = 'make' expr 'to' heap_alloc ;
+
+variable_decl = ('let' | 'const') ['vol'] (unpack_var | var {var} ) [initializer] ;
+var = 'IDENTIFIER' [type_ext] [initializer];
+unpack_var = '(' unpack_elem {unpack_elem} ['...'] ')' ;
+unpack_elem = 'IDENTIFIER' | unpack_var ;
+
+expr_stmt = expr {',' expr} [assign_op expr_list] ;
+assign_op = ['+' | '-' | '*' | '/' | '%' | '~/' | '~^' | '>' '>' | '<' '<' | '&' | '|' | '^'] '=' | ':>' ;
+
+expr = (match_expr ['if' match_expr 'ELSE' expr ] | with_expr | closure) ;
+with_expr = 'with' full_ctx '=>' expr ;
+closure = ['async'] ('||' | '|' [closure_arg {',' closure_arg}] '|' func_body) ;
+closure_arg = 'IDENTIFIER' [type_ext] ;
+
+match_expr = core_expr { match_suffix } ;
+match_suffix = 'match' ( expr | 'to' match_expr_block | 'type' 'to' match_type_expr_block ) ;
+match_expr_block = 'NEWLINE' 'INDENT' match_expr_branch {match_expr_branch} 'DEDENT' ;
+match_expr_branch = expr_list '=>' expr 'NEWLINE' ;
+match_type_expr_block = 'NEWLINE' 'INDENT' match_type_expr_branch {match_type_expr_branch} 'DEDENT' ;
+match_type_expr_branch = type_pattern_list '=>' expr 'NEWLINE' ;
+
+core_expr = ['AWAIT'] func_op [core_expr_suffix] ;
+core_expr_suffix = '..' func_op
+| 'as' type {'as' type}
+| 'is' (type_pattern | '!' type) ;
+
+func_op = or_expr {'~*' or_expr} ;
+or_expr = xor_expr {('||' | '|') xor_expr} ;
+xor_expr = and_expr {'^' and_expr} ;
+and_expr = comp_expr {('&&' | '&') and_expr} ;
+comp_expr = shift_expr {comp_op shift_expr} ;
+comp_op = '<' | '>' | '>=' | '<=' | '==' | '!=' ;
+shift_expr = arith_expr {('>' '>' | '<' '<') arith_expr} ;
+arith_expr = term {('+' | '-') term} ;
+term = factor {('*' | '/' | '~/' | '%') factor} ;
+factor = [pref_unary_op] power [post_unary_op] ;
+pref_unary_op = '++' | '--' | '&' ['const'] | '*' | '-' | '~' ;
+post_unary_op = '++' | '--' ;
+power = atom_expr {'~^' atom_expr} ;
+
+atom_expr = atom {trailer} | make_expr ;
+make_expr = 'make' heap_alloc ;
+heap_alloc = type ['*' expr] ;
+
+trailer = '.' 'IDENTIFIER'
+| '?'
+| '[' expr [slice_suffix] ']'
+| '{' init_list '}' 
+| '(' args_list ')'
+| '::' 'IDENTIFIER' 
+;
+slice_suffix = ':' expr [':' expr] ;
+init_list = '{' ['...' expr {',' named_arg} | named_arg {',' named_arg}] '}' ;
+args_list = (named_arg | expr) {',' (named_arg | expr)} ;
+named_arg = 'IDENTIFIER' '=' expr ;
+
+atom = 'INTLIT' | 'STRINGLIT' | 'FLOATLIT' | 'BOOLLIT' | 'CHARLIT' | array_builder 
+     | list_builder | dict_builder | vector_builder | tupled_expr | 'IDENTIFIER' 
+     | 'NULL' | 'THIS' ;
+
+array_builder = '{' seq_contents '}' ;
+list_builder = '[' seq_contents ']' ;
+seq_contents = 'expr' ({',' expr} | [comp_suffix]) ;
+dict_builder = '{' expr ':' expr ({',' expr ':' expr} | [comp_suffix]) '}' ;
+vector_builder = '<' expr [':' expr] '>' ; (* expr can be an array for vector array initializers *)
+tupled_expr = '(' expr {',' expr} ')' ;
+
+(* type constructions *)
+type_list = type (',' type ) ;
+type_ext = ':' type ;
+type_pattern_list = type_pattern {',' type_pattern};
+type_pattern = ['IDENTIFIER' ':'] type ;
+
+type = value_type | named_type | ref_type ;
+named_type = 'IDENTIFIER' {'::' 'IDENTIFIER' | generic_tag};
+
+value_type = prim_type | col_type | vec_type | func_type | tup_type ;
+prim_type = 'int' | 'uint' | 'ushort' | 'short' | 'ulong' | 'long' 
+| 'sbyte' | 'sbyte' | 'string' | 'char' | 'float' | 'double' | 'bool' | 'any' ;
+col_type = '[' type [':' type] ']' | '[' ']' type ;
+ref_type = ['own'] '&' ['const'] (value_type | named_type) ;
+vec_type = '<' ('IDENTIFIER' | 'INTLIT') '>' prim_type ;
+func_type = ('func' | 'async') '(' [func_type_args] ')' '(' [type_list] ')' ;
+func_type_args = (func_type_arg {',' func_type_arg} [',' func_type_var_arg] | func_type_var_arg) ;
+func_type_arg = ['~'] type ;
+func_type_var_arg = '...' type ;
+tup_type = '(' type ',' type {',' type} ')' ;
+
+
+(* iterable constructions *)
+comp_suffix = 'for' iterator [when_cond] ;
+iterator = iter_var {',' iter_var} 'in' expr ;
+iter_var = 'IDENTIFIER' | unpack_var ;
+
+(* other bits and bobs *)
+expr_list = expr {',' expr} ;
+when_cond = 'when' expr ;
 

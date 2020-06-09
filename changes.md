@@ -6,7 +6,6 @@ List of Adjustments from Previous Version
 
 - no more semicolons and braces
 - use `do`, `of`, and `to` as beginnings of blocks
-- whitespace sensitive (sometimes)
 - use newlines and indentations
 - semicolons sometimes used in compound statements
 - eg. c-style for loops
@@ -14,12 +13,26 @@ List of Adjustments from Previous Version
 - allow for argument parentheses to be elided if
 the function takes no arguments
   - eg. `func main do`
-- **CONSIDER** removing the `do` before certain control flow
-keywords.
+- the `do` can be elided after "lonely" control flow keywords.
   - eg. `else` instead of `else do` (redundant)
   - eg. `loop` instead of `loop do` (again, redundant)
   - general rule: if the control flow keyword contains no
-  content -> drop the `do`
+  content -> `do` can be elided
+- whitespace *aware*
+  - spaces are only used to delimit tokens (purely lexical)
+  - parser will expect newlines, indents, and dedents where
+  specified (if they are not there, it will error)
+  - it will allow newlines anywhere in the code
+    - even if the newline is unexpected
+    - can cause parser to misinterpret (predictably)
+    - eg. `x = y\n+ 2` will cause an error (read as two separate statements)
+  - it will **balanced** indentation when unexpected
+    - for every unexpected indent, there must by an equivalent dedent
+    before the next indent or dedent token will be accepted
+    - it will prioritize balancing indentation
+    - can lead to errors if an indent is expected, but there is
+    an unbalanced indent (no dedent) -> indent will marked as erroneous
+  - all other forms of whitespace (carriage returns, etc.) will be ignored
 
 ## Removals
 
@@ -207,6 +220,9 @@ keywords.
   - operates sequentially (values can be used in bindings)
     - eg. `with v1 <- f1(); v2 <- f2(v1) => v2`
   - basically just syntactic sugar for repeat calls of `apply`
+  - after is not really meaningful here but can be used
+- can have `else` block that runs if the context manager is unsuccessful at
+acquiring the resources/extracting the monadic value
 
 ## Type System Adjustments
 
