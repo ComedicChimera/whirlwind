@@ -19,8 +19,9 @@ top_level = definition { 'NEWLINE' definition } ;
 definition = import_stmt | export_block | interf_def | interf_bind | operator_def
            | func_def | type_def | decorator | annotated_def | variable_decl | variant_def ;
 
-import_stmt = 'import' ( package_name ['as', 'IDENTIFIER'] | identifier_list 'from' package_name ) ;
+import_stmt = 'import' ( package_name ['as' 'IDENTIFIER'] | identifier_list 'from' package_name ) ;
 package_name = 'IDENTIFIER' { '::' 'IDENTIFIER' } ;
+identifier_list = 'IDENTIFIER' {',' 'IDENTIFIER'} ;
 
 export_block = 'export' 'of' 'INDENT' top_level 'DEDENT' ;
 
@@ -34,7 +35,7 @@ method_variant_cond = 'IDENTIFIER' 'is' type ;
 operator_def = 'operator' operator_value [generic_tag] [signature] func_body ;
 operator_value = '+' | '-' | '*' | '/' | '~/' | '~*' | '~^' | '%' 
                | '>' ['>'] | '<' ['<'] | '<=' | '>=' | '==' |
-               | '!' | '!=' | '&' ['&'] | '|', ['|'] | '^' | '[' [':'] ']' ;
+               | '!' | '!=' | '&' ['&'] | '|' ['|'] | '^' | '[' [':'] ']' ;
 
 func_def = ('func' | 'async') 'IDENTIFIER' [signature] func_body ;
 signature = [args_decl] type ;
@@ -50,6 +51,7 @@ enum_suffix = 'NEWLINE' 'INDENT' enum_type_member {'NEWLINE' enum_type_member};
 enum_type_suffx = '|' 'IDENTIFIER' [tupled_suffix] ;
 tupled_suffix = '(' type {',' type} ')' ;
 struct_suffix = '{' 'NEWLINE' 'INDENT' struct_member { struct_member } 'DEDENT' '}' ;
+struct_member = identifier_list type_ext ;
 
 (* expr can be a list of decorators *)
 decorator = '@' expr 'NEWLINE' func_def ;
@@ -191,6 +193,8 @@ func_type_arg = ['~'] type ;
 func_type_var_arg = '...' type ;
 tup_type = '(' type ',' type {',' type} ')' ;
 
+generic_tag = '<' generic_param {',' generic_param} '>' ;
+generic_param = 'IDENTIFIER' [':' type {'|' type}];
 
 (* iterable constructions *)
 comp_suffix = 'for' iterator [when_cond] ;
@@ -200,4 +204,4 @@ iter_var = 'IDENTIFIER' | unpack_var ;
 (* other bits and bobs *)
 expr_list = expr {',' expr} ;
 when_cond = 'when' expr ;
-
+initializer = '=' expr ;
