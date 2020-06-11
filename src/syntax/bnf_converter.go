@@ -5,22 +5,22 @@ import (
 	"strings"
 )
 
-// RuleTable is a data structure used to represent the BNF grammar as it is
+// BNFRuleTable is a data structure used to represent the BNF grammar as it is
 // converted to a LALR(1) parsing table
-type RuleTable struct {
+type BNFRuleTable struct {
 	// represent the expanded set of BNF grammar rules
-	Rules []*Rule
+	RulesByIndex []*BNFRule
 
 	// map production names to the list of rules they are related to (for
-	// fast-lookup by name)
-	ProdRules map[string][]int
+	// fast-lookup by production name)
+	RulesByProdName map[string][]int
 }
 
-// Rule is a data structure representing a single BNF rule in the expanded
+// BNFRule is a data structure representing a single BNF rule in the expanded
 // grammar (derived from original grammar).  These rules contain only terminals,
 // nonterminals, and epsilons.  All other structure is expanded out.
-type Rule struct {
-	// ProdName is used when producing the reduce actions in the parsing table
+type BNFRule struct {
+	// ProdName is the name of the production the rule belongs to
 	ProdName string
 
 	// Contents are all of the BNF elements contained in the specific rule
@@ -39,7 +39,7 @@ type BNFEpsilon struct{}
 // Expander is a struct used to hold the shared state used as the EBNF grammar
 // is expanded into the BNF grammar (growing ruletable and anon-name counter)
 type Expander struct {
-	table *RuleTable
+	table *BNFRuleTable
 
 	// used to generate unique anonymous production names
 	anonCounter int
@@ -50,8 +50,8 @@ type Expander struct {
 
 // expandGrammar expands and generates the BNF RuleTable from a given EBNF
 // grammar.  NB: source grammar should be disposed of after this function is run!
-func expandGrammar(g Grammar) *RuleTable {
-	e := &Expander{table: &RuleTable{}}
+func expandGrammar(g Grammar) *BNFRuleTable {
+	e := &Expander{table: &BNFRuleTable{}}
 
 	for name, prod := range g {
 		e.currentProdName = name
@@ -131,8 +131,8 @@ func (e *Expander) expandGroup(group []GrammaticalElement) []interface{} {
 			e.expandProduction(anonName, item.(*GroupingElement).elements)
 			ntRef := BNFNonterminal(anonName)
 
-			for _, ruleRef := range e.table.ProdRules[anonName] {
-				e.table.Rules[ruleRef].Contents = append(e.table.Rules[ruleRef].Contents, ntRef)
+			for _, ruleRef := range e.table.RulesByProdName[anonName] {
+				e.table.RulesByIndex[ruleRef].Contents = append(e.table.RulesByIndex[ruleRef].Contents, ntRef)
 			}
 
 			// add epsilon rule after self-references (so it doesn't get one)
@@ -148,13 +148,13 @@ func (e *Expander) expandGroup(group []GrammaticalElement) []interface{} {
 
 // addRule adds a new rule to the current rule set from the given production
 func (e *Expander) addRule(prodName string, contents []interface{}) {
-	if ruleRefs, ok := e.table.ProdRules[prodName]; ok {
-		e.table.ProdRules[prodName] = append(ruleRefs, len(e.table.Rules))
+	if ruleRefs, ok := e.table.RulesByProdName[prodName]; ok {
+		e.table.RulesByProdName[prodName] = append(ruleRefs, len(e.table.RulesByIndex))
 	} else {
-		e.table.ProdRules[prodName] = []int{len(e.table.Rules)}
+		e.table.RulesByProdName[prodName] = []int{len(e.table.RulesByIndex)}
 	}
 
-	e.table.Rules = append(e.table.Rules, &Rule{ProdName: prodName, Contents: contents})
+	e.table.RulesByIndex = append(e.table.RulesByIndex, &BNFRule{ProdName: prodName, Contents: contents})
 }
 
 // inlineAnonNonterminal converts the rules of an anonymous nonterminal into
@@ -163,12 +163,12 @@ func (e *Expander) inlineAnonNonterminal(newName string, nonterminal BNFNontermi
 	ntName := string(nonterminal)
 
 	// assume the nonterminal is already defined
-	ruleRefs := e.table.ProdRules[ntName]
-	delete(e.table.ProdRules, ntName)
-	e.table.ProdRules[newName] = ruleRefs
+	ruleRefs := e.table.RulesByProdName[ntName]
+	delete(e.table.RulesByProdName, ntName)
+	e.table.RulesByProdName[newName] = ruleRefs
 
 	for _, r := range ruleRefs {
-		e.table.Rules[r].ProdName = newName
+		e.table.RulesByIndex[r].ProdName = newName
 	}
 }
 

@@ -4,27 +4,9 @@ import "github.com/ComedicChimera/whirlwind/src/util"
 
 // ASTNode represents a piece of the Abstract Syntax Tree (AST)
 type ASTNode interface {
-	// Kind should be one of the provided ASTNode kinds
-	Kind() int
-
 	// Position should span the entire ASTNode (meaningfully)
 	Position() *util.TextPosition
 }
-
-// ASTKinds represent the different types of AST nodes possible
-const (
-	AKImport = iota
-	AKFuncDef
-	AKTypeDef
-	AKInterfDef
-	AKInterfBind
-	AKExportBlock
-	AKVarDecl
-	AKSimpleStmt
-	AKBlockStmt
-	AKExpr
-	AKValue
-)
 
 // ASTLeaf is simply a token in the AST (at the end of branch)
 type ASTLeaf Token

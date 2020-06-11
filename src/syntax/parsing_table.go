@@ -1,5 +1,11 @@
 package syntax
 
+import (
+	"encoding/gob"
+	"os"
+	"strings"
+)
+
 // ParsingTable represents our adapted LALR(1) parser's Action-Goto table as
 // well as all of the rules it can reduce by
 type ParsingTable struct {
@@ -40,4 +46,45 @@ const (
 type PTableRule struct {
 	Name  string
 	Count int
+}
+
+// loadParsingTable allows us to load a parsing table from a saved file which should
+// be named in accordance with the language grammar (eg. `grammar.ebnf` => `grammar.ptable`)
+func loadParsingTable(grammarPath string) (*ParsingTable, error) {
+	parsingTablePath := strings.Replace(grammarPath, ".ebnf", ".ptable", 1)
+
+	f, err := os.Open(parsingTablePath)
+
+	if err != nil {
+		return nil, err
+	}
+
+	decoder := gob.NewDecoder(f)
+
+	ptable := &ParsingTable{}
+	if err := decoder.Decode(ptable); err != nil {
+		return nil, err
+	}
+
+	return ptable, nil
+}
+
+// saveParsingTable will dump a parsing table into a file correspondent to a grammar
+func saveParsingTable(ptable *ParsingTable, grammarPath string) error {
+	parsingTablePath := strings.Replace(grammarPath, ".ebnf", ".ptable", 1)
+
+	if _, err := os.Stat(parsingTablePath); err != nil {
+		return err
+	}
+
+	// should be no error
+	f, _ := os.Open(parsingTablePath)
+
+	encoder := gob.NewEncoder(f)
+
+	if err := encoder.Encode(ptable); err != nil {
+		return err
+	}
+
+	return nil
 }

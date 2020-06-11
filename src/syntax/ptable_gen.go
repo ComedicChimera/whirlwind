@@ -1,6 +1,7 @@
 package syntax
 
 import (
+	"fmt"
 	"reflect"
 	"sort"
 )
@@ -34,7 +35,7 @@ type LRItemSet struct {
 
 // PTableBuilder holds the state used to construct the parsing table
 type PTableBuilder struct {
-	BNFRules *RuleTable
+	BNFRules *BNFRuleTable
 	Table    *ParsingTable
 
 	ItemSets []*LRItemSet
@@ -47,21 +48,23 @@ type PTableBuilder struct {
 // parsing table for it.  If it fails, a descriptive error is returned.  If it
 // succeeds a full parsing table is returned.  NOTE: this function resolves
 // shift-reduce conflicts in favor of SHIFT (will warn if it does this)!
-func constructParsingTable(rt *RuleTable) *ParsingTable {
-	ptableBuilder := PTableBuilder{BNFRules: rt, firstSets: make(map[string][]int)}
+func constructParsingTable(brt *BNFRuleTable) (*ParsingTable, bool) {
+	ptableBuilder := PTableBuilder{BNFRules: brt, firstSets: make(map[string][]int)}
 
-	ptableBuilder.Build()
+	if !ptableBuilder.Build() {
+		return nil, false
+	}
 
-	return ptableBuilder.Table
+	return ptableBuilder.Table, true
 }
 
 // Build uses the current builds a full parsing table for a given rule table
-func (ptb *PTableBuilder) Build() {
+func (ptb *PTableBuilder) Build() bool {
 	// augment the rule set
-	augRuleNdx := len(ptb.BNFRules.Rules)
-	ptb.BNFRules.Rules = append(ptb.BNFRules.Rules,
-		&Rule{ProdName: "_END_", Contents: []interface{}{BNFNonterminal(_goalSymbol), BNFTerminal(EOF)}})
-	ptb.BNFRules.ProdRules["_END_"] = []int{augRuleNdx}
+	augRuleNdx := len(ptb.BNFRules.RulesByIndex)
+	ptb.BNFRules.RulesByIndex = append(ptb.BNFRules.RulesByIndex,
+		&BNFRule{ProdName: "_END_", Contents: []interface{}{BNFNonterminal(_goalSymbol), BNFTerminal(EOF)}})
+	ptb.BNFRules.RulesByProdName["_END_"] = []int{augRuleNdx}
 
 	// create the starting kernel
 	startKernel := &LRItemSet{Items: []*LRItem{&LRItem{Rule: augRuleNdx, DotPos: 0, Lookaheads: []int{EOF}}}}
@@ -74,6 +77,119 @@ func (ptb *PTableBuilder) Build() {
 
 	// calculate the next sets from the starting item set
 	ptb.nextSets(startSet)
+
+	// the number of states (rows) will be equivalent to the number of item sets
+	// since the merging has already occurred in generating the item sets
+	ptb.Table = &ParsingTable{Rows: make([]*PTableRow, len(ptb.ItemSets))}
+
+	// used to keep track of which PTableRules have already been generated so
+	// that any rules that will become redundant can be mapped to already
+	// existing rules (ie. rules that have the same name and size)
+	ptableRules := make(map[string][]int)
+
+	tableConstructionFailed := false
+
+	for i, itemSet := range ptb.ItemSets {
+		row := ptb.Table.Rows[i]
+		row.Actions = make(map[int]*Action)
+
+		// calculate the necessary shift actions
+		for terminal, state := range itemSet.TerminalConns {
+			row.Actions[terminal] = &Action{Kind: AKShift, Operand: state}
+		}
+
+		// populate our GOTO table
+		for nt, state := range itemSet.NonterminalConns {
+			row.Gotos[nt] = state
+		}
+
+		// place any reduce actions in the table as necessary
+		for _, item := range itemSet.Items {
+			bnfRule := ptb.BNFRules.RulesByIndex[item.Rule]
+
+			// dot is at the end of a rule/epsilon rule => reduction time
+			if item.DotPos == len(bnfRule.Contents) || reflect.DeepEqual(bnfRule.Contents[0], BNFEpsilon{}) {
+				// determine the correct reduction rule
+				var reduceRule int
+
+				if addedRules, ok := ptableRules[bnfRule.ProdName]; ok {
+					for _, ruleRef := range addedRules {
+						if ptb.Table.Rules[ruleRef].Count == len(bnfRule.Contents) {
+							reduceRule = ruleRef
+						} else {
+							// rule is not redundant => add it (get rule ref
+							// preemptively as with other addition case)
+							reduceRule = ptb.addRule(bnfRule)
+
+							// add our rule to the ptableRules entry for the production name
+							ptableRules[bnfRule.ProdName] = append(ptableRules[bnfRule.ProdName], reduceRule)
+						}
+					}
+				} else {
+					// if it hasn't even been added to ptableRules, we need to
+					// create it and create an entry for it in ptableRules.
+					reduceRule = ptb.addRule(bnfRule)
+
+					ptableRules[bnfRule.ProdName] = []int{reduceRule}
+				}
+
+				// attempt to add all of the corresponding reduce actions
+				for _, lookahead := range item.Lookaheads {
+					if action, ok := row.Actions[lookahead]; ok {
+						// action already exists.  If it is a shift action,
+						// we warn but do not error.  If it is another reduce
+						// action, we print out the error and return that
+						// the table construction was unsuccessful.
+						if action.Kind == AKShift {
+							// find a better way to indicate the token value
+							fmt.Printf("Shift/Reduce Conflict Resolved Between `%s` and `%d`\n", bnfRule.ProdName, action.Operand)
+						} else if action.Kind == AKReduce {
+							// if there is a conflict between two epsilon rules,
+							// it is not actually a conflict (empty trees are
+							// pruned - name doesn't actually matter here)
+							if ptb.Table.Rules[action.Operand].Count == 0 && ptb.Table.Rules[reduceRule].Count == 0 {
+								continue
+							}
+
+							fmt.Printf("Reduce/Reduce Conflict Between `%s` and `%s`\n", bnfRule.ProdName, ptb.Table.Rules[action.Operand].Name)
+							tableConstructionFailed = true
+						}
+
+						// ACCEPT collisions should never happen
+					} else if lookahead == EOF && bnfRule.ProdName == "_END_" {
+						// if we are trying to reduce the GOAL symbol with an
+						// EOF lookahead we want to mark this action as accept
+						row.Actions[lookahead] = &Action{Kind: AKAccept}
+					} else {
+						row.Actions[lookahead] = &Action{Kind: AKReduce, Operand: reduceRule}
+					}
+				}
+			}
+		}
+	}
+
+	return tableConstructionFailed
+}
+
+// addRule converts a BNF rule into a usable rule (assumes rule is not redundant)
+// and adds it to the rule set.  Returns the a reference to the new rule.
+func (ptb *PTableBuilder) addRule(bnfRule *BNFRule) int {
+	// We know the next rule will be at the end of rules so we can get the rule
+	// reference preemtively from the length
+	reduceRule := len(ptb.Table.Rules)
+
+	var count int
+	if _, ok := bnfRule.Contents[0].(BNFEpsilon); ok {
+		// epsilon rules consume no tokens to make their tree
+		count = 0
+	} else {
+		count = len(bnfRule.Contents)
+	}
+
+	ptb.Table.Rules = append(ptb.Table.Rules,
+		&PTableRule{Name: bnfRule.ProdName, Count: count})
+
+	return reduceRule
 }
 
 // nextSets takes in a starting set; initializes its connections, and computes
@@ -86,7 +202,7 @@ func (ptb *PTableBuilder) nextSets(startSet *LRItemSet) {
 	startSet.NonterminalConns = make(map[string]int)
 
 	for _, item := range startSet.Items {
-		ruleContents := ptb.BNFRules.Rules[item.Rule].Contents
+		ruleContents := ptb.BNFRules.RulesByIndex[item.Rule].Contents
 
 		// if the dot is at the end of the rule or there is an epsilon in the
 		// rule (which implies due to the construction of our rule table that it
@@ -119,7 +235,11 @@ func (ptb *PTableBuilder) nextSets(startSet *LRItemSet) {
 
 		gotoMatched := false
 		for i, set := range ptb.ItemSets {
-			if set.equals(gotoSet) {
+			// NOTE: merge will attempt to merge to sets that have the same
+			// core. If the have identical lookaheads, then this is equivalent
+			// to checking equality.  If they don't, it facilitates step-by-step
+			// merging for sets that have the same cores.
+			if set.merge(gotoSet) {
 				// if we have already calculated the state, create a connection
 				// back to that precreated state, set the matched flag, and exit
 				// the loop (b/c we don't need to search anymore)
@@ -151,7 +271,7 @@ func (ptb *PTableBuilder) gotoOf(itemSet *LRItemSet, element interface{}) *LRIte
 	newItemSet := &LRItemSet{}
 
 	for _, item := range itemSet.Items {
-		ruleContents := ptb.BNFRules.Rules[item.Rule].Contents
+		ruleContents := ptb.BNFRules.RulesByIndex[item.Rule].Contents
 
 		// only calculate goto if the element matches
 		if reflect.DeepEqual(ruleContents[item.DotPos], element) {
@@ -187,7 +307,7 @@ func (ptb *PTableBuilder) gotoOf(itemSet *LRItemSet, element interface{}) *LRIte
 // NOT be called on a kernel where the dot is at the end of any item
 func (ptb *PTableBuilder) closureOf(kernel *LRItemSet) *LRItemSet {
 	for _, item := range kernel.Items {
-		ruleContents := ptb.BNFRules.Rules[item.Rule].Contents
+		ruleContents := ptb.BNFRules.RulesByIndex[item.Rule].Contents
 
 		if nt, ok := ruleContents[item.DotPos].(BNFNonterminal); ok {
 			var lookaheads []int
@@ -219,7 +339,7 @@ func (ptb *PTableBuilder) closureOf(kernel *LRItemSet) *LRItemSet {
 				}
 			}
 
-			newRuleRefs := ptb.BNFRules.ProdRules[string(nt)]
+			newRuleRefs := ptb.BNFRules.RulesByProdName[string(nt)]
 
 			// allocate a base buffer new items (based on number of new rules)
 			newItems := make([]*LRItem, len(newRuleRefs))
@@ -261,9 +381,9 @@ func (ptb *PTableBuilder) first(ruleSlice []interface{}) []int {
 			// the memoized version (small cost but ultimately trivial)
 			copy(mfs, firstSet)
 		} else {
-			for _, rRef := range ptb.BNFRules.ProdRules[string(nt)] {
+			for _, rRef := range ptb.BNFRules.RulesByProdName[string(nt)] {
 				// r will never be empty
-				ntFirst := ptb.first(ptb.BNFRules.Rules[rRef].Contents)
+				ntFirst := ptb.first(ptb.BNFRules.RulesByIndex[rRef].Contents)
 
 				firstSet = append(firstSet, ntFirst...)
 			}
@@ -449,12 +569,21 @@ func (itemSet *LRItemSet) order() {
 	})
 }
 
-// equals tests if two item sets are equal AFTER THEY HAVE BEEN SORTED
-func (itemSet *LRItemSet) equals(other *LRItemSet) bool {
+// merge attempts to merge to item sets.  It returns true if such a merge was
+// possible and performs the merge (in-place).  If not, it returns false.
+func (itemSet *LRItemSet) merge(other *LRItemSet) bool {
+	// test if the items have the same core
 	for i, item := range itemSet.Items {
-		if compare(item, other.Items[i]) != 0 {
+		otherItem := other.Items[i]
+
+		if item.Rule != otherItem.Rule || item.DotPos != otherItem.DotPos {
 			return false
 		}
+	}
+
+	// if they do, perform the merge by combining the lookaheads
+	for i, item := range itemSet.Items {
+		itemSet.Items[i].Lookaheads = combineLookaheads(item.Lookaheads, other.Items[i].Lookaheads)
 	}
 
 	return true
