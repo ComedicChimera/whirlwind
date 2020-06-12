@@ -79,9 +79,6 @@ func (ptb *PTableBuilder) Build() bool {
 	// calculate the next sets from the starting item set
 	ptb.nextSets(startSet)
 
-	// TEST
-	ptb.printSets()
-
 	// the number of states (rows) will be equivalent to the number of item sets
 	// since the merging has already occurred in generating the item sets
 	ptb.Table = &ParsingTable{Rows: make([]*PTableRow, len(ptb.ItemSets))}
@@ -195,6 +192,7 @@ func (ptb *PTableBuilder) Build() bool {
 	return tableConstructionSucceeded
 }
 
+// TODO: remove when no longer needed
 func (ptb *PTableBuilder) printSets() {
 	for _, itemSet := range ptb.ItemSets {
 		fmt.Print("{")
@@ -315,6 +313,11 @@ func (ptb *PTableBuilder) nextSets(startSet *LRItemSet) {
 				// the loop (b/c we don't need to search anymore)
 				gotoMatched = true
 				startSet.addConnection(dottedElem, i)
+
+				// next, we need to propagate the lookaheads of the merged set
+				// to its connections (as GOTO would => gives correct behavior)
+				ptb.propagateLookaheads(set, []int{i})
+
 				break
 			}
 		}
@@ -527,6 +530,46 @@ func (ptb *PTableBuilder) first(ruleSlice []BNFElement) []int {
 
 	// apply Fi(w) = { w } where w is a terminal
 	return []int{int(ruleSlice[0].(BNFTerminal))}
+}
+
+// propagateLookaheads recursively updates the lookaheads of all connections of
+// a set after a merge to ensure lookaheads propagate properly (ie. like GOTO)
+func (ptb *PTableBuilder) propagateLookaheads(itemSet *LRItemSet, prevConns []int) {
+	doPropagate := func(elem BNFElement, conn int) {
+	loop:
+		for _, item := range itemSet.Items {
+			ruleContents := ptb.BNFRules.RulesByIndex[item.Rule].Contents
+
+			// if our dot is at the end of a rule, nothing to propagate
+			if item.DotPos < len(ruleContents) {
+				dottedElem := ruleContents[item.DotPos]
+
+				for _, prevConn := range prevConns {
+					if prevConn == conn {
+						continue loop
+					}
+				}
+
+				if reflect.DeepEqual(dottedElem, elem) {
+					connSet := ptb.ItemSets[conn]
+
+					for _, connItem := range connSet.Items {
+						connItem.Lookaheads = combineLookaheads(item.Lookaheads, connItem.Lookaheads)
+					}
+
+					ptb.propagateLookaheads(connSet, append(prevConns, conn))
+				}
+			}
+		}
+	}
+
+	for tVal, tConn := range itemSet.TerminalConns {
+		doPropagate(BNFTerminal(tVal), tConn)
+	}
+
+	for nVal, nConn := range itemSet.NonterminalConns {
+		doPropagate(BNFNonterminal(nVal), nConn)
+	}
 }
 
 // compare is used to compare two items so that they can be ordered: -1 => a <

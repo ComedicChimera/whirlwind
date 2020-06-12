@@ -85,6 +85,9 @@ func expandGrammar(g Grammar) *BNFRuleTable {
 		e.expandProduction(name, prod)
 	}
 
+	// reduce the capacity of the slice (normally, it is nearly double the length!)
+	e.table.RulesByIndex = append([]*BNFRule(nil), e.table.RulesByIndex[:len(e.table.RulesByIndex)]...)
+
 	return e.table
 }
 

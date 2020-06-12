@@ -1,5 +1,0 @@
-(*file = file '+' file | file '*' file | '(' file ')' | 'IDENTIFIER' ;*)
-
-file = L '=' R | R ;
-L = '*' R | 'IDENTIFIER' ;
-R = L ;

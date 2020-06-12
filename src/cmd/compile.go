@@ -144,7 +144,7 @@ func (c *Compiler) Compile(forceGrammarRebuild bool) {
 	c.setPointerSize()
 
 	// create and setup the parser
-	parser, err := syntax.NewParser(path.Join(WhirlPath, "/config/test.ebnf"), forceGrammarRebuild)
+	parser, err := syntax.NewParser(path.Join(WhirlPath, "/config/grammar.ebnf"), forceGrammarRebuild)
 
 	if err != nil {
 		fmt.Println(err)

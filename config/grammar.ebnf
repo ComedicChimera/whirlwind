@@ -153,7 +153,7 @@ power = atom_expr {'~^' atom_expr} ;
 
 atom_expr = atom {trailer} | make_expr ;
 make_expr = 'make' heap_alloc ;
-heap_alloc = type ['*' expr] ;
+heap_alloc = type | '(' type '*' expr ')' ;
 
 trailer = '.' 'IDENTIFIER'
 | '?'
