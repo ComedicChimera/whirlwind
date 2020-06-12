@@ -57,6 +57,7 @@ const (
 	// package keywords
 	IMPORT
 	EXPORT
+	FROM
 
 	// expression utils
 	THIS
@@ -128,7 +129,7 @@ const (
 	// dots
 	DOT
 	RANGETO
-	VARARG
+	ELLIPSIS
 
 	// name access (::)
 	GETNAME
@@ -193,6 +194,7 @@ var keywordPatterns = map[string]int{
 	"interf":      INTERF,
 	"import":      IMPORT,
 	"export":      EXPORT,
+	"from":        FROM,
 	"this":        THIS,
 	"super":       SUPER,
 	"null":        NULL,
@@ -248,7 +250,7 @@ var symbolPatterns = map[string]int{
 	"?":   NULLTEST,
 	".":   DOT,
 	"..":  RANGETO,
-	"...": VARARG,
+	"...": ELLIPSIS,
 	"@":   DECORAT,
 	"#":   ANNOTHASH,
 	"(":   LPAREN,
@@ -264,6 +266,7 @@ var symbolPatterns = map[string]int{
 	":>":  MOVE,
 	"=>":  ARROW,
 	"<-":  BINDTO,
-}
 
-// "/" has special logic that determines its behavior
+	// "/" is not scanned in as a symbol (to avoid comment conflicts) => entry is only here for grammar loading
+	"/": DIVIDE,
+}

@@ -25,14 +25,14 @@ type Parser struct {
 }
 
 // NewParser creates a new parser from the scanner and the given grammar
-func NewParser(sc *Scanner, grammarPath string, forceGBuild bool) (*Parser, error) {
+func NewParser(grammarPath string, forceGBuild bool) (*Parser, error) {
 	var parsingTable *ParsingTable
 
 	if !forceGBuild {
 		parsingTable, err := loadParsingTable(grammarPath)
 
 		if err == nil {
-			return &Parser{sc: sc, ptable: parsingTable}, nil
+			return &Parser{ptable: parsingTable}, nil
 		}
 	}
 
@@ -44,13 +44,16 @@ func NewParser(sc *Scanner, grammarPath string, forceGBuild bool) (*Parser, erro
 
 	bnfg := expandGrammar(g)
 
-	// clear the grammar from memory (not necessary)
+	// clear the EBNF grammar from memory (no longer needed)
 	g = nil
 
 	parsingTable, ok := constructParsingTable(bnfg)
 
+	// clear BNF grammar from memory (no longer needed)
+	bnfg = nil
+
 	if !ok {
-		return nil, errors.New("Failed to build the parsing table")
+		return nil, errors.New("Parser Error: Failed to build the parsing table")
 	}
 
 	// save the newly generate parsing table.  If it didn't generate, we want to
@@ -59,24 +62,17 @@ func NewParser(sc *Scanner, grammarPath string, forceGBuild bool) (*Parser, erro
 		return nil, err
 	}
 
-	return &Parser{sc: sc, ptable: parsingTable}, nil
+	return &Parser{ptable: parsingTable}, nil
 }
 
 // Parse runs the main parsing algorithm on the given scanner
-func (p *Parser) Parse() (ASTNode, error) {
+func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
+	p.sc = sc
 	p.stateStack = append(p.stateStack, 0)
 
 	// initialize the lookahead
-	{
-		tok, err := p.sc.ReadToken()
-
-		if err == nil {
-			p.lookahead = tok
-		} else if err == io.EOF {
-			p.lookahead = &Token{Kind: EOF}
-		} else {
-			return nil, err
-		}
+	if err := p.consume(); err != nil {
+		return nil, err
 	}
 
 loop:
@@ -98,6 +94,9 @@ loop:
 			switch p.lookahead.Kind {
 			case NEWLINE:
 				// unexpected newlines can be accepted whenever
+				if err := p.consume(); err != nil {
+					return nil, err
+				}
 				continue
 			case INDENT:
 				p.unbalancedIndent++
@@ -116,6 +115,15 @@ loop:
 					"Syntax",
 					TextPositionOfToken(p.lookahead),
 				)
+			}
+
+			// only cases that reach here are INDENT and DEDENT
+			if len(p.lookahead.Value) > 1 {
+				p.lookahead.Value = p.lookahead.Value[1:]
+			} else {
+				if err := p.consume(); err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
@@ -157,11 +165,17 @@ func (p *Parser) shift(state int) error {
 
 		// handle normal case
 		if len(p.lookahead.Value) > 1 {
-			p.lookahead.Value = p.lookahead.Value[:len(p.lookahead.Value)-1]
+			p.lookahead.Value = p.lookahead.Value[1:]
 			return nil
 		}
 	}
 
+	return p.consume()
+}
+
+// consume reads the next token from the scanner into the lookahead REGARDLESS
+// OF WHAT IS IN THE LOOKAHEAD (not whitespace aware - should be used as such)
+func (p *Parser) consume() error {
 	tok, err := p.sc.ReadToken()
 
 	if err == nil {
@@ -184,7 +198,7 @@ func (p *Parser) reduce(ruleRef int) {
 		p.semanticStack = append(p.semanticStack, &ASTBranch{Name: rule.Name})
 	} else {
 		branch := &ASTBranch{Name: rule.Name, Content: make([]ASTNode, rule.Count)}
-		copy(p.semanticStack[len(p.semanticStack)-rule.Count-1:], branch.Content)
+		copy(branch.Content, p.semanticStack[len(p.semanticStack)-rule.Count-1:])
 		p.semanticStack = p.semanticStack[:len(p.semanticStack)-rule.Count]
 
 		// remove all empty trees from the new branch

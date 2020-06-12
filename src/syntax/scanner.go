@@ -141,11 +141,13 @@ func (s *Scanner) ReadToken() (*Token, error) {
 					if skind, ok := symbolPatterns[s.tokBuilder.String()+string(ahead)]; ok {
 						kind = skind
 						s.readNext()
+					} else {
+						break
 					}
 				}
 
 				// turn whatever we managed to read into a token
-				s.getToken(kind)
+				tok = s.getToken(kind)
 			} else {
 				// any other token must be malformed in some way
 				malformed = true

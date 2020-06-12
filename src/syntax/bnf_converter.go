@@ -24,17 +24,44 @@ type BNFRule struct {
 	ProdName string
 
 	// Contents are all of the BNF elements contained in the specific rule
-	Contents []interface{}
+	Contents []BNFElement
 }
+
+// BNFElement is a single element of a BNF rule
+type BNFElement interface {
+	Kind() int // should be one of the enumerated BNF kinds
+}
+
+// Different kinds of BNF elements
+const (
+	BNFKindTerminal = iota
+	BNFKindNonterminal
+	BNFKindEpsilon
+)
 
 // BNFTerminal is a terminal used in a BNF rule (int = token value)
 type BNFTerminal int
 
+// Kind of BNFTerminal is BNFKindTerminal
+func (BNFTerminal) Kind() int {
+	return BNFKindTerminal
+}
+
 // BNFNonterminal is a nonterminal used in a BNF rule (string = prod name)
 type BNFNonterminal string
 
+// Kind of BNFNonterminal is BNFKindNonterminal
+func (BNFNonterminal) Kind() int {
+	return BNFKindNonterminal
+}
+
 // BNFEpsilon is just an empty byte that stores no meaningful value
 type BNFEpsilon struct{}
+
+// Kind of BNFEpsilon is BNFKindEpsilon
+func (BNFEpsilon) Kind() int {
+	return BNFKindEpsilon
+}
 
 // Expander is a struct used to hold the shared state used as the EBNF grammar
 // is expanded into the BNF grammar (growing ruletable and anon-name counter)
@@ -51,7 +78,7 @@ type Expander struct {
 // expandGrammar expands and generates the BNF RuleTable from a given EBNF
 // grammar.  NB: source grammar should be disposed of after this function is run!
 func expandGrammar(g Grammar) *BNFRuleTable {
-	e := &Expander{table: &BNFRuleTable{}}
+	e := &Expander{table: &BNFRuleTable{RulesByProdName: make(map[string][]int)}}
 
 	for name, prod := range g {
 		e.currentProdName = name
@@ -72,6 +99,8 @@ func (e *Expander) expandProduction(name string, contents Production) {
 			// we can create multiple rules for the same production
 			e.addRule(name, bnfRuleContents)
 		}
+
+		return
 	}
 
 	// if we do not have alternator => expand like a regular group
@@ -91,9 +120,9 @@ func (e *Expander) expandProduction(name string, contents Production) {
 }
 
 // expandGroup converts a group into a (set of) BNF rules (can be a production)
-func (e *Expander) expandGroup(group []GrammaticalElement) []interface{} {
+func (e *Expander) expandGroup(group []GrammaticalElement) []BNFElement {
 	// a group will be the same size as its original production
-	ruleContents := make([]interface{}, len(group))
+	ruleContents := make([]BNFElement, len(group))
 
 	// NOTE: all items that create anonymous productions will also insert a
 	// nonterminal reference to that production at their position in the rule
@@ -147,7 +176,7 @@ func (e *Expander) expandGroup(group []GrammaticalElement) []interface{} {
 }
 
 // addRule adds a new rule to the current rule set from the given production
-func (e *Expander) addRule(prodName string, contents []interface{}) {
+func (e *Expander) addRule(prodName string, contents []BNFElement) {
 	if ruleRefs, ok := e.table.RulesByProdName[prodName]; ok {
 		e.table.RulesByProdName[prodName] = append(ruleRefs, len(e.table.RulesByIndex))
 	} else {
@@ -174,7 +203,7 @@ func (e *Expander) inlineAnonNonterminal(newName string, nonterminal BNFNontermi
 
 // epsilonRule creates an epsilon rule for the current production (by name)
 func (e *Expander) epsilonRule(name string) {
-	e.addRule(name, []interface{}{BNFEpsilon(struct{}{})})
+	e.addRule(name, []BNFElement{BNFEpsilon(struct{}{})})
 }
 
 // getAnonName gets a new anonymous production name for the current production

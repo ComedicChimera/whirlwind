@@ -73,16 +73,16 @@ func loadParsingTable(grammarPath string) (*ParsingTable, error) {
 func saveParsingTable(ptable *ParsingTable, grammarPath string) error {
 	parsingTablePath := strings.Replace(grammarPath, ".ebnf", ".ptable", 1)
 
-	if _, err := os.Stat(parsingTablePath); err != nil {
+	// we want to truncate the original file or create a new one
+	f, err := os.Create(parsingTablePath)
+
+	if err != nil {
 		return err
 	}
 
-	// should be no error
-	f, _ := os.Open(parsingTablePath)
-
 	encoder := gob.NewEncoder(f)
 
-	if err := encoder.Encode(ptable); err != nil {
+	if err = encoder.Encode(ptable); err != nil {
 		return err
 	}
 

@@ -36,7 +36,7 @@ func loadGrammar(path string) (Grammar, error) {
 	err = gl.load()
 
 	if err != nil {
-		return nil, err
+		return nil, errors.New("Grammar Error: " + err.Error())
 	}
 
 	// return the loaded grammar if no errors
@@ -128,7 +128,7 @@ func (gl *gramLoader) skipComment() {
 
 // returns an unexpected token error
 func (gl *gramLoader) unexpectedToken() error {
-	return fmt.Errorf("Grammar Error: Unexpected token `%c` at line %d", gl.curr, gl.line)
+	return fmt.Errorf("Unexpected token `%c` on line %d", gl.curr, gl.line)
 }
 
 // load and parse a production
@@ -227,7 +227,7 @@ func (gl *gramLoader) parseGroupContent(expectedCloser rune) ([]GrammaticalEleme
 			}
 
 			// if no closer is encountered, token is malformed
-			return nil, errors.New("Flag missing closer")
+			return nil, fmt.Errorf("Flag `%s` missing closer on line %d", flagBuilder.String(), gl.line)
 		// alternators interrupt the current parsing group and create a new one
 		// to the same closer so that they can combine the tailing elements with
 		// the elements before them. if the tail is itself an alternator, then
@@ -245,17 +245,22 @@ func (gl *gramLoader) parseGroupContent(expectedCloser rune) ([]GrammaticalEleme
 			}
 
 			if tailContent[0].Kind() == GKindAlternator {
-				alternator := tailContent[0].(AlternatorElement)
+				alternator := tailContent[0].(*AlternatorElement)
 				alternator.PushFront(groupContent)
+
+				if len(groupContent) == 0 {
+					return nil, fmt.Errorf("Unable to empty alternator branch on line %d", gl.line)
+				}
+
 				return []GrammaticalElement{alternator}, nil
 			}
 
 			return []GrammaticalElement{NewAlternatorElement(groupContent, tailContent)}, nil
 		case '\'':
-			terminal, ok := gl.readTerminal()
+			terminal, err := gl.readTerminal()
 
-			if !ok {
-				return nil, errors.New("Malformed terminal")
+			if err != nil {
+				return nil, err
 			}
 
 			groupContent = append(groupContent, Terminal(terminal))
@@ -263,7 +268,7 @@ func (gl *gramLoader) parseGroupContent(expectedCloser rune) ([]GrammaticalEleme
 			// if we encounter an empty production or group than we cannot close
 			// on it
 			if len(groupContent) == 0 {
-				return nil, errors.New("Unable to allow empty grammatical group")
+				return nil, fmt.Errorf("Unable to allow empty grammatical group on line %d", gl.line)
 			}
 
 			return groupContent, nil
@@ -277,7 +282,7 @@ func (gl *gramLoader) parseGroupContent(expectedCloser rune) ([]GrammaticalEleme
 				// (some kind of rogue particle or perhaps the residue of a
 				// malformed production or group
 			} else {
-				fmt.Println("Expected Closer: " + string(expectedCloser))
+				// fmt.Println("Expected Closer: " + string(expectedCloser))
 				return nil, gl.unexpectedToken()
 			}
 		}
@@ -286,7 +291,7 @@ func (gl *gramLoader) parseGroupContent(expectedCloser rune) ([]GrammaticalEleme
 	return nil, errors.New("Grammatical group not closed before EOF")
 }
 
-func (gl *gramLoader) readTerminal() (int, bool) {
+func (gl *gramLoader) readTerminal() (int, error) {
 	// ignore the leading `'` in our terminal (start with empty builder)
 	terminalBuilder := strings.Builder{}
 
@@ -298,9 +303,9 @@ func (gl *gramLoader) readTerminal() (int, bool) {
 
 			// match terminal to a keyword or symbol pattern if possible.
 			if kind, ok := keywordPatterns[terminal]; ok {
-				return kind, true
+				return kind, nil
 			} else if kind, ok := symbolPatterns[terminal]; ok {
-				return kind, true
+				return kind, nil
 			} else {
 				var kind int
 
@@ -326,12 +331,12 @@ func (gl *gramLoader) readTerminal() (int, bool) {
 				case "CHARLIT":
 					kind = CHARLIT
 				default:
-					// unknown terminal kind => malformed (0 is
+					// unknown terminal kind => undefined (0 is
 					// meaningless/arbitrary - not token kind)
-					return 0, false
+					return 0, fmt.Errorf("Undefined Terminal `%s` on line %d", terminalBuilder.String(), gl.line)
 				}
 
-				return kind, true
+				return kind, nil
 			}
 		}
 
@@ -340,7 +345,7 @@ func (gl *gramLoader) readTerminal() (int, bool) {
 
 	// if the token is not closed before EOF, then it is malformed (and we reach
 	// here - value returned is meaningless even though 0 is a token kind value)
-	return 0, false
+	return 0, errors.New("Unexpected EOF")
 }
 
 func (gl *gramLoader) readNonterminal() string {

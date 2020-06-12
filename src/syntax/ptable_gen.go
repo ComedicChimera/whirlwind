@@ -2,11 +2,12 @@ package syntax
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 	"sort"
 )
 
-const _goalSymbol = "top_level"
+const _goalSymbol = "file"
 
 // LRItem represents an LR(1) item (concisely)
 // 24B on a 64 bit machine
@@ -63,7 +64,7 @@ func (ptb *PTableBuilder) Build() bool {
 	// augment the rule set
 	augRuleNdx := len(ptb.BNFRules.RulesByIndex)
 	ptb.BNFRules.RulesByIndex = append(ptb.BNFRules.RulesByIndex,
-		&BNFRule{ProdName: "_END_", Contents: []interface{}{BNFNonterminal(_goalSymbol), BNFTerminal(EOF)}})
+		&BNFRule{ProdName: "_END_", Contents: []BNFElement{BNFNonterminal(_goalSymbol)}})
 	ptb.BNFRules.RulesByProdName["_END_"] = []int{augRuleNdx}
 
 	// create the starting kernel
@@ -78,6 +79,9 @@ func (ptb *PTableBuilder) Build() bool {
 	// calculate the next sets from the starting item set
 	ptb.nextSets(startSet)
 
+	// TEST
+	ptb.printSets()
+
 	// the number of states (rows) will be equivalent to the number of item sets
 	// since the merging has already occurred in generating the item sets
 	ptb.Table = &ParsingTable{Rows: make([]*PTableRow, len(ptb.ItemSets))}
@@ -87,11 +91,11 @@ func (ptb *PTableBuilder) Build() bool {
 	// existing rules (ie. rules that have the same name and size)
 	ptableRules := make(map[string][]int)
 
-	tableConstructionFailed := false
+	tableConstructionSucceeded := true
 
 	for i, itemSet := range ptb.ItemSets {
-		row := ptb.Table.Rows[i]
-		row.Actions = make(map[int]*Action)
+		row := &PTableRow{Actions: make(map[int]*Action), Gotos: make(map[string]int)}
+		ptb.Table.Rows[i] = row
 
 		// calculate the necessary shift actions
 		for terminal, state := range itemSet.TerminalConns {
@@ -110,27 +114,39 @@ func (ptb *PTableBuilder) Build() bool {
 			// dot is at the end of a rule/epsilon rule => reduction time
 			if item.DotPos == len(bnfRule.Contents) || reflect.DeepEqual(bnfRule.Contents[0], BNFEpsilon{}) {
 				// determine the correct reduction rule
-				var reduceRule int
+				reduceRule := -1
 
-				if addedRules, ok := ptableRules[bnfRule.ProdName]; ok {
+				// convert the BNF rule into a ptable rule
+				convertedRule := &PTableRule{Name: bnfRule.ProdName}
+				if bnfRule.Contents[0].Kind() == BNFKindEpsilon {
+					convertedRule.Count = 0
+				} else {
+					convertedRule.Count = len(bnfRule.Contents)
+				}
+
+				if addedRules, ok := ptableRules[convertedRule.Name]; ok {
 					for _, ruleRef := range addedRules {
-						if ptb.Table.Rules[ruleRef].Count == len(bnfRule.Contents) {
+						if ptb.Table.Rules[ruleRef].Count == convertedRule.Count {
 							reduceRule = ruleRef
-						} else {
-							// rule is not redundant => add it (get rule ref
-							// preemptively as with other addition case)
-							reduceRule = ptb.addRule(bnfRule)
-
-							// add our rule to the ptableRules entry for the production name
-							ptableRules[bnfRule.ProdName] = append(ptableRules[bnfRule.ProdName], reduceRule)
+							break
 						}
+					}
+
+					// if rule is still -1, it has not been added => not redundant
+					if reduceRule == -1 {
+						reduceRule = len(ptb.Table.Rules)
+						ptb.Table.Rules = append(ptb.Table.Rules, convertedRule)
+
+						// add our rule to the ptableRules entry for the production name
+						ptableRules[convertedRule.Name] = append(ptableRules[convertedRule.Name], reduceRule)
 					}
 				} else {
 					// if it hasn't even been added to ptableRules, we need to
 					// create it and create an entry for it in ptableRules.
-					reduceRule = ptb.addRule(bnfRule)
+					reduceRule = len(ptb.Table.Rules)
+					ptb.Table.Rules = append(ptb.Table.Rules, convertedRule)
 
-					ptableRules[bnfRule.ProdName] = []int{reduceRule}
+					ptableRules[convertedRule.Name] = []int{reduceRule}
 				}
 
 				// attempt to add all of the corresponding reduce actions
@@ -142,17 +158,25 @@ func (ptb *PTableBuilder) Build() bool {
 						// the table construction was unsuccessful.
 						if action.Kind == AKShift {
 							// find a better way to indicate the token value
-							fmt.Printf("Shift/Reduce Conflict Resolved Between `%s` and `%d`\n", bnfRule.ProdName, action.Operand)
+							fmt.Printf("Shift/Reduce Conflict Resolved Between `%s` and `%d`\n", bnfRule.ProdName, lookahead)
 						} else if action.Kind == AKReduce {
+							oldRule, newRule := ptb.Table.Rules[action.Operand], ptb.Table.Rules[reduceRule]
+
 							// if there is a conflict between two epsilon rules,
 							// it is not actually a conflict (empty trees are
 							// pruned - name doesn't actually matter here)
-							if ptb.Table.Rules[action.Operand].Count == 0 && ptb.Table.Rules[reduceRule].Count == 0 {
+							if oldRule.Count == 0 && newRule.Count == 0 {
+								continue
+							} else if *oldRule == *newRule {
+								// if the rules create the same tree and consume
+								// the same amount of tokens, we don't care if
+								// they contain different elements => they are
+								// effectively equal (so no real conflict exists)
 								continue
 							}
 
-							fmt.Printf("Reduce/Reduce Conflict Between `%s` and `%s`\n", bnfRule.ProdName, ptb.Table.Rules[action.Operand].Name)
-							tableConstructionFailed = true
+							fmt.Printf("Reduce/Reduce Conflict Between `%s` and `%s`\n", oldRule.Name, newRule.Name)
+							tableConstructionSucceeded = false
 						}
 
 						// ACCEPT collisions should never happen
@@ -168,7 +192,54 @@ func (ptb *PTableBuilder) Build() bool {
 		}
 	}
 
-	return tableConstructionFailed
+	return tableConstructionSucceeded
+}
+
+func (ptb *PTableBuilder) printSets() {
+	for _, itemSet := range ptb.ItemSets {
+		fmt.Print("{")
+
+		for _, item := range itemSet.Items {
+			rule := ptb.BNFRules.RulesByIndex[item.Rule]
+			fmt.Print(rule.ProdName, "-> ")
+
+			for i, elem := range rule.Contents {
+				if i == item.DotPos {
+					fmt.Print(".")
+				}
+
+				switch r := elem.(type) {
+				case BNFEpsilon:
+					fmt.Print("''")
+				case BNFNonterminal, BNFTerminal:
+					fmt.Print(r)
+				}
+
+				if i < len(rule.Contents)-1 {
+					fmt.Print(" ")
+				}
+			}
+
+			if item.DotPos == len(rule.Contents) {
+				fmt.Print(".")
+			}
+
+			fmt.Print(", ")
+
+			for i, lookahead := range item.Lookaheads {
+				fmt.Print(lookahead)
+
+				if i < len(item.Lookaheads)-1 {
+					fmt.Print("/")
+				}
+
+			}
+
+			fmt.Print("; ")
+		}
+
+		fmt.Print("}\n")
+	}
 }
 
 // addRule converts a BNF rule into a usable rule (assumes rule is not redundant)
@@ -229,8 +300,7 @@ func (ptb *PTableBuilder) nextSets(startSet *LRItemSet) {
 		}
 
 		// otherwise, compute the GOTO of the item set and determine whether or
-		// not to add it to graph and whether or not to connection (recall: all
-		// constraints of `gotoOf` have already been handled)
+		// not to add it to graph (and thereby what to connect it to)
 		gotoSet := ptb.gotoOf(startSet, dottedElem)
 
 		gotoMatched := false
@@ -265,13 +335,16 @@ func (ptb *PTableBuilder) nextSets(startSet *LRItemSet) {
 }
 
 // gotoOf calculates the next state of a given item set when provided with a
-// given input (NOT EPSILON).  NOTE: it should not be called on an item set
-// where the dot is at the end of any item (should be handled elsewhere).
-func (ptb *PTableBuilder) gotoOf(itemSet *LRItemSet, element interface{}) *LRItemSet {
+// given input (NOT EPSILON).  NOTE: will ignore items with dots at the end.
+func (ptb *PTableBuilder) gotoOf(itemSet *LRItemSet, element BNFElement) *LRItemSet {
 	newItemSet := &LRItemSet{}
 
 	for _, item := range itemSet.Items {
 		ruleContents := ptb.BNFRules.RulesByIndex[item.Rule].Contents
+
+		if item.DotPos == len(ruleContents) {
+			continue
+		}
 
 		// only calculate goto if the element matches
 		if reflect.DeepEqual(ruleContents[item.DotPos], element) {
@@ -306,57 +379,78 @@ func (ptb *PTableBuilder) gotoOf(itemSet *LRItemSet, element interface{}) *LRIte
 // closureOf calculates the closure of the kernel of an item set NOTE: should
 // NOT be called on a kernel where the dot is at the end of any item
 func (ptb *PTableBuilder) closureOf(kernel *LRItemSet) *LRItemSet {
-	for _, item := range kernel.Items {
-		ruleContents := ptb.BNFRules.RulesByIndex[item.Rule].Contents
+	for addedItems := true; addedItems; {
+		addedItems = false
 
-		if nt, ok := ruleContents[item.DotPos].(BNFNonterminal); ok {
-			var lookaheads []int
+		for _, item := range kernel.Items {
+			ruleContents := ptb.BNFRules.RulesByIndex[item.Rule].Contents
 
-			if item.DotPos == len(ruleContents)-1 {
-				lookaheads = item.Lookaheads
-			} else {
-				lookaheads = ptb.first(ruleContents[item.DotPos+1:])
+			if nt, ok := ruleContents[item.DotPos].(BNFNonterminal); ok {
+				var lookaheads []int
 
-				// firsts are not necessarily ordered so we need to sort them
-				sort.Ints(lookaheads)
+				if item.DotPos == len(ruleContents)-1 {
+					lookaheads = item.Lookaheads
+				} else {
+					lookaheads = ptb.first(ruleContents[item.DotPos+1:])
 
-				// remove all the epsilons from the first set
-				n := 0
-				for _, l := range lookaheads {
-					// -1 == epsilon
-					if l != -1 {
-						lookaheads[n] = l
-						n++
+					// firsts are not necessarily ordered so we need to sort them
+					sort.Ints(lookaheads)
+
+					// remove all the epsilons from the first set
+					n := 0
+					for _, l := range lookaheads {
+						// -1 == epsilon
+						if l != -1 {
+							lookaheads[n] = l
+							n++
+						}
+					}
+
+					// if any epsilons were removed, the desired length of the
+					// new slice will change so we can use it to test if there
+					// were an epsilons in the first set
+					if n != len(lookaheads) {
+						lookaheads = lookaheads[:n]
+						lookaheads = combineLookaheads(lookaheads, item.Lookaheads)
 					}
 				}
 
-				// if any epsilons were removed, the desired length of the
-				// new slice will change so we can use it to test if there
-				// were an epsilons in the first set
-				if n != len(lookaheads) {
-					lookaheads = lookaheads[:n]
-					lookaheads = combineLookaheads(lookaheads, item.Lookaheads)
+				newRuleRefs, ok := ptb.BNFRules.RulesByProdName[string(nt)]
+
+				if !ok {
+					fmt.Printf("Grammar Error: No production defined for nonterminal `%s`", string(nt))
+					os.Exit(1)
 				}
+
+				// allocate a base buffer new items (based on number of new rules)
+				newItems := make([]*LRItem, len(newRuleRefs))
+
+				// productions will never had duplicate rule references so no
+				// merging is required here (ie. order will work as desired)
+				for i := range newItems {
+					newItems[i] = &LRItem{Rule: newRuleRefs[i], DotPos: 0, Lookaheads: lookaheads}
+				}
+
+				newItemSet := &LRItemSet{Items: newItems}
+
+				// ensure that new item kernel is ordered
+				newItemSet.order()
+
+				// combine our original kernel with our new kernel
+				// to see if there are any new items being added
+				initKSize := len(kernel.Items)
+				kernel = union(kernel, newItemSet)
+
+				// if our kernel did not change size, no new items
+				// were added and there is no need to calculate closure
+				if len(kernel.Items) == initKSize {
+					continue
+				}
+
+				// items have been added and therefore we should continue
+				// calculating closure (and set the flag accordingly)
+				addedItems = true
 			}
-
-			newRuleRefs := ptb.BNFRules.RulesByProdName[string(nt)]
-
-			// allocate a base buffer new items (based on number of new rules)
-			newItems := make([]*LRItem, len(newRuleRefs))
-
-			for i := range newItems {
-				newItems[i] = &LRItem{Rule: newRuleRefs[i], DotPos: 0, Lookaheads: lookaheads}
-			}
-
-			newItemSet := &LRItemSet{Items: newItems}
-
-			// ensure that new item kernel is ordered
-			newItemSet.order()
-
-			// recursively calculate closure
-			newItemSet = ptb.closureOf(newItemSet)
-
-			kernel = union(kernel, newItemSet)
 		}
 	}
 
@@ -366,7 +460,7 @@ func (ptb *PTableBuilder) closureOf(kernel *LRItemSet) *LRItemSet {
 
 // first calculates the first set of a given slice of a BNF rule (can be used
 // recursively) NOTE: should not be called with an empty slice (will fail)
-func (ptb *PTableBuilder) first(ruleSlice []interface{}) []int {
+func (ptb *PTableBuilder) first(ruleSlice []BNFElement) []int {
 	if nt, ok := ruleSlice[0].(BNFNonterminal); ok {
 		var firstSet []int
 
@@ -379,7 +473,7 @@ func (ptb *PTableBuilder) first(ruleSlice []interface{}) []int {
 
 			// copy so that our in-place mutations of the first set don't affect
 			// the memoized version (small cost but ultimately trivial)
-			copy(mfs, firstSet)
+			copy(firstSet, mfs)
 		} else {
 			for _, rRef := range ptb.BNFRules.RulesByProdName[string(nt)] {
 				// r will never be empty
@@ -390,7 +484,7 @@ func (ptb *PTableBuilder) first(ruleSlice []interface{}) []int {
 
 			// memoize the base first set (copied for same reasons as above)
 			mfs := make([]int, len(firstSet))
-			copy(firstSet, mfs)
+			copy(mfs, firstSet)
 			ptb.firstSets[string(nt)] = mfs
 		}
 
@@ -422,6 +516,8 @@ func (ptb *PTableBuilder) first(ruleSlice []interface{}) []int {
 			// slices that could result in a runtime panic (ie. will be empty)
 			firstSet = append(firstSet, ptb.first(ruleSlice[1:])...)
 		}
+
+		return firstSet
 	} else if _, ok := ruleSlice[0].(BNFEpsilon); ok {
 		// convert epsilon into an integer value (-1) and apply Fi(epsilon) =
 		// {epsilon }.  NOTE: epsilons only occur as solitary rules (always
@@ -434,7 +530,8 @@ func (ptb *PTableBuilder) first(ruleSlice []interface{}) []int {
 }
 
 // compare is used to compare two items so that they can be ordered: -1 => a <
-// b; 1 => a > b; 0 => a == b.  ASSUMES LOOKAHEADS ARE ALREADY SORTED.
+// b; 1 => a > b; 0 => a == b.   Lookaheads are not included: two items with same
+// core and different lookaheads should be merged (same lookaheads)
 func compare(a, b *LRItem) int {
 	if a.Rule < b.Rule {
 		return -1
@@ -446,20 +543,6 @@ func compare(a, b *LRItem) int {
 		return -1
 	} else if a.DotPos > b.DotPos {
 		return 1
-	}
-
-	if len(a.Lookaheads) < len(b.Lookaheads) {
-		return -1
-	} else if len(a.Lookaheads) > len(b.Lookaheads) {
-		return 1
-	}
-
-	for i, l := range a.Lookaheads {
-		if l < b.Lookaheads[i] {
-			return -1
-		} else if l > b.Lookaheads[i] {
-			return 1
-		}
 	}
 
 	return 0
@@ -526,8 +609,12 @@ func union(a, b *LRItemSet) *LRItemSet {
 	for ; i < len(aItems) && j < len(bItems); insertPosition++ {
 		switch compare(aItems[i], bItems[j]) {
 		case 0:
-			// equal => increment both
-			newItems[insertPosition] = aItems[i]
+			// equal => increment both, combine lookaheads
+			mergedItem := aItems[i]
+			mergedItem.Lookaheads =
+				combineLookaheads(mergedItem.Lookaheads, bItems[j].Lookaheads)
+
+			newItems[insertPosition] = mergedItem
 			i++
 			j++
 		case 1:
@@ -562,7 +649,8 @@ func union(a, b *LRItemSet) *LRItemSet {
 
 // order sorts rules of item set (SHOULD BE CALLED ONCE).  It is used for
 // efficient comparison when generating parsing table (sorting once is less
-// expensive than comparing a list of unordered rules for equality)
+// expensive than comparing a list of unordered rules for equality).  It ASSUMES
+// all items with the same core have been merged as necessary.
 func (itemSet *LRItemSet) order() {
 	sort.Slice(itemSet.Items, func(i, j int) bool {
 		return compare(itemSet.Items[i], itemSet.Items[j]) == -1
@@ -572,6 +660,11 @@ func (itemSet *LRItemSet) order() {
 // merge attempts to merge to item sets.  It returns true if such a merge was
 // possible and performs the merge (in-place).  If not, it returns false.
 func (itemSet *LRItemSet) merge(other *LRItemSet) bool {
+	// if they have different lengths, they have different cores
+	if len(itemSet.Items) != len(other.Items) {
+		return false
+	}
+
 	// test if the items have the same core
 	for i, item := range itemSet.Items {
 		otherItem := other.Items[i]
@@ -590,7 +683,7 @@ func (itemSet *LRItemSet) merge(other *LRItemSet) bool {
 }
 
 // addConnection adds the given element as a connection to the given item set
-func (itemSet *LRItemSet) addConnection(element interface{}, setPos int) {
+func (itemSet *LRItemSet) addConnection(element BNFElement, setPos int) {
 	switch v := element.(type) {
 	case BNFTerminal:
 		itemSet.TerminalConns[int(v)] = setPos

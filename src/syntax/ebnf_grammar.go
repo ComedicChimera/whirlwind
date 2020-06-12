@@ -65,8 +65,8 @@ type AlternatorElement struct {
 
 // NewAlternatorElement create a new alternator element from some number of
 // groups efficiently
-func NewAlternatorElement(groups ...[]GrammaticalElement) AlternatorElement {
-	return AlternatorElement{groups: groups}
+func NewAlternatorElement(groups ...[]GrammaticalElement) *AlternatorElement {
+	return &AlternatorElement{groups: groups}
 }
 
 // Kind of alternator is GKindAlternator
