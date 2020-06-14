@@ -106,7 +106,7 @@ func (ptb *PTableBuilder) buildTableFromSets() bool {
 			switch v := conn.(type) {
 			case BNFTerminal:
 				row.Actions[int(v)] = &Action{Kind: AKShift, Operand: state}
-			case Nonterminal:
+			case BNFNonterminal:
 				row.Gotos[string(v)] = state
 			}
 		}
@@ -120,37 +120,42 @@ func (ptb *PTableBuilder) buildTableFromSets() bool {
 				// determine the correct reduction rule
 				reduceRule := -1
 
-				// convert the BNF rule into a ptable rule
-				convertedRule := &PTableRule{Name: bnfRule.ProdName}
-				if bnfRule.Contents[0].Kind() == BNFKindEpsilon {
-					convertedRule.Count = 0
-				} else {
-					convertedRule.Count = len(bnfRule.Contents)
-				}
-
-				if addedRules, ok := ptableRules[convertedRule.Name]; ok {
-					for _, ruleRef := range addedRules {
-						if ptb.Table.Rules[ruleRef].Count == convertedRule.Count {
-							reduceRule = ruleRef
-							break
-						}
+				// if we are reducing by the _END_ rule, we are accepting
+				// meaning, we don't actually need to store or calculate a rule,
+				// but if we are reducing by anything else then we do
+				if bnfRule.ProdName != "_END_" {
+					// convert the BNF rule into a ptable rule
+					convertedRule := &PTableRule{Name: bnfRule.ProdName}
+					if bnfRule.Contents[0].Kind() == BNFKindEpsilon {
+						convertedRule.Count = 0
+					} else {
+						convertedRule.Count = len(bnfRule.Contents)
 					}
 
-					// if rule is still -1, it has not been added => not redundant
-					if reduceRule == -1 {
+					if addedRules, ok := ptableRules[convertedRule.Name]; ok {
+						for _, ruleRef := range addedRules {
+							if ptb.Table.Rules[ruleRef].Count == convertedRule.Count {
+								reduceRule = ruleRef
+								break
+							}
+						}
+
+						// if rule is still -1, it has not been added => not redundant
+						if reduceRule == -1 {
+							reduceRule = len(ptb.Table.Rules)
+							ptb.Table.Rules = append(ptb.Table.Rules, convertedRule)
+
+							// add our rule to the ptableRules entry for the production name
+							ptableRules[convertedRule.Name] = append(ptableRules[convertedRule.Name], reduceRule)
+						}
+					} else {
+						// if it hasn't even been added to ptableRules, we need to
+						// create it and create an entry for it in ptableRules.
 						reduceRule = len(ptb.Table.Rules)
 						ptb.Table.Rules = append(ptb.Table.Rules, convertedRule)
 
-						// add our rule to the ptableRules entry for the production name
-						ptableRules[convertedRule.Name] = append(ptableRules[convertedRule.Name], reduceRule)
+						ptableRules[convertedRule.Name] = []int{reduceRule}
 					}
-				} else {
-					// if it hasn't even been added to ptableRules, we need to
-					// create it and create an entry for it in ptableRules.
-					reduceRule = len(ptb.Table.Rules)
-					ptb.Table.Rules = append(ptb.Table.Rules, convertedRule)
-
-					ptableRules[convertedRule.Name] = []int{reduceRule}
 				}
 
 				// attempt to add all of the corresponding reduce actions
@@ -184,9 +189,9 @@ func (ptb *PTableBuilder) buildTableFromSets() bool {
 						}
 
 						// ACCEPT collisions should never happen
-					} else if lookahead == EOF && bnfRule.ProdName == "_END_" {
-						// if we are trying to reduce the GOAL symbol with an
-						// EOF lookahead we want to mark this action as accept
+					} else if reduceRule == -1 {
+						// if our reduce rule is -1, we are reducing the goal
+						// symbol which means we should accept (no test for EOF)
 						row.Actions[lookahead] = &Action{Kind: AKAccept}
 					} else {
 						row.Actions[lookahead] = &Action{Kind: AKReduce, Operand: reduceRule}
