@@ -1,9 +1,9 @@
 (* 
 The Formal Whirlwind Language Grammar
 -------------------------------------
-- This grammar is ambiguous in a number of places (unavoidably) and has been
-  left as such to allow for a more clear AST to be generated.
-- It can be parsed without backtracking.
+- This grammar is complex and is technically not LALR(1) in certain locations
+  but some adjustments to the parsing algorithm and parser generator allow for
+  these conflicts to either be ignored or automatically resolved.
 - Indentation is managed by the lexer which produces the tokens INDENT and
   DEDENT to denote changes in the level of indentation (an increase and a
   decrease respectively)
@@ -13,6 +13,8 @@ The Formal Whirlwind Language Grammar
 - All other tokens in all caps are simply special tokens produces by the lexer.
   All tokens in lowercase are just raw strings.  However, all keyword tokens
   assert an implicit word-boundary.   
+- The `? ... ?` syntax marks a group that can be optionally wrapped in a block
+  (indentation suite - eg. arrays, type definitions, lists, dictionaries).
 *)
 
 (* file is our goal symbol *)
@@ -36,7 +38,7 @@ interf_member = func_def | variant_def | method_variant ;
 method_variant = 'variant' [generic_tag] 'when' method_variant_cond {',' method_variant_cond} 'NEWLINE' func_def ;
 method_variant_cond = 'IDENTIFIER' 'is' type ;
 
-operator_def = 'operator' operator_value [generic_tag] [signature] func_body ;
+operator_def = 'operator' ['inplace'] operator_value [generic_tag] [signature] func_body ;
 operator_value = '+' | '-' | '*' | '/' | '~/' | '~*' | '~^' | '%' 
                | '>' ['>'] | '<' ['<'] | '<=' | '>=' | '=='
                | '!' | '!=' | '&' ['&'] | '|' ['|'] | '^' | '[' [':'] ']' ;
@@ -46,9 +48,9 @@ signature = [args_decl] type ;
 args_decl = '(' (arg_decl {',' arg_decl } [',' var_arg_decl] | var_arg_decl ) ;
 arg_decl = 'IDENTIFIER' {',' 'IDENTIFIER'} type_ext [initializer] ;
 var_arg_decl = '...' 'IDENTIFIER' type_ext ;
-func_body = ['const'] ( do_block | '=>' expr ) ;
+func_body = ['const'] ( do_block | ? '=>' expr ? ) ;
 
-type_def = ['closed'] 'type' 'IDENTIFIER' [generic_tag] (typeset | newtype) ;
+type_def = ['closed'] 'type' 'IDENTIFIER' [generic_tag] ? typeset | newtype ? ;
 typeset = '=' type {'|' type } ;
 newtype = enum_suffix | tupled_suffix | struct_suffix ;
 enum_suffix = 'NEWLINE' 'INDENT' enum_type_member {'NEWLINE' enum_type_member};
@@ -91,7 +93,7 @@ async_for_loop = 'async' 'for' iterator do_block ;
 
 cond_loop = 'loop' (expr do_block | do_block | block) [after_clause] ;
 
-ctx_manager = 'with' full_ctx do_block [else_block] [after_clause];
+ctx_manager = 'with' ? full_ctx ? do_block [else_block] [after_clause] ;
 full_ctx = ctx_elem {(';' | 'NEWLINE') ctx_elem} ;
 ctx_elem = 'IDENTIFIER' ('=' | '<-') expr ;
 
@@ -121,7 +123,7 @@ mut_atom = 'this' | 'IDENTIFIER' | '(' expr ')' ;
 assign_op = ['+' | '-' | '*' | '/' | '%' | '~/' | '~^' | '>' '>' | '<' '<' | '&' | '|' | '^'] '=' | ':>' ;
 
 expr = (match_expr ['if' match_expr 'else' expr ] | with_expr | closure) ;
-with_expr = 'with' full_ctx '=>' expr ;
+with_expr = 'with' ? full_ctx ? '=>' expr ;
 closure = ['async'] ('||' | '|' [closure_arg {',' closure_arg}] '|' func_body) ;
 closure_arg = 'IDENTIFIER' [type_ext] ;
 
@@ -171,10 +173,10 @@ atom = 'INTLIT' | 'STRINGLIT' | 'FLOATLIT' | 'BOOLLIT' | 'CHARLIT' | array_build
      | list_builder | dict_builder | vector_builder | tupled_expr | 'IDENTIFIER' 
      | 'null' | 'this' ;
 
-array_builder = '{' seq_contents '}' ;
-list_builder = '[' seq_contents ']' ;
+array_builder = '{' ? seq_contents ? '}' ;
+list_builder = '[' ? seq_contents ? ']' ;
 seq_contents = expr ({',' expr} | [comp_suffix]) ;
-dict_builder = '{' expr ':' expr ({',' expr ':' expr} | [comp_suffix]) '}' ;
+dict_builder = '{' ? expr ':' expr ({',' expr ':' expr} | [comp_suffix]) ? '}' ;
 vector_builder = '<' expr [':' expr] '>' ; (* expr can be an array for vector array initializers *)
 tupled_expr = '(' expr {',' expr} ')' ;
 

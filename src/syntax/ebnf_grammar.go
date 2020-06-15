@@ -10,7 +10,7 @@ type Production []GrammaticalElement
 const (
 	GKindAlternator = iota
 	GKindRepeat
-	GKindFlag
+	GKindSuite // group that can be in an optional suite (? ... ?)
 	GKindGroup
 	GKindOptional
 	GKindTerminal
@@ -77,12 +77,4 @@ func (AlternatorElement) Kind() int {
 // PushFront pushes a group onto the front of alternator element
 func (ae *AlternatorElement) PushFront(group []GrammaticalElement) {
 	ae.groups = append([][]GrammaticalElement{group}, ae.groups...)
-}
-
-// FlagElement is used to denote a flag in the grammar (? ... ?)
-type FlagElement string
-
-// Kind of FlagElement is GKindFlag
-func (FlagElement) Kind() int {
-	return GKindFlag
 }

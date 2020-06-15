@@ -206,28 +206,14 @@ func (gl *gramLoader) parseGroupContent(expectedCloser rune) ([]GrammaticalEleme
 			}
 
 			groupContent = append(groupContent, NewGroupingElement(GKindRepeat, gelems))
-		// flag groups are special in that they can only contain capital letter
-		// keywords so we read them directly as opposed to as group content
 		case '?':
-			flagBuilder := strings.Builder{}
+			gelems, err := gl.parseGroupContent('?')
 
-			for gl.next() {
-				// we can skip spaces safely
-				if gl.curr == ' ' {
-					continue
-				} else if gl.curr == '?' {
-					// we have reached the end of the flag
-					groupContent = append(groupContent, FlagElement(flagBuilder.String()))
-				} else {
-					// if it is a capital letter, then it is a valid flag character
-					if '@' < gl.curr && gl.curr < '[' {
-						flagBuilder.WriteRune(gl.curr)
-					}
-				}
+			if err != nil {
+				return nil, err
 			}
 
-			// if no closer is encountered, token is malformed
-			return nil, fmt.Errorf("Flag `%s` missing closer on line %d", flagBuilder.String(), gl.line)
+			groupContent = append(groupContent, NewGroupingElement(GKindSuite, gelems))
 		// alternators interrupt the current parsing group and create a new one
 		// to the same closer so that they can combine the tailing elements with
 		// the elements before them. if the tail is itself an alternator, then

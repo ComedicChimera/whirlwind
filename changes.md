@@ -141,8 +141,6 @@ the function takes no arguments
     - ownership => lifetime therefore lifetime bound to owner
   - double references are not allowed (and of course triple, quadruple, etc. are also disallowed)
     - can use combo of `own` or `const` to achieve equivalent behavior to C++ (rvalue references)
-  - support for memory operator overloads
-    - `delete` operator (implement finalizers - ran before deletion occurs)
 - Nullability
   - references have a nullability status
   - designated like so `&byte?`
@@ -223,6 +221,34 @@ the function takes no arguments
   - after is not really meaningful here but can be used
 - can have `else` block that runs if the context manager is unsuccessful at
 acquiring the resources/extracting the monadic value
+- associated interfaces: `Contextual` and `Monad`
+
+## Improved Operator Overloading
+
+- move operator overloads outside of interfaces
+  - allows for more efficient overloads (defined in terms of functions, makes more sense)
+  - operators can be "left-handed" or "right-handed"
+  - logically, an operator doesn't have a "primary operand" (when we see `2 + 3`, we don't think `2.add(3)`)
+  - applied more as first-class citizens (if you will)
+- operator overloads can have an `inplace` form that will be used whenever the operator
+is applied to mutable values (where mutation is expected, not where it is possible).
+  - allows user to remove unnecessary copying and create more efficient forms of the operators
+  - if no `inplace` form is provided, the compiler will use the standard form.
+  - if only an `inplace` form is provided, said overload is only valid where the `inplace` form
+  would be accepted.
+  - immutable values (such as lvalues on the rhs of an expression) may be passed to `inplace` forms
+  provided the argument in their position is marked `const` (allows for compound assignment forms
+  of the operator work as desired).
+    - the compiler should determine this immutablility reasonably
+- **all** operator overloads aggressively elide copies (even in violation of Whirlwind's value
+semantics - eg. the underlying array of a list will not copied even if the operator is called
+as a function)
+  - all arguments to `inplace` operator overloads will not be copied
+  - all const arguments to standard operator will not be copied
+  - the compiler may selectively elide copies on non-const values passed to
+  standard operator overloads if the argument is treated as a constant or if
+  the value being passed is an rvalue.
+  - this total copy elision does **NOT** propagate beyond the argument
 
 ## Type System Adjustments
 
@@ -233,11 +259,6 @@ acquiring the resources/extracting the monadic value
     - looks like `Struct{...s, x=10}`
     - emulates Elm struct value update syntax (kind of)
     - can only spread on struct of same type
-- move operator overloads outside of interfaces
-  - allows for more efficient overloads (defined in terms of functions, makes more sense)
-  - operators can be "left-handed" or "right-handed"
-  - logically, an operator doesn't have a "primary operand" (when we see `2 + 3`, we don't think `2.add(3)`)
-  - applied more as first-class citizens (if you will)
 - all typesets have **no** null value
   - compiler should error if a null is used to satisfy a typeset
   - interfaces and `any` are considered typesets (reminder)

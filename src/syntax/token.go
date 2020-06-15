@@ -47,6 +47,7 @@ const (
 	FUNC
 	ASYNC
 	OPERATOR
+	INPLACE
 	VARIANT
 
 	// type definitions
@@ -189,6 +190,7 @@ var keywordPatterns = map[string]int{
 	"async":       ASYNC,
 	"variant":     VARIANT,
 	"operator":    OPERATOR,
+	"inplace":     INPLACE,
 	"type":        TYPE,
 	"closed":      CLOSED,
 	"interf":      INTERF,

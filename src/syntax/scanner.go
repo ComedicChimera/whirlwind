@@ -86,7 +86,7 @@ func (s *Scanner) ReadToken() (*Token, error) {
 				levelDiff := level - s.indentLevel
 				if levelDiff < 0 {
 					s.indentLevel = level
-					return s.makeToken(DEDENT, string(-levelDiff)), nil
+					return s.makeToken(DEDENT, string(levelDiff)), nil
 				} else if levelDiff > 0 {
 					s.indentLevel = level
 					return s.makeToken(INDENT, string(levelDiff)), nil
