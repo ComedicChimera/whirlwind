@@ -305,6 +305,23 @@ as a function)
   - `[T]` -> `core::__list<T>`
   - `[K: V]` -> `core::__dict<K, V>`
   - implement initializations as such
+- copy and allocation elision
+  - avoid copying and/or allocating wherever possible
+    - constant function arguments do not need to be copied
+    - rvalues do not need to be copying before being passed to a function
+    - constants do not require an explicit `alloca` to create them
+    - constants should only be copied if not doing so would compromise their constancy
+    - ET CETERA (there are more instances!)
+  - general rule: the compiler should only enforce pure value semantics when not
+  doing so would have an apparent effect on the behavior of the user's code
+    - eg. a mutable list when passed to a function must be copied because
+    the user expects to be able to mutate the list inside the function without
+    mutating their outer list
+    - however, if the list is an rvalue or being passed as a constant, eliding
+    the copy has no effect on that actual behavior of the program (it just makes
+    it faster)
+    - note: behavior is not the instructions executed or how they are executed, but
+    rather the actual task performed by the program
 
 ## Compiler UX
 
