@@ -61,86 +61,74 @@ language, I aimed for an "85% solution" which effectively means close enough but
 
 Fibonacci:
 
-    import { println } from io::std;
+    import println from io::std
 
-    func fib() func()(int) {
-        let a = 0, b = 1;
+    func fib() func()(int) do
+        let a = 0, b = 1
 
-        func f() int {
-            yield a;
+        func f() int do
+            yield a
 
-            a, b = b, a + b;
-        }
+            a, b = b, a + b
 
-        return f;
-    }
+        return f
 
-    func main() {
-        let f = fib();
+    func main do
+        let f = fib()
 
         // prints first 10 fibonacci numbers
-        for i = 0; i < 10; i++ {
-            println(f());
-        }
+        for i = 0; i < 10; i++ do
+            println(f())
 
-        f = fib();
-        f(); // 0
-    }
+        f = fib()
+        f() // 0
 
 Radix Sort:
 
-    import { println } from io::std;
+    import println from io::std
 
-    func radix_sort(list: [uint]) [uint] {
-        let mx = list.max();
+    func radix_sort(list: [uint]) [uint] do
+        let mx = list.max()
 
-        for it = 0; 10 ~^ it < mx; it++ {
-            let buckets = [null as [int] for _ in 1..10];
+        for it = 0; 10 ~^ it < mx; it++ do
+            let buckets = [null as [int] for _ in 1..10]
 
-            for item in list {
-                buckets[item ~/ (10 ~^ it) % 10].push(item);
-            }             
+            for item in list do
+                buckets[item ~/ (10 ~^ it) % 10].push(item)            
 
-            list = list.flatten().to_list();
-        }
+            list = list.flatten().to_list()
 
-        return list;
-    }
+        return list
 
-    func main() {
-        let list = [9, 4, 7, 8, 2, 3, 9, 0, 0, 1];
+    func main do
+        let list = [9, 4, 7, 8, 2, 3, 9, 0, 0, 1]
 
-        list = radix_sort(list);
+        list = radix_sort(list)
 
-        println(list); // [0, 0, 1, 2, 3, 4, 7, 8, 9, 9]
-    }
+        println(list) // [0, 0, 1, 2, 3, 4, 7, 8, 9, 9]
 
 Linked List:
 
-    import { println } from io::std;
+    import println from io::std
 
     type LLNode {
-        value: int,
+        value: int
         next: own& LLNode
     }
 
-    func ll_range(val: int) own &LLNode {
-        if val == 0 {
-            return make LLNode{value=val};
-        }
+    func ll_range(val: int) own &LLNode do
+        if val == 0 do
+            return make LLNode{value=val}
 
-        return make LLNode{value=val, next=ll_range(val - 1)};
-    }
+        return make LLNode{value=val, next=ll_range(val - 1)}
 
-    func main() {
-        let ll = ll_range(10);
+    func main do
+        let ll = ll_range(10)
 
-        let p = ll;
-        for i = 0; i < 11; i++ {
-            println(p.value);
-            p = p.next;
-        }
-    }
+        let p = ll
+        for i = 0; i < 11; i++ do
+            println(p.value)
+            p = p.next
 
 ## <a name="contributing"/> Contributing
 
