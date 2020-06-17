@@ -4,7 +4,7 @@ import "github.com/ComedicChimera/whirlwind/src/syntax"
 
 // WhirlFile represents a single program file in a package
 type WhirlFile struct {
-	// Stores the root AST for the file (`whirlwind`)
+	// Stores the root AST for the file (`file`)
 	AST syntax.ASTNode
 
 	// Stores all definitions local to this file.  No exported symbols should be

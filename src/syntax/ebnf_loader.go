@@ -206,14 +206,6 @@ func (gl *gramLoader) parseGroupContent(expectedCloser rune) ([]GrammaticalEleme
 			}
 
 			groupContent = append(groupContent, NewGroupingElement(GKindRepeat, gelems))
-		case '?':
-			gelems, err := gl.parseGroupContent('?')
-
-			if err != nil {
-				return nil, err
-			}
-
-			groupContent = append(groupContent, NewGroupingElement(GKindSuite, gelems))
 		// alternators interrupt the current parsing group and create a new one
 		// to the same closer so that they can combine the tailing elements with
 		// the elements before them. if the tail is itself an alternator, then
@@ -258,6 +250,17 @@ func (gl *gramLoader) parseGroupContent(expectedCloser rune) ([]GrammaticalEleme
 			}
 
 			return groupContent, nil
+		// the suite group check is implemented here since the closer is the
+		// same as the opener and we want to prefer matching the closer.
+		// Otherwise, it has the same logic as the other kinds of groups.
+		case '?':
+			gelems, err := gl.parseGroupContent('?')
+
+			if err != nil {
+				return nil, err
+			}
+
+			groupContent = append(groupContent, NewGroupingElement(GKindSuite, gelems))
 		default:
 			// nonterminals only contain letters and underscores
 			if IsLetter(gl.curr) || gl.curr == '_' {

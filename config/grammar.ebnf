@@ -25,7 +25,7 @@ import_stmt = 'import' ( package_name ['as' 'IDENTIFIER'] | ( identifier_list | 
 package_name = 'IDENTIFIER' { '::' 'IDENTIFIER' } ;
 identifier_list = 'IDENTIFIER' {',' 'IDENTIFIER'} ;
 
-export_block = 'export' 'of' 'INDENT' top_level 'DEDENT' ;
+export_block = 'export' 'of' 'NEWLINE' 'INDENT' top_level 'DEDENT' ;
 
 top_level = definition { 'NEWLINE' definition } ;
 definition = interf_def | interf_bind | operator_def | func_def | type_def 
@@ -38,7 +38,7 @@ interf_member = func_def | variant_def | method_variant ;
 method_variant = 'variant' [generic_tag] 'when' method_variant_cond {',' method_variant_cond} 'NEWLINE' func_def ;
 method_variant_cond = 'IDENTIFIER' 'is' type ;
 
-operator_def = 'operator' ['inplace'] operator_value [generic_tag] [signature] func_body ;
+operator_def = 'operator' ['inplace'] '(' operator_value ')' [generic_tag] [signature] func_body ;
 operator_value = '+' | '-' | '*' | '/' | '~/' | '~*' | '~^' | '%' 
                | '>' ['>'] | '<' ['<'] | '<=' | '>=' | '=='
                | '!' | '!=' | '&' ['&'] | '|' ['|'] | '^' | '[' [':'] ']' ;
@@ -50,9 +50,9 @@ arg_decl = 'IDENTIFIER' {',' 'IDENTIFIER'} type_ext [initializer] ;
 var_arg_decl = '...' 'IDENTIFIER' type_ext ;
 func_body = ['const'] ( do_block | ? '=>' expr ? ) ;
 
-type_def = ['closed'] 'type' 'IDENTIFIER' [generic_tag] ? typeset | newtype ? ;
+type_def = ['closed'] 'type' 'IDENTIFIER' [generic_tag] ( ? typeset ? | newtype ) ;
 typeset = '=' type {'|' type } ;
-newtype = enum_suffix | tupled_suffix | struct_suffix ;
+newtype = ? enum_suffix ? | tupled_suffix | struct_suffix ;
 enum_suffix = 'NEWLINE' 'INDENT' enum_type_member {'NEWLINE' enum_type_member};
 enum_type_member = '|' 'IDENTIFIER' [tupled_suffix] ;
 tupled_suffix = '(' type {',' type} ')' ;
@@ -62,7 +62,7 @@ struct_member = identifier_list type_ext ;
 (* expr can be a list of decorators *)
 decorator = '@' expr 'NEWLINE' func_def ;
 
-annotated_def = annotation { annotation } (type_def | func_def) ;
+annotated_def = annotation { annotation } (type_def | func_def | interf_def | interf_bind) ;
 annotation = '#' 'IDENTIFIER' [ 'STRINGLIT' ] 'NEWLINE' ;
 
 variant_def = 'variant' '<' type_list '>' 'IDENTIFIER' func_body ;
@@ -107,7 +107,7 @@ simple_stmt =
 break_stmt = 'break' ;
 continue_stmt = 'continue';
 fallthrough_stmt = 'fallthrough' ;
-return_stmt = 'return' expr_list ;
+return_stmt = 'return' [ expr_list ] ;
 yield_stmt = 'yield' expr_list ;
 delete_stmt = 'delete' expr_list ;
 resize_stmt = 'make' expr 'to' heap_alloc ;

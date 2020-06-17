@@ -112,7 +112,7 @@ func (ptb *PTableBuilder) buildTableFromSets() bool {
 		}
 
 		// place any reduce actions in the table as necessary
-		for item := range itemSet.Items {
+		for item, lookaheads := range itemSet.Items {
 			bnfRule := ptb.BNFRules.RulesByIndex[item.Rule]
 
 			// dot is at the end of a rule/epsilon rule => reduction time
@@ -159,7 +159,7 @@ func (ptb *PTableBuilder) buildTableFromSets() bool {
 				}
 
 				// attempt to add all of the corresponding reduce actions
-				for lookahead := range itemSet.Items[item] {
+				for lookahead := range lookaheads {
 					if action, ok := row.Actions[lookahead]; ok {
 						// action already exists.  If it is a shift action,
 						// we warn but do not error.  If it is another reduce
@@ -449,7 +449,7 @@ func (ptb *PTableBuilder) first(ruleSlice []BNFElement) []int {
 		// valid firsts for the rule (ie. Fi(Aw) = Fi(A) \ { epsilon} U Fi(w))
 		if n != len(firstSet) {
 			// now we can trim off the excess length
-			firstSet := firstSet[:n]
+			firstSet = firstSet[:n]
 
 			// can blindly call first here because we already checked for rule
 			// slices that could result in a runtime panic (ie. will be empty)

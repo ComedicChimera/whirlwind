@@ -49,18 +49,32 @@ type Scanner struct {
 	// set after the scanner reads a newline to prompt it to update the
 	// indentation level and produce tokens accordingly
 	updateIndentLevel bool
+
+	// indentMode is used to store how the user is indenting their code mode 0 =
+	// no set mode, mode -1 = tabs, mode n > 1 = number of spaces per indent.
+	indentMode int
+
+	// emitDedent is used to store any DEDENT tokens the scanner should emit
+	// on the next call to ReadNext.  It has no effect is this value is `nil`
+	emitDedent *Token
 }
 
 // ReadToken reads a single token from the stream, error can indicate malformed
 // token or end of token stream
 func (s *Scanner) ReadToken() (*Token, error) {
+	if s.emitDedent != nil {
+		dedentTok := s.emitDedent
+		s.emitDedent = nil
+		return dedentTok, nil
+	}
+
 	for s.readNext() {
 		tok := &Token{}
 		malformed := false
 
 		switch s.curr {
-		// skip spaces, carriage returns, and byte order marks
-		case ' ', '\r', 65279:
+		//  ignore non-meaningful characters (eg. BOMs, form-feeds etc.)
+		case '\r', '\f', '\v', 65279:
 			s.tokBuilder.Reset()
 			continue
 		// handle newlines where they are relevant
@@ -68,10 +82,110 @@ func (s *Scanner) ReadToken() (*Token, error) {
 			// line counting handled in readNext
 			tok = s.getToken(NEWLINE)
 			s.updateIndentLevel = true
-		// handle indentation calculation
-		case '\t':
-			if s.updateIndentLevel {
+
+			// check to see if have an appropriate indent character on the next
+			// line (something that will trigger indentation logic).  If not, we
+			// need to emit the appropriate DEDENT (if we are exiting to top
+			// indentation level).  However, we only need to do this, if we are
+			// not already at the top level.  NOTE: DEDENT emitted on next call.
+			if s.indentLevel > 0 {
+				ahead, more := s.peek()
+
+				if more {
+					// NOTE: in both cases, the DEDENT change is equivalent to
+					// the current level if one should be emitted
+
+					// if the mode is not determined then either spaces or tabs
+					// will count as an indent and so we check for both
+					if s.indentMode == 0 && ahead != ' ' && ahead != '\t' {
+						s.emitDedent = s.makeToken(DEDENT, string(s.indentLevel))
+						s.indentLevel = 0
+					} else if s.indentMode == -1 && ahead != '\t' {
+						// if we are in TAB mode, check for tabs (above)
+						s.emitDedent = s.makeToken(DEDENT, string(s.indentLevel))
+						s.indentLevel = 0
+					} else if ahead != ' ' {
+						// we are in some SPACE mode, check for spaces (above)
+						s.emitDedent = s.makeToken(DEDENT, string(s.indentLevel))
+						s.indentLevel = 0
+					}
+				}
+
+				// regardless of any DEDENT emissions, continue as normal
+			}
+
+			// want to keep updateIndentLevel flag
+			s.tokBuilder.Reset()
+			return tok, nil
+		// handle space-based indentation (and spaces generally)
+		case ' ':
+			// if we are expecting some kind of space-based indentation
+			// or need to determine the indentation level
+			if s.updateIndentLevel && s.indentMode > -1 {
 				s.updateIndentLevel = false
+
+				// greedily, read as many spaces as is possible
+				for ahead, more := s.peek(); more && ahead == ' '; ahead, more = s.peek() {
+					s.readNext()
+				}
+
+				// if we are determining the indentation mode, the number of
+				// spaces until the first non-space becomes the indentation mode
+				// for the rest of the program (regardless of how many it is)
+				// NOTE: see `\t` case for explanation of INDENT and DEDENT
+				// token values (ie. why we are casting numbers to strings)
+				if s.indentMode == 0 {
+					s.indentMode = s.tokBuilder.Len()
+
+					// if we are determining indentation mode, then we will be
+					// indenting to level 1 (since it is only possible to have
+					// one indent on the first measured indentation)
+					s.indentLevel = 1
+
+					// discard tok builder contents and make a single indent
+					s.tokBuilder.Reset()
+					return s.makeToken(INDENT, string(1)), nil
+				}
+
+				// otherwise, calculate the equivalent indentation based on the
+				// known space-based indentation mode
+				level := s.tokBuilder.Len() / s.indentMode
+
+				// clear out the token builder (we no longer need its data)
+				s.tokBuilder.Reset()
+
+				// determine by how much the indentation changed and in what
+				// direction (directed distance) and update the indentLevel
+				// since we longer need its value
+				levelDiff := level - s.indentLevel
+				s.indentLevel = level
+
+				// the change is negative, the indent level decreased
+				if levelDiff < 0 {
+					return s.makeToken(DEDENT, string(-levelDiff)), nil
+				} else if levelDiff > 0 {
+					// if it is positive, indent level increased
+					return s.makeToken(INDENT, string(levelDiff)), nil
+				}
+
+				// if there was no change, we can simply continue as normal
+			} else {
+				// discard all non-meaningful spaces
+				s.tokBuilder.Reset()
+			}
+
+			continue
+		// handle tab-based indentation
+		case '\t':
+			if s.updateIndentLevel && s.indentMode < 1 {
+				s.updateIndentLevel = false
+
+				// if we need to set the indentation mode to TAB, do it (and
+				// yes, I am aware of the costs of a conditional branch here -
+				// still left in for clarity and also CPU can branch predict
+				if s.indentMode == 0 {
+					s.indentMode = -1
+				}
 
 				for s.readNext() && s.curr == '\t' {
 				}
@@ -84,11 +198,11 @@ func (s *Scanner) ReadToken() (*Token, error) {
 				// interpreting this -- avoids creating a bunch of useless
 				// INDENT and DEDENT tokens and weird control flow in ReadToken)
 				levelDiff := level - s.indentLevel
+				s.indentLevel = level // update level now that we don't need it
+
 				if levelDiff < 0 {
-					s.indentLevel = level
-					return s.makeToken(DEDENT, string(levelDiff)), nil
+					return s.makeToken(DEDENT, string(-levelDiff)), nil
 				} else if levelDiff > 0 {
-					s.indentLevel = level
 					return s.makeToken(INDENT, string(levelDiff)), nil
 				}
 			} else {
@@ -124,6 +238,41 @@ func (s *Scanner) ReadToken() (*Token, error) {
 			} else {
 				tok = s.getToken(FDIVIDE)
 			}
+		// handle the split-join character ('\')
+		case '\\':
+			// read through any whitespace until a newline is encountered. We
+			// can use regular readNext since we want to include the newline.
+		loop:
+			for s.readNext() {
+				switch s.curr {
+				// BOM can also be ignored if it occurs here
+				case '\r', '\f', '\v', 65279, ' ', '\t':
+					continue
+				case '\n':
+					break loop
+				default:
+					// if we encounter something that is not a whitespace
+					// character before we encounter a newline, the character is
+					// invalid and we mark only that character as erroneous
+					return nil, util.NewWhirlErrorWithSuggestion(
+						"Expecting a Line Break before next non-whitespace character",
+						"Token",
+						"Did you mean to write `/`?",
+						&util.TextPosition{StartLn: s.line, StartCol: s.col - 1, EndLn: s.line, EndCol: s.col},
+					)
+				}
+			}
+
+			// if we reach this point, the newline has been consumed and our
+			// split-join is valid.  To apply its effects, we simply discard the
+			// current builder contents including the newline and continue on as
+			// normal.  Since from the scanner's POV, we are not on a separate
+			// line (it does count it, but doesn't act on it), it will not be
+			// checking for indentation tokens and so the user can indent or
+			// dedent as much as they want so long as they return to correct
+			// indentation level after the next, non-split-join newline.
+			s.tokBuilder.Reset()
+			continue
 		default:
 			// check for identifiers
 			if IsLetter(s.curr) || s.curr == '_' {
@@ -164,6 +313,10 @@ func (s *Scanner) ReadToken() (*Token, error) {
 				&util.TextPosition{StartLn: s.line, StartCol: s.col, EndLn: s.line, EndCol: s.col + s.tokBuilder.Len()},
 			)
 		}
+
+		// if we reach here, we do not need to update the indentation (another
+		// meaningful token was encountered => no more indentation counting)
+		s.updateIndentLevel = false
 
 		return tok, nil
 	}

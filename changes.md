@@ -33,6 +33,11 @@ the function takes no arguments
     - can lead to errors if an indent is expected, but there is
     an unbalanced indent (no dedent) -> indent will marked as erroneous
   - all other forms of whitespace (carriage returns, etc.) will be ignored
+- the `\` character can be used as *split-join* character to mark the
+next line as a continuation of the first.  This will void all indentation
+checking on the next line (works like it does in Python).
+  - compiler should still provide error messages corresponding to the
+  correct line: only joined from a lexical-semantics perspective
 
 ## Removals
 
@@ -288,6 +293,12 @@ as a function)
   - `async for` loops (not in comprehensions, too complex)
   - fits in with rest of language
   - mostly syntactic sugar and special iterator class
+- allow for `yield` to be used in tandem with `return` to prompt the program
+to return the yield-value early
+  - if an empty `return` occurs after a valid (and deterministic) `yield`,
+  the `return` causes the function to return the yielded value
+  - unambiguous since `yield` can only be used with value-returning functions
+  and empty `return` can only be used with non-value-yielding functions
 
 ## Internal Adjustments
 
