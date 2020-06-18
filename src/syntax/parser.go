@@ -73,7 +73,6 @@ func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 		return nil, err
 	}
 
-loop:
 	for {
 		state := p.ptable.Rows[p.stateStack[len(p.stateStack)-1]]
 
@@ -86,7 +85,7 @@ loop:
 			case AKReduce:
 				p.reduce(action.Operand)
 			case AKAccept:
-				break loop
+				return p.semanticStack[0], nil
 			}
 		} else {
 			switch p.lookahead.Kind {
@@ -124,8 +123,6 @@ loop:
 			}
 		}
 	}
-
-	return p.semanticStack[0], nil
 }
 
 // shift performs a shift operation and returns an error indicating whether or
@@ -174,7 +171,7 @@ func (p *Parser) reduce(ruleRef int) {
 		p.semanticStack = append(p.semanticStack, &ASTBranch{Name: rule.Name})
 	} else {
 		branch := &ASTBranch{Name: rule.Name, Content: make([]ASTNode, rule.Count)}
-		copy(branch.Content, p.semanticStack[len(p.semanticStack)-rule.Count-1:])
+		copy(branch.Content, p.semanticStack[len(p.semanticStack)-rule.Count:])
 		p.semanticStack = p.semanticStack[:len(p.semanticStack)-rule.Count]
 
 		// calculate the added size of inlining all anonymous productions

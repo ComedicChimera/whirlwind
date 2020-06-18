@@ -57,7 +57,7 @@ enum_suffix = 'NEWLINE' 'INDENT' enum_type_member {'NEWLINE' enum_type_member};
 enum_type_member = '|' 'IDENTIFIER' [tupled_suffix] ;
 tupled_suffix = '(' type {',' type} ')' ;
 struct_suffix = '{' 'NEWLINE' 'INDENT' struct_member { struct_member } 'DEDENT' '}' ;
-struct_member = identifier_list type_ext ;
+struct_member = identifier_list type_ext 'NEWLINE' ;
 
 (* expr can be a list of decorators *)
 decorator = '@' expr 'NEWLINE' func_def ;
@@ -75,8 +75,8 @@ block_content = simple_stmt 'NEWLINE' | complex_stmt | func_def ;
 (* complex statements contain a block (eg. an if statement) *)
 complex_stmt = if_chain | match_stmt | for_loop | cond_loop | ctx_manager | async_for_loop ;
 
-if_chain = 'if' expr do_block {elif_block} [else_block] ;
-elif_block = 'elif' expr do_block ;
+if_chain = 'if' [variable_decl ';'] expr do_block {elif_block} [else_block] ;
+elif_block = 'elif' [variable_decl ';'] expr do_block ;
 else_block = 'else' (do_block | block) ;
 
 match_stmt = 'match' expr (type_match_block | val_match_block) ;
@@ -87,11 +87,11 @@ val_case_block = 'case' expr_list do_block ;
 default_block = 'default' (do_block | block) ;
 
 for_loop = 'for' (c_for_expr | iterator) do_block [after_clause] ;
-c_for_expr = ['IDENTIFIER' '=' expr] ';' [expr] ';' [expr_stmt] ;
+c_for_expr = ['IDENTIFIER' {',' 'IDENTIFIER'} '=' expr] ';' [expr] ';' [expr_stmt] ;
 
 async_for_loop = 'async' 'for' iterator do_block ;
 
-cond_loop = 'loop' (expr do_block | do_block | block) [after_clause] ;
+cond_loop = 'loop' ([variable_decl ';'] expr do_block | do_block | block) [after_clause] ;
 
 ctx_manager = 'with' ? full_ctx ? do_block [else_block] [after_clause] ;
 full_ctx = ctx_elem {(';' | 'NEWLINE') ctx_elem} ;
@@ -112,7 +112,7 @@ yield_stmt = 'yield' expr_list ;
 delete_stmt = 'delete' expr_list ;
 resize_stmt = 'make' expr 'to' heap_alloc ;
 
-variable_decl = ('let' | 'const') ['vol'] (unpack_var | var {var} ) [initializer] ;
+variable_decl = ('let' | 'const') ['vol'] ? (unpack_var | var {var} ) [initializer] ? ;
 var = 'IDENTIFIER' [type_ext] [initializer];
 unpack_var = '(' unpack_elem {unpack_elem} ['...'] ')' ;
 unpack_elem = 'IDENTIFIER' | unpack_var ;

@@ -175,6 +175,8 @@ func (ptb *PTableBuilder) buildTableFromSets() bool {
 							// it is not actually a conflict (empty trees are
 							// pruned - name doesn't actually matter here)
 							if oldRule.Count == 0 && newRule.Count == 0 {
+								// NOTE: resolve by taking rule with more lookaheads (intended behavior)
+								fmt.Printf("Epsilon Reduce/Reduce Conflict Ignored Between `%s` and `%s`\n", oldRule.Name, newRule.Name)
 								continue
 							} else if *oldRule == *newRule {
 								// if the rules create the same tree and consume
@@ -371,12 +373,10 @@ func (ptb *PTableBuilder) closureOf(kernel *LRItemSet) {
 					newItems[LRItem{Rule: newRuleRefs[i], DotPos: 0}] = lookaheads
 				}
 
-				newItemSet := &LRItemSet{Items: newItems}
-
 				// combine our original kernel with our new kernel
 				// to see if there are any new items being added
 				initKSize := len(kernel.Items)
-				for newItem := range newItemSet.Items {
+				for newItem := range newItems {
 					if kernelLookaheads, ok := kernel.Items[newItem]; ok {
 						kernel.Items[newItem] = combineLookaheads(kernelLookaheads, lookaheads)
 					} else {

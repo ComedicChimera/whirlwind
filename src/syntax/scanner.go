@@ -81,41 +81,7 @@ func (s *Scanner) ReadToken() (*Token, error) {
 		case '\n':
 			// line counting handled in readNext
 			tok = s.getToken(NEWLINE)
-			s.updateIndentLevel = true
-
-			// check to see if have an appropriate indent character on the next
-			// line (something that will trigger indentation logic).  If not, we
-			// need to emit the appropriate DEDENT (if we are exiting to top
-			// indentation level).  However, we only need to do this, if we are
-			// not already at the top level.  NOTE: DEDENT emitted on next call.
-			if s.indentLevel > 0 {
-				ahead, more := s.peek()
-
-				if more {
-					// NOTE: in both cases, the DEDENT change is equivalent to
-					// the current level if one should be emitted
-
-					// if the mode is not determined then either spaces or tabs
-					// will count as an indent and so we check for both
-					if s.indentMode == 0 && ahead != ' ' && ahead != '\t' {
-						s.emitDedent = s.makeToken(DEDENT, string(s.indentLevel))
-						s.indentLevel = 0
-					} else if s.indentMode == -1 && ahead != '\t' {
-						// if we are in TAB mode, check for tabs (above)
-						s.emitDedent = s.makeToken(DEDENT, string(s.indentLevel))
-						s.indentLevel = 0
-					} else if ahead != ' ' {
-						// we are in some SPACE mode, check for spaces (above)
-						s.emitDedent = s.makeToken(DEDENT, string(s.indentLevel))
-						s.indentLevel = 0
-					}
-				}
-
-				// regardless of any DEDENT emissions, continue as normal
-			}
-
-			// want to keep updateIndentLevel flag
-			s.tokBuilder.Reset()
+			s.processNewline()
 			return tok, nil
 		// handle space-based indentation (and spaces generally)
 		case ' ':
@@ -697,6 +663,9 @@ func (s *Scanner) readRawStringLiteral() (*Token, bool) {
 func (s *Scanner) skipLineComment() {
 	for s.skipNext() && s.curr != '\n' {
 	}
+
+	// make sure the scanner properly handles the newline
+	s.processNewline()
 }
 
 func (s *Scanner) skipBlockComment() {
@@ -713,4 +682,43 @@ func (s *Scanner) skipBlockComment() {
 			}
 		}
 	}
+}
+
+// processNewline performs all necessary scanner logic to handle a newline
+func (s *Scanner) processNewline() {
+	s.updateIndentLevel = true
+
+	// check to see if have an appropriate indent character on the next
+	// line (something that will trigger indentation logic).  If not, we
+	// need to emit the appropriate DEDENT (if we are exiting to top
+	// indentation level).  However, we only need to do this, if we are
+	// not already at the top level.  NOTE: DEDENT emitted on next call.
+	if s.indentLevel > 0 {
+		ahead, more := s.peek()
+
+		if more {
+			// NOTE: in both cases, the DEDENT change is equivalent to
+			// the current level if one should be emitted
+
+			// if the mode is not determined then either spaces or tabs
+			// will count as an indent and so we check for both
+			if s.indentMode == 0 && ahead != ' ' && ahead != '\t' {
+				s.emitDedent = s.makeToken(DEDENT, string(s.indentLevel))
+				s.indentLevel = 0
+			} else if s.indentMode == -1 && ahead != '\t' {
+				// if we are in TAB mode, check for tabs (above)
+				s.emitDedent = s.makeToken(DEDENT, string(s.indentLevel))
+				s.indentLevel = 0
+			} else if ahead != ' ' {
+				// we are in some SPACE mode, check for spaces (above)
+				s.emitDedent = s.makeToken(DEDENT, string(s.indentLevel))
+				s.indentLevel = 0
+			}
+		}
+
+		// regardless of any DEDENT emissions, continue as normal
+	}
+
+	// want to keep updateIndentLevel flag
+	s.tokBuilder.Reset()
 }

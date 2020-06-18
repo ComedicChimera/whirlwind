@@ -1,5 +1,5 @@
 type Point {
-    x, y: int
+    data: string
 }
 
 type Option<T>
