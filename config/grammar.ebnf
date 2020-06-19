@@ -15,6 +15,9 @@ The Formal Whirlwind Language Grammar
   assert an implicit word-boundary.   
 - The `? ... ?` syntax marks a group that can be optionally wrapped in a block
   (indentation suite - eg. arrays, type definitions, lists, dictionaries).
+- No need to specify NEWLINE before every INDENT because a NEWLINE must be there
+  in order for an INDENT to be registered and the parser simply ignores unexpected
+  newlines (actually less work for everyone).
 *)
 
 (* file is our goal symbol *)
@@ -25,7 +28,7 @@ import_stmt = 'import' ( package_name ['as' 'IDENTIFIER'] | ( identifier_list | 
 package_name = 'IDENTIFIER' { '::' 'IDENTIFIER' } ;
 identifier_list = 'IDENTIFIER' {',' 'IDENTIFIER'} ;
 
-export_block = 'export' 'of' 'NEWLINE' 'INDENT' top_level 'DEDENT' ;
+export_block = 'export' 'of' 'INDENT' top_level 'DEDENT' ;
 
 top_level = definition { 'NEWLINE' definition } ;
 definition = interf_def | interf_bind | operator_def | func_def | type_def 
@@ -38,7 +41,7 @@ interf_member = func_def | variant_def | method_variant ;
 method_variant = 'variant' [generic_tag] 'when' method_variant_cond {',' method_variant_cond} 'NEWLINE' func_def ;
 method_variant_cond = 'IDENTIFIER' 'is' type ;
 
-operator_def = 'operator' ['inplace'] '(' operator_value ')' [generic_tag] [signature] func_body ;
+operator_def = 'operator' '(' operator_value ')' [generic_tag] [signature] func_body ;
 operator_value = '+' | '-' | '*' | '/' | '~/' | '~*' | '~^' | '%' 
                | '>' ['>'] | '<' ['<'] | '<=' | '>=' | '=='
                | '!' | '!=' | '&' ['&'] | '|' ['|'] | '^' | '[' [':'] ']' ;
@@ -53,10 +56,10 @@ func_body = ['const'] ( do_block | ? '=>' expr ? ) ;
 type_def = ['closed'] 'type' 'IDENTIFIER' [generic_tag] ( ? typeset ? | newtype ) ;
 typeset = '=' type {'|' type } ;
 newtype = ? enum_suffix ? | tupled_suffix | struct_suffix ;
-enum_suffix = 'NEWLINE' 'INDENT' enum_type_member {'NEWLINE' enum_type_member};
+enum_suffix = enum_type_member {'NEWLINE' enum_type_member};
 enum_type_member = '|' 'IDENTIFIER' [tupled_suffix] ;
 tupled_suffix = '(' type {',' type} ')' ;
-struct_suffix = '{' 'NEWLINE' 'INDENT' struct_member { struct_member } 'DEDENT' '}' ;
+struct_suffix = '{' struct_member { struct_member } '}' ;
 struct_member = identifier_list type_ext 'NEWLINE' ;
 
 (* expr can be a list of decorators *)
@@ -69,7 +72,7 @@ variant_def = 'variant' '<' type_list '>' 'IDENTIFIER' func_body ;
 
 (* ellipsis is used to designate a block that hasn't been filled in yet *)
 do_block = 'do' block ;
-block = 'NEWLINE' 'INDENT' ( block_content {block_content} | '...') 'DEDENT' ;
+block = 'INDENT' ( block_content {block_content} | '...') 'DEDENT' ;
 block_content = simple_stmt 'NEWLINE' | complex_stmt | func_def ;
 
 (* complex statements contain a block (eg. an if statement) *)
@@ -80,22 +83,21 @@ elif_block = 'elif' [variable_decl ';'] expr do_block ;
 else_block = 'else' (do_block | block) ;
 
 match_stmt = 'match' expr (type_match_block | val_match_block) ;
-type_match_block = 'type' 'to' 'NEWLINE' 'INDENT' type_case_block {type_case_block} [default_block] 'DEDENT' ;
-val_match_block = 'to' 'NEWLINE' 'INDENT' val_case_block {val_case_block} [default_block] 'DEDENT' ;
+type_match_block = 'type' 'to' 'INDENT' type_case_block {type_case_block} 'DEDENT' ;
+val_match_block = 'to' 'INDENT' val_case_block {val_case_block} 'DEDENT' ;
 type_case_block = 'case' type_pattern_list [when_cond] do_block ;
-val_case_block = 'case' expr_list do_block ;
-default_block = 'default' (do_block | block) ;
+val_case_block = 'case' expr_list [when_cond] do_block ;
 
 for_loop = 'for' (c_for_expr | iterator) do_block [after_clause] ;
-c_for_expr = ['IDENTIFIER' {',' 'IDENTIFIER'} '=' expr] ';' [expr] ';' [expr_stmt] ;
+c_for_expr = ['IDENTIFIER' {',' 'IDENTIFIER'} ':=' expr] ';' [expr] ';' [expr_stmt] ;
 
 async_for_loop = 'async' 'for' iterator do_block ;
 
 cond_loop = 'loop' ([variable_decl ';'] expr do_block | do_block | block) [after_clause] ;
 
-ctx_manager = 'with' ? full_ctx ? do_block [else_block] [after_clause] ;
+ctx_manager = 'with' full_ctx do_block [else_block] [after_clause] ;
 full_ctx = ctx_elem {(';' | 'NEWLINE') ctx_elem} ;
-ctx_elem = 'IDENTIFIER' ('=' | '<-') expr ;
+ctx_elem = 'IDENTIFIER' (':=' | '<-') expr ;
 
 after_clause = 'after' (do_block | block) ;
 
@@ -119,20 +121,20 @@ unpack_elem = 'IDENTIFIER' | unpack_var ;
 
 expr_stmt = mut_expr {',' mut_expr} [assign_op expr_list] ;
 mut_expr = ['await'] ['*' | '++' | '--'] mut_atom {trailer} ['++' | '--'] ;
-mut_atom = 'this' | 'IDENTIFIER' | '(' expr ')' ;
+mut_atom = 'IDENTIFIER' | '(' expr ')' ;
 assign_op = ['+' | '-' | '*' | '/' | '%' | '~/' | '~^' | '>' '>' | '<' '<' | '&' | '|' | '^'] '=' | ':>' ;
 
 expr = (match_expr ['if' match_expr 'else' expr ] | with_expr | closure) ;
-with_expr = 'with' ? full_ctx ? '=>' expr ;
+with_expr = 'with' full_ctx '=>' expr ;
 closure = ['async'] ('||' | '|' [closure_arg {',' closure_arg}] '|' func_body) ;
 closure_arg = 'IDENTIFIER' [type_ext] ;
 
-match_expr = core_expr { match_suffix } ;
-match_suffix = 'match' ( expr | 'to' match_expr_block | 'type' 'to' match_type_expr_block ) ;
-match_expr_block = 'NEWLINE' 'INDENT' match_expr_branch {match_expr_branch} 'DEDENT' ;
-match_expr_branch = expr_list '=>' expr 'NEWLINE' ;
-match_type_expr_block = 'NEWLINE' 'INDENT' match_type_expr_branch {match_type_expr_branch} 'DEDENT' ;
-match_type_expr_branch = type_pattern_list '=>' expr 'NEWLINE' ;
+match_expr = core_expr ['match' core_expr ] | 'match' core_expr inline_match_suffix ;
+inline_match_suffix = 'to' match_expr_block | 'type' 'to' match_type_expr_block ;
+inline_match_expr_block = '(' inline_match_expr_branch {inline_match_expr_branch} ')' ;
+inline_match_expr_branch = expr_list '=>' expr ( 'NEWLINE' | ';') ;
+inline_match_type_block = '(' inline_match_type_branch {inline_match_type_branch} ')' ;
+inline_match_type_branch = type_pattern_list '=>' expr ( 'NEWLINE' | ';' ) ;
 
 core_expr = ['await'] func_op [core_expr_suffix] ;
 core_expr_suffix = '..' func_op
@@ -170,13 +172,12 @@ args_list = (named_arg | expr) {',' (named_arg | expr)} ;
 named_arg = 'IDENTIFIER' '=' expr ;
 
 atom = 'INTLIT' | 'STRINGLIT' | 'FLOATLIT' | 'BOOLLIT' | 'CHARLIT' | array_builder 
-     | list_builder | dict_builder | vector_builder | tupled_expr | 'IDENTIFIER' 
-     | 'null' | 'this' ;
+     | list_builder | dict_builder | vector_builder | tupled_expr | 'IDENTIFIER' | 'null' ;
 
-array_builder = '{' ? seq_contents ? '}' ;
-list_builder = '[' ? seq_contents ? ']' ;
+array_builder = '{' seq_contents '}' ;
+list_builder = '[' eq_contents ']' ;
 seq_contents = expr ({',' expr} | [comp_suffix]) ;
-dict_builder = '{' ? expr ':' expr ({',' expr ':' expr} | [comp_suffix]) ? '}' ;
+dict_builder = '{' expr ':' expr ({',' expr ':' expr} | [comp_suffix]) '}' ;
 vector_builder = '<' expr [':' expr] '>' ; (* expr can be an array for vector array initializers *)
 tupled_expr = '(' expr {',' expr} ')' ;
 

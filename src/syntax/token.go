@@ -20,7 +20,6 @@ const (
 	ELSE
 	FOR
 	CASE
-	DEFAULT
 	BREAK
 	CONTINUE
 	WHEN
@@ -47,7 +46,6 @@ const (
 	FUNC
 	ASYNC
 	OPERATOR
-	INPLACE
 	VARIANT
 
 	// type definitions
@@ -61,7 +59,6 @@ const (
 	FROM
 
 	// expression utils
-	THIS
 	SUPER
 	NULL
 	IS
@@ -124,8 +121,9 @@ const (
 	NULLTEST
 
 	// assignment/declaration operators
-	SET    // =
-	BINDTO // <-
+	SET     // =
+	BINDTO  // <-
+	MUTDECL // :=
 
 	// dots
 	DOT
@@ -170,7 +168,6 @@ var keywordPatterns = map[string]int{
 	"else":        ELSE,
 	"for":         FOR,
 	"case":        CASE,
-	"default":     DEFAULT,
 	"break":       BREAK,
 	"continue":    CONTINUE,
 	"when":        WHEN,
@@ -190,14 +187,12 @@ var keywordPatterns = map[string]int{
 	"async":       ASYNC,
 	"variant":     VARIANT,
 	"operator":    OPERATOR,
-	"inplace":     INPLACE,
 	"type":        TYPE,
 	"closed":      CLOSED,
 	"interf":      INTERF,
 	"import":      IMPORT,
 	"export":      EXPORT,
 	"from":        FROM,
-	"this":        THIS,
 	"super":       SUPER,
 	"null":        NULL,
 	"is":          IS,
@@ -265,6 +260,7 @@ var symbolPatterns = map[string]int{
 	";":   SEMICOLON,
 	":":   COLON,
 	"::":  GETNAME,
+	":=":  MUTDECL,
 	":>":  MOVE,
 	"=>":  ARROW,
 	"<-":  BINDTO,

@@ -38,6 +38,14 @@ next line as a continuation of the first.  This will void all indentation
 checking on the next line (works like it does in Python).
   - compiler should still provide error messages corresponding to the
   correct line: only joined from a lexical-semantics perspective
+- `this` is simply a special identifier
+- wrap match content in parentheses
+- ignore indentation between (), {}, and []
+- also ignore indentation in block definitions
+  - for, if, elif, match, async-for, with
+  - inside with expressions
+- use `:=` declaration operator for `with` and c-style for loop
+- reorder match expression (`match ... to` instead of `... match to`)
 
 ## Removals
 
@@ -62,6 +70,9 @@ checking on the next line (works like it does in Python).
   - still a feature, done much more logically
     - eg. `f(_, 2)`
     - see **Syntactic Sugar and Smaller Adjustments** for details
+- the `default` keyword
+  - `case _ do` is just as clear
+  - inline with rest of language (inc. inline `match`)
 
 ## Control Flow/Conditionals Update
 
