@@ -135,13 +135,33 @@ func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 				)
 			case INDENT, DEDENT:
 				if p.topIndentFrame().Mode > -1 {
+					// ignore indentation changes if we are in a blind frame
 					continue
 				} else {
-					return nil, util.NewWhirlError(
-						"Unexpected Indentation Change",
-						"Syntax",
-						TextPositionOfToken(p.lookahead),
-					)
+					// cache the original lookahead before we attempt to ignore
+					// the indentation change based on the "empty" line rule
+					originalLookahead := p.lookahead
+
+					if err := p.consume(); err == nil && p.lookahead.Kind == NEWLINE {
+						// if an indentation change (of any amount) is
+						// immediately followed by a newline then we know that
+						// the line is meaningless and the indentation change
+						// can be ignored.  We adjust the scanner's indent level
+						// by the indentation change denoted by the INDENT OR
+						// DEDENT token to suppress/ignore the change
+						if originalLookahead.Kind == INDENT {
+							p.sc.indentLevel -= int(originalLookahead.Value[0])
+						} else {
+							p.sc.indentLevel += int(originalLookahead.Value[0])
+						}
+					} else {
+						// if the parser cannot excuse the indent change, error
+						return nil, util.NewWhirlError(
+							"Unexpected Indentation Change",
+							"Syntax",
+							TextPositionOfToken(p.lookahead),
+						)
+					}
 				}
 			default:
 				return nil, util.NewWhirlError(
