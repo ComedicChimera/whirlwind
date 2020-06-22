@@ -20,6 +20,36 @@ type Parser struct {
 
 	// semantic stack is used to build the AST and accumulate tokens as necessary
 	semanticStack []ASTNode
+
+	// used to store the parser's stack of indentation frames.  The parser
+	// starts with a frame on top of the stack to represent the frame of the
+	// whole program.  This frame is indentation aware with an entry level of -1
+	// (meaning it will never close => total enclosing frame).
+	indentFrames []IndentFrame
+}
+
+// IndentFrame represents an indentation context frame.  An indentation context
+// frame is a region of a particular kind of indentation processing: indentation
+// blind (eg. inside `[]`) or indentation aware.  They are used to represent the
+// contextual state of the parser as it relates to indentation.  As the parser
+// switches between the two modes, frames are created and removed.  The parser
+// decides when to switch and what to do when it switches based on the mode of
+// the indentation frame and the entry level.  If it is in indentation aware
+// mode, it exits when it returns to its entry level.  If it is not, it exits
+// when all of the unbalanced openers (ie. `(`, `[`, and `{`) have been closed.
+// When an indentation blind frame is closed, it updates the scanner's
+// indentation level to be its entry level so that all changes to indentation
+// inside the ignored block become irrelevant and the parser checks with the
+// intended behavior.  A new indentation blind frame is created when an opener
+// is encountered in an indentation aware frame.  A new indentation aware frame
+// is created when an INDENT token is shifted in an indentation blind frame.
+type IndentFrame struct {
+	// mode == -1 => indentation aware
+	// mode >= 0 => indentation blind, mode = number of unbalanced openers
+	Mode int
+
+	// the indentation level that the indentation frame began at
+	EntryLevel int
 }
 
 // NewParser creates a new parser from the scanner and the given grammar
@@ -60,7 +90,8 @@ func NewParser(grammarPath string, forceGBuild bool) (*Parser, error) {
 		return nil, err
 	}
 
-	return &Parser{ptable: parsingTable}, nil
+	// parser starts with one indentation-aware indent frame that will never close
+	return &Parser{ptable: parsingTable, indentFrames: []IndentFrame{IndentFrame{Mode: -1, EntryLevel: -1}}}, nil
 }
 
 // Parse runs the main parsing algorithm on the given scanner
@@ -102,18 +133,16 @@ func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 					"Syntax",
 					nil, // EOFs only happen in one place :)
 				)
-			case INDENT:
-				return nil, util.NewWhirlError(
-					"Unexpected Indentation Increase",
-					"Syntax",
-					TextPositionOfToken(p.lookahead),
-				)
-			case DEDENT:
-				return nil, util.NewWhirlError(
-					"Unexpected Indentation Decrease",
-					"Syntax",
-					TextPositionOfToken(p.lookahead),
-				)
+			case INDENT, DEDENT:
+				if p.topIndentFrame().Mode > -1 {
+					continue
+				} else {
+					return nil, util.NewWhirlError(
+						"Unexpected Indentation Change",
+						"Syntax",
+						TextPositionOfToken(p.lookahead),
+					)
+				}
 			default:
 				return nil, util.NewWhirlError(
 					fmt.Sprintf("Unexpected Token `%s`", p.lookahead.Value),
@@ -132,14 +161,41 @@ func (p *Parser) shift(state int) error {
 	p.stateStack = append(p.stateStack, state)
 	p.semanticStack = append(p.semanticStack, (*ASTLeaf)(p.lookahead))
 
-	// handle multiple indents
-	if p.lookahead.Kind == INDENT || p.lookahead.Kind == DEDENT {
+	// used in all branches of switch (small operation - low cost)
+	topFrame := p.topIndentFrame()
+
+	switch p.lookahead.Kind {
+	// handle indentation
+	case INDENT, DEDENT:
+		// implement frame control rules for indentation-aware frames
+		if p.lookahead.Kind == INDENT && topFrame.Mode > -1 {
+			p.pushIndentFrame(-1, p.sc.indentLevel-1)
+		} else if p.lookahead.Kind == DEDENT && topFrame.Mode == -1 && topFrame.EntryLevel == p.sc.indentLevel {
+			p.popIndentFrame()
+		}
+
 		levelChange := int(p.lookahead.Value[0])
 
 		// no need to update lookahead if full level change hasn't been handled
 		if levelChange > 1 {
 			p.lookahead.Value = string(levelChange - 1)
 			return nil
+		}
+	// handle indentation blind frame openers
+	case LPAREN, LBRACE, LBRACKET:
+		if topFrame.Mode == -1 {
+			p.pushIndentFrame(1, p.sc.indentLevel)
+		} else {
+			topFrame.Mode++
+		}
+	// handle indentation blind frame closers
+	case RPAREN, RBRACE, RBRACKET:
+		// if there are closers, there must be openers so we can treat the
+		// current frame as if we know it is a blind frame (because we do :D)
+		if topFrame.Mode == 1 {
+			p.popIndentFrame()
+		} else {
+			topFrame.Mode--
 		}
 	}
 
@@ -231,4 +287,21 @@ func (p *Parser) reduce(ruleRef int) {
 	// goto the next state
 	currState := p.ptable.Rows[p.stateStack[len(p.stateStack)-1]]
 	p.stateStack = append(p.stateStack, currState.Gotos[rule.Name])
+}
+
+// topIndentFrame gets the indent frame at the top of the frame stack (ie. the
+// current indent frame)
+func (p *Parser) topIndentFrame() IndentFrame {
+	return p.indentFrames[len(p.indentFrames)-1]
+}
+
+// pushIndentFrame pushes an indent frame onto the frame stack
+func (p *Parser) pushIndentFrame(mode, level int) {
+	p.indentFrames = append(p.indentFrames, IndentFrame{Mode: mode, EntryLevel: level})
+}
+
+// popIndentFrame removes an indent frame from the top of the frame stack
+// (clears the current indent frame)
+func (p *Parser) popIndentFrame() {
+	p.indentFrames = p.indentFrames[:len(p.indentFrames)-1]
 }

@@ -88,18 +88,19 @@ val_match_block = 'to' 'INDENT' val_case_block {val_case_block} 'DEDENT' ;
 type_case_block = 'case' type_pattern_list [when_cond] do_block ;
 val_case_block = 'case' expr_list [when_cond] do_block ;
 
-for_loop = 'for' (c_for_expr | iterator) do_block [after_clause] ;
-c_for_expr = ['IDENTIFIER' {',' 'IDENTIFIER'} ':=' expr] ';' [expr] ';' [expr_stmt] ;
+for_loop = 'for' (c_for_expr | iterator) do_block [nobreak_clause] ;
+c_for_expr = ['IDENTIFIER' {',' 'IDENTIFIER'} ':=' expr] semilinebr [expr] semilinebr [expr_stmt] ;
 
-async_for_loop = 'async' 'for' iterator do_block ;
+async_for_loop = 'async' 'for' iterator do_block [nobreak_clause] ;
 
-cond_loop = 'loop' ([variable_decl ';'] expr do_block | do_block | block) [after_clause] ;
+cond_loop = 'loop' ([variable_decl ';'] expr do_block | do_block | block) [nobreak_clause] ;
 
-ctx_manager = 'with' full_ctx do_block [else_block] [after_clause] ;
-full_ctx = ctx_elem {(';' | 'NEWLINE') ctx_elem} ;
+nobreak_clause = "nobreak" (do_block | block) ;
+
+ctx_manager = 'with' full_ctx do_block [else_block] [finally_clause] ;
+full_ctx = ctx_elem {semilinebr ctx_elem} ;
 ctx_elem = 'IDENTIFIER' (':=' | '<-') expr ;
-
-after_clause = 'after' (do_block | block) ;
+finally_clause = 'finally' (do_block | block) ;
 
 (* simple statements do not contain a block - newline suffix is added in block *)
 simple_stmt = 
@@ -124,17 +125,16 @@ mut_expr = ['await'] ['*' | '++' | '--'] mut_atom {trailer} ['++' | '--'] ;
 mut_atom = 'IDENTIFIER' | '(' expr ')' ;
 assign_op = ['+' | '-' | '*' | '/' | '%' | '~/' | '~^' | '>' '>' | '<' '<' | '&' | '|' | '^'] '=' | ':>' ;
 
-expr = (match_expr ['if' match_expr 'else' expr ] | with_expr | closure) ;
-with_expr = 'with' full_ctx '=>' expr ;
+expr = (match_expr ['if' match_expr 'else' expr ] | closure) ;
 closure = ['async'] ('||' | '|' [closure_arg {',' closure_arg}] '|' func_body) ;
-closure_arg = 'IDENTIFIER' [type_ext] ;
+closure_arg = ['const'] 'IDENTIFIER' [type_ext] ;
 
 match_expr = core_expr ['match' core_expr ] | 'match' core_expr inline_match_suffix ;
 inline_match_suffix = 'to' match_expr_block | 'type' 'to' match_type_expr_block ;
-inline_match_expr_block = '(' inline_match_expr_branch {inline_match_expr_branch} ')' ;
-inline_match_expr_branch = expr_list '=>' expr ( 'NEWLINE' | ';') ;
-inline_match_type_block = '(' inline_match_type_branch {inline_match_type_branch} ')' ;
-inline_match_type_branch = type_pattern_list '=>' expr ( 'NEWLINE' | ';' ) ;
+inline_match_expr_block = 'INDENT' inline_match_expr_branch {inline_match_expr_branch} 'DEDENT' ;
+inline_match_expr_branch = expr_list '=>' expr 'NEWLINE' ;
+inline_match_type_block = 'INDENT' inline_match_type_branch {inline_match_type_branch} 'DEDENT' ;
+inline_match_type_branch = type_pattern_list '=>' expr 'NEWLINE' ;
 
 core_expr = ['await'] func_op [core_expr_suffix] ;
 core_expr_suffix = '..' func_op
@@ -214,3 +214,4 @@ iter_var = 'IDENTIFIER' | unpack_var ;
 expr_list = expr {',' expr} ;
 when_cond = 'when' expr ;
 initializer = '=' expr ;
+semilinebr = ';' | 'NEWLINE' ;

@@ -23,7 +23,8 @@ const (
 	BREAK
 	CONTINUE
 	WHEN
-	AFTER
+	FINALLY
+	NOBREAK
 	LOOP
 	FALLTHROUGH
 	WITH
@@ -171,7 +172,8 @@ var keywordPatterns = map[string]int{
 	"break":       BREAK,
 	"continue":    CONTINUE,
 	"when":        WHEN,
-	"after":       AFTER,
+	"nobreak":     NOBREAK,
+	"finally":     FINALLY,
 	"loop":        LOOP,
 	"fallthrough": FALLTHROUGH,
 	"with":        WITH,
