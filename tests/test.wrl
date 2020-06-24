@@ -1,5 +1,5 @@
 type Point {
-    data: string
+    x, y: int
 }
 
 type Option<T>
@@ -14,7 +14,7 @@ test test
 test
 `
 
-func main() do
+func main do
     let x = 120
 
     match x to

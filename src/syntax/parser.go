@@ -122,10 +122,7 @@ func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 			switch p.lookahead.Kind {
 			case NEWLINE:
 				// unexpected newlines can be accepted whenever
-				if err := p.consume(); err != nil {
-					return nil, err
-				}
-				continue
+				break
 			// generate descriptive error messages for special tokens
 			case EOF:
 				return nil, util.NewWhirlError(
@@ -134,10 +131,8 @@ func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 					nil, // EOFs only happen in one place :)
 				)
 			case INDENT, DEDENT:
-				if p.topIndentFrame().Mode > -1 {
-					// ignore indentation changes if we are in a blind frame
-					continue
-				} else {
+				// ignore indentation changes if we are in a blind frame
+				if p.topIndentFrame().Mode == -1 {
 					// cache the original lookahead before we attempt to ignore
 					// the indentation change based on the "empty" line rule
 					originalLookahead := p.lookahead
@@ -162,6 +157,9 @@ func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 							TextPositionOfToken(p.lookahead),
 						)
 					}
+
+					// if there was no error, we can simply consume the next
+					// token ("blank" lines can be ignored)
 				}
 			default:
 				return nil, util.NewWhirlError(
@@ -169,6 +167,11 @@ func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 					"Syntax",
 					TextPositionOfToken(p.lookahead),
 				)
+			}
+
+			// if we reach here, whatever token was errored on can be ignored
+			if err := p.consume(); err != nil {
+				return nil, err
 			}
 		}
 	}
@@ -260,7 +263,9 @@ func (p *Parser) reduce(ruleRef int) {
 				if len(subbranch.Content) > 0 {
 					branch.Content[n] = item
 					n++
-				} else if subbranch.Name[0] == '$' {
+				}
+
+				if subbranch.Name[0] == '$' {
 					anonSize += len(subbranch.Content) - 1
 				}
 			} else if leaf, ok := item.(*ASTLeaf); ok {

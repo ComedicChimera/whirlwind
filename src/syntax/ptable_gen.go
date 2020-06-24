@@ -171,18 +171,36 @@ func (ptb *PTableBuilder) buildTableFromSets() bool {
 						} else if action.Kind == AKReduce {
 							oldRule, newRule := ptb.Table.Rules[action.Operand], ptb.Table.Rules[reduceRule]
 
-							// if there is a conflict between two epsilon rules,
-							// it is not actually a conflict (empty trees are
-							// pruned - name doesn't actually matter here)
-							if oldRule.Count == 0 && newRule.Count == 0 {
-								// NOTE: resolve by taking rule with more lookaheads (intended behavior)
-								fmt.Printf("Epsilon Reduce/Reduce Conflict Ignored Between `%s` and `%s`\n", oldRule.Name, newRule.Name)
-								continue
-							} else if *oldRule == *newRule {
+							if *oldRule == *newRule {
 								// if the rules create the same tree and consume
 								// the same amount of tokens, we don't care if
 								// they contain different elements => they are
-								// effectively equal (so no real conflict exists)
+								// effectively equal (so no real conflict
+								// exists: they pop the same number of states
+								// and refer to the same column in the GOTOs)
+								continue
+							} else if oldRule.Count == 0 && newRule.Count == 0 {
+								// no real conflict exists between two epsilon
+								// rules of different names since the parser
+								// simply discards all empty trees.  However,
+								// we need to resolve this conflict in favor of
+								// the rule whose GOTO state has the most
+								// possible actions so that we don't lose
+								// actions (randomly).  Since this conflict only
+								// occurs when two epsilon rules occur in
+								// sequence with one another, we know that the
+								// state with more actions will contain the
+								// state with fewer actions (shared lookaheads)
+
+								oldGotoActionCount := ptb.getActionCount(row.Gotos[oldRule.Name])
+								newGotoActionCount := ptb.getActionCount(row.Gotos[newRule.Name])
+
+								// only if the new goto state's action count
+								// is higher, do we need to update anything
+								if newGotoActionCount > oldGotoActionCount {
+									action.Operand = reduceRule
+								}
+
 								continue
 							}
 
@@ -225,6 +243,44 @@ func (ptb *PTableBuilder) addRule(bnfRule *BNFRule) int {
 		&PTableRule{Name: bnfRule.ProdName, Count: count})
 
 	return reduceRule
+}
+
+// getActionCount calculates the number of actions that are produced by a given
+// item set (used in epsilon reduce/reduce conflict resolution)
+func (ptb *PTableBuilder) getActionCount(state int) int {
+	// if have already calculated the state, we can just count its actions
+	if state < len(ptb.Table.Rows) {
+		row := ptb.Table.Rows[state]
+
+		if row != nil {
+			return len(row.Actions)
+		}
+	}
+
+	// otherwise, we have to calculate it from the base item set (no need to
+	// mess up/complicate row computation by computing states out of order)
+	itemSet := ptb.ItemSets[state]
+	shiftActionCount := 0
+
+	// FORMULA: (based on knowledge of table construction)
+	// # of terminal connections + # of unique lookaheads = # of actions
+
+	for conn := range itemSet.Conns {
+		if conn.Kind() == BNFKindTerminal {
+			shiftActionCount++
+		}
+	}
+
+	// can't really assume size very easily
+	totalLookaheads := make(map[int]struct{})
+
+	for _, lookaheads := range itemSet.Items {
+		for lookahead := range lookaheads {
+			totalLookaheads[lookahead] = struct{}{}
+		}
+	}
+
+	return shiftActionCount + len(totalLookaheads)
 }
 
 // nextSets takes in a starting set; initializes its connections, and computes

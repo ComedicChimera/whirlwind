@@ -95,7 +95,7 @@ async_for_loop = 'async' 'for' iterator do_block [nobreak_clause] ;
 
 cond_loop = 'loop' ([variable_decl ';'] expr do_block | do_block | block) [nobreak_clause] ;
 
-nobreak_clause = "nobreak" (do_block | block) ;
+nobreak_clause = 'nobreak' (do_block | block) ;
 
 ctx_manager = 'with' full_ctx do_block [else_block] [finally_clause] ;
 full_ctx = ctx_elem {semilinebr ctx_elem} ;
@@ -130,7 +130,7 @@ closure = ['async'] ('||' | '|' [closure_arg {',' closure_arg}] '|' func_body) ;
 closure_arg = ['const'] 'IDENTIFIER' [type_ext] ;
 
 match_expr = core_expr ['match' core_expr ] | 'match' core_expr inline_match_suffix ;
-inline_match_suffix = 'to' match_expr_block | 'type' 'to' match_type_expr_block ;
+inline_match_suffix = 'to' inline_match_expr_block | 'type' 'to' inline_match_type_block ;
 inline_match_expr_block = 'INDENT' inline_match_expr_branch {inline_match_expr_branch} 'DEDENT' ;
 inline_match_expr_branch = expr_list '=>' expr 'NEWLINE' ;
 inline_match_type_block = 'INDENT' inline_match_type_branch {inline_match_type_branch} 'DEDENT' ;
@@ -175,7 +175,7 @@ atom = 'INTLIT' | 'STRINGLIT' | 'FLOATLIT' | 'BOOLLIT' | 'CHARLIT' | array_build
      | list_builder | dict_builder | vector_builder | tupled_expr | 'IDENTIFIER' | 'null' ;
 
 array_builder = '{' seq_contents '}' ;
-list_builder = '[' eq_contents ']' ;
+list_builder = '[' seq_contents ']' ;
 seq_contents = expr ({',' expr} | [comp_suffix]) ;
 dict_builder = '{' expr ':' expr ({',' expr ':' expr} | [comp_suffix]) '}' ;
 vector_builder = '<' expr [':' expr] '>' ; (* expr can be an array for vector array initializers *)
