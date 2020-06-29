@@ -56,7 +56,7 @@ func_body = ['const'] ( do_block | ? '=>' expr ? ) ;
 type_def = ['closed'] 'type' 'IDENTIFIER' [generic_tag] ( ? typeset ? | newtype ) ;
 typeset = '=' type {'|' type } ;
 newtype = ? enum_suffix ? | tupled_suffix | struct_suffix ;
-enum_suffix = enum_type_member {'NEWLINE' enum_type_member};
+enum_suffix = enum_type_member {enum_type_member} ;
 enum_type_member = '|' 'IDENTIFIER' [tupled_suffix] ;
 tupled_suffix = '(' type {',' type} ')' ;
 struct_suffix = '{' struct_member { struct_member } '}' ;
@@ -97,7 +97,7 @@ cond_loop = 'loop' ([variable_decl ';'] expr do_block | do_block | block) [nobre
 
 nobreak_clause = 'nobreak' (do_block | block) ;
 
-ctx_manager = 'with' full_ctx do_block [else_block] [finally_clause] ;
+ctx_manager = 'with' ? full_ctx ? do_block [else_block] [finally_clause] ;
 full_ctx = ctx_elem {semilinebr ctx_elem} ;
 ctx_elem = 'IDENTIFIER' (':=' | '<-') expr ;
 finally_clause = 'finally' (do_block | block) ;
@@ -125,7 +125,7 @@ mut_expr = ['await'] ['*' | '++' | '--'] mut_atom {trailer} ['++' | '--'] ;
 mut_atom = 'IDENTIFIER' | '(' expr ')' ;
 assign_op = ['+' | '-' | '*' | '/' | '%' | '~/' | '~^' | '>' '>' | '<' '<' | '&' | '|' | '^'] '=' | ':>' ;
 
-expr = (match_expr ['if' match_expr 'else' expr ] | closure) ;
+expr = (match_expr ['if' match_expr 'else' expr ] | closure | with_expr) ;
 closure = ['async'] ('||' | '|' [closure_arg {',' closure_arg}] '|' func_body) ;
 closure_arg = ['const'] 'IDENTIFIER' [type_ext] ;
 
@@ -135,6 +135,10 @@ inline_match_expr_block = 'INDENT' inline_match_expr_branch {inline_match_expr_b
 inline_match_expr_branch = expr_list '=>' expr 'NEWLINE' ;
 inline_match_type_block = 'INDENT' inline_match_type_branch {inline_match_type_branch} 'DEDENT' ;
 inline_match_type_branch = type_pattern_list '=>' expr 'NEWLINE' ;
+
+with_expr = 'with' ? monad_ctx ? '=>' expr ;
+monad_ctx = mctx_elem {semilinebr mctx_elem} ;
+mctx_elem = 'IDENTIFIER' '<-' expr ;
 
 core_expr = ['await'] func_op [core_expr_suffix] ;
 core_expr_suffix = '..' func_op

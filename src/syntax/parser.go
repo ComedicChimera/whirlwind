@@ -131,7 +131,7 @@ func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 					nil, // EOFs only happen in one place :)
 				)
 			case INDENT, DEDENT:
-				// ignore indentation changes if we are in a blind frame
+				// check indentation changes only if we are not in a blind frame
 				if p.topIndentFrame().Mode == -1 {
 					// cache the original lookahead before we attempt to ignore
 					// the indentation change based on the "empty" line rule
@@ -183,6 +183,8 @@ func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 func (p *Parser) shift(state int) error {
 	p.stateStack = append(p.stateStack, state)
 	p.semanticStack = append(p.semanticStack, (*ASTLeaf)(p.lookahead))
+
+	fmt.Println(p.lookahead.Kind)
 
 	// used in all branches of switch (small operation - low cost)
 	topFrame := p.topIndentFrame()
@@ -256,6 +258,12 @@ func (p *Parser) reduce(ruleRef int) {
 		// calculate the added size of inlining all anonymous productions
 		anonSize := 0
 
+		// flag indicating whether or not any anonymous productions need to be
+		// inlined (can't use anonSize since an anon production could contain a
+		// single element which would mean no size change => anonSize = 0 even
+		// though there would still be anonymous productions that need inlining)
+		containsAnons := false
+
 		// remove all empty trees and whitespace tokens from the new branch
 		n := 0
 		for _, item := range branch.Content {
@@ -263,10 +271,13 @@ func (p *Parser) reduce(ruleRef int) {
 				if len(subbranch.Content) > 0 {
 					branch.Content[n] = item
 					n++
-				}
 
-				if subbranch.Name[0] == '$' {
-					anonSize += len(subbranch.Content) - 1
+					// only want to inline anonymous production if they will
+					// still exist after all empty trees are removed
+					if subbranch.Name[0] == '$' {
+						anonSize += len(subbranch.Content) - 1
+						containsAnons = true
+					}
 				}
 			} else if leaf, ok := item.(*ASTLeaf); ok {
 				switch leaf.Kind {
@@ -286,7 +297,7 @@ func (p *Parser) reduce(ruleRef int) {
 		// productions do need to inlined, allocate a new slice to store the new
 		// branch and copy/inline as necessary (could do some trickery with
 		// existing slice but that seems unnecessarily complex /shrug)
-		if anonSize > 0 {
+		if containsAnons {
 			newBranchContent := make([]ASTNode, anonSize+n)
 			k := 0
 

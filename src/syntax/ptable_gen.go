@@ -2,11 +2,24 @@ package syntax
 
 import (
 	"fmt"
-	"os"
 	"reflect"
 )
 
 const _goalSymbol = "file"
+
+// constructParsingTable takes in an input rule table and attempt to build a
+// parsing table for it.  If it fails, a descriptive error is returned.  If it
+// succeeds a full parsing table is returned.  NOTE: this function resolves
+// shift-reduce conflicts in favor of SHIFT (will warn if it does this)!
+func constructParsingTable(brt *BNFRuleTable) (*ParsingTable, bool) {
+	ptableBuilder := PTableBuilder{BNFRules: brt, firstSets: make(map[string][]int)}
+
+	if !ptableBuilder.build() {
+		return nil, false
+	}
+
+	return ptableBuilder.Table, true
+}
 
 // LRItem represents an LR(0) item
 type LRItem struct {
@@ -41,50 +54,377 @@ type PTableBuilder struct {
 	firstSets map[string][]int
 }
 
-// constructParsingTable takes in an input rule table and attempt to build a
-// parsing table for it.  If it fails, a descriptive error is returned.  If it
-// succeeds a full parsing table is returned.  NOTE: this function resolves
-// shift-reduce conflicts in favor of SHIFT (will warn if it does this)!
-func constructParsingTable(brt *BNFRuleTable) (*ParsingTable, bool) {
-	ptableBuilder := PTableBuilder{BNFRules: brt, firstSets: make(map[string][]int)}
-
-	if !ptableBuilder.Build() {
-		return nil, false
-	}
-
-	return ptableBuilder.Table, true
-}
-
-// Build uses the current builds a full parsing table for a given rule table
-func (ptb *PTableBuilder) Build() bool {
+// build uses the current builds a full parsing table for a given rule table
+func (ptb *PTableBuilder) build() bool {
 	// augment the rule set
 	augRuleNdx := len(ptb.BNFRules.RulesByIndex)
 	ptb.BNFRules.RulesByIndex = append(ptb.BNFRules.RulesByIndex,
 		&BNFRule{ProdName: "_END_", Contents: []BNFElement{BNFNonterminal(_goalSymbol)}})
 	ptb.BNFRules.RulesByProdName["_END_"] = []int{augRuleNdx}
 
-	// create the starting kernel
+	// create the starting LR(1) kernel
 	startSet := &LRItemSet{Items: map[LRItem]map[int]struct{}{
 		LRItem{Rule: augRuleNdx, DotPos: 0}: map[int]struct{}{EOF: struct{}{}},
 	}}
 
-	// calculate its closure to get the starting set
+	// create an initial LR(0) item with an LR(1) kernel for the start set
 	ptb.closureOf(startSet)
 
-	// add that set to the list item sets (so it can be recognized in nextSets)
-	ptb.ItemSets = append(ptb.ItemSets, startSet)
+	// calculate all of the LR(0) item sets
+	ptb.nextLR0Items(startSet)
 
-	// calculate the next sets from the starting item set
-	ptb.nextSets(startSet)
+	// convert all of the LR(0) item sets to LR(1) item sets
+	ptb.createLR1Items(startSet, map[int]struct{}{0: struct{}{}})
 
-	// now, we need to propagate the lookaheads of merged item sets
-	ptb.propagateLookaheads(startSet, map[int]struct{}{0: struct{}{}})
+	// for i, set := range ptb.ItemSets {
+	// 	for item := range set.Items {
+	// 		if strings.HasSuffix(ptb.BNFRules.RulesByIndex[item.Rule].ProdName, "identifier_list") {
+	// 			fmt.Printf("State %d: ", i)
+	// 			ptb.printSet(set)
+	// 			break
+	// 		}
+	// 	}
+	// }
 
 	// the number of states (rows) will be equivalent to the number of item sets
 	// since the merging has already occurred in generating the item sets
 	ptb.Table = &ParsingTable{Rows: make([]*PTableRow, len(ptb.ItemSets))}
 
 	return ptb.buildTableFromSets()
+}
+
+// nextLR0Items computes all of the connections for the current item set and
+// recursively creates sets as necessary while adding them to an item graph
+func (ptb *PTableBuilder) nextLR0Items(itemSet *LRItemSet) {
+	// add our item set to the item set graph (assume it has not been added)
+	ptb.ItemSets = append(ptb.ItemSets, itemSet)
+
+	// calculate all of the goto kernels that are connected to the item set
+	gotoKernels := make(map[BNFElement]*LRItemSet)
+	for item := range itemSet.Items {
+		bnfRule := ptb.BNFRules.RulesByIndex[item.Rule]
+
+		// we can only apply goto if the dot is not at the end of the rule and
+		// we are not dealing with an epsilon rule (and all rules that start
+		// with epsilon will be epsilon rules due to how our rules generate)
+		if item.DotPos < len(bnfRule.Contents) && bnfRule.Contents[item.DotPos].Kind() != BNFKindEpsilon {
+			gotoItem := LRItem{Rule: item.Rule, DotPos: item.DotPos + 1}
+			dottedElem := bnfRule.Contents[item.DotPos]
+
+			// in both cases, simply create an empty map for to hold lookaheads
+			if gotoKernel, ok := gotoKernels[dottedElem]; ok {
+				// if a goto kernel already exists, add our item to the kernel
+				gotoKernel.Items[gotoItem] = make(map[int]struct{})
+			} else {
+				// otherwise, create a new blank item set to hold our goto kernel
+				gotoKernels[dottedElem] = &LRItemSet{Items: map[LRItem]map[int]struct{}{gotoItem: make(map[int]struct{})}}
+			}
+		}
+	}
+
+	// initialize our goto connections for the starting LR(0) item set
+	itemSet.Conns = make(map[BNFElement]int)
+
+	// determine whether or not a goto kernel already has a representative item
+	// set in the item graph.  If it does, create a connection to the
+	// preexisting set.  Otherwise, add the full item set calculated from the
+	// goto kernel to the item graph.  Clean up the gotoKernels map as we go
+	// since we no longer need to store its data.
+mainloop:
+	for elem, gotoKernel := range gotoKernels {
+		// remove the goto kernels as we iterate (don't need the map entry now)
+		delete(gotoKernels, elem)
+
+		// calculate the closure of the goto kernel so we can compare and/or add it
+		ptb.closureOf(gotoKernel)
+
+		for i, otherItemSet := range ptb.ItemSets {
+			// if two items have the same items, they will be equivalent
+			if reflect.DeepEqual(gotoKernel.Items, otherItemSet.Items) {
+				// create a connection to our preexisting item set
+				itemSet.Conns[elem] = i
+				continue mainloop
+			}
+		}
+
+		// the connection index will be the next index (length) in the slice of
+		// item sets if the item set is being newly added
+		connIndex := len(ptb.ItemSets)
+
+		itemSet.Conns[elem] = connIndex
+
+		// calculating depth first vs. breadth first is effectively equivalent
+		// here in terms of performance so we can just calculate from here
+		ptb.nextLR0Items(gotoKernel)
+	}
+}
+
+// closureOf calculates all of the items in LR(0) item set based on its item kernel
+func (ptb *PTableBuilder) closureOf(itemSet *LRItemSet) {
+	for addedMore := true; addedMore; {
+		addedMore = false
+
+		for item := range itemSet.Items {
+			bnfRule := ptb.BNFRules.RulesByIndex[item.Rule]
+
+			// nothing to calculate if the dot is at the end of rule
+			if item.DotPos == len(bnfRule.Contents) {
+				continue
+			}
+
+			// if we have a nonterminal, add all its rule to the item set
+			if nt, ok := bnfRule.Contents[item.DotPos].(BNFNonterminal); ok {
+				startingLength := len(itemSet.Items)
+
+				for _, ruleRef := range ptb.BNFRules.RulesByProdName[string(nt)] {
+					ruleItem := LRItem{Rule: ruleRef, DotPos: 0}
+
+					itemSet.Items[ruleItem] = make(map[int]struct{})
+				}
+
+				// if the length changed, something was added
+				if len(itemSet.Items) != startingLength {
+					addedMore = true
+				}
+			}
+		}
+	}
+}
+
+// createLR1Items converts a given LR(0) item set to an LR(1) item set and
+// converts all of its connected sets recursively.  Assumes that the input set
+// has an LR(1) kernel (already has spontaneously generated lookaheads)
+func (ptb *PTableBuilder) createLR1Items(itemSet *LRItemSet, prevConns map[int]struct{}) {
+	// begin by propagating lookaheads throughout the current item set to
+	// convert it to a full LR(1) item set to that spontaneous generation is
+	// possible to all connected item sets (otherwise, we can't proceed)
+	ptb.propagateLookaheads(itemSet)
+
+	lookaheadsChanged := false
+
+	// next, go through every item in the item set and spontaneously generate
+	// lookaheads for any connected kernel items generated from the src item
+	for item, lookaheads := range itemSet.Items {
+		bnfRule := ptb.BNFRules.RulesByIndex[item.Rule]
+
+		// a connection will only exist if the dot is not at the end of the rule
+		if item.DotPos < len(bnfRule.Contents) {
+			dottedElem := bnfRule.Contents[item.DotPos]
+
+			if dottedElem.Kind() == BNFKindEpsilon {
+				continue
+			}
+
+			state := itemSet.Conns[dottedElem]
+
+			// we do not need to spontaneously generate lookaheads for a state
+			// we have already connected to in a previous set (avoid cycles)
+			if _, ok := prevConns[state]; ok {
+				continue
+			}
+
+			connSet := ptb.ItemSets[state]
+
+			// the matching kernel item will have the same rule with an
+			// incremented dot position
+			for connItem, connLookaheads := range connSet.Items {
+				if connItem.Rule == item.Rule && item.DotPos == connItem.DotPos-1 {
+					startLength := len(connLookaheads)
+
+					// if the items match, spontaneously generate lookaheads for
+					// the associated kernel item from its source item
+					for l := range lookaheads {
+						connLookaheads[l] = struct{}{}
+					}
+
+					if startLength != len(connLookaheads) {
+						lookaheadsChanged = true
+					}
+
+					// there will only be one matching kernel item
+					break
+				}
+			}
+		}
+	}
+
+	// if no lookaheads changed, then we do not need to spontaneously generate
+	// any new lookaheads for any connected sets and can just stop here
+	if !lookaheadsChanged {
+		return
+	}
+
+	// go through and recur to each connected set only after we have already
+	// fully generated all of its spontaneous lookaheads (given it an LR(1)
+	// kernel) so that propagation can occur correctly in connected set
+	for _, state := range itemSet.Conns {
+		// only recur if we have not already visited the state
+		if _, ok := prevConns[state]; !ok {
+			// mark the next kernel as already being visited
+			prevConns[state] = struct{}{}
+
+			ptb.createLR1Items(ptb.ItemSets[state], prevConns)
+
+			// remove the connection from prevConns (only need to prevent cycles
+			// not repetition/multiple entry points)
+			delete(prevConns, state)
+		}
+	}
+}
+
+// propagateLookaheads propagates lookaheads from an LR(1) item kernel to the
+// remaining LR(0) items to convert the input item set into a full LR(1) item by
+// making repeated passes through the item set and propagating lookaheads to all
+// items as necessary until no meaningful propagations occur
+func (ptb *PTableBuilder) propagateLookaheads(itemSet *LRItemSet) {
+	for propagated := true; propagated; {
+		propagated = false
+
+		for item, itemLookaheads := range itemSet.Items {
+			// if we have no lookaheads, then we have nothing to propagate (yet)
+			if len(itemLookaheads) == 0 {
+				continue
+			}
+
+			bnfRule := ptb.BNFRules.RulesByIndex[item.Rule]
+
+			// if our dot is at the end of the rule, there will be nothing to
+			// propagate to (ie. no connected nonterminals)
+			if item.DotPos == len(bnfRule.Contents) {
+				continue
+			}
+
+			// only if we have a nonterminal, will we have something to propagate to
+			if nt, ok := bnfRule.Contents[item.DotPos].(BNFNonterminal); ok {
+				// calculate the lookaheads that we will pass on to the next item
+				var lookaheads map[int]struct{}
+
+				if item.DotPos == len(bnfRule.Contents)-1 {
+					lookaheads = itemLookaheads
+				} else {
+					firstSet := ptb.first(bnfRule.Contents[item.DotPos+1:])
+
+					// remove all the epsilons from the first set
+					n := 0
+					for _, l := range firstSet {
+						// -1 == epsilon
+						if l != -1 {
+							firstSet[n] = l
+							n++
+						}
+					}
+
+					// if any epsilons were removed, the desired length of the
+					// new slice will change so we can use it to test if there
+					// were an epsilons in the first set
+					epsilonsRemoved := n != len(firstSet)
+					firstSet = firstSet[:n]
+
+					lookaheads = make(map[int]struct{})
+					for _, first := range firstSet {
+						lookaheads[first] = struct{}{}
+					}
+
+					if epsilonsRemoved {
+						for itemLookahead := range itemLookaheads {
+							lookaheads[itemLookahead] = struct{}{}
+						}
+					}
+				}
+
+				// pass the lookaheads on to all associated rules
+				for destItem, destLookaheads := range itemSet.Items {
+					// associated rules will have the same name
+					if ptb.BNFRules.RulesByIndex[destItem.Rule].ProdName == string(nt) {
+						// combine the lookaheads of the destination item and
+						// the current item and only consider this action a
+						// propagation of the lookaheads change (the length of
+						// the lookahead set changes if lookaheads are added)
+						startingLength := len(destLookaheads)
+
+						for lookahead := range lookaheads {
+							destLookaheads[lookahead] = struct{}{}
+						}
+
+						if len(destLookaheads) != startingLength {
+							propagated = true
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+// first calculates the first set of a given slice of a BNF rule (can be used
+// recursively) NOTE: should not be called with an empty slice (will fail)
+func (ptb *PTableBuilder) first(ruleSlice []BNFElement) []int {
+	if nt, ok := ruleSlice[0].(BNFNonterminal); ok {
+		var firstSet []int
+
+		// start by accumulating all firsts of nonterminal (inc. epsilon) to
+		// start with (in next block).  NOTE: string(nt) should be "free"
+
+		// check to see if the nonterminal first set has already been calculated
+		if mfs, ok := ptb.firstSets[string(nt)]; ok {
+			firstSet = make([]int, len(mfs))
+
+			// copy so that our in-place mutations of the first set don't affect
+			// the memoized version (small cost but ultimately trivial)
+			copy(firstSet, mfs)
+		} else {
+			for _, rRef := range ptb.BNFRules.RulesByProdName[string(nt)] {
+				// r will never be empty
+				ntFirst := ptb.first(ptb.BNFRules.RulesByIndex[rRef].Contents)
+
+				firstSet = append(firstSet, ntFirst...)
+			}
+
+			// memoize the base first set (copied for same reasons as above)
+			mfs := make([]int, len(firstSet))
+			copy(mfs, firstSet)
+			ptb.firstSets[string(nt)] = mfs
+		}
+
+		// if there are no elements following a given production, then any
+		// epsilons will remain in the first set (as nothing follows)
+		if len(ruleSlice) == 1 {
+			return firstSet
+		}
+
+		// if there are elements that follow the current element in our rule,
+		// then we need to check for and remove epsilons in the first set (as
+		// they may not be necessary)
+		n := 0
+		for _, f := range firstSet {
+			if f != -1 {
+				firstSet[n] = f
+				n++
+			}
+		}
+
+		// if the length has changed, epsilon values were removed and therefore,
+		// we need to consider the firsts of what follows our first element as
+		// valid firsts for the rule (ie. Fi(Aw) = Fi(A) \ { epsilon} U Fi(w))
+		if n != len(firstSet) {
+			// now we can trim off the excess length
+			firstSet = firstSet[:n]
+
+			// can blindly call first here because we already checked for rule
+			// slices that could result in a runtime panic (ie. will be empty)
+			firstSet = append(firstSet, ptb.first(ruleSlice[1:])...)
+		}
+
+		return firstSet
+	} else if _, ok := ruleSlice[0].(BNFEpsilon); ok {
+		// convert epsilon into an integer value (-1) and apply Fi(epsilon) =
+		// {epsilon }.  NOTE: epsilons only occur as solitary rules (always
+		// valid)
+		return []int{-1}
+	}
+
+	// apply Fi(w) = { w } where w is a terminal
+	return []int{int(ruleSlice[0].(BNFTerminal))}
 }
 
 // buildTableFromSets attempts to convert the itemset graph into a parsing table
@@ -281,314 +621,4 @@ func (ptb *PTableBuilder) getActionCount(state int) int {
 	}
 
 	return shiftActionCount + len(totalLookaheads)
-}
-
-// nextSets takes in a starting set; initializes its connections, and computes
-// all valid sets that could follow it (recursively).  It creates appropriate
-// connections for all sets in the item graph (including handling repeats). It
-// expects its starting set to already be added to the known item sets.
-func (ptb *PTableBuilder) nextSets(startSet *LRItemSet) {
-	// create a map to store the goto sets as we build them up
-	gotoSets := make(map[BNFElement]*LRItemSet)
-
-	// first compute the kernels of all of the possible goto sets
-	for item, lookaheads := range startSet.Items {
-		ruleContents := ptb.BNFRules.RulesByIndex[item.Rule].Contents
-
-		// if the dot is at the end of the rule or there is an epsilon in the
-		// rule (which implies due to the construction of our rule table that it
-		// is an epsilon rule), then there are no further sets to create
-		if item.DotPos == len(ruleContents) || ruleContents[item.DotPos].Kind() == BNFKindEpsilon {
-			continue
-		}
-
-		// create a new item from the current item with the dot moved forward one
-		newItem := LRItem{Rule: item.Rule, DotPos: item.DotPos + 1}
-
-		// determine whether or not to create a new connected set for our item
-		// or to add to a preexisting one by checking if a connection exists
-		dottedElem := ruleContents[item.DotPos]
-
-		// we can add items directly here since they all have the same lookaheads
-		if gotoSet, ok := gotoSets[dottedElem]; ok {
-			gotoSet.Items[newItem] = lookaheads
-		} else {
-			gotoSet := &LRItemSet{Items: map[LRItem]map[int]struct{}{newItem: lookaheads}}
-			gotoSets[dottedElem] = gotoSet
-		}
-	}
-
-	// assume that the starting set's connections map is not initialized
-	startSet.Conns = make(map[BNFElement]int)
-
-	// now that we have computed our kernel goto sets, we need to calculate
-	// their closures and determine whether or not to add them to the set graph
-	// or merge them with another set.  In this pass, we can also add the
-	// appropriate connections and mark (by removal) which goto sets should be
-	// recursively expanded from (via. calls to nextSets).
-	for elem, gotoSet := range gotoSets {
-		ptb.closureOf(gotoSet)
-
-		gotoMatched := false
-		for i, set := range ptb.ItemSets {
-			// NOTE: merge will attempt to merge to sets that have the same
-			// core. If the have identical lookaheads, then this is equivalent
-			// to checking equality.  If they don't, it facilitates step-by-step
-			// merging for sets that have the same cores.
-			if set.merge(gotoSet) {
-				// if we have already calculated the state, create a connection
-				// back to that precreated state, set the matched flag, and exit
-				// the loop (b/c we don't need to search anymore)
-				gotoMatched = true
-				startSet.Conns[elem] = i
-
-				// remove the created goto set since we are no longer using it
-				delete(gotoSets, elem)
-
-				break
-			}
-		}
-
-		if !gotoMatched {
-			// add the connection to our goto set (predictively)
-			startSet.Conns[elem] = len(ptb.ItemSets)
-
-			// add the goto set to our graph
-			ptb.ItemSets = append(ptb.ItemSets, gotoSet)
-		}
-	}
-
-	// progress through all remaining new goto sets and recursively calculate
-	// their next sets
-	for _, gotoSet := range gotoSets {
-		ptb.nextSets(gotoSet)
-	}
-}
-
-// closureOf calculates the closure of the kernel of an item set in-place.
-func (ptb *PTableBuilder) closureOf(kernel *LRItemSet) {
-	// calculated closures is used to store the LR items for which a closure has
-	// already been calculated (prevents repeat calculation - does not store results)
-	calculatedClosures := make(map[LRItem]struct{})
-
-	for addedItems := true; addedItems; {
-		addedItems = false
-
-		for item, itemLookaheads := range kernel.Items {
-			ruleContents := ptb.BNFRules.RulesByIndex[item.Rule].Contents
-
-			if _, ok := calculatedClosures[item]; ok || item.DotPos == len(ruleContents) {
-				continue
-			}
-
-			if nt, ok := ruleContents[item.DotPos].(BNFNonterminal); ok {
-				var lookaheads map[int]struct{}
-
-				if item.DotPos == len(ruleContents)-1 {
-					lookaheads = itemLookaheads
-				} else {
-					firstSet := ptb.first(ruleContents[item.DotPos+1:])
-
-					// remove all the epsilons from the first set
-					n := 0
-					for _, l := range firstSet {
-						// -1 == epsilon
-						if l != -1 {
-							firstSet[n] = l
-							n++
-						}
-					}
-
-					// if any epsilons were removed, the desired length of the
-					// new slice will change so we can use it to test if there
-					// were an epsilons in the first set
-					epsilonsRemoved := n != len(firstSet)
-					firstSet = firstSet[:n]
-
-					lookaheads = make(map[int]struct{})
-					for _, first := range firstSet {
-						lookaheads[first] = struct{}{}
-					}
-
-					if epsilonsRemoved {
-						lookaheads = combineLookaheads(lookaheads, itemLookaheads)
-					}
-				}
-
-				newRuleRefs, ok := ptb.BNFRules.RulesByProdName[string(nt)]
-
-				if !ok {
-					fmt.Printf("Grammar Error: No production defined for nonterminal `%s`", string(nt))
-					os.Exit(1)
-				}
-
-				// allocate a map to hold the new items
-				newItems := make(map[LRItem]map[int]struct{})
-
-				for i := range newRuleRefs {
-					newItems[LRItem{Rule: newRuleRefs[i], DotPos: 0}] = lookaheads
-				}
-
-				// combine our original kernel with our new kernel
-				// to see if there are any new items being added
-				initKSize := len(kernel.Items)
-				for newItem := range newItems {
-					if kernelLookaheads, ok := kernel.Items[newItem]; ok {
-						kernel.Items[newItem] = combineLookaheads(kernelLookaheads, lookaheads)
-					} else {
-						kernel.Items[newItem] = lookaheads
-					}
-				}
-
-				// mark that our items closure has been calculated
-				calculatedClosures[item] = struct{}{}
-
-				// items have been added and therefore we should continue
-				// calculating closure (and set the flag accordingly)
-				if len(kernel.Items) != initKSize {
-					addedItems = true
-				}
-			}
-		}
-	}
-}
-
-// first calculates the first set of a given slice of a BNF rule (can be used
-// recursively) NOTE: should not be called with an empty slice (will fail)
-func (ptb *PTableBuilder) first(ruleSlice []BNFElement) []int {
-	if nt, ok := ruleSlice[0].(BNFNonterminal); ok {
-		var firstSet []int
-
-		// start by accumulating all firsts of nonterminal (inc. epsilon) to
-		// start with (in next block).  NOTE: string(nt) should be "free"
-
-		// check to see if the nonterminal first set has already been calculated
-		if mfs, ok := ptb.firstSets[string(nt)]; ok {
-			firstSet = make([]int, len(mfs))
-
-			// copy so that our in-place mutations of the first set don't affect
-			// the memoized version (small cost but ultimately trivial)
-			copy(firstSet, mfs)
-		} else {
-			for _, rRef := range ptb.BNFRules.RulesByProdName[string(nt)] {
-				// r will never be empty
-				ntFirst := ptb.first(ptb.BNFRules.RulesByIndex[rRef].Contents)
-
-				firstSet = append(firstSet, ntFirst...)
-			}
-
-			// memoize the base first set (copied for same reasons as above)
-			mfs := make([]int, len(firstSet))
-			copy(mfs, firstSet)
-			ptb.firstSets[string(nt)] = mfs
-		}
-
-		// if there are no elements following a given production, then any
-		// epsilons will remain in the first set (as nothing follows)
-		if len(ruleSlice) == 1 {
-			return firstSet
-		}
-
-		// if there are elements that follow the current element in our rule,
-		// then we need to check for and remove epsilons in the first set (as
-		// they may not be necessary)
-		n := 0
-		for _, f := range firstSet {
-			if f != -1 {
-				firstSet[n] = f
-				n++
-			}
-		}
-
-		// if the length has changed, epsilon values were removed and therefore,
-		// we need to consider the firsts of what follows our first element as
-		// valid firsts for the rule (ie. Fi(Aw) = Fi(A) \ { epsilon} U Fi(w))
-		if n != len(firstSet) {
-			// now we can trim off the excess length
-			firstSet = firstSet[:n]
-
-			// can blindly call first here because we already checked for rule
-			// slices that could result in a runtime panic (ie. will be empty)
-			firstSet = append(firstSet, ptb.first(ruleSlice[1:])...)
-		}
-
-		return firstSet
-	} else if _, ok := ruleSlice[0].(BNFEpsilon); ok {
-		// convert epsilon into an integer value (-1) and apply Fi(epsilon) =
-		// {epsilon }.  NOTE: epsilons only occur as solitary rules (always
-		// valid)
-		return []int{-1}
-	}
-
-	// apply Fi(w) = { w } where w is a terminal
-	return []int{int(ruleSlice[0].(BNFTerminal))}
-}
-
-// propagateLookaheads recursively updates the lookaheads of all connections of
-// a set after a merge to ensure lookaheads propagate properly (ie. like GOTO)
-func (ptb *PTableBuilder) propagateLookaheads(itemSet *LRItemSet, prevConns map[int]struct{}) {
-	for elem, conn := range itemSet.Conns {
-		if _, ok := prevConns[conn]; !ok {
-			continue
-		}
-
-		for item, lookaheads := range itemSet.Items {
-			ruleContents := ptb.BNFRules.RulesByIndex[item.Rule].Contents
-
-			// if our dot is at the end of a rule, nothing to propagate
-			if item.DotPos < len(ruleContents) {
-				dottedElem := ruleContents[item.DotPos]
-
-				if reflect.DeepEqual(dottedElem, elem) {
-					connSet := ptb.ItemSets[conn]
-
-					for connItem, connLookaheads := range connSet.Items {
-						connSet.Items[connItem] = combineLookaheads(lookaheads, connLookaheads)
-					}
-
-					prevConns[conn] = struct{}{}
-					ptb.propagateLookaheads(connSet, prevConns)
-				}
-			}
-		}
-	}
-
-}
-
-// combineLookaheads takes two sets of lookaheads and produces their union
-func combineLookaheads(a, b map[int]struct{}) map[int]struct{} {
-	newLookaheads := make(map[int]struct{})
-
-	for lookahead := range a {
-		newLookaheads[lookahead] = struct{}{}
-	}
-
-	for lookahead := range b {
-		newLookaheads[lookahead] = struct{}{}
-	}
-
-	return newLookaheads
-}
-
-// merge attempts to merge to item sets.  It returns true if such a merge was
-// possible and performs the merge (in-place).  If not, it returns false.
-func (itemSet *LRItemSet) merge(other *LRItemSet) bool {
-	// if they have different lengths, they have different cores
-	if len(itemSet.Items) != len(other.Items) {
-		return false
-	}
-
-	// test if the items have the same core
-	for item := range itemSet.Items {
-		if _, ok := other.Items[item]; !ok {
-			return false
-		}
-	}
-
-	// if they do, perform the merge by combining the lookaheads
-	for otherItem, otherLookaheads := range other.Items {
-		itemSet.Items[otherItem] = combineLookaheads(itemSet.Items[otherItem], otherLookaheads)
-	}
-
-	return true
 }

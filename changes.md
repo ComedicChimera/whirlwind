@@ -215,28 +215,28 @@ checking on the next line (works like it does in Python).
 
 ## Context Managers
 
-- syntax: `with name = expr do`
+- syntax: `with name := expr do`
   - name can be `_` (if using an already created resource)
-  - can manage multiple resources (eg. `with name1 = expr1; name2 = expr2 do`)
+  - can manage multiple resources (eg. `with name1 := expr1; name2 := expr2 do`)
 - ensure that resources are cleaned up before they close (via. `close()` method)
 - even in case of runtime panic
-- same guarantee about `after` block
+- same guarantee about `finally` block
 - even circumvents breaks and returns (temporarily)
   - occurs before
 - used when handling "hot" resources that must be properly disposed (at all costs, in all cases)
 - can be used "monadically" (to handle monadic types)
-  - use `<-` instead of `=`, written the same way
+  - use `<-` instead of `:=`, written the same way
   - apply monadic operators to extract values (very functional pattern)
-  - also has an expression form when used monadically
-    - `with v1 <- f1(); v2 <- f2() => v1 + v2`
-    - can replace semicolons with newlines and put newline before the `=>`
-  - works together with the `Monad` interface
-  - operates sequentially (values can be used in bindings)
-    - eg. `with v1 <- f1(); v2 <- f2(v1) => v2`
-  - basically just syntactic sugar for repeat calls of `apply`
-  - after is not really meaningful here but can be used
+  - basically just syntactic sugar for repeat calls of `after`
+  - also valid inline form for monadic types: `with v <- f() => v`
+    - uses `apply` instead of `after`
+    - rhs must be of the same type as is returned by `f`
 - can have `else` block that runs if the context manager is unsuccessful at
 acquiring the resources/extracting the monadic value
+- the `:=` operator can be used for monadic values if the their contained value is `Contextual`
+  - fills the role of both operators in this case
+  - for example: `with f := fs::open(path) do`
+    - `open` returns a `Result<File>`
 - associated interfaces: `Contextual` and `Monad`
 
 ## Improved Operator Overloading
