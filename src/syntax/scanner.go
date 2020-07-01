@@ -423,6 +423,7 @@ func (s *Scanner) readNumberLiteral() (*Token, bool) {
 
 	// use loop break label to break out loop from within switch case
 loop:
+	// NOTE TO FUTURE JORDAN: it is reading one extra character of input
 
 	// move forward at end of parsing to creating left overs in the token
 	// builder (peek is not necessary here since we do still want to move
