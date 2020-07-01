@@ -294,8 +294,6 @@ func (s *Scanner) ReadToken() (*Token, error) {
 // create a token at the current position from the provided data
 func (s *Scanner) makeToken(kind int, value string) *Token {
 	tok := &Token{Kind: kind, Value: value, Line: s.line, Col: s.col}
-	s.col += len(value)
-
 	return tok
 }
 
@@ -328,6 +326,7 @@ func (s *Scanner) readNext() bool {
 
 	s.tokBuilder.WriteRune(r)
 	s.curr = r
+	s.col++
 	return true
 }
 
@@ -537,7 +536,7 @@ loop:
 		case 'l':
 			isLong = true
 		default:
-			break
+			break loop
 		}
 	}
 

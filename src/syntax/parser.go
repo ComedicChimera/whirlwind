@@ -107,6 +107,8 @@ func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 	for {
 		state := p.ptable.Rows[p.stateStack[len(p.stateStack)-1]]
 
+		// fmt.Printf("State: %d, Lookahead: %d\n", p.stateStack[len(p.stateStack)-1], p.lookahead.Kind)
+
 		if action, ok := state.Actions[p.lookahead.Kind]; ok {
 			switch action.Kind {
 			case AKShift:
@@ -121,6 +123,7 @@ func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 		} else {
 			switch p.lookahead.Kind {
 			case NEWLINE:
+				fmt.Println("Ignored NEWLINE on line:", p.lookahead.Line)
 				// unexpected newlines can be accepted whenever
 				break
 			// generate descriptive error messages for special tokens
@@ -138,6 +141,8 @@ func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 					originalLookahead := p.lookahead
 
 					if err := p.consume(); err == nil && p.lookahead.Kind == NEWLINE {
+						fmt.Println("Ignored Indent Change on Line:", originalLookahead.Line)
+
 						// if an indentation change (of any amount) is
 						// immediately followed by a newline then we know that
 						// the line is meaningless and the indentation change
@@ -183,8 +188,6 @@ func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 func (p *Parser) shift(state int) error {
 	p.stateStack = append(p.stateStack, state)
 	p.semanticStack = append(p.semanticStack, (*ASTLeaf)(p.lookahead))
-
-	fmt.Println(p.lookahead.Kind)
 
 	// used in all branches of switch (small operation - low cost)
 	topFrame := p.topIndentFrame()

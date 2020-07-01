@@ -2,9 +2,14 @@ type Point {
     x, y: int
 }
 
-type Option<T>
-    | Some(T)
+type Option<T> 
+    | Some(T) 
     | None
+
+const
+    x = 10,
+    y = 2,
+    z = 1
 
 func println<T>(x: T) do
     ...

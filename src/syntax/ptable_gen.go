@@ -78,12 +78,19 @@ func (ptb *PTableBuilder) build() bool {
 
 	// for i, set := range ptb.ItemSets {
 	// 	for item := range set.Items {
-	// 		if strings.HasSuffix(ptb.BNFRules.RulesByIndex[item.Rule].ProdName, "identifier_list") {
+	// 		name := ptb.BNFRules.RulesByIndex[item.Rule].ProdName
+
+	// 		if strings.Contains(name, "enum") || strings.HasSuffix(name, "tupled_suffix") {
 	// 			fmt.Printf("State %d: ", i)
 	// 			ptb.printSet(set)
 	// 			break
 	// 		}
 	// 	}
+	// }
+
+	// for i, set := range ptb.ItemSets {
+	// 	fmt.Printf("State %d: ", i)
+	// 	ptb.printSet(set)
 	// }
 
 	// the number of states (rows) will be equivalent to the number of item sets
@@ -507,7 +514,7 @@ func (ptb *PTableBuilder) buildTableFromSets() bool {
 						// the table construction was unsuccessful.
 						if action.Kind == AKShift {
 							// find a better way to indicate the token value
-							fmt.Printf("Shift/Reduce Conflict Resolved Between `%s` and `%d`\n", bnfRule.ProdName, lookahead)
+							// fmt.Printf("Shift/Reduce Conflict Resolved Between `%s` and `%d`\n", bnfRule.ProdName, lookahead)
 						} else if action.Kind == AKReduce {
 							oldRule, newRule := ptb.Table.Rules[action.Operand], ptb.Table.Rules[reduceRule]
 

@@ -190,8 +190,7 @@ func (e *Expander) expandGroup(group []GrammaticalElement) []BNFElement {
 			suiteAnonName := e.getAnonName()
 			e.addRule(suiteAnonName, []BNFElement{subGroupRef})
 			e.addRule(suiteAnonName, []BNFElement{
-				BNFTerminal(NEWLINE), BNFTerminal(INDENT),
-				subGroupRef, BNFTerminal(DEDENT),
+				BNFTerminal(INDENT), subGroupRef, BNFTerminal(DEDENT),
 			})
 
 			ruleContents[i] = BNFNonterminal(suiteAnonName)
