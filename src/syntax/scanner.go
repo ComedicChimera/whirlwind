@@ -54,18 +54,30 @@ type Scanner struct {
 	// no set mode, mode -1 = tabs, mode n > 1 = number of spaces per indent.
 	indentMode int
 
-	// emitDedent is used to store any DEDENT tokens the scanner should emit
-	// on the next call to ReadNext.  It has no effect is this value is `nil`
-	emitDedent *Token
+	// lookahead is a token that was processed while scanning in another token
+	// (ie. when an extra DEDENT needs to emitted after a linebreak).  This
+	// token is set during one call to ReadToken() and outputted the next.
+	lookahead *Token
+
+	// auxLookahead is an auxilliary lookahead used in the situation where a
+	// DEDENT and some other token need to be emitted b/c the next line was
+	// determined to hold content but its first token was already consumed
+	auxLookahead *Token
 }
 
 // ReadToken reads a single token from the stream, error can indicate malformed
 // token or end of token stream
 func (s *Scanner) ReadToken() (*Token, error) {
-	if s.emitDedent != nil {
-		dedentTok := s.emitDedent
-		s.emitDedent = nil
-		return dedentTok, nil
+	if s.lookahead != nil {
+		lhTok := s.lookahead
+
+		// move the auxilliary lookahead into the current lookahead
+		s.lookahead = s.auxLookahead
+
+		// clear the auxilliary lookahead
+		s.auxLookahead = nil
+
+		return lhTok, nil
 	}
 
 	for s.readNext() {
@@ -81,7 +93,13 @@ func (s *Scanner) ReadToken() (*Token, error) {
 		case '\n':
 			// line counting handled in readNext
 			tok = s.getToken(NEWLINE)
-			s.processNewline()
+			s.tokBuilder.Reset()
+
+			// handle any errors that occur from processing the NEWLINE
+			if err := s.processNewline(); err != nil {
+				return nil, err
+			}
+
 			return tok, nil
 		// handle space-based indentation (and spaces generally)
 		case ' ':
@@ -110,7 +128,8 @@ func (s *Scanner) ReadToken() (*Token, error) {
 
 					// discard tok builder contents and make a single indent
 					s.tokBuilder.Reset()
-					return s.makeToken(INDENT, string(1)), nil
+
+					return s.makeIndentToken(INDENT, string(1))
 				}
 
 				// otherwise, calculate the equivalent indentation based on the
@@ -128,10 +147,10 @@ func (s *Scanner) ReadToken() (*Token, error) {
 
 				// the change is negative, the indent level decreased
 				if levelDiff < 0 {
-					return s.makeToken(DEDENT, string(-levelDiff)), nil
+					return s.makeIndentToken(DEDENT, string(-levelDiff))
 				} else if levelDiff > 0 {
 					// if it is positive, indent level increased
-					return s.makeToken(INDENT, string(levelDiff)), nil
+					return s.makeIndentToken(INDENT, string(levelDiff))
 				}
 
 				// if there was no change, we can simply continue as normal
@@ -167,9 +186,9 @@ func (s *Scanner) ReadToken() (*Token, error) {
 				s.indentLevel = level // update level now that we don't need it
 
 				if levelDiff < 0 {
-					return s.makeToken(DEDENT, string(-levelDiff)), nil
+					return s.makeIndentToken(DEDENT, string(-levelDiff))
 				} else if levelDiff > 0 {
-					return s.makeToken(INDENT, string(levelDiff)), nil
+					return s.makeIndentToken(INDENT, string(levelDiff))
 				}
 			} else {
 				// drop the lingering tab
@@ -191,7 +210,13 @@ func (s *Scanner) ReadToken() (*Token, error) {
 			if !more {
 				tok = s.getToken(FDIVIDE)
 			} else if ahead == '/' {
-				s.skipLineComment()
+				// handle any errors that occur from applying the blank line
+				// rule (don't need to discard tokBuilder in the event of an
+				// error since errors stop parsing for this file)
+				if err := s.skipLineComment(); err != nil {
+					return nil, err
+				}
+
 				s.tokBuilder.Reset() // get rid of lingering `/`
 
 				// return a newline so that the indentation is measured
@@ -287,8 +312,12 @@ func (s *Scanner) ReadToken() (*Token, error) {
 		return tok, nil
 	}
 
-	// end of file
-	return nil, io.EOF
+	// if we're are at the end of the file, we need to first return an
+	// appropriate DEDENT to get us back to the top level and then store an EOF
+	// token in the lookahead (this section should only run once)
+	s.lookahead = &Token{Kind: EOF}
+
+	return s.makeToken(DEDENT, string(s.indentLevel)), nil
 }
 
 // create a token at the current position from the provided data
@@ -414,8 +443,37 @@ func (s *Scanner) readWord() *Token {
 func (s *Scanner) readNumberLiteral() (*Token, bool) {
 	var isHex, isBin, isOct, isFloat, isUns, isLong bool
 
+	// the first thing to do it to determine what kind of numeric literal we are
+	// dealing with.  If our token starts with at `0`, then we peek ahead to see
+	// if we need to process an integer literal prefix (ie. a 0x).  If it
+	// doesn't, we do nothing and leave the next character to be scanned by the
+	// main integer literal scanning loop (s.curr will be our starting char)
+	if s.curr == '0' {
+		ahead, more := s.peek()
+
+		if more {
+			switch ahead {
+			case 'x':
+				isHex = true
+				s.readNext()
+			case 'o':
+				isOct = true
+				s.readNext()
+			case 'b':
+				isBin = true
+				s.readNext()
+			}
+		} else {
+			// if we are out of tokens, then 0 is our only element
+			return s.getToken(INTLIT), true
+		}
+	}
+
 	// if we previous was an 'e' then we can expect a '-'
 	expectNeg := false
+
+	// if previous was a `.` then we expect a digit
+	expectDigit := false
 
 	// if we triggered a floating point using '.' instead of 'e' than 'e' could
 	// still be valid
@@ -423,29 +481,38 @@ func (s *Scanner) readNumberLiteral() (*Token, bool) {
 
 	// use loop break label to break out loop from within switch case
 loop:
-	// NOTE TO FUTURE JORDAN: it is reading one extra character of input
+	// We already know the first character is valid so we can simply ignore it.
+	// Moreover, we don't need to check readNext since we know the next token
+	// will be valid b/c it will be checked with s.peek() is called.  So instead
+	// we just want to make sure that all `continue` because the checked
+	// character to be read in.
+	for ; true; s.readNext() {
+		ahead, more := s.peek()
 
-	// move forward at end of parsing to creating left overs in the token
-	// builder (peek is not necessary here since we do still want to move
-	// forward each iteration, just at the end)
-	for ok := true; ok; ok = s.readNext() {
+		// if we have nothing left, then we are out of tokens and should exit
+		if !more {
+			break
+		}
+
 		// if we have identified signage or sign, then we are not expecting
 		// anymore values and so exit out if an additional values are
 		// encountered besides sign and size specifiers
 		if isLong && isUns {
 			break
 		} else if isLong {
-			if s.curr == 'u' {
+			if ahead == 'u' {
 				isUns = true
 				continue
 			} else {
+				s.readNext()
 				break
 			}
 		} else if isUns {
-			if s.curr == 'l' {
+			if ahead == 'l' {
 				isLong = true
 				continue
 			} else {
+				s.readNext()
 				break
 			}
 		}
@@ -453,13 +520,13 @@ loop:
 		// if we are expecting a negative and get another character then we
 		// simply update the state (no longer expecting a negative) and continue
 		// on (expect is not a hard expectation)
-		if expectNeg && s.curr != '-' {
+		if expectNeg && ahead != '-' {
 			expectNeg = false
 		}
 
 		// check to ensure that any binary literals are valid
 		if isBin {
-			if s.curr == '0' || s.curr == '1' {
+			if ahead == '0' || ahead == '1' {
 				continue
 			} else {
 				break
@@ -468,25 +535,56 @@ loop:
 
 		// check to ensure that any octal literals are valid
 		if isOct {
-			if s.curr > '/' && s.curr < '9' {
+			if ahead > '/' && ahead < '9' {
 				continue
 			} else {
 				break
 			}
 		}
 
-		if IsDigit(s.curr) {
+		if IsDigit(ahead) {
+			expectDigit = false
 			continue
 		}
 
 		// check for validity of hex literal
-		if isHex && (s.curr < 'A' || s.curr > 'F') && (s.curr < 'a' || s.curr > 'f') {
+		if isHex && (ahead < 'A' || ahead > 'F') && (ahead < 'a' || ahead > 'f') {
 			break
-			// after hitting floating point detector, we can only expect
-			// numbers, 'e', and '-' and only under certain conditions
 		} else if isFloat {
-			switch s.curr {
-			case 'e':
+			// if we are expecting a digit and not getting one (ie. after the `.`)
+			if expectDigit {
+				// create the base integer literal
+				tokValue := s.tokBuilder.String()
+				intlit := s.makeToken(INTLIT, tokValue[:len(tokValue)-1])
+				intlit.Col--
+
+				// clear the token builder before we continue to build the dots
+				s.tokBuilder.Reset()
+
+				// accumulate `.` into larger tokens if necessary
+				for ahead == '.' {
+					s.readNext()
+					ahead, more = s.peek()
+
+					if !more {
+						break
+					}
+				}
+
+				// make the dots token into the current lookahead
+				s.lookahead = s.getToken(symbolPatterns[s.tokBuilder.String()])
+				s.tokBuilder.Reset()
+
+				return intlit, false
+			}
+
+			// our scanning logic changes after we parse a float: we can longer
+			// accept `u`, `l` or `.` (since even if an `e` (or `E`) was what
+			// moved us into this state, the power must be an integer value).
+			// So we employ alternative checking logic
+			switch ahead {
+			case 'e', 'E':
+				// avoid duplicate e's
 				if eValid {
 					eValid = false
 				} else {
@@ -494,6 +592,13 @@ loop:
 				}
 			case '-':
 				if expectNeg {
+					// since we are already looking ahead, we have to assume that
+					// the negative is part of this token.  If what comes after this
+					// token is not a digit, then we would have something of the form
+					// `0e-...`` which can never be valid even if you split the tokens
+					// (b/c you get `0e`, `-`, and `...` and the `0e` is invalid)
+					s.readNext()
+
 					// check if there is a non-number ahead then we actually
 					// have 3 tokens and have to scan the other two separately
 					ahead, valid := s.peek()
@@ -503,10 +608,9 @@ loop:
 						return nil, true
 					}
 
-					// if it is not a digit, assume 3 separate tokens, continue
-					// scanning after
+					// if it is not a digit, the token is malformed
 					if !IsDigit(ahead) {
-						break loop
+						return nil, true
 					}
 
 					expectNeg = false
@@ -514,21 +618,27 @@ loop:
 					break loop
 				}
 			default:
+				// if expectNeg is true here, then we know the previous
+				// character we read in was an `e` and since a numeric literal
+				// cannot end with an `e` and there will never be context where
+				// an identifier followed by an integer literal could be two
+				// valid tokens (according to the grammar), we mark such
+				// literals as one malformed token
+				if expectNeg {
+					return nil, true
+				}
+
 				break loop
 			}
 		}
 
-		// determine token type based on token properties
-		switch s.curr {
-		case 'x':
-			isHex = true
-		case 'b':
-			isBin = true
-		case 'o':
-			isOct = true
+		// we only reach this point, we are not a floating point value (and
+		// might want to become one or need to act knowing we aren't one)
+		switch ahead {
 		case '.':
 			isFloat = true
 			eValid = true
+			expectDigit = true
 		case 'e', 'E':
 			isFloat = true
 			expectNeg = true
@@ -650,7 +760,7 @@ func (s *Scanner) readEscapeSequence() bool {
 
 // read in a raw string literal
 func (s *Scanner) readRawStringLiteral() (*Token, bool) {
-	for ok := true; ok; ok = s.curr == '`' {
+	for ok := true; ok; ok = s.curr != '`' {
 		// catch incomplete raw string literals
 		if !s.readNext() {
 			return nil, true
@@ -660,12 +770,12 @@ func (s *Scanner) readRawStringLiteral() (*Token, bool) {
 	return s.getToken(STRINGLIT), false
 }
 
-func (s *Scanner) skipLineComment() {
+func (s *Scanner) skipLineComment() error {
 	for s.skipNext() && s.curr != '\n' {
 	}
 
 	// make sure the scanner properly handles the newline
-	s.processNewline()
+	return s.processNewline()
 }
 
 func (s *Scanner) skipBlockComment() {
@@ -685,8 +795,29 @@ func (s *Scanner) skipBlockComment() {
 }
 
 // processNewline performs all necessary scanner logic to handle a newline
-func (s *Scanner) processNewline() {
+func (s *Scanner) processNewline() error {
 	s.updateIndentLevel = true
+	var err error = nil
+
+	emitDedent := func() {
+		next, berr := s.applyBlankLineRule()
+
+		if berr != nil {
+			err = berr
+			return
+		}
+
+		if next == nil {
+			// make sure that the token following the non-blank line is not
+			// discarded/lost by using the auxilliary lookahead
+			s.auxLookahead = s.lookahead
+			s.lookahead = s.makeToken(DEDENT, string(s.indentLevel))
+			s.indentLevel = 0
+		}
+
+		// since next will only be a NEWLINE, we can ignore it since we
+		// are already processing a NEWLINE (if a next exists)
+	}
 
 	// check to see if have an appropriate indent character on the next
 	// line (something that will trigger indentation logic).  If not, we
@@ -703,16 +834,13 @@ func (s *Scanner) processNewline() {
 			// if the mode is not determined then either spaces or tabs
 			// will count as an indent and so we check for both
 			if s.indentMode == 0 && ahead != ' ' && ahead != '\t' {
-				s.emitDedent = s.makeToken(DEDENT, string(s.indentLevel))
-				s.indentLevel = 0
+				emitDedent()
 			} else if s.indentMode == -1 && ahead != '\t' {
 				// if we are in TAB mode, check for tabs (above)
-				s.emitDedent = s.makeToken(DEDENT, string(s.indentLevel))
-				s.indentLevel = 0
+				emitDedent()
 			} else if ahead != ' ' {
 				// we are in some SPACE mode, check for spaces (above)
-				s.emitDedent = s.makeToken(DEDENT, string(s.indentLevel))
-				s.indentLevel = 0
+				emitDedent()
 			}
 		}
 
@@ -721,4 +849,65 @@ func (s *Scanner) processNewline() {
 
 	// want to keep updateIndentLevel flag
 	s.tokBuilder.Reset()
+
+	return err
+}
+
+// applyBlankLineRule checks if a given line is blank and if it is, it
+// configures the scanner to ignore the content of the current line and returns
+// the NEWLINE the scanner should return.  If the line is not blank, it returns
+// `nil`.  This should be called before any kind of indentation is produced and
+// fed to the parser (not doing so will confuse the parser and cause blank lines
+// to be interpreted as syntactically significant).  NOTE: this function does
+// override the current lookahead with the token the scanner should return on
+// the next consumption.  It will not always, but it should be assumed that it
+// will.  It will also return any errors it encounters while looking ahead.
+func (s *Scanner) applyBlankLineRule() (*Token, error) {
+	tok, err := s.ReadToken()
+
+	if err != nil {
+		return nil, err
+	}
+
+	// if the next token is NEWLINE, the line was blank and should be skipped.
+	// NOTE: there is a bit of implicit recursion here in that when a NEWLINE is
+	// encountered, the blank line rule may be applied.  This is fine as we are
+	// ok ignoring line breaks on blank lines: we can simply defer control
+	// recursively as necessary.  Ultimately, no harm will be done.
+	if tok.Kind == NEWLINE {
+		// no need to set explicitly set the lookahead here: if it is needed,
+		// (ie. to store an upcoming DEDENT), it will already be set.
+		return tok, nil
+	}
+
+	// if the token was not a line break, then we simply store what we read
+	// ahead into the lookahead and return `nil` indicating that we don't want
+	// to override the current scanner's return (not a blank line).  NOTE: b/c
+	// INDENT and DEDENT never occur directly sequentially, we don't need to
+	// worry about them here (all indentation changes are compressed into a
+	// single INDENT or DEDENT token for simplicity and efficiency).  We also
+	// can freely override the lookahead here as the only time we couldn't would
+	// be in the context of a blank line which has already been handled.
+	s.lookahead = tok
+	return nil, nil
+}
+
+// makeIndentToken takes in the components to form an indentation token to
+// represent observed indentation and applies the blank line rule to determine
+// whether or not the return that token should be ignored.  It returns the token
+// and error the scanner should actually return when an indentation is observed.
+func (s *Scanner) makeIndentToken(kind int, value string) (*Token, error) {
+	indentTok := s.makeToken(kind, value)
+
+	next, err := s.applyBlankLineRule()
+
+	if err != nil {
+		return nil, err
+	}
+
+	if next != nil {
+		return next, nil
+	}
+
+	return indentTok, nil
 }

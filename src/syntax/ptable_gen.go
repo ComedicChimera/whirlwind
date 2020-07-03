@@ -74,13 +74,13 @@ func (ptb *PTableBuilder) build() bool {
 	ptb.nextLR0Items(startSet)
 
 	// convert all of the LR(0) item sets to LR(1) item sets
-	ptb.createLR1Items(startSet, map[int]struct{}{0: struct{}{}})
+	ptb.createLR1Items(startSet)
 
 	// for i, set := range ptb.ItemSets {
 	// 	for item := range set.Items {
 	// 		name := ptb.BNFRules.RulesByIndex[item.Rule].ProdName
 
-	// 		if strings.Contains(name, "enum") || strings.HasSuffix(name, "tupled_suffix") {
+	// 		if strings.Contains(name, "named_arg") {
 	// 			fmt.Printf("State %d: ", i)
 	// 			ptb.printSet(set)
 	// 			break
@@ -201,7 +201,7 @@ func (ptb *PTableBuilder) closureOf(itemSet *LRItemSet) {
 // createLR1Items converts a given LR(0) item set to an LR(1) item set and
 // converts all of its connected sets recursively.  Assumes that the input set
 // has an LR(1) kernel (already has spontaneously generated lookaheads)
-func (ptb *PTableBuilder) createLR1Items(itemSet *LRItemSet, prevConns map[int]struct{}) {
+func (ptb *PTableBuilder) createLR1Items(itemSet *LRItemSet) {
 	// begin by propagating lookaheads throughout the current item set to
 	// convert it to a full LR(1) item set to that spontaneous generation is
 	// possible to all connected item sets (otherwise, we can't proceed)
@@ -223,12 +223,6 @@ func (ptb *PTableBuilder) createLR1Items(itemSet *LRItemSet, prevConns map[int]s
 			}
 
 			state := itemSet.Conns[dottedElem]
-
-			// we do not need to spontaneously generate lookaheads for a state
-			// we have already connected to in a previous set (avoid cycles)
-			if _, ok := prevConns[state]; ok {
-				continue
-			}
 
 			connSet := ptb.ItemSets[state]
 
@@ -265,17 +259,7 @@ func (ptb *PTableBuilder) createLR1Items(itemSet *LRItemSet, prevConns map[int]s
 	// fully generated all of its spontaneous lookaheads (given it an LR(1)
 	// kernel) so that propagation can occur correctly in connected set
 	for _, state := range itemSet.Conns {
-		// only recur if we have not already visited the state
-		if _, ok := prevConns[state]; !ok {
-			// mark the next kernel as already being visited
-			prevConns[state] = struct{}{}
-
-			ptb.createLR1Items(ptb.ItemSets[state], prevConns)
-
-			// remove the connection from prevConns (only need to prevent cycles
-			// not repetition/multiple entry points)
-			delete(prevConns, state)
-		}
+		ptb.createLR1Items(ptb.ItemSets[state])
 	}
 }
 

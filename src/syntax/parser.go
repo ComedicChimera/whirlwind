@@ -107,8 +107,6 @@ func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 	for {
 		state := p.ptable.Rows[p.stateStack[len(p.stateStack)-1]]
 
-		// fmt.Printf("State: %d, Lookahead: %d\n", p.stateStack[len(p.stateStack)-1], p.lookahead.Kind)
-
 		if action, ok := state.Actions[p.lookahead.Kind]; ok {
 			switch action.Kind {
 			case AKShift:
@@ -123,7 +121,6 @@ func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 		} else {
 			switch p.lookahead.Kind {
 			case NEWLINE:
-				fmt.Println("Ignored NEWLINE on line:", p.lookahead.Line)
 				// unexpected newlines can be accepted whenever
 				break
 			// generate descriptive error messages for special tokens
@@ -136,36 +133,34 @@ func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 			case INDENT, DEDENT:
 				// check indentation changes only if we are not in a blind frame
 				if p.topIndentFrame().Mode == -1 {
-					// cache the original lookahead before we attempt to ignore
-					// the indentation change based on the "empty" line rule
-					originalLookahead := p.lookahead
-
-					if err := p.consume(); err == nil && p.lookahead.Kind == NEWLINE {
-						fmt.Println("Ignored Indent Change on Line:", originalLookahead.Line)
-
-						// if an indentation change (of any amount) is
-						// immediately followed by a newline then we know that
-						// the line is meaningless and the indentation change
-						// can be ignored.  We adjust the scanner's indent level
-						// by the indentation change denoted by the INDENT OR
-						// DEDENT token to suppress/ignore the change
-						if originalLookahead.Kind == INDENT {
-							p.sc.indentLevel -= int(originalLookahead.Value[0])
-						} else {
-							p.sc.indentLevel += int(originalLookahead.Value[0])
-						}
-					} else {
-						// if the parser cannot excuse the indent change, error
+					// if the scanner's next token is an EOF, then this
+					// is actually an unexpected EOF not an unexpected
+					// indentation change (caused by closing DEDENT)
+					if tok, err := p.sc.ReadToken(); err == io.EOF || (err == nil && tok.Kind == EOF) {
 						return nil, util.NewWhirlError(
-							"Unexpected Indentation Change",
+							"Unexpected End of File",
 							"Syntax",
-							TextPositionOfToken(p.lookahead),
+							nil,
 						)
 					}
 
-					// if there was no error, we can simply consume the next
-					// token ("blank" lines can be ignored)
+					return nil, util.NewWhirlError(
+						"Unexpected Indentation Change",
+						"Syntax",
+						TextPositionOfToken(p.lookahead),
+					)
 				}
+			// handle lexical edge case where `<<` and `>>` are actually two
+			// separate tokens (ie. for generics) - we do this here instead of
+			// in the grammar b/c treating them as separate tokens creates an
+			// unresolvable Shift/Reduce conflict between shift_expr and
+			// comp_expr (cheating with GOTO b/c no inline comparison)
+			case LSHIFT, RSHIFT:
+				if p.splitShift(state, p.lookahead.Kind) {
+					continue
+				}
+
+				fallthrough
 			default:
 				return nil, util.NewWhirlError(
 					fmt.Sprintf("Unexpected Token `%s`", p.lookahead.Value),
@@ -234,6 +229,7 @@ func (p *Parser) shift(state int) error {
 // OF WHAT IS IN THE LOOKAHEAD (not whitespace aware - should be used as such)
 func (p *Parser) consume() error {
 	tok, err := p.sc.ReadToken()
+	// fmt.Println(tok.Kind)
 
 	if err == nil {
 		p.lookahead = tok
@@ -343,4 +339,37 @@ func (p *Parser) pushIndentFrame(mode, level int) {
 // (clears the current indent frame)
 func (p *Parser) popIndentFrame() {
 	p.indentFrames = p.indentFrames[:len(p.indentFrames)-1]
+}
+
+// splitShift splits a binary shift token into two less than or greater than
+// tokens where the input is either LSHIFT or RSHIFT (indicating which to split
+// from) and attempts to use the first split token as an action for the current
+// state. If it successful, the parser state is updated, the split is applied
+// and true is returned.  Otherwise, false is returned and no state is changed.
+func (p *Parser) splitShift(state *PTableRow, kind int) bool {
+	if action, ok := state.Actions[kind]; ok {
+		// Inline Comparison?  Go: NO!
+		// Using a boolean as an index? Go: CAN'T CAST BOOL TO INT!
+		// Me: (╯°□°）╯︵ ┻━┻
+		var splitKind int
+		if kind == LSHIFT {
+			splitKind = LT
+		} else {
+			splitKind = GT
+		}
+
+		// thinking about spread initialization rn...
+		// for line 2: &Token{...p.lookahead, Kind=splitKind}... smh
+		t1 := &Token{Kind: splitKind, Value: p.lookahead.Value[:1], Line: p.lookahead.Line, Col: p.lookahead.Col - 1}
+		t2 := &Token{Kind: splitKind, Value: p.lookahead.Value[:1], Line: p.lookahead.Line, Col: p.lookahead.Col}
+
+		p.stateStack = append(p.stateStack, action.Operand)
+		p.semanticStack = append(p.semanticStack, (*ASTLeaf)(t1))
+
+		p.lookahead = t2
+
+		return true
+	}
+
+	return false
 }

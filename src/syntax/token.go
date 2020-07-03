@@ -122,9 +122,9 @@ const (
 	NULLTEST
 
 	// assignment/declaration operators
-	SET     // =
+	ASSIGN  // =
 	BINDTO  // <-
-	MUTDECL // :=
+	IMPDECL // :=
 
 	// dots
 	DOT
@@ -245,7 +245,7 @@ var symbolPatterns = map[string]int{
 	"<<":  LSHIFT,
 	">>":  RSHIFT,
 	"~":   COMPL,
-	"=":   SET,
+	"=":   ASSIGN,
 	"?":   NULLTEST,
 	".":   DOT,
 	"..":  RANGETO,
@@ -262,7 +262,7 @@ var symbolPatterns = map[string]int{
 	";":   SEMICOLON,
 	":":   COLON,
 	"::":  GETNAME,
-	":=":  MUTDECL,
+	":=":  IMPDECL,
 	":>":  MOVE,
 	"=>":  ARROW,
 	"<-":  BINDTO,

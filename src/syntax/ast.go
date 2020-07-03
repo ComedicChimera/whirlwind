@@ -18,7 +18,7 @@ func (a *ASTLeaf) Position() *util.TextPosition {
 
 // TextPositionOfToken takes in a token and returns its text position
 func TextPositionOfToken(tok *Token) *util.TextPosition {
-	return &util.TextPosition{StartLn: tok.Line, StartCol: tok.Col, EndLn: tok.Line, EndCol: tok.Col + len(tok.Value)}
+	return &util.TextPosition{StartLn: tok.Line, StartCol: tok.Col - len(tok.Value), EndLn: tok.Line, EndCol: tok.Col}
 }
 
 // ASTBranch is a named set of leaves and branches
