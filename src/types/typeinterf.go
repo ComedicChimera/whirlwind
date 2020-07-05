@@ -43,6 +43,7 @@ func (ti *TypeInterf) AddMethod(name string, dt DataType, mk int) bool {
 // error returned indicates (if not nil) why the type does not match (for better
 // error messages)
 func (ti *TypeInterf) MatchType(dt DataType) error {
+	// TODO
 	return nil
 }
 
@@ -51,7 +52,7 @@ func (ti *TypeInterf) MatchType(dt DataType) error {
 // interface, it just adds itself as to the binding of the data type in
 // appropriate index (local or global).
 func (ti *TypeInterf) ImplementOn(dt DataType, global bool) {
-
+	// TODO
 }
 
 // InterfBinding is a data structure unique to each data type representing the
@@ -71,3 +72,10 @@ type InterfBinding struct {
 
 // bindings is a map representing all of the bound interfaces by type
 var bindings = make(map[DataType]InterfBinding)
+
+// GetInterfaces gets all of the interfaces bound to a particular type in a
+// particular context (ie. in a specific file), handles generic bindings
+func GetInterfaces(dt DataType) []*TypeInterf {
+	// TODO
+	return nil
+}

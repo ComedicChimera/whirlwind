@@ -56,6 +56,7 @@ func (st *StructType) equals(dt DataType) bool {
 func (st *StructType) cast(dt DataType) bool {
 	if ost, ok := dt.(*StructType); ok {
 		for name, member := range st.Members {
+			// TODO: covariant struct casting
 			if omember, ok := ost.Members[name]; !ok || !st.safeCompareMember(ost, member, omember) {
 				return false
 			}

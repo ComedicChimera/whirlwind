@@ -186,13 +186,7 @@ func (em *EnumMember) equals(other DataType) bool {
 			return false
 		}
 
-		for i, v := range em.Values {
-			if !Equals(v, oem.Values[i]) {
-				return false
-			}
-		}
-
-		return true
+		return TypeListEquals(em.Values, oem.Values)
 	}
 
 	return false

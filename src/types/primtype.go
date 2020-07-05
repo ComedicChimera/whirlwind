@@ -28,16 +28,8 @@ const (
 	PrimAny
 )
 
-// PrimitiveType represents one of Whirlwind's primitive types (intended to
-// store a constant of the form PrimName), should use NewPrimitive even though
-// just a rename!
+// PrimitiveType represents one of Whirlwind's primitive types
 type PrimitiveType int
-
-// NewPrimitiveType calls our internal newType method and then returns an
-//  appropriate primitive of the desired kind
-func NewPrimitiveType(primKind int) DataType {
-	return PrimitiveType(primKind)
-}
 
 func (p PrimitiveType) cast(other DataType) bool {
 	if po, ok := other.(PrimitiveType); ok {
