@@ -22,6 +22,10 @@ const (
 	// stringlike types
 	PrimChar
 	PrimString
+
+	// diametric types (top & bottom)
+	PrimNothing
+	PrimAny
 )
 
 // PrimitiveType represents one of Whirlwind's primitive types (intended to
@@ -30,9 +34,9 @@ const (
 type PrimitiveType int
 
 // NewPrimitiveType calls our internal newType method and then returns an
-//  appropriate primitive of the desired kind (creates necessary type table entry)
+//  appropriate primitive of the desired kind
 func NewPrimitiveType(primKind int) DataType {
-	return newType(PrimitiveType(primKind))
+	return PrimitiveType(primKind)
 }
 
 func (p PrimitiveType) cast(other DataType) bool {
@@ -51,6 +55,11 @@ func (p PrimitiveType) cast(other DataType) bool {
 }
 
 func (p PrimitiveType) coerce(other DataType) bool {
+	// other to any
+	if p == PrimAny {
+		return true
+	}
+
 	// check coercion between primitive types
 	if po, ok := other.(PrimitiveType); ok {
 		if p < PrimBool {
@@ -60,11 +69,11 @@ func (p PrimitiveType) coerce(other DataType) bool {
 
 		} else if p == PrimDouble {
 			// integral or float to double
-			return (p > PrimByte && p < PrimBool) || p == PrimFloat
+			return (po > PrimByte && po < PrimBool) || po == PrimFloat
 
 		} else if p == PrimFloat {
 			// small integral to float
-			return p > PrimByte && p < PrimLong
+			return po > PrimByte && po < PrimLong
 
 		} else if p == PrimString && po == PrimChar {
 			// char to string
@@ -131,7 +140,7 @@ var primLabelTable = map[string]PrimitiveType{
 // corresponding primitive type (implements full newType semantics), common
 // operation used by visitor
 func NewPrimitiveTypeFromLabel(label string) DataType {
-	return newType(primLabelTable[label])
+	return primLabelTable[label]
 }
 
 // Repr of a primitive type is calculated by using label table in reverse

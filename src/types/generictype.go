@@ -17,9 +17,9 @@ type GenericType struct {
 }
 
 // NewGenericType creates a new generic type based on the given template
-// accepting the given type parameters (and creates a type table entry)
+// accepting the given type parameters (with restrictors)
 func NewGenericType(template DataType, tps []*TypeParam) DataType {
-	return newType(&GenericType{Template: template, TypeParams: tps})
+	return &GenericType{Template: template, TypeParams: tps}
 }
 
 // CreateGenerate tries to get a generate based on the given type list.
@@ -167,7 +167,7 @@ type TypeParamPlaceholder struct {
 // NewTypeParamPlaceholder creates a new placeholder for the given
 // type parameter storing the given placeholder reference
 func NewTypeParamPlaceholder(name string, pref *DataType) DataType {
-	return newType(&TypeParamPlaceholder{TPName: name, placeholderRef: pref})
+	return &TypeParamPlaceholder{TPName: name, placeholderRef: pref}
 }
 
 // all type relational functions relate based on the underlying type

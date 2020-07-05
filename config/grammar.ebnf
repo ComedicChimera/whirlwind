@@ -196,7 +196,7 @@ type = value_type | named_type | ref_type ;
 named_type = 'IDENTIFIER' {'::' 'IDENTIFIER' | generic_tag};
 
 value_type = prim_type | col_type | vec_type | func_type | tup_type ;
-prim_type = 'int' | 'uint' | 'ushort' | 'short' | 'ulong' | 'long' 
+prim_type = 'int' | 'uint' | 'ushort' | 'short' | 'ulong' | 'long' | 'nothing'
 | 'sbyte' | 'sbyte' | 'string' | 'char' | 'float' | 'double' | 'bool' | 'any' ;
 col_type = '[' type [':' type] ']' | '[' ']' type ;
 ref_type = ['own'] '&' ['const'] (value_type | named_type) ;

@@ -21,7 +21,7 @@ type StructMember struct {
 // the given members.  Requires a flag to indicate whether or not the struct is
 // packed
 func NewStructType(srcPkg string, name string, members map[string]*StructMember, packed bool) DataType {
-	return newType(&StructType{Name: srcPkg + "::" + name, Members: members, Packed: packed})
+	return &StructType{Name: srcPkg + "::" + name, Members: members, Packed: packed}
 }
 
 // struct types don't implement coercion
@@ -155,5 +155,5 @@ func (st *StructType) copyTemplate() DataType {
 		}
 	}
 
-	return newType(&StructType{Members: newmembers, Name: st.Name, Packed: st.Packed})
+	return &StructType{Members: newmembers, Name: st.Name, Packed: st.Packed}
 }

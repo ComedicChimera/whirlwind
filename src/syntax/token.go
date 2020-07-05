@@ -87,6 +87,7 @@ const (
 	USHORT
 	BYTE
 	SBYTE
+	NOTHING
 
 	// arithmetic/function operators
 	PLUS
@@ -217,6 +218,7 @@ var keywordPatterns = map[string]int{
 	"ushort":      USHORT,
 	"byte":        BYTE,
 	"sbyte":       SBYTE,
+	"nothing":     NOTHING,
 }
 
 // token patterns for symbolic items - longest match wins

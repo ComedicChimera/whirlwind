@@ -1,6 +1,10 @@
 package types
 
-import "github.com/ComedicChimera/whirlwind/src/util"
+import (
+	"strings"
+
+	"github.com/ComedicChimera/whirlwind/src/util"
+)
 
 // various kinds of a type sets that can be produced
 const (
@@ -22,13 +26,13 @@ type TypeSet struct {
 
 // NewTypeSet creates a new standard type set
 func NewTypeSet(name string, sk int, members []DataType) DataType {
-	return newType(&TypeSet{Name: name, SetKind: sk, members: members, interf: nil})
+	return &TypeSet{Name: name, SetKind: sk, members: members, interf: nil}
 }
 
 // NewInterface creates a new type set for a provided interface (creates an
 // interface type)
 func NewInterface(name string, interf *TypeInterf) DataType {
-	return newType(&TypeSet{Name: name, SetKind: TSKindInterf, interf: interf})
+	return &TypeSet{Name: name, SetKind: TSKindInterf, interf: interf}
 }
 
 // InstOf checks whether or not a data type is an element of the type set. if it
@@ -43,6 +47,21 @@ func InstOf(elem DataType, set *TypeSet) bool {
 	}
 
 	return false
+}
+
+// NewMember creates a new member in a given type set (enum or algebraic)
+// Returns a boolean indicating whether or not the member was added successfully
+func (ts *TypeSet) NewMember(name string, values []DataType) bool {
+	for _, member := range ts.members {
+		em := member.(*EnumMember)
+
+		if em.Name == name {
+			return false
+		}
+	}
+
+	ts.members = append(ts.members, &EnumMember{Name: name, Values: values, Parent: ts})
+	return true
 }
 
 // coecion on type sets follows three simple rules: - if the other is an element
@@ -146,10 +165,85 @@ func (ts *TypeSet) copyTemplate() DataType {
 		newinterf = &TypeInterf{Methods: newmethods}
 	}
 
-	return newType(&TypeSet{
+	return &TypeSet{
 		members: newmembers,
 		interf:  newinterf,
 		SetKind: ts.SetKind,
 		Name:    ts.Name,
-	})
+	}
+}
+
+// EnumMember represents a single, algebraic value
+type EnumMember struct {
+	Parent *TypeSet
+	Name   string
+	Values []DataType
+}
+
+func (em *EnumMember) equals(other DataType) bool {
+	if oem, ok := other.(*EnumMember); ok {
+		if !Equals(em.Parent, oem.Parent) || em.Name != oem.Name {
+			return false
+		}
+
+		for i, v := range em.Values {
+			if !Equals(v, oem.Values[i]) {
+				return false
+			}
+		}
+
+		return true
+	}
+
+	return false
+}
+
+// enum members cannot accept coercion or casting
+func (em *EnumMember) coerce(other DataType) bool {
+	return false
+}
+
+func (em *EnumMember) cast(other DataType) bool {
+	return false
+}
+
+// EnumMember's are the same type as their parent internally
+
+// SizeOf an enum member is the size of its parent
+func (em *EnumMember) SizeOf() uint {
+	return em.Parent.SizeOf()
+}
+
+// AlignOf an enum is the alignment of its parent
+func (em *EnumMember) AlignOf() uint {
+	return em.Parent.AlignOf()
+}
+
+// Repr of an enum member reconstructs its repr in the type def
+func (em *EnumMember) Repr() string {
+	sb := &strings.Builder{}
+	sb.WriteString(em.Name)
+	sb.WriteRune('(')
+
+	for i, v := range em.Values {
+		sb.WriteString(v.Repr())
+
+		if i < len(em.Values)-1 {
+			sb.WriteString(", ")
+		}
+	}
+
+	sb.WriteRune(')')
+
+	return sb.String()
+}
+
+func (em *EnumMember) copyTemplate() DataType {
+	emCopy := &EnumMember{Parent: em.Parent, Name: em.Name, Values: make([]DataType, len(em.Values))}
+
+	for i, v := range em.Values {
+		emCopy.Values[i] = v.copyTemplate()
+	}
+
+	return emCopy
 }

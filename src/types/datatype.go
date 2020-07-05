@@ -1,7 +1,5 @@
 package types
 
-import "reflect"
-
 // DataType is a general interface used to represent all data types provides
 // basic characteristics of all types: coercion and casting (equality compares
 // by identity)
@@ -31,45 +29,6 @@ type DataType interface {
 	copyTemplate() DataType
 }
 
-// InterfBinding is a data structure unique to each data type representing the
-// various non-generic bindings (local and global) shared between data types and
-// instances (should only be created once). this information must be stored in
-// the type table (each type must have a type info entry).
-type InterfBinding struct {
-	// Enumerates all bindings available at a file level (eg. by a remote
-	// import) and in which files they are available (local bindings)
-	ByFile map[string][]*TypeInterf
-
-	// Enumerates all bindings available at a package level (eg. by package
-	// level declaration) and in which packages they are available (global
-	// bindings)
-	ByPackage map[string][]*TypeInterf
-}
-
-// the type table represents a common storage place for all type references so
-// that each data type is only defined once and any modifications to that type
-// propagate to all known "instances" of that type.  It also stores an necessary
-// type information (such as interfaces) so that this information can be
-// accessed and modified in a similar manner to that of the type itself.  For
-// these reasons, any NewType() methods should always return an entry in this
-// table.
-var typeTable = make(map[DataType]*InterfBinding)
-
-// newType is a common function that should be included in the new type methods
-// of any data type so as to ensure that the type is properly added to the type
-// table or retrieved if it already exists (such a check should be performed for
-// all usages)
-func newType(dt DataType) DataType {
-	for entry := range typeTable {
-		if reflect.DeepEqual(dt, entry) {
-			return entry
-		}
-	}
-
-	typeTable[dt] = &InterfBinding{}
-	return dt
-}
-
 // Equals takes two types and determines if they are effectively identical to
 // each other (note that types cannot provide custom definitions of equality and
 // that for most types the function acts as an identity comparison.  However, on
@@ -85,7 +44,11 @@ func Equals(a DataType, b DataType) bool {
 // incorporating all of the baked in coercion logic common to all types (avoids
 // redundancy and enables more tight control over coercion)
 func CoerceTo(src DataType, dest DataType) bool {
-	return false
+	if Equals(src, dest) {
+		return true
+	}
+
+	return dest.coerce(src)
 }
 
 // CastTo acts as a wrapper for a type's built in casting function much in the
@@ -94,5 +57,15 @@ func CoerceTo(src DataType, dest DataType) bool {
 // types provide a meaningful casting function because they rely on the logic
 // provided by this function thus why DataType.cast is not exposed
 func CastTo(src DataType, dest DataType) bool {
-	return false
+	// if coercion succeeds, then casting will as well
+	if CoerceTo(src, dest) {
+		return true
+	}
+
+	// `any` can be cast to any other type
+	if ps, ok := src.(PrimitiveType); ok && ps == PrimAny {
+		return true
+	}
+
+	return dest.cast(src)
 }

@@ -61,12 +61,12 @@ type FuncType struct {
 
 // NewFuncType creates a new function type (boxable)
 func NewFuncType(fparams []*FuncParam, rttype DataType, async bool, boxed bool) DataType {
-	return newType(&FuncType{Params: fparams, ReturnType: rttype, Async: async, Boxed: boxed, Boxable: true})
+	return &FuncType{Params: fparams, ReturnType: rttype, Async: async, Boxed: boxed, Boxable: true}
 }
 
 // NewIntrinsic creates a new instrinsic function data type
 func NewIntrinsic(fparams []*FuncParam, rttype DataType) DataType {
-	return newType(&FuncType{Params: fparams, ReturnType: rttype, Boxable: false})
+	return &FuncType{Params: fparams, ReturnType: rttype, Boxable: false}
 }
 
 // function types don't coerce in any way (signature too well defined)
@@ -153,11 +153,11 @@ func (ft *FuncType) copyTemplate() DataType {
 		newParams[i] = &FuncParam{Type: p.Type.copyTemplate(), Name: p.Name, Optional: p.Optional, Variadic: p.Variadic}
 	}
 
-	return newType(&FuncType{
+	return &FuncType{
 		ReturnType: ft.ReturnType.copyTemplate(),
 		Params:     newParams,
 		Async:      ft.Async,
 		Boxed:      ft.Boxed,
 		Boxable:    ft.Boxable,
-	})
+	}
 }

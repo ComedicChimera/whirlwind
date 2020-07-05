@@ -53,3 +53,21 @@ func (ti *TypeInterf) MatchType(dt DataType) error {
 func (ti *TypeInterf) ImplementOn(dt DataType, global bool) {
 
 }
+
+// InterfBinding is a data structure unique to each data type representing the
+// various non-generic bindings (local and global) shared between data types and
+// instances (should only be created once). this information must be stored in
+// the type table (each type must have a type info entry).
+type InterfBinding struct {
+	// Enumerates all bindings available at a file level (eg. by a remote
+	// import) and in which files they are available (local bindings)
+	ByFile map[string][]*TypeInterf
+
+	// Enumerates all bindings available at a package level (eg. by package
+	// level declaration) and in which packages they are available (global
+	// bindings)
+	ByPackage map[string][]*TypeInterf
+}
+
+// bindings is a map representing all of the bound interfaces by type
+var bindings = make(map[DataType]InterfBinding)

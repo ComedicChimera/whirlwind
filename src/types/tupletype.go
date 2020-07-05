@@ -7,7 +7,7 @@ type TupleType []DataType
 // NewTupleType get a new tuple type from a list of data types and adds its
 // entry to the global type table
 func NewTupleType(types []DataType) DataType {
-	return newType(TupleType(types))
+	return TupleType(types)
 }
 
 // tuples don't have any coercion logic

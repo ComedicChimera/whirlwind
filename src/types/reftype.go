@@ -10,7 +10,7 @@ type ReferenceType struct {
 
 // NewReferenceType creates a reference type and initializes it in the type table
 func NewReferenceType(eType DataType, owned bool, constant bool) DataType {
-	return newType(&ReferenceType{ElemType: eType, Owned: owned, Constant: constant})
+	return &ReferenceType{ElemType: eType, Owned: owned, Constant: constant}
 }
 
 // reference types can cast on their elem type
@@ -22,10 +22,10 @@ func (rt *ReferenceType) cast(other DataType) bool {
 	return false
 }
 
-// reference types can coerce on their elem type
+// a mutable reference can be coerced to a const reference
 func (rt *ReferenceType) coerce(other DataType) bool {
 	if ort, ok := other.(*ReferenceType); ok {
-		return CoerceTo(rt.ElemType, ort.ElemType) && rt.Constant == ort.Constant && rt.Owned == ort.Owned
+		return Equals(rt.ElemType, ort.ElemType) && rt.Constant && !ort.Constant && rt.Owned == ort.Owned
 	}
 
 	return false
