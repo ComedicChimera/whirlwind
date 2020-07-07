@@ -1,5 +1,7 @@
 package types
 
+import "reflect"
+
 // DataType is a general interface used to represent all data types provides
 // basic characteristics of all types: coercion and casting (equality compares
 // by identity)
@@ -29,13 +31,19 @@ type DataType interface {
 	copyTemplate() DataType
 }
 
+// pureEquality is used to indicate whether equality comparisons should be pure
+// or account for free types (ie. apply type deductions or not)
+var pureEquality = false
+
 // Equals takes two types and determines if they are effectively identical to
 // each other (note that types cannot provide custom definitions of equality and
 // that for most types the function acts as an identity comparison.  However, on
 // free types, it attempts to bind their values to whatever they are being
 // compared to.
 func Equals(a DataType, b DataType) bool {
-	// TODO: initial free type check
+	if pureEquality {
+		return reflect.DeepEqual(a, b)
+	}
 
 	return a.equals(b)
 }
