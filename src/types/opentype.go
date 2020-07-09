@@ -7,6 +7,10 @@ package types
 // downward type deduction while accounting for the effects of operator and
 // function applications on the possible types something can hold.
 type TypeJudgement struct {
+	// ExpectedType is the type that the correspondent type in the parent
+	// OpenType's type state must be coercible to so that this judgement passes.
+	ExpectedType DataType
+
 	// Conns is a list of all of the connected types for the judgement where
 	// LinkedType is the connected open type and FillInType is the type that
 	// should be deduced for the LinkedType if this judgement is passed.
@@ -33,6 +37,10 @@ type OpenType struct {
 	// of the possible forms of the `+` operator correspond to different
 	// judgements to be made about the types `t1` and `t2` based on the type
 	// determined for `t3`; eg. if `t3` is a string, then `t1` and `t2` must be
-	// string-like by the standard definitions of the `+` operator.
+	// string-like by the standard definitions of the `+` operator.  Note that
+	// in order for a type state to be valid, it must be pass its judgement.
+	// Meaning that if a more general type is deduced that no longer passes the
+	// judgement, that state element is invalid.  If the state is still empty at
+	// the end of semantic analysis, this type is uninferrable: ERROR!
 	Judgements []TypeJudgement
 }
