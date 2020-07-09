@@ -27,7 +27,10 @@ type OpenType struct {
 	// TypeState is the set of types stored by the OpenType that is currently
 	// being inferred.  This is a slice because multiple types can be considered
 	// for any given open type is certain situations.  If this slice is empty,
-	// the current type state is determined to be `any`.
+	// the current type state is indeterminate.  If the state is indeterminate
+	// at the end of analysis, this type is undeducible.  Similarly, if there
+	// are multiple items in this field, it is unified and if such unification
+	// fails, the type is also then considered indeducible.
 	TypeState []DataType
 
 	// Judgements is a list of all the possible judgements associated with the
@@ -40,7 +43,8 @@ type OpenType struct {
 	// string-like by the standard definitions of the `+` operator.  Note that
 	// in order for a type state to be valid, it must be pass its judgement.
 	// Meaning that if a more general type is deduced that no longer passes the
-	// judgement, that state element is invalid.  If the state is still empty at
-	// the end of semantic analysis, this type is uninferrable: ERROR!
+	// judgement, that state element is invalid.  If the state is unified, then
+	// any corresponding judgement that passes will allow the unified element to
+	// be valid (ie. only one judgement must pass on unification)
 	Judgements []TypeJudgement
 }
