@@ -89,6 +89,8 @@ checking on the next line (works like it does in Python).
     - made for values
     - allow for `fallthrough`
       - continue to next case
+      - `fallthrough to match`
+        - falls through to next matching case
     - uses `case` and `default`
       - both use `do` blocks
     - full pattern matching

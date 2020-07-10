@@ -109,7 +109,7 @@ simple_stmt =
 
 break_stmt = 'break' ;
 continue_stmt = 'continue';
-fallthrough_stmt = 'fallthrough' ;
+fallthrough_stmt = 'fallthrough' ['to' 'match'] ;
 return_stmt = 'return' [ expr_list ] ;
 yield_stmt = 'yield' expr_list ;
 delete_stmt = 'delete' expr_list ;
