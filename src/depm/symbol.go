@@ -13,9 +13,9 @@ type Symbol struct {
 	// filled with one of the declaration status constants listed below
 	DeclStatus int
 
-	// Kind indicates what type of value the symbol stores (typedef, binding,
+	// DefKind indicates what type of value the symbol stores (typedef, binding,
 	// etc.). Should contain one of the symbol kind constants listed below
-	Kind int
+	DefKind int
 }
 
 // Declaration Statuses

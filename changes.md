@@ -198,6 +198,7 @@ checking on the next line (works like it does in Python).
     - (semicolons for demonstration purposes)
   - casting rules: mutable -> constant, constant -/> mutable
   - methods can be constant (explicitly - via `const` keyword)
+    - they can also be inferred to be constant
   - cannot take a non-const reference to a constant value
 - Value Categories
   - lvalue (well-defined, mutable value, able to take both kinds of references to it)
