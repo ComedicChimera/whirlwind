@@ -19,11 +19,13 @@ import (
 // 	Abs: `HIRLambda`
 // Some additional extensions were added to better suit Whirlwind
 //  Value:    `HIRValue`
-//  Cast:     `HIRCast` -- incorporates both casts and coercions
+//  Cast:     `HIRCast`     -- incorporates both casts and coercions
 //  Match:    `HIRMatchExpr`
-//  Extract:  `HIRExtract` -- the with expression
+//  Extract:  `HIRExtract`  -- the with expression
 //  Init:     `HIRInitList` -- initializer list
 //  Generate: `HIRGenerate` -- used to denote the creation of a generic generate
+//  Sequence: `HIRSequence` -- group/sequence of values (arrays, lists, dicts, tuples, vectors)
+//  Slice:    `HIRSlice`    -- facilitates the slice operator (which is fairly complex)
 
 // HIRExpr is an interface used by all expressions
 type HIRExpr interface {
@@ -147,13 +149,22 @@ type HIRLambda struct {
 	Body HIRNode
 }
 
+// HIRSlice represents a slice operation
+type HIRSlice struct {
+	ExprBase
+
+	// any of these may be null to indicate that the compiler should use the
+	// default value (eg. `[:n]` would only fill in `End`)
+	Begin, End, Step HIRNode
+}
+
 // HIROperApp represents an operator application (could be an operator overload,
 // a builtin "overload" like `+` for ints, or a core operator like `.`).  NOTE:
 // the conditional expression is treated as an operator application with 3 args
 type HIROperApp struct {
 	ExprBase
 
-	// OperKind is the token kind of the operator being applied
+	// OperKind is the token kind of the operator being applied (`[` for subscript)
 	OperKind int
 	Operands []HIRNode
 }
@@ -164,6 +175,15 @@ type HIRApp struct {
 
 	Function  *types.FuncType
 	Arguments []HIRNode
+}
+
+// HIRSequence represents a sequence values
+type HIRSequence struct {
+	// Type of sequence implied in the expressions return type (in ExprBase)
+	ExprBase
+
+	// Dictionary values will be ordered in pairs
+	Values []HIRNode
 }
 
 // HIRGenerate represents the implicit creation of a generic generate whenever a
