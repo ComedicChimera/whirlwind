@@ -37,14 +37,18 @@ const (
 	NKBlockStmt
 	NKSimpleStmt
 	NKAssignment
-	NKExpr // TODO: Expr variations
-	NKValue
-	NKName
+	NKExpr // All values, names, and true expressions are NKExpr
 )
 
-// HIRTypeDef is the node used to represent a type definition (it is simply the
-// symbol created by the type definition)
-type HIRTypeDef depm.Symbol
+// HIRTypeDef is the node used to represent a type definition.
+type HIRTypeDef struct {
+	// Symbol is all of the definition information about the symbol
+	Symbol *depm.Symbol
+
+	// FieldInits is a map of all field initializers along with what fields they
+	// correspond to (used for type structs)
+	FieldInits map[string]HIRNode
+}
 
 func (*HIRTypeDef) Kind() int {
 	return NKTypeDef
@@ -67,6 +71,9 @@ type HIRFuncDef struct {
 
 	// Body can be `nil` if there is no function body
 	Body HIRNode
+
+	// ConstBody indicates whether or not the body is constant
+	ConstBody bool
 }
 
 func (*HIRFuncDef) Kind() int {
@@ -105,7 +112,8 @@ func (*HIRGeneric) Kind() int {
 	return NKGeneric
 }
 
-// HIRInterfBind represents an interface binding
+// HIRInterfBind represents an interface binding (generic bindings are
+// just HIRInterfBinds wrapped in HIRGenerics)
 type HIRInterfBind struct {
 	// Symbol is anonymous: used to store aspects like DeclStatus
 	Interf    *depm.Symbol
