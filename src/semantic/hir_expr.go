@@ -1,7 +1,6 @@
 package semantic
 
 import (
-	"github.com/ComedicChimera/whirlwind/src/depm"
 	"github.com/ComedicChimera/whirlwind/src/types"
 	"github.com/ComedicChimera/whirlwind/src/util"
 )
@@ -107,8 +106,8 @@ type HIRExtract struct {
 	// Extractors is the list of monadic extractors in order (ie. the `x <- m`
 	// statements in a with expression)
 	Extractors []struct {
-		DestSymbol *depm.Symbol // the `x` in the above expr
-		Source     HIRNode      // the `m` in the above expr
+		DestSymbol *Symbol // the `x` in the above expr
+		Source     HIRNode // the `m` in the above expr
 	}
 
 	// Result is the expression that is the result if this expression succeeds

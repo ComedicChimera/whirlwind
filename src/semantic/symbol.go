@@ -1,4 +1,4 @@
-package depm
+package semantic
 
 import "github.com/ComedicChimera/whirlwind/src/types"
 

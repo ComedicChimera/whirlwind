@@ -1,7 +1,6 @@
 package semantic
 
 import (
-	"github.com/ComedicChimera/whirlwind/src/depm"
 	"github.com/ComedicChimera/whirlwind/src/types"
 )
 
@@ -43,7 +42,7 @@ const (
 // HIRTypeDef is the node used to represent a type definition.
 type HIRTypeDef struct {
 	// Symbol is all of the definition information about the symbol
-	Symbol *depm.Symbol
+	Symbol *Symbol
 
 	// FieldInits is a map of all field initializers along with what fields they
 	// correspond to (used for type structs)
@@ -56,7 +55,7 @@ func (*HIRTypeDef) Kind() int {
 
 // HIRInterfDef is the node used to represent an interface definition
 type HIRInterfDef struct {
-	Sym     *depm.Symbol
+	Sym     *Symbol
 	Methods []HIRNode
 }
 
@@ -66,7 +65,7 @@ func (*HIRInterfDef) Kind() int {
 
 // HIRFuncDef is the node used to represent a function definition
 type HIRFuncDef struct {
-	Sym         *depm.Symbol
+	Sym         *Symbol
 	Annotations map[string]string
 
 	// Body can be `nil` if there is no function body
@@ -82,7 +81,7 @@ func (*HIRFuncDef) Kind() int {
 
 // HIRVarDecl is used to represent a variable or constant declaration
 type HIRVarDecl struct {
-	Vars         []*depm.Symbol
+	Vars         []*Symbol
 	Initializers []HIRNode
 }
 
@@ -92,7 +91,7 @@ func (*HIRVarDecl) Kind() int {
 
 // HIRVariantDef is used to represent a variant definition
 type HIRVariantDef struct {
-	RootGeneric *depm.Symbol
+	RootGeneric *Symbol
 	TypeParams  []types.DataType
 
 	Body HIRNode
@@ -116,7 +115,7 @@ func (*HIRGeneric) Kind() int {
 // just HIRInterfBinds wrapped in HIRGenerics)
 type HIRInterfBind struct {
 	// Symbol is anonymous: used to store aspects like DeclStatus
-	Interf    *depm.Symbol
+	Interf    *Symbol
 	BoundType types.DataType
 
 	Methods []HIRNode

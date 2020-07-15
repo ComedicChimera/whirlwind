@@ -7,7 +7,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/ComedicChimera/whirlwind/src/depm"
+	"github.com/ComedicChimera/whirlwind/src/semantic/depm"
 	"github.com/ComedicChimera/whirlwind/src/syntax"
 	"github.com/ComedicChimera/whirlwind/src/util"
 )
