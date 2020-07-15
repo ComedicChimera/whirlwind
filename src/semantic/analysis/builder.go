@@ -1,8 +1,12 @@
 package analysis
 
 import (
+	"fmt"
+
+	"github.com/ComedicChimera/whirlwind/src/semantic"
 	"github.com/ComedicChimera/whirlwind/src/semantic/depm"
 	"github.com/ComedicChimera/whirlwind/src/types"
+	"github.com/ComedicChimera/whirlwind/src/util"
 )
 
 // PackageBuilder is a construct used to build an initialized package into a
@@ -19,7 +23,10 @@ type PackageBuilder struct {
 	// builder can make the Walkers proceed to next phase of compilation.
 	// Unresolved symbols will have a `nil` DataType reference (the DataTypes
 	// correspond to references inside TypePlaceholders)
-	ResolvingSymbols map[string]*types.DataType
+	ResolvingSymbols map[string]struct {
+		TypeRef *types.DataType
+		SymPos  *util.TextPosition
+	}
 }
 
 // BuildPackage fully builds a package.
@@ -35,6 +42,25 @@ func (pb *PackageBuilder) BuildPackage() bool {
 		wf.Root = walker.Root
 	}
 
+	// check for unresolved symbols
+	allSymbolsResolved := true
+	for name, rs := range pb.ResolvingSymbols {
+		if rs.TypeRef == nil {
+			allSymbolsResolved = false
+			util.LogMod.LogError(
+				util.NewWhirlError(
+					fmt.Sprintf("Undefined Symbol: `%s`", name),
+					"Name",
+					rs.SymPos,
+				),
+			)
+		}
+	}
+
+	if !allSymbolsResolved {
+		return false
+	}
+
 	// reference to root is shared so this isn't a problem
 	for _, walker := range pb.Walkers {
 		if !walker.WalkPredicates() {
@@ -42,5 +68,16 @@ func (pb *PackageBuilder) BuildPackage() bool {
 		}
 	}
 
+	return true
+}
+
+// AddGlobalSymbol adds a symbol to the global package scope.  If the symbol
+// already exists, then this addition fails and this function returns false.
+func (pb *PackageBuilder) AddGlobalSymbol(sym *semantic.Symbol) bool {
+	if _, ok := pb.Pkg.GlobalTable[sym.Name]; ok {
+		return false
+	}
+
+	pb.Pkg.GlobalTable[sym.Name] = sym
 	return true
 }
