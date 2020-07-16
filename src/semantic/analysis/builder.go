@@ -29,13 +29,14 @@ type PackageBuilder struct {
 	}
 }
 
-// BuildPackage fully builds a package.
+// BuildPackage fully builds a package.  Returns true if package construction
+// suceeds (and false if it fails, opposite of walker)
 func (pb *PackageBuilder) BuildPackage() bool {
 	for _, wf := range pb.Pkg.Files {
 		walker := NewWalker(pb, wf)
 		pb.Walkers = append(pb.Walkers, walker)
 
-		if !walker.WalkTop() {
+		if walker.WalkFile() {
 			return false
 		}
 
@@ -63,7 +64,7 @@ func (pb *PackageBuilder) BuildPackage() bool {
 
 	// reference to root is shared so this isn't a problem
 	for _, walker := range pb.Walkers {
-		if !walker.WalkPredicates() {
+		if walker.WalkPredicates() {
 			return false
 		}
 	}
