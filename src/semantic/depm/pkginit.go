@@ -14,13 +14,13 @@ import (
 	"github.com/ComedicChimera/whirlwind/src/util"
 )
 
-// InitPackage takes a directory path and parses all files in the directory and
+// initPackage takes a directory path and parses all files in the directory and
 // creates entries for them in a new package created based on the directory's
 // name.  It does not extract any definitions or do anything more than
 // initialize a package based on the contents and name of a provided directory.
 // Note: User should check LogModule after this is called as file level errors
 // are not returned!
-func InitPackage(depG DependencyGraph, pkgpath string, parser *syntax.Parser) (*WhirlPackage, error) {
+func (im *ImportManager) initPackage(pkgpath string) (*WhirlPackage, error) {
 	fi, err := os.Stat(pkgpath)
 
 	if err != nil {
@@ -35,7 +35,7 @@ func InitPackage(depG DependencyGraph, pkgpath string, parser *syntax.Parser) (*
 		}
 
 		pkg := &WhirlPackage{
-			PackageID:     depG.newPackageID(),
+			PackageID:     im.newPackageID(),
 			Name:          pkgName,
 			RootDirectory: pkgpath,
 			Files:         make(map[string]*WhirlFile),
@@ -59,7 +59,7 @@ func InitPackage(depG DependencyGraph, pkgpath string, parser *syntax.Parser) (*
 					util.LogMod.LogError(err)
 				}
 
-				ast, err := parser.Parse(sc)
+				ast, err := im.Parser.Parse(sc)
 
 				if err != nil {
 					util.LogMod.LogError(err)
@@ -107,10 +107,10 @@ const PackageIDLen = 8
 
 // newPkgID generates a random package ID that does not already exist in the
 // dependency graph (so as to avoid name clashes).
-func (depG DependencyGraph) newPackageID() string {
+func (im *ImportManager) newPackageID() string {
 	var randName string
 
-	for ok := true; ok; _, ok = depG[randName] {
+	for ok := true; ok; _, ok = im.DepGraph[randName] {
 		randName = newRandString(PackageIDLen)
 	}
 

@@ -90,14 +90,18 @@ func NewParser(grammarPath string, forceGBuild bool) (*Parser, error) {
 		return nil, err
 	}
 
-	// parser starts with one indentation-aware indent frame that will never close
-	return &Parser{ptable: parsingTable, indentFrames: []IndentFrame{IndentFrame{Mode: -1, EntryLevel: -1}}}, nil
+	// initialize only parsingTable since that is all the persists between parses
+	return &Parser{ptable: parsingTable}, nil
 }
 
 // Parse runs the main parsing algorithm on the given scanner
 func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 	p.sc = sc
-	p.stateStack = append(p.stateStack, 0)
+	p.stateStack = []int{0}
+	p.semanticStack = nil // clear semantic stack
+
+	// parser starts with one indentation-aware indent frame that will never close
+	p.indentFrames = []IndentFrame{IndentFrame{Mode: -1, EntryLevel: -1}}
 
 	// initialize the lookahead
 	if err := p.consume(); err != nil {

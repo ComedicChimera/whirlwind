@@ -37,7 +37,7 @@ type Compiler struct {
 
 	// compiler state
 	parser *syntax.Parser
-	depG   depm.DependencyGraph
+	im     *depm.ImportManager
 }
 
 // AddLocalPackageDirectories interprets a command-line input string for the
@@ -152,30 +152,13 @@ func (c *Compiler) Compile(forceGrammarRebuild bool) {
 	}
 
 	c.parser = parser
-	c.depG = make(depm.DependencyGraph)
+	c.im = depm.NewImportManager(c.parser, c.buildDirectory)
 
-	if c.loadPackage(c.buildDirectory) {
+	// make sure all information is displayed as necessary before compiler exits
+	defer util.LogMod.Display()
+
+	// "" imports starting from the given root path
+	if _, ok := c.im.Import(""); ok {
 		return
 	}
-}
-
-// loadPackage loads a package directory and initializes a package in the
-// dependency graph based on its contents.  If it encounters any errors while
-// loading the package, it displays them and indicates that the compiler should
-// exit gracefully.
-func (c *Compiler) loadPackage(pkgPath string) bool {
-	pkg, err := depm.InitPackage(c.depG, pkgPath, c.parser)
-
-	// TODO move this elsewhere (when relevant)
-	util.CurrentPackage = pkg.PackageID
-
-	if err != nil {
-		util.LogMod.LogError(err)
-		util.LogMod.Display()
-		return true
-	}
-
-	c.depG[pkg.PackageID] = pkg
-	return util.LogMod.CanProceed()
-
 }
