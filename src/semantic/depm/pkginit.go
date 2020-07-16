@@ -65,7 +65,7 @@ func (im *ImportManager) initPackage(pkgpath string) (*WhirlPackage, error) {
 					util.LogMod.LogError(err)
 				}
 
-				pkg.Files[fpath] = &WhirlFile{AST: ast}
+				pkg.Files[fpath] = &WhirlFile{AST: ast.(*syntax.ASTBranch)}
 			}
 
 			return nil

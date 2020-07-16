@@ -8,7 +8,7 @@ import (
 // WhirlFile represents a single program file in a package
 type WhirlFile struct {
 	// Stores the root AST for the file (`file`)
-	AST syntax.ASTNode
+	AST *syntax.ASTBranch
 
 	// Root stores the HIR root of the file
 	Root *semantic.HIRRoot

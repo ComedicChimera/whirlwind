@@ -62,29 +62,13 @@ func (w *Walker) WalkFile() bool {
 	// doesn't pass, it cause a slough of errors in other definitions that
 	// aren't actually useful to the end user and just serve to clutter up
 	// compiler output.
-
-	// top-level of any program will be `file`
-	for _, item := range w.File.AST.(*syntax.ASTBranch).Content {
+	for _, item := range w.File.AST.Content {
 		// all top-level items are ASTBranches
 		branch := item.(*syntax.ASTBranch)
 
+		// we should already have collected imports at this point so we don't
+		// need to check for them here.
 		switch branch.Name {
-		case "import_stmt":
-			if w.walkImport(branch) {
-				return true
-			}
-		case "exported_import":
-			// ExportSymbols is set here to tell the walker the import is
-			// exported (works the same as way as with walkDefinitions)
-			w.ExportSymbols = true
-
-			// the `import_stmt` node is always the second node in
-			// `exported_import`
-			if w.walkDefinitions(branch.Content[1].(*syntax.ASTBranch)) {
-				return true
-			}
-
-			w.ExportSymbols = false
 		case "export_block":
 			w.ExportSymbols = true
 
