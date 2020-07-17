@@ -20,6 +20,10 @@ type WhirlFile struct {
 	// Stores all file-level annotations for the file (value is empty if the
 	// annotation is just a flag)
 	Annotations map[string]string
+
+	// VisiblePackages is a list of all of the packages whose names are visible
+	// in this specific file (faciliates package importing)
+	VisiblePackages map[string]*WhirlPackage
 }
 
 // WhirlPackage represents a full, Whirlwind package (translation unit)
@@ -45,7 +49,7 @@ type WhirlPackage struct {
 	// Stores all remote exports of this package (decl status = shared)
 	RemoteExports map[string]*semantic.Symbol
 
-	// Imports stores all of the packages that this package imports as well as
+	// Stores all of the packages that this package imports (by ID) as well as
 	// what items it imports (useful in building LLVM modules)
 	ImportTable map[string]*WhirlImport
 }

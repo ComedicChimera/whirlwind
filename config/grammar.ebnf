@@ -21,7 +21,7 @@ The Formal Whirlwind Language Grammar
 *)
 
 (* file is our goal symbol *)
-file = {exported_import} {import_stmt} (export_block { export_block } [ top_level ] | top_level) ;
+file = {annotation} {exported_import} {import_stmt} (export_block { export_block } [ top_level ] | top_level) ;
 
 exported_import = 'export' import_stmt ;
 import_stmt = 'import' ( package_name ['as' 'IDENTIFIER'] | ( identifier_list | '...' ) 'from' package_name ) 'NEWLINE' ;
@@ -37,7 +37,7 @@ definition = interf_def | interf_bind | operator_def | func_def | type_def
 interf_def = 'interf' 'IDENTIFIER' [generic_tag] 'of' interf_body ;
 interf_bind = 'interf' [generic_tag] 'for' type [ 'is' type {',' type}] interf_body ;
 interf_body = 'INDENT' interf_member { interf_member } 'DEDENT' ;
-interf_member = func_def | variant_def | method_variant ;
+interf_member = func_def | variant_def | method_variant | annotated_method ;
 method_variant = 'variant' [generic_tag] 'when' method_variant_cond {',' method_variant_cond} 'NEWLINE' func_def ;
 method_variant_cond = 'IDENTIFIER' 'is' type ;
 
@@ -66,6 +66,7 @@ struct_member = identifier_list type_ext 'NEWLINE' ;
 decorator = '@' expr 'NEWLINE' func_def ;
 
 annotated_def = annotation { annotation } (type_def | func_def | interf_def | interf_bind) ;
+annotated_method = annotation { annotation } func_def ;
 annotation = '#' 'IDENTIFIER' [ 'STRINGLIT' ] 'NEWLINE' ;
 
 variant_def = 'variant' '<' type_list '>' 'IDENTIFIER' func_body ;

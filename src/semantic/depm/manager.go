@@ -2,7 +2,9 @@ package depm
 
 import (
 	"path"
+	"strings"
 
+	"github.com/ComedicChimera/whirlwind/src/semantic"
 	"github.com/ComedicChimera/whirlwind/src/syntax"
 	"github.com/ComedicChimera/whirlwind/src/util"
 )
@@ -50,6 +52,14 @@ func (im *ImportManager) Import(pkgpath string) (*WhirlPackage, bool) {
 
 	pkg, err := im.initPackage(path.Join(im.RootPackagePath, pkgpath))
 
+	// make sure the CurrentPackage context is restored before this function
+	// returns (package is properly marked as it is analyzed)
+	prevPkgID := util.CurrentPackage
+	util.CurrentPackage = pkg.PackageID
+	defer (func() {
+		util.CurrentPackage = prevPkgID
+	})()
+
 	if err != nil {
 		util.LogMod.LogError(err)
 		return nil, false
@@ -79,7 +89,11 @@ func (im *ImportManager) collectImports(pkg *WhirlPackage) bool {
 	// we want to evaluate as many imports as possible so we uses this flag :)
 	allImportsResolved := true
 
-	for _, wf := range pkg.Files {
+	for fpath, wf := range pkg.Files {
+		// no need to manage context here b/c it will be overridden on the next
+		// loop cycle (it will only be inaccurate when errors won't be thrown)
+		util.CurrentFile = fpath
+
 		// top of file is always `file`
 	nodeloop:
 		for _, node := range wf.AST.Content {
@@ -98,11 +112,11 @@ func (im *ImportManager) collectImports(pkg *WhirlPackage) bool {
 				// which technically involves a conditional branch (only this
 				// one might be slightly faster than that of an if but who
 				// cares)
-				allImportsResolved = allImportsResolved && im.walkImport(branch, false)
+				allImportsResolved = allImportsResolved && im.walkImport(pkg, branch, false)
 			case "exported_import":
 				// this kills me inside too; trust me
 				allImportsResolved = allImportsResolved && im.walkImport(
-					branch.Content[1].(*syntax.ASTBranch), false)
+					pkg, branch.Content[1].(*syntax.ASTBranch), true)
 			// as soon as we encounter one of these blocks, we want to exit
 			case "top_level", "export_block":
 				// I have written so many of these now, I almost forgot I was
@@ -119,8 +133,116 @@ func (im *ImportManager) collectImports(pkg *WhirlPackage) bool {
 
 // walkImport walks an `import_stmt` AST node (because Go is annoying about
 // circular imports, this has to be here instead of in the walker).
-func (im *ImportManager) walkImport(node *syntax.ASTBranch, exported bool) bool {
-	return true
+func (im *ImportManager) walkImport(currpkg *WhirlPackage, node *syntax.ASTBranch, exported bool) bool {
+	importedSymbolNames := make(map[string]*util.TextPosition)
+	var pkgpath, rename string
+
+	for _, item := range node.Content {
+		switch v := item.(type) {
+		case *syntax.ASTBranch:
+			if v.Name == "package_name" {
+				pb := strings.Builder{}
+
+				for _, elem := range v.Content {
+					leaf := elem.(*syntax.ASTLeaf)
+
+					if leaf.Kind == syntax.IDENTIFIER {
+						pb.WriteString(leaf.Value)
+					} else {
+						pb.WriteRune('/')
+					}
+				}
+
+				pkgpath = pb.String()
+			} else /* only other node is `identifier_list` */ {
+				for _, elem := range v.Content {
+					leaf := elem.(*syntax.ASTLeaf)
+
+					if leaf.Kind == syntax.IDENTIFIER {
+						if _, ok := importedSymbolNames[leaf.Value]; ok {
+							util.LogMod.LogError(util.NewWhirlError(
+								"Unable to import a symbol multiple times",
+								"Import",
+								leaf.Position(),
+							))
+
+							return false
+						}
+
+						importedSymbolNames[leaf.Value] = leaf.Position()
+					}
+				}
+			}
+		case *syntax.ASTLeaf:
+			switch v.Kind {
+			// only use of IDENTIFIER token is in rename
+			case syntax.IDENTIFIER:
+				rename = v.Value
+			case syntax.ELLIPSIS:
+				importedSymbolNames["..."] = v.Position()
+			}
+		}
+	}
+
+	// use the current package while it is still value
+	currfile := currpkg.Files[util.CurrentFile]
+	if pkg, ok := im.Import(pkgpath); ok {
+		importedSymbols := make(map[string]*semantic.Symbol)
+
+		if len(importedSymbolNames) > 0 {
+			// TODO: handle cyclic imports
+			for name, pos := range importedSymbolNames {
+				if name == "..." {
+
+				}
+
+				if imsym, ok := pkg.GlobalTable[name]; ok {
+					if imsym.VisibleExternally() {
+						importedSymbols[name] = imsym.Import(exported)
+					} else {
+						util.LogMod.LogError(util.NewWhirlError(
+							"Unable to import an internal symbol",
+							"Import",
+							pos,
+						))
+
+						return false
+					}
+				} else {
+					// TODO: cyclic import stuff
+				}
+			}
+
+			if wimport, ok := currpkg.ImportTable[pkg.PackageID]; ok {
+				for name, importedSym := range importedSymbols {
+					wimport.ImportedSymbols[name] = importedSym
+				}
+			} else {
+				currpkg.ImportTable[pkg.PackageID] = &WhirlImport{
+					PackageRef: pkg, ImportedSymbols: importedSymbols,
+				}
+			}
+
+			// add our symbols to the local file
+			for name, sym := range importedSymbols {
+				currfile.LocalTable[name] = sym
+			}
+		} else {
+			name := rename
+			if name == "" {
+				splitPath := strings.Split(pkgpath, "/")
+				name = splitPath[len(splitPath)-1]
+			}
+
+			// currfile.LocalTable[name] = &semantic.Symbol{
+			// 	Name: name, Type: (*PackageType)(pkg), Constant: true,
+			// 	DeclStatus: semantic.DSRemote, DefKind: semantic.SKindPackage,
+			// }
+		}
+
+	}
+
+	return false
 }
 
 // walkPackage walks through all of the files in a package after their imports
