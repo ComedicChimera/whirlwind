@@ -110,7 +110,7 @@ func (c *Compiler) SetOutputFormat(formatName string) error {
 // information (p: platform, a: architecture, op: output path, bd: build
 // directory). It then stores the compiler globally if its creation was
 // successful
-func NewCompiler(o string, a string, op string, bd string, debugT bool) (*Compiler, error) {
+func NewCompiler(o string, a string, op string, bd string, debugT bool, whirlpath string) (*Compiler, error) {
 	switch o {
 	// TODO: add more supported operating systems
 	case "windows", "darwin", "linux", "dragonfly", "freebsd":
@@ -131,7 +131,8 @@ func NewCompiler(o string, a string, op string, bd string, debugT bool) (*Compil
 		return nil, errors.New("Build directory does not exist")
 	}
 
-	return &Compiler{targetos: o, targetarch: a, outputPath: op, buildDirectory: bd, debugTarget: debugT}, nil
+	return &Compiler{targetos: o, targetarch: a, outputPath: op,
+		buildDirectory: bd, debugTarget: debugT, whirlpath: whirlpath}, nil
 }
 
 // determines the pointer size for any given architecture (and/or platform)
@@ -166,12 +167,12 @@ func (c *Compiler) Compile(forceGrammarRebuild bool) {
 	// make sure all information is displayed as necessary before compiler exits
 	defer util.LogMod.ShowStatus()
 
+	// give verbose feedback as necessary
 	util.LogMod.ShowInfo(c.targetos, c.targetarch, c.debugTarget)
+	util.LogMod.ShowStateChange("Analyzing")
 
 	// "" imports starting from the given root path
 	if _, ok := c.importPackage(""); ok {
 		return
 	}
-
-	util.LogMod.ShowStateFinish("Analyzing")
 }

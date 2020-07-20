@@ -110,22 +110,28 @@ func (lm *LogModule) ShowInfo(o, a string, debugMode bool) {
 		}
 
 		fmt.Println("Compiling:")
-
-		// initial prevUpdate time is after ShowInfo is called
-		lm.prevUpdate = time.Now()
 	}
 }
 
-// ShowStateFinish notifies the user of any major compiler state changes if they
-// have set the log level to verbose (ie. when a state ends, times stages too)
-func (lm *LogModule) ShowStateFinish(state string) {
+// ShowStateChange notifies the user of any major compiler state changes if they
+// have set the log level to verbose (ie. when a state begins and ends, times
+// stages too - not overly accurate but helpful)
+func (lm *LogModule) ShowStateChange(state string) {
 	if lm.loglevel == LogLevelVerbose {
+		// only update if prevUpdate is not `nil` has already been set
+		if !lm.prevUpdate.IsZero() {
+			fmt.Printf("Done (%f.3s)\n", time.Since(lm.prevUpdate).Seconds())
+		}
+
+		// always update timer
+		lm.prevUpdate = time.Now()
+
 		// pad the state string out with dots
 		stateString := state + strings.Repeat(".", MaxStateLength-len(state)+3)
 
-		// timing is not perfect but it is accurate enough for user feedback
-		fmt.Printf("\t%s (%f.3s)\n", stateString, time.Since(lm.prevUpdate).Seconds())
-		lm.prevUpdate = time.Now()
+		// no newline so that the `Done (...)` will print on the same line
+		fmt.Printf("\t%s ", stateString)
+
 	}
 }
 

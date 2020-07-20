@@ -36,7 +36,7 @@ func Execute() {
 
 	switch os.Args[1] {
 	case "build":
-		err = Build()
+		err = Build(whirlPath)
 	default:
 		fmt.Printf("Config Error: Unknown Command `%s`\n", os.Args[1])
 		// flag.PrintDefaults()
@@ -50,8 +50,8 @@ func Execute() {
 	}
 }
 
-// Build executes a `build` command
-func Build() error {
+// Build executes a `build` command. (`wp` = whirl path)
+func Build(wp string) error {
 	// setup the build command and its flags
 	buildCommand := flag.NewFlagSet("build", flag.ContinueOnError)
 
@@ -90,7 +90,10 @@ func Build() error {
 	debugFlag := buildCommand.Lookup("d").Value.String() == "true"
 
 	// try to create a compiler with that information
-	compiler, err := build.NewCompiler(buildCommand.Lookup("p").Value.String(), buildCommand.Lookup("a").Value.String(), outputPath, buildDir, debugFlag)
+	compiler, err := build.NewCompiler(buildCommand.Lookup("os").Value.String(),
+		buildCommand.Lookup("a").Value.String(),
+		outputPath, buildDir, debugFlag, wp,
+	)
 
 	if err != nil {
 		return err
