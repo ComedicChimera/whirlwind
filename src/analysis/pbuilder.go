@@ -3,8 +3,7 @@ package analysis
 import (
 	"fmt"
 
-	"github.com/ComedicChimera/whirlwind/src/semantic"
-	"github.com/ComedicChimera/whirlwind/src/semantic/depm"
+	"github.com/ComedicChimera/whirlwind/src/common"
 	"github.com/ComedicChimera/whirlwind/src/types"
 	"github.com/ComedicChimera/whirlwind/src/util"
 )
@@ -13,7 +12,7 @@ import (
 // fully analyzed and converted HIR package.  Its output is ready for processing
 // by the back-end.
 type PackageBuilder struct {
-	Pkg *depm.WhirlPackage
+	Pkg *common.WhirlPackage
 
 	// Walkers stores a list of all of the file specific Walkers
 	Walkers []*Walker
@@ -74,7 +73,7 @@ func (pb *PackageBuilder) BuildPackage() bool {
 
 // AddGlobalSymbol adds a symbol to the global package scope.  If the symbol
 // already exists, then this addition fails and this function returns false.
-func (pb *PackageBuilder) AddGlobalSymbol(sym *semantic.Symbol) bool {
+func (pb *PackageBuilder) AddGlobalSymbol(sym *common.Symbol) bool {
 	if _, ok := pb.Pkg.GlobalTable[sym.Name]; ok {
 		return false
 	}

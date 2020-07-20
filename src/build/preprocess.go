@@ -1,4 +1,4 @@
-package depm
+package build
 
 import (
 	"strings"
@@ -7,8 +7,10 @@ import (
 )
 
 // preprocessFile checks for and walks annotations at the top of an already
-// parsed file.  It returns a map of the annotations it collects.
-func preprocessFile(fileAST *syntax.ASTBranch) map[string]string {
+// parsed file.  It returns a map of the annotations it collects as well as a
+// boolean indicating whether or not the current build configuration indicates
+// that the file should be compiled (ie. accounts for annotations like `#arch`)
+func (c *Compiler) preprocessFile(fileAST *syntax.ASTBranch) (map[string]string, bool) {
 	annotations := make(map[string]string)
 
 loop:
@@ -28,5 +30,15 @@ loop:
 		}
 	}
 
-	return annotations
+	// check annotations to see if the file should be compiled
+	shouldCompile := true
+	if arch, ok := annotations["arch"]; ok {
+		shouldCompile = arch == c.targetarch
+	}
+
+	if tos, ok := annotations["os"]; ok {
+		shouldCompile = shouldCompile && tos == c.targetos
+	}
+
+	return annotations, shouldCompile
 }

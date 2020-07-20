@@ -1,4 +1,4 @@
-package cmd
+package build
 
 import (
 	"errors"
@@ -7,7 +7,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/ComedicChimera/whirlwind/src/semantic/depm"
+	"github.com/ComedicChimera/whirlwind/src/common"
 	"github.com/ComedicChimera/whirlwind/src/syntax"
 	"github.com/ComedicChimera/whirlwind/src/util"
 )
@@ -25,9 +25,12 @@ const (
 // Compiler is a singleton struct meant to store all compiler state for
 // continuous use: main mechanism of compilation
 type Compiler struct {
+	// structural information
+	whirlpath string
+
 	// build configurations
-	platform            string
-	architecture        string
+	targetos            string
+	targetarch          string
 	localPkgDirectories []string
 	staticLibraries     []string
 	outputPath          string
@@ -35,9 +38,15 @@ type Compiler struct {
 	outputFormat        int
 	debugTarget         bool
 
-	// compiler state
+	// parser is the a shared reference to a `Parser` struct used throughout
+	// compilation ("singleton" - shared parsing table ref)
 	parser *syntax.Parser
-	im     *depm.ImportManager
+
+	// depGraph represents the graph of all the packages used in a given project
+	// along with their connections.  It is the main way the compiler will store
+	// dependencies and keep track of what imports what.  It is also used to
+	// help manage and resolve cyclic dependencies.
+	depGraph map[string]*common.WhirlPackage
 }
 
 // AddLocalPackageDirectories interprets a command-line input string for the
@@ -101,9 +110,9 @@ func (c *Compiler) SetOutputFormat(formatName string) error {
 // information (p: platform, a: architecture, op: output path, bd: build
 // directory). It then stores the compiler globally if its creation was
 // successful
-func NewCompiler(p string, a string, op string, bd string, debugT bool) (*Compiler, error) {
-	switch p {
-	// TODO: add more platforms (GOOS)
+func NewCompiler(o string, a string, op string, bd string, debugT bool) (*Compiler, error) {
+	switch o {
+	// TODO: add more supported operating systems
 	case "windows", "darwin", "linux", "dragonfly", "freebsd":
 		break
 	default:
@@ -122,13 +131,13 @@ func NewCompiler(p string, a string, op string, bd string, debugT bool) (*Compil
 		return nil, errors.New("Build directory does not exist")
 	}
 
-	return &Compiler{platform: p, architecture: a, outputPath: op, buildDirectory: bd, debugTarget: debugT}, nil
+	return &Compiler{targetos: o, targetarch: a, outputPath: op, buildDirectory: bd, debugTarget: debugT}, nil
 }
 
 // determines the pointer size for any given architecture (and/or platform)
 // TODO: confirm that these sizes will work as a general rule
 func (c *Compiler) setPointerSize() {
-	switch c.architecture {
+	switch c.targetarch {
 	case "x86":
 		util.PointerSize = 4
 	case "x64":
@@ -144,7 +153,7 @@ func (c *Compiler) Compile(forceGrammarRebuild bool) {
 	c.setPointerSize()
 
 	// create and setup the parser
-	parser, err := syntax.NewParser(path.Join(WhirlPath, "/config/grammar.ebnf"), forceGrammarRebuild)
+	parser, err := syntax.NewParser(path.Join(c.whirlpath, "/config/grammar.ebnf"), forceGrammarRebuild)
 
 	if err != nil {
 		fmt.Println(err)
@@ -152,13 +161,17 @@ func (c *Compiler) Compile(forceGrammarRebuild bool) {
 	}
 
 	c.parser = parser
-	c.im = depm.NewImportManager(c.parser, c.buildDirectory)
+	c.depGraph = make(map[string]*common.WhirlPackage)
 
 	// make sure all information is displayed as necessary before compiler exits
-	defer util.LogMod.Display()
+	defer util.LogMod.ShowStatus()
+
+	util.LogMod.ShowInfo(c.targetos, c.targetarch, c.debugTarget)
 
 	// "" imports starting from the given root path
-	if _, ok := c.im.Import(""); ok {
+	if _, ok := c.importPackage(""); ok {
 		return
 	}
+
+	util.LogMod.ShowStateFinish("Analyzing")
 }

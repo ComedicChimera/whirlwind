@@ -1,8 +1,7 @@
 package analysis
 
 import (
-	"github.com/ComedicChimera/whirlwind/src/semantic"
-	"github.com/ComedicChimera/whirlwind/src/semantic/depm"
+	"github.com/ComedicChimera/whirlwind/src/common"
 	"github.com/ComedicChimera/whirlwind/src/syntax"
 	"github.com/ComedicChimera/whirlwind/src/types"
 )
@@ -10,13 +9,14 @@ import (
 // Walker is used to walk down a file AST, perform semantic analysis and
 // checking, and convert it into a HIR tree.  The Walker first walks through the
 // top level of a file and then walks down the predicates.  NOTE: all walk
-// functions return true if they FAIL (ie. there is an error).
+// functions return true if they FAIL (ie. there is an error).  All imports
+// must be resolved before the Walker begins walking the HIR tree.
 type Walker struct {
 	Builder *PackageBuilder
-	File    *depm.WhirlFile
+	File    *common.WhirlFile
 
 	// Root represents the root of the currently parsed file
-	Root *semantic.HIRRoot
+	Root *common.HIRRoot
 
 	// Scopes is used to represent the local, enclosing scopes of functions and
 	// blocks.  It is not preserved b/c the back-end doesn't actually need the
@@ -30,7 +30,7 @@ type Walker struct {
 
 // Scope represents an enclosing local scope
 type Scope struct {
-	Symbols map[string]*semantic.Symbol
+	Symbols map[string]*common.Symbol
 
 	// Kind is represents what type of scope this is (const, mutable, or unknown)
 	Kind int
@@ -52,8 +52,8 @@ const (
 )
 
 // NewWalker creates a new walker for a file in a given package
-func NewWalker(pb *PackageBuilder, file *depm.WhirlFile) *Walker {
-	return &Walker{Builder: pb, File: file, Root: &semantic.HIRRoot{}}
+func NewWalker(pb *PackageBuilder, file *common.WhirlFile) *Walker {
+	return &Walker{Builder: pb, File: file, Root: &common.HIRRoot{}}
 }
 
 // WalkFile begins walking a file from the top level

@@ -1,7 +1,6 @@
-package depm
+package common
 
 import (
-	"github.com/ComedicChimera/whirlwind/src/semantic"
 	"github.com/ComedicChimera/whirlwind/src/syntax"
 )
 
@@ -11,18 +10,19 @@ type WhirlFile struct {
 	AST *syntax.ASTBranch
 
 	// Root stores the HIR root of the file
-	Root *semantic.HIRRoot
+	Root *HIRRoot
 
 	// Stores all definitions local to this file.  No exported symbols should be
 	// placed in this table
-	LocalTable map[string]*semantic.Symbol
+	LocalTable map[string]*Symbol
 
 	// Stores all file-level annotations for the file (value is empty if the
 	// annotation is just a flag)
 	Annotations map[string]string
 
 	// VisiblePackages is a list of all of the packages whose names are visible
-	// in this specific file (faciliates package importing)
+	// in this specific file (faciliates package importing).  The key is the
+	// name by which the package is accessible in the current package.
 	VisiblePackages map[string]*WhirlPackage
 }
 
@@ -44,10 +44,10 @@ type WhirlPackage struct {
 	Files map[string]*WhirlFile
 
 	// Stores all of the globally-defined symbols in the package.
-	GlobalTable map[string]*semantic.Symbol
+	GlobalTable map[string]*Symbol
 
 	// Stores all remote exports of this package (decl status = shared)
-	RemoteExports map[string]*semantic.Symbol
+	RemoteExports map[string]*Symbol
 
 	// Stores all of the packages that this package imports (by ID) as well as
 	// what items it imports (useful in building LLVM modules)
@@ -60,5 +60,5 @@ type WhirlImport struct {
 	PackageRef *WhirlPackage
 
 	// All items that were actually used by the package
-	ImportedSymbols map[string]*semantic.Symbol
+	ImportedSymbols map[string]*Symbol
 }

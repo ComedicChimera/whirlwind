@@ -3,7 +3,13 @@ package util
 import (
 	"fmt"
 	"log"
+	"strings"
+	"time"
 )
+
+// MaxStateLength is the number of character required to represent a state
+// change (len("Compiling LLVM") == 14).  Used by Log Module.
+const MaxStateLength = 14
 
 // TextPosition represents the positional range of an AST node in the source
 // text (for error handling)
@@ -65,6 +71,9 @@ type LogModule struct {
 	errors   []error
 	warnings []string
 	loglevel int
+
+	// prevUpdate is used to hold the last time when the state updated
+	prevUpdate time.Time
 }
 
 // NewLogModule creates a new global log module based on the given loglevel
@@ -88,10 +97,42 @@ func NewLogModule(loglevelstr string) bool {
 	return true
 }
 
-// Display displays both the errors and the warnings on screen as well as the
+// ShowInfo displays basic compiler information if the log level is verbose.
+// `o` = target OS, `a` = target architecture
+func (lm *LogModule) ShowInfo(o, a string, debugMode bool) {
+	if lm.loglevel == LogLevelVerbose {
+		fmt.Println("Jasmine (whirlc) v.0.1 - LV: W.0.9")
+
+		if debugMode {
+			fmt.Printf("Target: %s/%s (debug)\n", o, a)
+		} else {
+			fmt.Printf("Target: %s/%s (release)\n", o, a)
+		}
+
+		fmt.Println("Compiling:")
+
+		// initial prevUpdate time is after ShowInfo is called
+		lm.prevUpdate = time.Now()
+	}
+}
+
+// ShowStateFinish notifies the user of any major compiler state changes if they
+// have set the log level to verbose (ie. when a state ends, times stages too)
+func (lm *LogModule) ShowStateFinish(state string) {
+	if lm.loglevel == LogLevelVerbose {
+		// pad the state string out with dots
+		stateString := state + strings.Repeat(".", MaxStateLength-len(state)+3)
+
+		// timing is not perfect but it is accurate enough for user feedback
+		fmt.Printf("\t%s (%f.3s)\n", stateString, time.Since(lm.prevUpdate).Seconds())
+		lm.prevUpdate = time.Now()
+	}
+}
+
+// ShowStatus displays both the errors and the warnings on screen as well as the
 // final compilation status.  It should be called before the compiler exits
-// (whether or not compilation was successful - simple feedback mechanism)
-func (lm *LogModule) Display() {
+// (whether or not compilation was successful - simple feedback mechanism).
+func (lm *LogModule) ShowStatus() {
 
 }
 
@@ -99,14 +140,6 @@ func (lm *LogModule) Display() {
 // caller whether or not the compiler should proceed into the next phase
 func (lm *LogModule) CanProceed() bool {
 	return len(lm.errors) == 0
-}
-
-// LogStateChange notifies the user of any major compiler state changes if they
-// have set the log level to verbose (if not, does nothing)
-func (lm *LogModule) LogStateChange(state string) {
-	if lm.loglevel == LogLevelVerbose {
-
-	}
 }
 
 // LogError logs an error with the error module.  Note that this function does

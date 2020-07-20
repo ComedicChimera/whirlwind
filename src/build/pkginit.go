@@ -1,4 +1,4 @@
-package depm
+package build
 
 import (
 	"errors"
@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ComedicChimera/whirlwind/src/common"
 	"github.com/ComedicChimera/whirlwind/src/syntax"
 	"github.com/ComedicChimera/whirlwind/src/util"
 )
@@ -20,7 +21,7 @@ import (
 // initialize a package based on the contents and name of a provided directory.
 // Note: User should check LogModule after this is called as file level errors
 // are not returned!
-func (im *ImportManager) initPackage(pkgpath string) (*WhirlPackage, error) {
+func (c *Compiler) initPackage(pkgpath string) (*common.WhirlPackage, error) {
 	fi, err := os.Stat(pkgpath)
 
 	if err != nil {
@@ -34,11 +35,11 @@ func (im *ImportManager) initPackage(pkgpath string) (*WhirlPackage, error) {
 			return nil, fmt.Errorf("Invalid package name: `%s`", pkgName)
 		}
 
-		pkg := &WhirlPackage{
-			PackageID:     im.newPackageID(),
+		pkg := &common.WhirlPackage{
+			PackageID:     c.newPackageID(),
 			Name:          pkgName,
 			RootDirectory: pkgpath,
-			Files:         make(map[string]*WhirlFile),
+			Files:         make(map[string]*common.WhirlFile),
 		}
 
 		// all file level errors are logged with the log module for display
@@ -59,13 +60,18 @@ func (im *ImportManager) initPackage(pkgpath string) (*WhirlPackage, error) {
 					util.LogMod.LogError(err)
 				}
 
-				ast, err := im.Parser.Parse(sc)
+				ast, err := c.parser.Parse(sc)
 
 				if err != nil {
 					util.LogMod.LogError(err)
 				}
 
-				pkg.Files[fpath] = &WhirlFile{AST: ast.(*syntax.ASTBranch)}
+				abranch := ast.(*syntax.ASTBranch)
+				annots, shouldCompile := c.preprocessFile(abranch)
+
+				if shouldCompile {
+					pkg.Files[fpath] = &common.WhirlFile{AST: abranch, Annotations: annots}
+				}
 			}
 
 			return nil
@@ -107,10 +113,10 @@ const PackageIDLen = 8
 
 // newPkgID generates a random package ID that does not already exist in the
 // dependency graph (so as to avoid name clashes).
-func (im *ImportManager) newPackageID() string {
+func (c *Compiler) newPackageID() string {
 	var randName string
 
-	for ok := true; ok; _, ok = im.DepGraph[randName] {
+	for ok := true; ok; _, ok = c.depGraph[randName] {
 		randName = newRandString(PackageIDLen)
 	}
 

@@ -1,4 +1,4 @@
-package semantic
+package common
 
 import (
 	"github.com/ComedicChimera/whirlwind/src/types"

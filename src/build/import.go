@@ -1,56 +1,29 @@
-package depm
+package build
 
 import (
 	"path"
 	"strings"
 
-	"github.com/ComedicChimera/whirlwind/src/semantic"
+	"github.com/ComedicChimera/whirlwind/src/analysis"
+	"github.com/ComedicChimera/whirlwind/src/common"
 	"github.com/ComedicChimera/whirlwind/src/syntax"
 	"github.com/ComedicChimera/whirlwind/src/util"
 )
 
-// ImportManager is a construct used to faciliate importing and loading as a
-// subsidiary of the compiler.  It acts as the main control structure for the
-// front-end of the compiler.
-type ImportManager struct {
-	// DepGraph represents the graph of all the packages used in a given project
-	// along with their connections.  It is the main way the compiler will store
-	// dependencies and keep track of what imports what.  It is also used to
-	// help manage and resolve cyclic dependencies.
-	DepGraph map[string]*WhirlPackage
-
-	// RootPackagePath is the path to the main compilation package.  It is used
-	// to faciliate absolute imports.
-	RootPackagePath string
-
-	// Parser is a reference to the parser created at the start of compilation.
-	Parser *syntax.Parser
-}
-
-// NewImportManager creates a new ImportManager with the given RootPath and parser
-func NewImportManager(p *syntax.Parser, rpp string) *ImportManager {
-	im := &ImportManager{
-		DepGraph:        make(map[string]*WhirlPackage),
-		RootPackagePath: rpp,
-		Parser:          p,
-	}
-
-	return im
-}
-
-// Import is the main function used to faciliate the compilation front-end.  It
-// takes a directory to import (relative to RootPackagePath) and performs all
+// importPackage is the main function used to faciliate the compilation front-end.  It
+// takes a directory to import (relative to buildDirectory) and performs all
 // the necessary steps of importing. This function acts to run the full
 // front-end of the compiler for the given node.  It returns a boolean
 // indicating whether or not the package was successfully imported as well as
 // the package itself.
-func (im *ImportManager) Import(pkgpath string) (*WhirlPackage, bool) {
+func (c *Compiler) importPackage(pkgpath string) (*common.WhirlPackage, bool) {
 	// TODO: properly handle import cycles
-	if depgpkg, ok := im.DepGraph[pkgpath]; ok {
+	// TODO: find a way to translate a path into a package id
+	if depgpkg, ok := c.depGraph[pkgpath]; ok {
 		return depgpkg, true
 	}
 
-	pkg, err := im.initPackage(path.Join(im.RootPackagePath, pkgpath))
+	pkg, err := c.initPackage(path.Join(c.buildDirectory, pkgpath))
 
 	// make sure the CurrentPackage context is restored before this function
 	// returns (package is properly marked as it is analyzed)
@@ -68,12 +41,14 @@ func (im *ImportManager) Import(pkgpath string) (*WhirlPackage, bool) {
 	// catch/stop for any errors that were caught at the file level as opposed
 	// to at the init/loading level (this if branch runs if it is successful)
 	if util.LogMod.CanProceed() {
+		// im.DepGraph[]
+
 		// unable to resolve imports
-		if !im.collectImports(pkg) {
+		if !c.collectImports(pkg) {
 			return nil, false
 		}
 
-		im.walkPackage(pkg)
+		c.walkPackage(pkg)
 
 		return pkg, true
 	}
@@ -85,7 +60,7 @@ func (im *ImportManager) Import(pkgpath string) (*WhirlPackage, bool) {
 // (both exported and unexported), declares them within the package and adds
 // them to the dependency graph.  NOTE: should be called for the package walking
 // is attempted (ensures all dependencies are accounted for).
-func (im *ImportManager) collectImports(pkg *WhirlPackage) bool {
+func (c *Compiler) collectImports(pkg *common.WhirlPackage) bool {
 	// we want to evaluate as many imports as possible so we uses this flag :)
 	allImportsResolved := true
 
@@ -112,10 +87,10 @@ func (im *ImportManager) collectImports(pkg *WhirlPackage) bool {
 				// which technically involves a conditional branch (only this
 				// one might be slightly faster than that of an if but who
 				// cares)
-				allImportsResolved = allImportsResolved && im.walkImport(pkg, branch, false)
+				allImportsResolved = allImportsResolved && c.walkImport(pkg, branch, false)
 			case "exported_import":
 				// this kills me inside too; trust me
-				allImportsResolved = allImportsResolved && im.walkImport(
+				allImportsResolved = allImportsResolved && c.walkImport(
 					pkg, branch.Content[1].(*syntax.ASTBranch), true)
 			// as soon as we encounter one of these blocks, we want to exit
 			case "top_level", "export_block":
@@ -133,7 +108,7 @@ func (im *ImportManager) collectImports(pkg *WhirlPackage) bool {
 
 // walkImport walks an `import_stmt` AST node (because Go is annoying about
 // circular imports, this has to be here instead of in the walker).
-func (im *ImportManager) walkImport(currpkg *WhirlPackage, node *syntax.ASTBranch, exported bool) bool {
+func (c *Compiler) walkImport(currpkg *common.WhirlPackage, node *syntax.ASTBranch, exported bool) bool {
 	importedSymbolNames := make(map[string]*util.TextPosition)
 	var pkgpath, rename string
 
@@ -186,8 +161,8 @@ func (im *ImportManager) walkImport(currpkg *WhirlPackage, node *syntax.ASTBranc
 
 	// use the current package while it is still value
 	currfile := currpkg.Files[util.CurrentFile]
-	if pkg, ok := im.Import(pkgpath); ok {
-		importedSymbols := make(map[string]*semantic.Symbol)
+	if pkg, ok := c.importPackage(pkgpath); ok {
+		importedSymbols := make(map[string]*common.Symbol)
 
 		if len(importedSymbolNames) > 0 {
 			// TODO: handle cyclic imports
@@ -218,7 +193,7 @@ func (im *ImportManager) walkImport(currpkg *WhirlPackage, node *syntax.ASTBranc
 					wimport.ImportedSymbols[name] = importedSym
 				}
 			} else {
-				currpkg.ImportTable[pkg.PackageID] = &WhirlImport{
+				currpkg.ImportTable[pkg.PackageID] = &common.WhirlImport{
 					PackageRef: pkg, ImportedSymbols: importedSymbols,
 				}
 			}
@@ -234,10 +209,7 @@ func (im *ImportManager) walkImport(currpkg *WhirlPackage, node *syntax.ASTBranc
 				name = splitPath[len(splitPath)-1]
 			}
 
-			// currfile.LocalTable[name] = &semantic.Symbol{
-			// 	Name: name, Type: (*PackageType)(pkg), Constant: true,
-			// 	DeclStatus: semantic.DSRemote, DefKind: semantic.SKindPackage,
-			// }
+			currfile.VisiblePackages[name] = pkg
 		}
 
 	}
@@ -247,6 +219,8 @@ func (im *ImportManager) walkImport(currpkg *WhirlPackage, node *syntax.ASTBranc
 
 // walkPackage walks through all of the files in a package after their imports
 // have been collected and resolved.
-func (im *ImportManager) walkPackage(pkg *WhirlPackage) bool {
-	return true
+func (c *Compiler) walkPackage(pkg *common.WhirlPackage) bool {
+	pb := analysis.PackageBuilder{Pkg: pkg}
+
+	return pb.BuildPackage()
 }

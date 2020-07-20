@@ -8,17 +8,18 @@ import (
 	"path"
 	"runtime"
 
+	"github.com/ComedicChimera/whirlwind/src/build"
 	"github.com/ComedicChimera/whirlwind/src/util"
 )
 
-// WhirlPath is global path to the Whirlwind compiler directory (when lib is
-// located)
-var WhirlPath = os.Getenv("WHIRL_PATH")
-
 // Execute should be called from main and initializes the compiler
 func Execute() {
+	// WhirlPath is global path to the Whirlwind compiler directory (when lib is
+	// located)
+	whirlPath := os.Getenv("WHIRL_PATH")
+
 	// check for WHIRL_PATH (if it doesn't exist, we error out)
-	if WhirlPath == "" {
+	if whirlPath == "" {
 		fmt.Println("Unable to locate WHIRL_PATH")
 		os.Exit(1)
 	}
@@ -35,7 +36,7 @@ func Execute() {
 
 	switch os.Args[1] {
 	case "build":
-		err = build()
+		err = Build()
 	default:
 		fmt.Printf("Config Error: Unknown Command `%s`\n", os.Args[1])
 		// flag.PrintDefaults()
@@ -49,18 +50,18 @@ func Execute() {
 	}
 }
 
-// Execute a `build` command
-func build() error {
+// Build executes a `build` command
+func Build() error {
 	// setup the build command and its flags
 	buildCommand := flag.NewFlagSet("build", flag.ContinueOnError)
 
-	buildCommand.String("p", runtime.GOOS, "Set the compilation platform")
-	buildCommand.String("a", runtime.GOARCH, "Set the compilation architecture")
+	buildCommand.String("os", runtime.GOOS, "Set the target operating system")
+	buildCommand.String("a", runtime.GOARCH, "Set the target architecture")
 	buildCommand.String("f", "bin", "Set the output format { bin | obj | asm | llvm | lib | dll }")
 	buildCommand.String("s", "", "List any static libraries that need to be linked with the binary")
 	buildCommand.String("o", "", "Set the output file path")
 	buildCommand.String("l", "", "Specify additional package directories")
-	buildCommand.String("loglevel", "warn", "Set compiler log level")
+	buildCommand.String("loglevel", "verbose", "Set compiler log level")
 	buildCommand.String("dl", "", "List any dynamic libraries that need to be linked with the binary") // subject to change
 
 	buildCommand.Bool("d", false, "Compile target in debug mode")
@@ -89,7 +90,7 @@ func build() error {
 	debugFlag := buildCommand.Lookup("d").Value.String() == "true"
 
 	// try to create a compiler with that information
-	compiler, err := NewCompiler(buildCommand.Lookup("p").Value.String(), buildCommand.Lookup("a").Value.String(), outputPath, buildDir, debugFlag)
+	compiler, err := build.NewCompiler(buildCommand.Lookup("p").Value.String(), buildCommand.Lookup("a").Value.String(), outputPath, buildDir, debugFlag)
 
 	if err != nil {
 		return err

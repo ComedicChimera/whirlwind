@@ -1,4 +1,4 @@
-package semantic
+package common
 
 // This file describes the predicates (expressions, blocks, statements, etc.)
 // that are used to facilitate HIR's functionality at the lower-levels of
