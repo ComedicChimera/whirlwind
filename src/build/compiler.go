@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/ComedicChimera/whirlwind/src/common"
@@ -45,7 +46,8 @@ type Compiler struct {
 	// depGraph represents the graph of all the packages used in a given project
 	// along with their connections.  It is the main way the compiler will store
 	// dependencies and keep track of what imports what.  It is also used to
-	// help manage and resolve cyclic dependencies.
+	// help manage and resolve cyclic dependencies.  The key is the package path
+	// relative to the build directory (NOT the full path).
 	depGraph map[string]*common.WhirlPackage
 }
 
@@ -131,6 +133,10 @@ func NewCompiler(o string, a string, op string, bd string, debugT bool, whirlpat
 		return nil, errors.New("Build directory does not exist")
 	}
 
+	// should never fail if the path exists relative to the working directory;
+	// build directory needs to be an absolute path for imports to 100% work
+	bd, _ = filepath.Abs(bd)
+
 	return &Compiler{targetos: o, targetarch: a, outputPath: op,
 		buildDirectory: bd, debugTarget: debugT, whirlpath: whirlpath}, nil
 }
@@ -171,8 +177,8 @@ func (c *Compiler) Compile(forceGrammarRebuild bool) {
 	util.LogMod.ShowInfo(c.targetos, c.targetarch, c.debugTarget)
 	util.LogMod.ShowStateChange("Analyzing")
 
-	// "" imports starting from the given root path
-	if _, ok := c.importPackage(""); ok {
+	// "/" imports starting from the given root path
+	if _, ok := c.importPackage("/"); ok {
 		return
 	}
 }

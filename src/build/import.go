@@ -1,6 +1,7 @@
 package build
 
 import (
+	"fmt"
 	"path"
 	"strings"
 
@@ -10,28 +11,19 @@ import (
 	"github.com/ComedicChimera/whirlwind/src/util"
 )
 
-// importPackage is the main function used to faciliate the compilation front-end.  It
-// takes a directory to import (relative to buildDirectory) and performs all
-// the necessary steps of importing. This function acts to run the full
-// front-end of the compiler for the given node.  It returns a boolean
+// importPackage is the main function used to faciliate the compilation
+// front-end.  It takes a directory to import (relative to buildDirectory) and
+// performs all the necessary steps of importing. This function acts to run the
+// full front-end of the compiler for the given node.  It returns a boolean
 // indicating whether or not the package was successfully imported as well as
-// the package itself.
+// the package itself.  `pkgpath` should be relative to the build directory.
 func (c *Compiler) importPackage(pkgpath string) (*common.WhirlPackage, bool) {
-	// TODO: properly handle import cycles
-	// TODO: find a way to translate a path into a package id
+	// depGraph stores package path's relatively (non-absolute paths)
 	if depgpkg, ok := c.depGraph[pkgpath]; ok {
 		return depgpkg, true
 	}
 
 	pkg, err := c.initPackage(path.Join(c.buildDirectory, pkgpath))
-
-	// make sure the CurrentPackage context is restored before this function
-	// returns (package is properly marked as it is analyzed)
-	prevPkgID := util.CurrentPackage
-	util.CurrentPackage = pkg.PackageID
-	defer (func() {
-		util.CurrentPackage = prevPkgID
-	})()
 
 	if err != nil {
 		util.LogMod.LogError(err)
@@ -41,7 +33,20 @@ func (c *Compiler) importPackage(pkgpath string) (*common.WhirlPackage, bool) {
 	// catch/stop for any errors that were caught at the file level as opposed
 	// to at the init/loading level (this if branch runs if it is successful)
 	if util.LogMod.CanProceed() {
-		// im.DepGraph[]
+		// make sure proper context is restored/updated before this function returns
+		prevPkgID := util.CurrentPackage
+		util.CurrentPackage = pkg.PackageID
+		defer (func() {
+			// make sure that analysis is marked as complete before this function
+			// returns (regardless of whether or not it fails)
+			pkg.AnalysisDone = true
+
+			// restore global package context
+			util.CurrentPackage = prevPkgID
+		})()
+
+		// add our package to the dependency graph (with a full path)
+		c.depGraph[pkgpath] = pkg
 
 		// unable to resolve imports
 		if !c.collectImports(pkg) {
@@ -111,6 +116,7 @@ func (c *Compiler) collectImports(pkg *common.WhirlPackage) bool {
 func (c *Compiler) walkImport(currpkg *common.WhirlPackage, node *syntax.ASTBranch, exported bool) bool {
 	importedSymbolNames := make(map[string]*util.TextPosition)
 	var pkgpath, rename string
+	var pkgpathPos *util.TextPosition
 
 	for _, item := range node.Content {
 		switch v := item.(type) {
@@ -124,10 +130,12 @@ func (c *Compiler) walkImport(currpkg *common.WhirlPackage, node *syntax.ASTBran
 					if leaf.Kind == syntax.IDENTIFIER {
 						pb.WriteString(leaf.Value)
 					} else {
+						// both `.` and `::` should write a `/`
 						pb.WriteRune('/')
 					}
 				}
 
+				pkgpathPos = v.Position()
 				pkgpath = pb.String()
 			} else /* only other node is `identifier_list` */ {
 				for _, elem := range v.Content {
@@ -162,57 +170,96 @@ func (c *Compiler) walkImport(currpkg *common.WhirlPackage, node *syntax.ASTBran
 	// use the current package while it is still value
 	currfile := currpkg.Files[util.CurrentFile]
 	if pkg, ok := c.importPackage(pkgpath); ok {
+		if pkg.PackageID == currpkg.PackageID {
+			util.LogMod.LogError(util.NewWhirlError(
+				"Package cannot import itself",
+				"Import",
+				pkgpathPos,
+			))
+
+			return false
+		}
+
 		importedSymbols := make(map[string]*common.Symbol)
 
 		if len(importedSymbolNames) > 0 {
-			// TODO: handle cyclic imports
-			for name, pos := range importedSymbolNames {
-				if name == "..." {
-
-				}
-
-				if imsym, ok := pkg.GlobalTable[name]; ok {
-					if imsym.VisibleExternally() {
-						importedSymbols[name] = imsym.Import(exported)
-					} else {
-						util.LogMod.LogError(util.NewWhirlError(
-							"Unable to import an internal symbol",
-							"Import",
-							pos,
-						))
-
-						return false
+			// handle full namespace imports
+			if pos, ok := importedSymbolNames["..."]; ok {
+				if pkg.AnalysisDone {
+					for _, imsym := range pkg.GlobalTable {
+						if imsym.VisibleExternally() {
+							importedSymbols[imsym.Name] = imsym.Import(exported)
+						}
 					}
 				} else {
-					// TODO: cyclic import stuff
-				}
-			}
+					util.LogMod.LogError(util.NewWhirlError(
+						"Namespace pollution between interdependent packages",
+						"Import",
+						pos,
+					))
 
-			if wimport, ok := currpkg.ImportTable[pkg.PackageID]; ok {
-				for name, importedSym := range importedSymbols {
-					wimport.ImportedSymbols[name] = importedSym
+					return false
 				}
 			} else {
-				currpkg.ImportTable[pkg.PackageID] = &common.WhirlImport{
-					PackageRef: pkg, ImportedSymbols: importedSymbols,
-				}
-			}
+				// handle specific symbol imports
+				for name, pos := range importedSymbolNames {
+					// try to import the current symbol from the outer package
+					if imsym, ok := pkg.GlobalTable[name]; ok {
+						if imsym.VisibleExternally() {
+							importedSymbols[name] = imsym.Import(exported)
+						} else {
+							util.LogMod.LogError(util.NewWhirlError(
+								"Unable to import an internal symbol",
+								"Import",
+								pos,
+							))
 
-			// add our symbols to the local file
-			for name, sym := range importedSymbols {
-				currfile.LocalTable[name] = sym
+							return false
+						}
+					} else if rsym, ok := pkg.RemoteSymbols[name]; ok {
+						// if this symbol has already been requested, use the shared
+						// reference so resolution applies generally
+						importedSymbols[name] = rsym
+					} else {
+						// otherwise, create a new remote symbol for the package
+						ssym := &common.Symbol{Name: name}
+						pkg.RemoteSymbols[name] = ssym
+						importedSymbols[name] = ssym
+					}
+				}
+
+				if wimport, ok := currpkg.ImportTable[pkg.PackageID]; ok {
+					for name, importedSym := range importedSymbols {
+						wimport.ImportedSymbols[name] = importedSym
+					}
+				} else {
+					currpkg.ImportTable[pkg.PackageID] = &common.WhirlImport{
+						PackageRef: pkg, ImportedSymbols: importedSymbols,
+					}
+				}
+
+				// add our symbols to the local file
+				for name, sym := range importedSymbols {
+					currfile.LocalTable[name] = sym
+				}
 			}
 		} else {
 			name := rename
 			if name == "" {
-				splitPath := strings.Split(pkgpath, "/")
-				name = splitPath[len(splitPath)-1]
+				name = pkg.Name
 			}
 
 			currfile.VisiblePackages[name] = pkg
 		}
-
 	}
+
+	// calculate the name of the package that we tried to import from its path
+	splitPath := strings.Split(pkgpath, "/")
+	util.LogMod.LogError(util.NewWhirlError(
+		fmt.Sprintf("Unable to import package `%s`", splitPath[len(splitPath)-1]),
+		"Import",
+		pkgpathPos,
+	))
 
 	return false
 }

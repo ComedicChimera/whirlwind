@@ -2,6 +2,7 @@ package common
 
 import (
 	"github.com/ComedicChimera/whirlwind/src/syntax"
+	"github.com/ComedicChimera/whirlwind/src/types"
 )
 
 // WhirlFile represents a single program file in a package
@@ -46,12 +47,20 @@ type WhirlPackage struct {
 	// Stores all of the globally-defined symbols in the package.
 	GlobalTable map[string]*Symbol
 
-	// Stores all remote exports of this package (decl status = shared)
-	RemoteExports map[string]*Symbol
+	// Stores all of the symbols that other packages depend on in this package
+	// that have not been resolved (ie. for handling cyclic imports)
+	RemoteSymbols map[string]*Symbol
 
 	// Stores all of the packages that this package imports (by ID) as well as
 	// what items it imports (useful in building LLVM modules)
 	ImportTable map[string]*WhirlImport
+
+	// Stores all of the overloaded operator definitions
+	OperatorOverloads map[string]types.DataType
+
+	// AnalysisDone is a flag indicating whether or not the package has been
+	// fully analyzed yet.  It is used to test for import cycles.
+	AnalysisDone bool
 }
 
 // WhirlImport represents the collective imports of an entire package (so

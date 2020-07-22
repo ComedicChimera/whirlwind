@@ -25,7 +25,7 @@ file = {annotation} {exported_import} {import_stmt} (export_block { export_block
 
 exported_import = 'export' import_stmt ;
 import_stmt = 'import' ( package_name ['as' 'IDENTIFIER'] | ( identifier_list | '...' ) 'from' package_name ) 'NEWLINE' ;
-package_name = 'IDENTIFIER' { '::' 'IDENTIFIER' } ;
+package_name = 'IDENTIFIER' { '::' 'IDENTIFIER' } | '.' ;
 identifier_list = 'IDENTIFIER' {',' 'IDENTIFIER'} ;
 
 export_block = 'export' 'of' 'INDENT' top_level 'DEDENT' ;
