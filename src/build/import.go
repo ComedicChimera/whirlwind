@@ -1,8 +1,6 @@
 package build
 
 import (
-	"fmt"
-	"path"
 	"strings"
 
 	"github.com/ComedicChimera/whirlwind/src/analysis"
@@ -23,7 +21,7 @@ func (c *Compiler) importPackage(pkgpath string) (*common.WhirlPackage, bool) {
 		return depgpkg, true
 	}
 
-	pkg, err := c.initPackage(path.Join(c.buildDirectory, pkgpath))
+	pkg, err := c.initPackage(pkgpath)
 
 	if err != nil {
 		util.LogMod.LogError(err)
@@ -53,9 +51,7 @@ func (c *Compiler) importPackage(pkgpath string) (*common.WhirlPackage, bool) {
 			return nil, false
 		}
 
-		c.walkPackage(pkg)
-
-		return pkg, true
+		return pkg, c.walkPackage(pkg)
 	}
 
 	return nil, false
@@ -253,14 +249,8 @@ func (c *Compiler) walkImport(currpkg *common.WhirlPackage, node *syntax.ASTBran
 		}
 	}
 
-	// calculate the name of the package that we tried to import from its path
-	splitPath := strings.Split(pkgpath, "/")
-	util.LogMod.LogError(util.NewWhirlError(
-		fmt.Sprintf("Unable to import package `%s`", splitPath[len(splitPath)-1]),
-		"Import",
-		pkgpathPos,
-	))
-
+	// if a package can't be imported, it will be logged later so we can fail
+	// silently here (won't progress to the next stage anyway)
 	return false
 }
 

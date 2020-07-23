@@ -1,7 +1,6 @@
 package build
 
 import (
-	"errors"
 	"fmt"
 	"math/rand"
 	"os"
@@ -20,16 +19,10 @@ import (
 // name.  It does not extract any definitions or do anything more than
 // initialize a package based on the contents and name of a provided directory.
 // Note: User should check LogModule after this is called as file level errors
-// are not returned!
+// are not returned!  `pkgpath` should be a relative path.
 func (c *Compiler) initPackage(pkgpath string) (*common.WhirlPackage, error) {
-	fi, err := os.Stat(pkgpath)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if fi.Mode().IsDir() {
-		pkgName := path.Base(pkgpath)
+	if abspath := c.getPkgAbsPath(pkgpath); abspath != "" {
+		pkgName := path.Base(abspath)
 
 		if !isValidPkgName(pkgName) {
 			return nil, fmt.Errorf("Invalid package name: `%s`", pkgName)
@@ -38,13 +31,13 @@ func (c *Compiler) initPackage(pkgpath string) (*common.WhirlPackage, error) {
 		pkg := &common.WhirlPackage{
 			PackageID:     c.newPackageID(),
 			Name:          pkgName,
-			RootDirectory: pkgpath,
+			RootDirectory: abspath,
 			Files:         make(map[string]*common.WhirlFile),
 		}
 
 		// all file level errors are logged with the log module for display
 		// later
-		err = filepath.Walk(pkgpath, func(fpath string, info os.FileInfo, ferr error) error {
+		err := filepath.Walk(abspath, func(fpath string, info os.FileInfo, ferr error) error {
 			if ferr != nil {
 				util.LogMod.LogError(ferr)
 			} else if info.IsDir() {
@@ -88,7 +81,51 @@ func (c *Compiler) initPackage(pkgpath string) (*common.WhirlPackage, error) {
 		return pkg, nil
 	}
 
-	return nil, errors.New("Package path must be a directory")
+	return nil, fmt.Errorf("Unable to find valid package directory at path `%s`", pkgpath)
+}
+
+// getPkgAbsPath converts a package relative path to a package absolute path if
+// possible.  It will index all available directories to find this path. If it
+// is unable to find anything, it will return an empty string.
+func (c *Compiler) getPkgAbsPath(relpath string) string {
+	validPath := func(abspath string) bool {
+		fi, err := os.Stat(abspath)
+
+		if err == nil {
+			return fi.IsDir()
+		}
+
+		return false
+	}
+
+	bdAbsPath := filepath.Join(c.buildDirectory, relpath)
+	if validPath(bdAbsPath) {
+		return bdAbsPath
+	}
+
+	for _, ldirpath := range c.localPkgDirectories {
+		localAbsPath, err := filepath.Abs(filepath.Join(ldirpath, relpath))
+
+		if err != nil {
+			continue
+		}
+
+		if validPath(localAbsPath) {
+			return localAbsPath
+		}
+	}
+
+	pubdirabspath := filepath.Join(c.whirlpath, "lib/pub", relpath)
+	if validPath(pubdirabspath) {
+		return pubdirabspath
+	}
+
+	stddirabspath := filepath.Join(c.whirlpath, "lib/std", relpath)
+	if validPath(stddirabspath) {
+		return stddirabspath
+	}
+
+	return ""
 }
 
 // isValidPkgName tests if the package name would be a usable identifier within

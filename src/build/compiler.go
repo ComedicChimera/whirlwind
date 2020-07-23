@@ -129,8 +129,8 @@ func NewCompiler(o string, a string, op string, bd string, debugT bool, whirlpat
 		return nil, errors.New("Unsupported architecture")
 	}
 
-	if _, err := os.Stat(bd); os.IsNotExist(err) {
-		return nil, errors.New("Build directory does not exist")
+	if bdfi, err := os.Stat(bd); os.IsNotExist(err) || !bdfi.IsDir() {
+		return nil, errors.New("Invalid or nonexistent build directory")
 	}
 
 	// should never fail if the path exists relative to the working directory;

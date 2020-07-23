@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/ComedicChimera/whirlwind/src/common"
-	"github.com/ComedicChimera/whirlwind/src/types"
 	"github.com/ComedicChimera/whirlwind/src/util"
 )
 
@@ -20,11 +19,10 @@ type PackageBuilder struct {
 	// ResolvingSymbols contains a list of symbols that are currently undefined
 	// at the top level of packages.  These symbols must be resolved before the
 	// builder can make the Walkers proceed to next phase of compilation.
-	// Unresolved symbols will have a `nil` DataType reference (the DataTypes
-	// correspond to references inside TypePlaceholders)
+	// Unresolved symbols will have a `nil` Symbol reference
 	ResolvingSymbols map[string]struct {
-		TypeRef *types.DataType
-		SymPos  *util.TextPosition
+		SymRef *common.Symbol
+		SymPos *util.TextPosition
 	}
 }
 
@@ -45,7 +43,7 @@ func (pb *PackageBuilder) BuildPackage() bool {
 	// check for unresolved symbols
 	allSymbolsResolved := true
 	for name, rs := range pb.ResolvingSymbols {
-		if rs.TypeRef == nil {
+		if rs.SymRef == nil {
 			allSymbolsResolved = false
 			util.LogMod.LogError(
 				util.NewWhirlError(
@@ -68,16 +66,5 @@ func (pb *PackageBuilder) BuildPackage() bool {
 		}
 	}
 
-	return true
-}
-
-// AddGlobalSymbol adds a symbol to the global package scope.  If the symbol
-// already exists, then this addition fails and this function returns false.
-func (pb *PackageBuilder) AddGlobalSymbol(sym *common.Symbol) bool {
-	if _, ok := pb.Pkg.GlobalTable[sym.Name]; ok {
-		return false
-	}
-
-	pb.Pkg.GlobalTable[sym.Name] = sym
 	return true
 }
