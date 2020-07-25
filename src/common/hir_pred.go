@@ -1,5 +1,7 @@
 package common
 
+import "github.com/ComedicChimera/whirlwind/src/syntax"
+
 // This file describes the predicates (expressions, blocks, statements, etc.)
 // that are used to facilitate HIR's functionality at the lower-levels of
 // program structure.  For a more full description of HIR's purpose and
@@ -92,3 +94,10 @@ const (
 	AKImpDecl        // `:=`
 	AKMove           // `:>`
 )
+
+// HIRIncomplete is a node used to represent an unwalked predicate
+type HIRIncomplete syntax.ASTBranch
+
+func (*HIRIncomplete) Kind() int {
+	return NKIncomplete
+}

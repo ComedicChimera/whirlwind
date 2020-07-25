@@ -36,7 +36,8 @@ const (
 	NKBlockStmt
 	NKSimpleStmt
 	NKAssignment
-	NKExpr // All values, names, and true expressions are NKExpr
+	NKExpr       // All values, names, and true expressions are NKExpr
+	NKIncomplete // unwalked expression
 )
 
 // HIRTypeDef is the node used to represent a type definition.

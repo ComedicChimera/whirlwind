@@ -1,5 +1,7 @@
 package types
 
+import "github.com/ComedicChimera/whirlwind/src/util"
+
 // StructType represents a named explicitly structured data type
 type StructType struct {
 	Name    string
@@ -20,8 +22,8 @@ type StructMember struct {
 // NewStructType creates a new named, structured data type in given package with
 // the given members.  Requires a flag to indicate whether or not the struct is
 // packed
-func NewStructType(srcPkg string, name string, members map[string]*StructMember, packed bool) DataType {
-	return &StructType{Name: srcPkg + "::" + name, Members: members, Packed: packed}
+func NewStructType(name string, members map[string]*StructMember, packed bool) DataType {
+	return &StructType{Name: util.CurrentPackage + "::" + name, Members: members, Packed: packed}
 }
 
 // struct types don't implement coercion

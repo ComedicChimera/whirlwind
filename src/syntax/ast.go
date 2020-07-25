@@ -49,3 +49,23 @@ func (a *ASTBranch) Position() *util.TextPosition {
 	// unreachable
 	return nil
 }
+
+// BranchAt gets and casts the specified element to an AST branch
+func (a *ASTBranch) BranchAt(ndx int) *ASTBranch {
+	return a.Content[ndx].(*ASTBranch)
+}
+
+// LeafAt gets and casts the specified element to an AST leaf
+func (a *ASTBranch) LeafAt(ndx int) *ASTLeaf {
+	return a.Content[ndx].(*ASTLeaf)
+}
+
+// Len returns the length of the branch's content
+func (a *ASTBranch) Len() int {
+	return len(a.Content)
+}
+
+// Last returns the last element of the branch
+func (a *ASTBranch) Last() ASTNode {
+	return a.Content[len(a.Content)-1]
+}

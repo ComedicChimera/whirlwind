@@ -1,6 +1,7 @@
 package types
 
 import (
+	"reflect"
 	"strings"
 
 	"github.com/ComedicChimera/whirlwind/src/util"
@@ -25,7 +26,7 @@ type TypeSet struct {
 }
 
 // NewTypeSet creates a new standard type set
-func NewTypeSet(name string, sk int, members []DataType) DataType {
+func NewTypeSet(name string, sk int, members []DataType) *TypeSet {
 	return &TypeSet{Name: name, SetKind: sk, members: members, interf: nil}
 }
 
@@ -49,9 +50,9 @@ func InstOf(elem DataType, set *TypeSet) bool {
 	return false
 }
 
-// NewMember creates a new member in a given type set (enum or algebraic)
+// NewEnumMember creates a new member in a given type set (enum or algebraic)
 // Returns a boolean indicating whether or not the member was added successfully
-func (ts *TypeSet) NewMember(name string, values []DataType) bool {
+func (ts *TypeSet) NewEnumMember(name string, values []DataType) bool {
 	for _, member := range ts.members {
 		em := member.(*EnumMember)
 
@@ -62,6 +63,17 @@ func (ts *TypeSet) NewMember(name string, values []DataType) bool {
 
 	ts.members = append(ts.members, &EnumMember{Name: name, Values: values, Parent: ts})
 	return true
+}
+
+// NewTypeSetMember adds a new type to a type set
+func (ts *TypeSet) NewTypeSetMember(dt DataType) {
+	for _, member := range ts.members {
+		if reflect.DeepEqual(member, dt) {
+			return
+		}
+	}
+
+	ts.members = append(ts.members, dt)
 }
 
 // coecion on type sets follows three simple rules: - if the other is an element

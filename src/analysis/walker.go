@@ -26,6 +26,9 @@ type Walker struct {
 	// ExportSymbols is used to denote that the Walker is currently within an
 	// export block and should export any symbols it adds to the global table
 	ExportSymbols bool
+
+	// CtxAnnotations are the visible global and local annotations in any location
+	CtxAnnotations map[string]struct{}
 }
 
 // Scope represents an enclosing local scope
@@ -91,4 +94,22 @@ func (w *Walker) WalkFile() bool {
 // WalkPredicates walks all of the unevaluated predicates
 func (w *Walker) WalkPredicates() bool {
 	return true
+}
+
+// namesFromIDList walks an identifier lists and yields the string names
+// contained therein
+func namesFromIDList(list *syntax.ASTBranch) []string {
+	names := make([]string, len(list.Content)/2+1)
+
+	n := 0
+	for _, item := range list.Content {
+		leaf := item.(*syntax.ASTLeaf)
+
+		if leaf.Kind == syntax.IDENTIFIER {
+			names[n] = leaf.Value
+			n++
+		}
+	}
+
+	return names
 }
