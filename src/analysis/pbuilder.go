@@ -33,7 +33,7 @@ func (pb *PackageBuilder) BuildPackage() bool {
 		walker := NewWalker(pb, wf)
 		pb.Walkers = append(pb.Walkers, walker)
 
-		if walker.WalkFile() {
+		if !walker.WalkFile() {
 			return false
 		}
 
@@ -61,7 +61,7 @@ func (pb *PackageBuilder) BuildPackage() bool {
 
 	// reference to root is shared so this isn't a problem
 	for _, walker := range pb.Walkers {
-		if walker.WalkPredicates() {
+		if !walker.WalkPredicates() {
 			return false
 		}
 	}

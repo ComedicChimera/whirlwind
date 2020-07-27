@@ -42,8 +42,8 @@ const (
 
 // HIRTypeDef is the node used to represent a type definition.
 type HIRTypeDef struct {
-	// Symbol is all of the definition information about the symbol
-	Symbol *Symbol
+	// Sym is all of the definition information about the symbol
+	Sym *Symbol
 
 	// FieldInits is a map of all field initializers along with what fields they
 	// correspond to (used for type structs)
@@ -72,12 +72,19 @@ type HIRFuncDef struct {
 	// Body can be `nil` if there is no function body
 	Body HIRNode
 
-	// ConstBody indicates whether or not the body is constant
-	ConstBody bool
+	// ArgData contains all of the special modifiers to the arguments
+	// of the function (ie. volatility, initializers)
+	ArgData map[string]*HIRArgData
 }
 
 func (*HIRFuncDef) Kind() int {
 	return NKFuncDef
+}
+
+// HIRArgData is an auxilliary type used to store special argument information
+type HIRArgData struct {
+	Volatile    bool
+	Initializer HIRNode // can be `nil`
 }
 
 // HIRVarDecl is used to represent a variable or constant declaration

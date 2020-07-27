@@ -1,6 +1,8 @@
 package analysis
 
 import (
+	"fmt"
+
 	"github.com/ComedicChimera/whirlwind/src/common"
 	"github.com/ComedicChimera/whirlwind/src/syntax"
 	"github.com/ComedicChimera/whirlwind/src/types"
@@ -15,31 +17,49 @@ func (w *Walker) walkDefinitions(branch *syntax.ASTBranch) bool {
 
 		switch defNode.Name {
 		case "type_def":
-			if w.walkTypeDef(defNode) {
-				return true
+			if !w.walkTypeDef(defNode) {
+				return false
 			}
 		case "interf_def":
+			if !w.walkInterfDef(defNode) {
+				return false
+			}
 		case "interf_bind":
 		case "operator_def":
 		case "func_def":
 		case "decorator":
 		case "annotated_def":
+			if !w.walkAnnotatedDef(defNode) {
+				return false
+			}
 		case "variable_decl":
 		case "variant_def":
 		}
 	}
 
-	return false
+	return true
 }
 
 // walkTypeDef walks a `type_def` node
 func (w *Walker) walkTypeDef(branch *syntax.ASTBranch) bool {
-	typeSym := &common.Symbol{}
-	tdefNode := &common.HIRTypeDef{Symbol: typeSym}
+	// create our type symbol and type def node
+	typeSym := &common.Symbol{
+		DeclStatus: w.DeclStatus,
+		DefKind:    common.SKindTypeDef,
+		Constant:   true,
+	}
 
+	tdefNode := &common.HIRTypeDef{Sym: typeSym}
+
+	// set up the state elements of the type def
 	closed := false
 	genericParams := make(map[string]*types.TypeParam)
 
+	// collect positional data
+	var typeSymPos *util.TextPosition
+	var enumMemberPositions map[string]*util.TextPosition
+
+	// collect information about the type definition
 	for _, item := range branch.Content {
 		switch v := item.(type) {
 		case *syntax.ASTBranch:
@@ -48,7 +68,7 @@ func (w *Walker) walkTypeDef(branch *syntax.ASTBranch) bool {
 				if gp, ok := w.walkGenericTag(v); ok {
 					genericParams = gp
 				} else {
-					return true
+					return false
 				}
 			case "typeset":
 				ts := &types.TypeSet{
@@ -62,17 +82,17 @@ func (w *Walker) walkTypeDef(branch *syntax.ASTBranch) bool {
 						if dt, ok := w.walkTypeLabel(tb); ok {
 							ts.NewTypeSetMember(dt)
 						} else {
-							return true
+							return false
 						}
 					}
 				}
 
 				typeSym.Type = ts
 			case "newtype":
-				if nt, ok := w.walkNewType(v, tdefNode); ok {
+				if nt, ok := w.walkNewType(v, tdefNode, enumMemberPositions); ok {
 					typeSym.Type = nt
 				} else {
-					return true
+					return false
 				}
 			}
 		case *syntax.ASTLeaf:
@@ -81,37 +101,70 @@ func (w *Walker) walkTypeDef(branch *syntax.ASTBranch) bool {
 				closed = true
 			case syntax.IDENTIFIER:
 				typeSym.Name = v.Value
+				typeSymPos = v.Position()
 			}
 		}
 	}
 
-	if !closed {
+	// generate and declare the type definition
+	if len(genericParams) == 0 {
+		if !closed {
+			if ts, ok := typeSym.Type.(*types.TypeSet); ok {
+				if ts.SetKind == types.TSKindAlgebraic || ts.SetKind == types.TSKindEnum {
+					for _, member := range ts.Members {
+						emname := member.(*types.EnumMember).Name
+
+						if !w.Define(&common.Symbol{
+							Name:       emname,
+							Type:       member,
+							Constant:   true,
+							DeclStatus: w.DeclStatus,
+							DefKind:    common.SKindTypeDef,
+						}) {
+							ThrowMultiDefError(emname, enumMemberPositions[emname])
+							return false
+						}
+					}
+				}
+			}
+		}
+
+		if w.Define(typeSym) {
+			w.Root.Elements = append(w.Root.Elements, tdefNode)
+		} else {
+			ThrowMultiDefError(typeSym.Name, typeSymPos)
+			return false
+		}
 
 	}
 
-	_ = genericParams
+	// TODO: generic stuff
 
-	return false
+	return true
 }
 
-func (w *Walker) walkNewType(branch *syntax.ASTBranch, tdn *common.HIRTypeDef) (types.DataType, bool) {
+// walkNewType walks a `newtype` node.  (tdn = type def node)
+func (w *Walker) walkNewType(branch *syntax.ASTBranch, tdn *common.HIRTypeDef, memberPositions map[string]*util.TextPosition) (types.DataType, bool) {
 	switch branch.Name {
 	case "enum_suffix":
 		ts := types.NewTypeSet(
-			tdn.Symbol.Name,
+			tdn.Sym.Name,
 			types.TSKindEnum,
 			nil,
 		)
 
 		for _, item := range branch.Content {
 			mnode := item.(*syntax.ASTBranch)
+			mname := mnode.LeafAt(1).Value
+			memberPositions[mname] = mnode.Position()
 
 			if mnode.Len() == 2 {
-				ts.NewEnumMember(mnode.LeafAt(1).Value, nil)
-				continue
+				if ts.NewEnumMember(mname, nil) {
+					continue
+				}
 			} else if typeList, ok := w.walkTypeList(mnode.BranchAt(2).BranchAt(1)); ok {
 				if ts.NewEnumMember(
-					mnode.LeafAt(1).Value,
+					mname,
 					typeList,
 				) {
 					ts.SetKind = types.TSKindAlgebraic
@@ -119,12 +172,17 @@ func (w *Walker) walkNewType(branch *syntax.ASTBranch, tdn *common.HIRTypeDef) (
 				}
 			}
 
+			util.LogMod.LogError(util.NewWhirlError(
+				fmt.Sprintf("Multiple type members with the same name: `%s`", mname),
+				"Name",
+				mnode.Position(),
+			))
 			return nil, false
 		}
 
 		return ts, true
 	case "tupled_suffix":
-		// TODO: named tuples - decide on implementation
+		// TODO: named tuples -- decide on implementation
 	case "struct_suffix":
 		members := make(map[string]*types.StructMember)
 
@@ -188,9 +246,244 @@ func (w *Walker) walkNewType(branch *syntax.ASTBranch, tdn *common.HIRTypeDef) (
 			packed = true
 		}
 
-		// TODO: annotations :)
-		return types.NewStructType(tdn.Symbol.Name, members, packed), true
+		return types.NewStructType(tdn.Sym.Name, members, packed), true
 	}
 
 	return nil, false
+}
+
+// walkInterfDef walks an `interf_def` node
+func (w *Walker) walkInterfDef(branch *syntax.ASTBranch) bool {
+	// TODO: generic stuff
+
+	// create the base interface type -- no self type rules needed here
+	tInterf := &types.TypeInterf{
+		Methods: make(map[string]*types.Method),
+	}
+
+	name := branch.LeafAt(1).Value
+	interfSym := &common.Symbol{
+		Name:       name,
+		Constant:   true,
+		DefKind:    common.SKindTypeDef,
+		DeclStatus: w.DeclStatus,
+		Type:       types.NewInterface(name, tInterf),
+	}
+
+	interfBlock := &common.HIRInterfDef{
+		Sym: interfSym,
+	}
+
+	// extract the methods of the interface
+	if w.walkInterfBody(branch.Last().(*syntax.ASTBranch), tInterf.Methods, func(m common.HIRNode) {
+		interfBlock.Methods = append(interfBlock.Methods, m)
+	}) {
+		return false
+	}
+
+	// define and load up everything
+	if w.Define(interfSym) {
+		return true
+	}
+
+	ThrowMultiDefError(interfSym.Name, branch.Content[1].Position())
+	return false
+}
+
+// extractMethods walks an `interf_body` node and adds the methods it finds to
+// the method map it is passed.  DOES NOT PARSE THEIR BODIES.
+func (w *Walker) walkInterfBody(branch *syntax.ASTBranch, methods map[string]*types.Method, addMethod func(common.HIRNode)) bool {
+	return false
+}
+
+// walkFuncDef walks a `func_def` node and extracts a HIRFuncDef from it.
+// It does NOT declare the function's symbol nor does it add the HIRFuncDef to
+// anything (allows this function to be used a number of places).  It may also
+// produce a generic as necessary.
+func (w *Walker) walkFuncDef(branch *syntax.ASTBranch) (common.HIRNode, bool) {
+	// TODO: generic stuff
+
+	_, boxable := w.CtxAnnotations["intrinsic"]
+	ft := &types.FuncType{Boxed: false, Boxable: boxable}
+	var name string
+	var funcBody common.HIRNode
+	var argData map[string]*common.HIRArgData
+
+	for _, item := range branch.Content {
+		switch v := item.(type) {
+		case *syntax.ASTBranch:
+			switch v.Name {
+			case "signature":
+				if amap, ok := w.walkFuncSignature(v, ft); ok {
+					argData = amap
+				} else {
+					return nil, true
+				}
+			case "func_body":
+				if l, ok := v.Content[0].(*syntax.ASTLeaf); ok && l.Kind == syntax.CONST {
+					ft.Constant = true
+				}
+
+				funcBody = (*common.HIRIncomplete)(v)
+			}
+		case *syntax.ASTLeaf:
+			switch v.Kind {
+			case syntax.ASYNC:
+				ft.Async = true
+			case syntax.IDENTIFIER:
+				name = v.Value
+			}
+		}
+	}
+
+	if ft.ReturnType == nil {
+		ft.ReturnType = types.PrimitiveType(types.PrimNothing)
+	}
+
+	// we don't need to copy annotations since CtxAnnotations is cleared without
+	// manipulating the underlying reference (and creates a new one on each
+	// clear).
+	fnode := &common.HIRFuncDef{
+		Sym: &common.Symbol{
+			Name:       name,
+			Type:       ft,
+			Constant:   true,
+			DefKind:    common.SKindFuncDef,
+			DeclStatus: w.DeclStatus,
+		},
+		Annotations: w.CtxAnnotations,
+		Body:        funcBody,
+		ArgData:     argData,
+	}
+
+	return fnode, false
+}
+
+// walkFuncSignature walks a `signature` node of any given function.  It accepts
+// a base func-type as input containing everything that the signature doesn't.
+func (w *Walker) walkFuncSignature(branch *syntax.ASTBranch, ft *types.FuncType) (map[string]*common.HIRArgData, bool) {
+	initMap := make(map[string]*common.HIRArgData)
+
+	for _, item := range branch.Content {
+		subbranch := item.(*syntax.ASTBranch)
+
+		if subbranch.Name == "args_decl" {
+			for _, argNode := range subbranch.Content {
+				if b, ok := argNode.(*syntax.ASTBranch); ok {
+					if b.Name == "arg_decl" {
+						var names []string
+						var argDt types.DataType
+						var constant bool
+						argData := &common.HIRArgData{}
+
+						for _, elem := range b.Content {
+							switch n := elem.(type) {
+							case *syntax.ASTBranch:
+								switch n.Name {
+								case "identifier_list":
+									names = namesFromIDList(n)
+
+									for i, name := range names {
+										if _, ok := initMap[name]; ok {
+											util.LogMod.LogError(util.NewWhirlError(
+												fmt.Sprintf("Multiple arguments with name: `%s`", name),
+												"Name",
+												n.Content[i*2].Position(),
+											))
+
+											return nil, false
+										}
+
+										initMap[name] = argData
+									}
+								case "type_ext":
+									if dt, ok := w.walkTypeLabel(n); ok {
+										argDt = dt
+									} else {
+										return nil, false
+									}
+								case "initializer":
+									argData.Initializer = (*common.HIRIncomplete)(n)
+								}
+							case *syntax.ASTLeaf:
+								if n.Kind == syntax.CONST {
+									constant = true
+								} else {
+									argData.Volatile = true
+								}
+							}
+						}
+
+						for _, name := range names {
+							ft.Params = append(ft.Params, &types.FuncParam{
+								Name:     name,
+								Type:     argDt,
+								Optional: argData.Initializer != nil,
+								Constant: constant,
+							})
+						}
+					} else /* `var_arg_decl` */ {
+						name := b.LeafAt(1).Value
+
+						if _, ok := initMap[name]; ok {
+							util.LogMod.LogError(util.NewWhirlError(
+								fmt.Sprintf("Multiple arguments with name: `%s`", name),
+								"Name",
+								b.Content[1].Position(),
+							))
+
+							return nil, false
+						}
+
+						if dt, ok := w.walkTypeLabel(b.BranchAt(2)); ok {
+							ft.Params = append(ft.Params, &types.FuncParam{
+								Name:     name,
+								Type:     dt,
+								Variadic: true,
+								Optional: true, // marked optional for convenience
+								Constant: false,
+							})
+						} else {
+							return nil, false
+						}
+					}
+				}
+			}
+		} else if rt, ok := w.walkTypeLabel(subbranch); ok {
+			ft.ReturnType = rt
+		} else {
+			return nil, false
+		}
+	}
+
+	return initMap, true
+}
+
+// walkAnnotatedDef walks an `annotated_def` or an `annotated_method` node.
+func (w *Walker) walkAnnotatedDef(branch *syntax.ASTBranch) bool {
+	for i, item := range branch.Content {
+		subbranch := item.(*syntax.ASTBranch)
+
+		if subbranch.Name == "annotation" {
+			// TODO: should bad annotations throw errors?
+
+			if subbranch.Len() == 3 {
+				w.CtxAnnotations[subbranch.LeafAt(1).Value] = ""
+			} else {
+				w.CtxAnnotations[subbranch.LeafAt(1).Value] = subbranch.LeafAt(2).Value
+			}
+		} else {
+			// we use walk definitions to handle our annotation body by simply
+			// trimming off the `annotation` and giving it a container node with
+			// length of one that holds the definition we want to analyze/walk.
+			result := w.walkDefinitions(&syntax.ASTBranch{Name: "annot_body", Content: branch.Content[i:]})
+
+			w.CtxAnnotations = make(map[string]string)
+
+			return result
+		}
+	}
+
+	// unreachable
+	return false
 }

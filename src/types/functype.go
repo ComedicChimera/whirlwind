@@ -13,6 +13,9 @@ type FuncParam struct {
 	Name               string
 	Type               DataType // actually contains value :)
 	Optional, Variadic bool
+
+	// Stored here to make determining copy ellision easier
+	Constant bool
 }
 
 // NewFuncParam creates a new function parameter value
@@ -57,11 +60,12 @@ type FuncType struct {
 	Async      bool
 	Boxed      bool
 	Boxable    bool
+	Constant   bool
 }
 
 // NewFuncType creates a new function type (boxable)
-func NewFuncType(fparams []*FuncParam, rttype DataType, async bool, boxed bool) DataType {
-	return &FuncType{Params: fparams, ReturnType: rttype, Async: async, Boxed: boxed, Boxable: true}
+func NewFuncType(fparams []*FuncParam, rttype DataType, async bool, boxed bool, constant bool) DataType {
+	return &FuncType{Params: fparams, ReturnType: rttype, Async: async, Boxed: boxed, Boxable: true, Constant: constant}
 }
 
 // NewIntrinsic creates a new instrinsic function data type

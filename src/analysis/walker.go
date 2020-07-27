@@ -8,8 +8,7 @@ import (
 
 // Walker is used to walk down a file AST, perform semantic analysis and
 // checking, and convert it into a HIR tree.  The Walker first walks through the
-// top level of a file and then walks down the predicates.  NOTE: all walk
-// functions return true if they FAIL (ie. there is an error).  All imports
+// top level of a file and then walks down the predicates.  NOTE: All imports
 // must be resolved before the Walker begins walking the HIR tree.
 type Walker struct {
 	Builder *PackageBuilder
@@ -23,12 +22,12 @@ type Walker struct {
 	// local scopes to generate the output code.
 	Scopes []*Scope
 
-	// ExportSymbols is used to denote that the Walker is currently within an
-	// export block and should export any symbols it adds to the global table
-	ExportSymbols bool
+	// DeclStatus is used to indicate how a symbol should be declared (exported
+	// or internal)
+	DeclStatus int
 
 	// CtxAnnotations are the visible global and local annotations in any location
-	CtxAnnotations map[string]struct{}
+	CtxAnnotations map[string]string
 }
 
 // Scope represents an enclosing local scope
@@ -73,22 +72,22 @@ func (w *Walker) WalkFile() bool {
 		// need to check for them here.
 		switch branch.Name {
 		case "export_block":
-			w.ExportSymbols = true
+			w.DeclStatus = common.DSExported
 
 			// the `top_level` node is always the third node in `export_block`
-			if w.walkDefinitions(branch.Content[2].(*syntax.ASTBranch)) {
-				return true
+			if !w.walkDefinitions(branch.Content[2].(*syntax.ASTBranch)) {
+				return false
 			}
 
-			w.ExportSymbols = false
+			w.DeclStatus = common.DSInternal
 		case "top_level":
-			if w.walkDefinitions(branch) {
-				return true
+			if !w.walkDefinitions(branch) {
+				return false
 			}
 		}
 	}
 
-	return false
+	return true
 }
 
 // WalkPredicates walks all of the unevaluated predicates

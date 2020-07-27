@@ -1,8 +1,11 @@
 package analysis
 
 import (
+	"fmt"
+
 	"github.com/ComedicChimera/whirlwind/src/common"
 	"github.com/ComedicChimera/whirlwind/src/types"
+	"github.com/ComedicChimera/whirlwind/src/util"
 )
 
 // Lookup looks up a symbol from the current walker context. Returns `nil` if no
@@ -86,4 +89,14 @@ func (w *Walker) PopScope() {
 // GlobalTable as a scope: if the scope stack is empty => PANIC)
 func (w *Walker) CurrScope() *Scope {
 	return w.Scopes[len(w.Scopes)-1]
+}
+
+// ThrowMultiDefError will log an error indicating that a symbol of a given name
+// is declared multiple times in the current scope.
+func ThrowMultiDefError(name string, pos *util.TextPosition) {
+	util.LogMod.LogError(util.NewWhirlError(
+		fmt.Sprintf("Symbol `%s` declared multiple times", name),
+		"Name",
+		pos,
+	))
 }

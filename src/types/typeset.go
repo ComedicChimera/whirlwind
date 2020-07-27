@@ -18,16 +18,16 @@ const (
 // TypeSet represents a polymorphic type that can be any of the types included
 // in itself (eg. algebraic typesets, interfaces, etc.)
 type TypeSet struct {
-	members []DataType
-	interf  *TypeInterf
+	interf *TypeInterf
 
 	Name    string
 	SetKind int
+	Members []DataType
 }
 
 // NewTypeSet creates a new standard type set
 func NewTypeSet(name string, sk int, members []DataType) *TypeSet {
-	return &TypeSet{Name: name, SetKind: sk, members: members, interf: nil}
+	return &TypeSet{Name: name, SetKind: sk, Members: members, interf: nil}
 }
 
 // NewInterface creates a new type set for a provided interface (creates an
@@ -41,7 +41,7 @@ func NewInterface(name string, interf *TypeInterf) DataType {
 // coerced into the type set), then it is not an instance of the type set
 // regardless of quantifiers
 func InstOf(elem DataType, set *TypeSet) bool {
-	for _, dt := range set.members {
+	for _, dt := range set.Members {
 		if dt == elem {
 			return true
 		}
@@ -53,7 +53,7 @@ func InstOf(elem DataType, set *TypeSet) bool {
 // NewEnumMember creates a new member in a given type set (enum or algebraic)
 // Returns a boolean indicating whether or not the member was added successfully
 func (ts *TypeSet) NewEnumMember(name string, values []DataType) bool {
-	for _, member := range ts.members {
+	for _, member := range ts.Members {
 		em := member.(*EnumMember)
 
 		if em.Name == name {
@@ -61,19 +61,19 @@ func (ts *TypeSet) NewEnumMember(name string, values []DataType) bool {
 		}
 	}
 
-	ts.members = append(ts.members, &EnumMember{Name: name, Values: values, Parent: ts})
+	ts.Members = append(ts.Members, &EnumMember{Name: name, Values: values, Parent: ts})
 	return true
 }
 
 // NewTypeSetMember adds a new type to a type set
 func (ts *TypeSet) NewTypeSetMember(dt DataType) {
-	for _, member := range ts.members {
+	for _, member := range ts.Members {
 		if reflect.DeepEqual(member, dt) {
 			return
 		}
 	}
 
-	ts.members = append(ts.members, dt)
+	ts.Members = append(ts.Members, dt)
 }
 
 // coecion on type sets follows three simple rules: - if the other is an element
@@ -87,7 +87,7 @@ func (ts *TypeSet) coerce(other DataType) bool {
 	if InstOf(other, ts) {
 		return true
 	} else if ts.interf != nil && ts.interf.MatchType(other) == nil {
-		ts.members = append(ts.members, other)
+		ts.Members = append(ts.Members, other)
 		return true
 	}
 
@@ -110,7 +110,7 @@ func (ts *TypeSet) equals(other DataType) bool {
 
 		// if we have reached this point, we know the members are the same so we
 		// simply satisfy any free types that could exist here (necessary evil)
-		return TypeListEquals(ts.members, ots.members)
+		return TypeListEquals(ts.Members, ots.Members)
 	}
 
 	return false
@@ -130,7 +130,7 @@ func (ts *TypeSet) SizeOf() uint {
 		return util.PointerSize * 4
 	default:
 		// TSKindUnion
-		return MaxSize(ts.members)
+		return MaxSize(ts.Members)
 	}
 }
 
@@ -146,7 +146,7 @@ func (ts *TypeSet) AlignOf() uint {
 		return util.PointerSize
 	default:
 		// TSKindUnion
-		return MaxAlign(ts.members)
+		return MaxAlign(ts.Members)
 	}
 }
 
@@ -157,9 +157,9 @@ func (ts *TypeSet) Repr() string {
 
 // copyTemplate for typesets will also copy the interface if necessary
 func (ts *TypeSet) copyTemplate() DataType {
-	newmembers := make([]DataType, len(ts.members))
+	newmembers := make([]DataType, len(ts.Members))
 
-	for i, m := range ts.members {
+	for i, m := range ts.Members {
 		newmembers[i] = m.copyTemplate()
 	}
 
@@ -178,7 +178,7 @@ func (ts *TypeSet) copyTemplate() DataType {
 	}
 
 	return &TypeSet{
-		members: newmembers,
+		Members: newmembers,
 		interf:  newinterf,
 		SetKind: ts.SetKind,
 		Name:    ts.Name,
