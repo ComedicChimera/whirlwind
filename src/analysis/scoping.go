@@ -94,9 +94,9 @@ func (w *Walker) CurrScope() *Scope {
 // ThrowMultiDefError will log an error indicating that a symbol of a given name
 // is declared multiple times in the current scope.
 func ThrowMultiDefError(name string, pos *util.TextPosition) {
-	util.LogMod.LogError(util.NewWhirlError(
+	util.ThrowError(
 		fmt.Sprintf("Symbol `%s` declared multiple times", name),
 		"Name",
 		pos,
-	))
+	)
 }

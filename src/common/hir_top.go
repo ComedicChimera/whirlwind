@@ -143,6 +143,8 @@ type HIROperDecl struct {
 
 	Annotations map[string]string
 	Body        HIRNode
+
+	ArgData map[string]*HIRArgData
 }
 
 func (*HIROperDecl) Kind() int {

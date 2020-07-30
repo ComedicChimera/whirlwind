@@ -172,11 +172,11 @@ func (w *Walker) walkNewType(branch *syntax.ASTBranch, tdn *common.HIRTypeDef, m
 				}
 			}
 
-			util.LogMod.LogError(util.NewWhirlError(
+			util.ThrowError(
 				fmt.Sprintf("Multiple type members with the same name: `%s`", mname),
 				"Name",
 				mnode.Position(),
-			))
+			)
 			return nil, false
 		}
 
@@ -209,11 +209,11 @@ func (w *Walker) walkNewType(branch *syntax.ASTBranch, tdn *common.HIRTypeDef, m
 
 							for _, name := range names {
 								if _, ok := members[name]; ok {
-									util.LogMod.LogError(util.NewWhirlError(
+									util.ThrowError(
 										"Each struct member must have a unique name",
 										"Name",
 										subbranch.BranchAt(0).Content[i*2].Position(),
-									))
+									)
 
 									return nil, false
 								}
@@ -290,6 +290,11 @@ func (w *Walker) walkInterfDef(branch *syntax.ASTBranch) bool {
 	return false
 }
 
+// walkInterfBind walks an `interf_bind` node
+func (w *Walker) walkInterfBind(branch *syntax.ASTBranch) bool {
+	return false
+}
+
 // extractMethods walks an `interf_body` node and adds the methods it finds to
 // the method map it is passed.  DOES NOT PARSE THEIR BODIES.
 func (w *Walker) walkInterfBody(branch *syntax.ASTBranch, methods map[string]*types.Method, addMethod func(common.HIRNode)) bool {
@@ -304,7 +309,7 @@ func (w *Walker) walkFuncDef(branch *syntax.ASTBranch) (common.HIRNode, bool) {
 	// TODO: generic stuff
 
 	_, boxable := w.CtxAnnotations["intrinsic"]
-	ft := &types.FuncType{Boxed: false, Boxable: boxable}
+	ft := &types.FuncType{Boxable: boxable}
 	var name string
 	var funcBody common.HIRNode
 	var argData map[string]*common.HIRArgData
@@ -314,7 +319,7 @@ func (w *Walker) walkFuncDef(branch *syntax.ASTBranch) (common.HIRNode, bool) {
 		case *syntax.ASTBranch:
 			switch v.Name {
 			case "signature":
-				if amap, ok := w.walkFuncSignature(v, ft); ok {
+				if amap, ok := w.walkFuncSignature(v, ft, false); ok {
 					argData = amap
 				} else {
 					return nil, true
@@ -359,9 +364,94 @@ func (w *Walker) walkFuncDef(branch *syntax.ASTBranch) (common.HIRNode, bool) {
 	return fnode, false
 }
 
+func (w *Walker) walkOperatorOverload(branch *syntax.ASTBranch) bool {
+	opBranch := branch.BranchAt(2)
+	opKind := opBranch.Content[util.BoolToInt(opBranch.Len() < 3)].(*syntax.ASTLeaf).Kind
+
+	ft := &types.FuncType{}
+	var argData map[string]*common.HIRArgData
+	var funcBody common.HIRNode
+
+	for _, node := range branch.Content[4:] {
+		b := node.(*syntax.ASTBranch)
+
+		switch b.Name {
+		case "generic_tag":
+			// TODO: generic stuff
+			break
+		case "signature":
+			if adata, ok := w.walkFuncSignature(b, ft, true); ok {
+				argData = adata
+			} else {
+				return false
+			}
+		case "func_body":
+			funcBody = (*common.HIRIncomplete)(b)
+		}
+	}
+
+	switch opKind {
+	case syntax.MINUS:
+		if len(ft.Params) < 1 || len(ft.Params) > 2 {
+			util.ThrowError(
+				"Operator overload for minus operator must take either 1 or 2 arguments",
+				"Signature",
+				opBranch.Position(),
+			)
+
+			return false
+		}
+	case syntax.NOT, syntax.COMPL:
+		if len(ft.Params) != 1 {
+			util.ThrowError(
+				"Operator overload for unary operator must take exactly 1 argument",
+				"Signature",
+				opBranch.Position(),
+			)
+
+			return false
+		}
+	case syntax.COLON:
+		if len(ft.Params) != 3 {
+			util.ThrowError(
+				"Operator overload for slice operator must take exactly 3 arguments",
+				"Signature",
+				opBranch.Position(),
+			)
+
+			return false
+		}
+	// all other operators are pure binary
+	default:
+		if len(ft.Params) != 2 {
+			util.ThrowError(
+				"Operator overload for binary operator must take exactly 2 arguments",
+				"Signature",
+				opBranch.Position(),
+			)
+
+			return false
+		}
+	}
+
+	if w.addOperOverload(opKind, ft) {
+		w.Root.Elements = append(w.Root.Elements, &common.HIROperDecl{
+			OperKind:    opKind,
+			Signature:   ft,
+			Annotations: w.CtxAnnotations,
+			Body:        funcBody,
+			ArgData:     argData,
+		})
+
+		return true
+	}
+
+	return false
+}
+
 // walkFuncSignature walks a `signature` node of any given function.  It accepts
 // a base func-type as input containing everything that the signature doesn't.
-func (w *Walker) walkFuncSignature(branch *syntax.ASTBranch, ft *types.FuncType) (map[string]*common.HIRArgData, bool) {
+func (w *Walker) walkFuncSignature(branch *syntax.ASTBranch, ft *types.FuncType, operator bool) (map[string]*common.HIRArgData, bool) {
 	initMap := make(map[string]*common.HIRArgData)
 
 	for _, item := range branch.Content {
@@ -385,11 +475,11 @@ func (w *Walker) walkFuncSignature(branch *syntax.ASTBranch, ft *types.FuncType)
 
 									for i, name := range names {
 										if _, ok := initMap[name]; ok {
-											util.LogMod.LogError(util.NewWhirlError(
+											util.ThrowError(
 												fmt.Sprintf("Multiple arguments with name: `%s`", name),
 												"Name",
 												n.Content[i*2].Position(),
-											))
+											)
 
 											return nil, false
 										}
@@ -403,6 +493,16 @@ func (w *Walker) walkFuncSignature(branch *syntax.ASTBranch, ft *types.FuncType)
 										return nil, false
 									}
 								case "initializer":
+									if operator {
+										util.ThrowError(
+											"Operator overload can't take optional arguments",
+											"Signature",
+											n.Position(),
+										)
+
+										return nil, false
+									}
+
 									argData.Initializer = (*common.HIRIncomplete)(n)
 								}
 							case *syntax.ASTLeaf:
@@ -422,15 +522,23 @@ func (w *Walker) walkFuncSignature(branch *syntax.ASTBranch, ft *types.FuncType)
 								Constant: constant,
 							})
 						}
+					} else if operator {
+						util.ThrowError(
+							"Operator overloads can't take variadic arguments",
+							"Signature",
+							b.Position(),
+						)
+
+						return nil, false
 					} else /* `var_arg_decl` */ {
 						name := b.LeafAt(1).Value
 
 						if _, ok := initMap[name]; ok {
-							util.LogMod.LogError(util.NewWhirlError(
+							util.ThrowError(
 								fmt.Sprintf("Multiple arguments with name: `%s`", name),
 								"Name",
 								b.Content[1].Position(),
-							))
+							)
 
 							return nil, false
 						}

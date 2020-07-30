@@ -41,10 +41,11 @@ interf_member = func_def | variant_def | method_variant | annotated_method ;
 method_variant = 'variant' [generic_tag] 'when' method_variant_cond {',' method_variant_cond} 'NEWLINE' func_def ;
 method_variant_cond = 'IDENTIFIER' 'is' type ;
 
-operator_def = 'operator' '(' operator_value ')' [generic_tag] [signature] func_body ;
+operator_def = 'operator' '(' operator_value ')' [generic_tag] signature func_body ;
 operator_value = '+' | '-' | '*' | '/' | '~/' | '~*' | '~^' | '%' 
                | '>' | '>>' | '<' | '<<' | '<=' | '>=' | '=='
-               | '!' | '!=' | '&' ['&'] | '|' ['|'] | '^' | '[' [':'] ']' ;
+               | '!' | '!=' | '&' | '&&' | '|' | '||' | '^' | '~'
+               | '[' [':'] ']' ;
 
 func_def = ('func' | 'async') 'IDENTIFIER' [generic_tag] [signature] [func_body] ;
 signature = [args_decl] [type] ;

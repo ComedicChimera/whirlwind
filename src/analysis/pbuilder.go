@@ -45,12 +45,11 @@ func (pb *PackageBuilder) BuildPackage() bool {
 	for name, rs := range pb.ResolvingSymbols {
 		if rs.SymRef == nil {
 			allSymbolsResolved = false
-			util.LogMod.LogError(
-				util.NewWhirlError(
-					fmt.Sprintf("Undefined Symbol: `%s`", name),
-					"Name",
-					rs.SymPos,
-				),
+
+			util.ThrowError(
+				fmt.Sprintf("Undefined Symbol: `%s`", name),
+				"Name",
+				rs.SymPos,
 			)
 		}
 	}
