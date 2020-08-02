@@ -28,6 +28,9 @@ type Walker struct {
 
 	// CtxAnnotations are the visible global and local annotations in any location
 	CtxAnnotations map[string]string
+
+	// TypeParams stores the visible type parameters
+	TypeParams map[string]*types.TypeParam
 }
 
 // Scope represents an enclosing local scope

@@ -26,7 +26,6 @@ file = {annotation} {exported_import} {import_stmt} (export_block { export_block
 exported_import = 'export' import_stmt ;
 import_stmt = 'import' ( package_name ['as' 'IDENTIFIER'] | ( identifier_list | '...' ) 'from' package_name ) 'NEWLINE' ;
 package_name = 'IDENTIFIER' { '::' 'IDENTIFIER' } | '.' ;
-identifier_list = 'IDENTIFIER' {',' 'IDENTIFIER'} ;
 
 export_block = 'export' 'of' 'INDENT' top_level 'DEDENT' ;
 
@@ -48,7 +47,7 @@ operator_value = '+' | '-' | '*' | '/' | '~/' | '~*' | '~^' | '%'
                | '[' [':'] ']' ;
 
 func_def = ('func' | 'async') 'IDENTIFIER' [generic_tag] [signature] [func_body] ;
-signature = [args_decl] [type] ;
+signature = [args_decl] type ;
 args_decl = '(' (arg_decl {',' arg_decl } [',' var_arg_decl] | var_arg_decl ) ')' ;
 arg_decl = ['const'] ['vol'] identifier_list type_ext [initializer] ;
 var_arg_decl = '...' 'IDENTIFIER' type_ext ;
@@ -56,7 +55,7 @@ func_body = ['const'] ( do_block | ? '=>' expr ? ) ;
 
 type_def = ['closed'] 'type' 'IDENTIFIER' [generic_tag] ( ? typeset ? | newtype ) ;
 typeset = '=' type {'|' type } ;
-newtype = ? enum_suffix ? | tupled_suffix | struct_suffix ;
+newtype = ? enum_suffix ? | struct_suffix ;
 enum_suffix = enum_type_member {enum_type_member} ;
 enum_type_member = '|' 'IDENTIFIER' [tupled_suffix] ;
 tupled_suffix = '(' type {',' type} ')' ;
@@ -78,7 +77,7 @@ block = 'INDENT' ( block_content {block_content} | '...') 'DEDENT' ;
 block_content = simple_stmt 'NEWLINE' | complex_stmt | func_def ;
 
 (* complex statements contain a block (eg. an if statement) *)
-complex_stmt = if_chain | match_stmt | for_loop | cond_loop | ctx_manager | async_for_loop ;
+complex_stmt = if_chain | match_stmt | for_loop | while_loop | ctx_manager | async_for_loop ;
 
 if_chain = 'if' [variable_decl ';'] expr do_block {elif_block} [else_block] ;
 elif_block = 'elif' [variable_decl ';'] expr do_block ;
@@ -90,18 +89,14 @@ val_match_block = 'to' 'INDENT' val_case_block {val_case_block} 'DEDENT' ;
 type_case_block = 'case' type_pattern_list [when_cond] do_block ;
 val_case_block = 'case' expr_list [when_cond] do_block ;
 
-for_loop = 'for' (c_for_expr | iterator) do_block [nobreak_clause] ;
-c_for_expr = ['IDENTIFIER' {',' 'IDENTIFIER'} ':=' expr] semilinebr [expr] semilinebr [expr_stmt] ;
-
+for_loop = 'for' iterator do_block [nobreak_clause] ;
 async_for_loop = 'async' 'for' iterator do_block [nobreak_clause] ;
-
-cond_loop = 'loop' ([variable_decl ';'] expr do_block | do_block | block) [nobreak_clause] ;
-
+while_loop = 'while' [variable_decl ';'] expr do_block [nobreak_clause] ;
 nobreak_clause = 'nobreak' (do_block | block) ;
 
 ctx_manager = 'with' ? full_ctx ? do_block [else_block] [finally_clause] ;
 full_ctx = ctx_elem {semilinebr ctx_elem} ;
-ctx_elem = 'IDENTIFIER' (':=' | '<-') expr ;
+ctx_elem = identifier_list '<-' expr ;
 finally_clause = 'finally' (do_block | block) ;
 
 (* simple statements do not contain a block - newline suffix is added in block *)
@@ -122,8 +117,8 @@ var = 'IDENTIFIER' [type_ext] [initializer];
 unpack_var = '(' unpack_elem {',' unpack_elem} ['...'] ')' ;
 unpack_elem = 'IDENTIFIER' | unpack_var ;
 
-expr_stmt = mut_expr {',' mut_expr} [assign_op expr_list] ;
-mut_expr = ['await'] ['*' | '++' | '--'] mut_atom {trailer} ['++' | '--'] ;
+expr_stmt = mut_expr {',' mut_expr} [assign_op expr_list | '++' | '--'] ;
+mut_expr = ['await'] ['*'] mut_atom {trailer} ;
 mut_atom = 'IDENTIFIER' | '(' expr ')' ;
 assign_op = ['+' | '-' | '*' | '/' | '%' | '~/' | '~^' | '>>' | '<<' | '&' | '|' | '^'] '=' | ':>' ;
 
@@ -138,9 +133,7 @@ inline_match_expr_branch = expr_list '=>' expr 'NEWLINE' ;
 inline_match_type_block = 'INDENT' inline_match_type_branch {inline_match_type_branch} 'DEDENT' ;
 inline_match_type_branch = type_pattern_list '=>' expr 'NEWLINE' ;
 
-with_expr = 'with' ? monad_ctx ? '=>' expr ;
-monad_ctx = mctx_elem {semilinebr mctx_elem} ;
-mctx_elem = 'IDENTIFIER' '<-' expr ;
+with_expr = 'with' ? full_ctx ? '=>' expr ;
 
 core_expr = ['await'] func_op [core_expr_suffix] ;
 core_expr_suffix = '..' func_op
@@ -156,13 +149,12 @@ comp_op = '<' | '>' | '>=' | '<=' | '==' | '!=' ;
 shift_expr = arith_expr {('>>' | '<<') arith_expr} ;
 arith_expr = term {('+' | '-') term} ;
 term = factor {('*' | '/' | '~/' | '%') factor} ;
-factor = [pref_unary_op] power [post_unary_op] ;
-pref_unary_op = '++' | '--' | '&' ['const'] | '*' | '-' | '~' ;
-post_unary_op = '++' | '--' ;
+factor = [unary_op] power ;
+unary_op = '&' ['const'] | '*' | '-' | '~' ;
 power = atom_expr {'~^' atom_expr} ;
 
 atom_expr = atom {trailer} | make_expr ;
-make_expr = 'make' heap_alloc ['{' init_list '}'] ;
+make_expr = 'make' ('for' heap_alloc | expr) ;
 heap_alloc = type | '(' type '*' expr ')' ;
 
 trailer = '.' ( 'IDENTIFIER' | 'INTLIT' )
@@ -222,3 +214,4 @@ expr_list = expr {',' expr} ;
 when_cond = 'when' expr ;
 initializer = '=' expr ;
 semilinebr = ';' | 'NEWLINE' ;
+identifier_list = 'IDENTIFIER' {',' 'IDENTIFIER'} ;

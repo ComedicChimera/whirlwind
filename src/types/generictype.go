@@ -18,7 +18,7 @@ type GenericType struct {
 
 // NewGenericType creates a new generic type based on the given template
 // accepting the given type parameters (with restrictors)
-func NewGenericType(template DataType, tps []*TypeParam) DataType {
+func NewGenericType(template DataType, tps []*TypeParam) *GenericType {
 	return &GenericType{Template: template, TypeParams: tps}
 }
 
@@ -46,7 +46,7 @@ func (gt *GenericType) CreateGenerate(typeList []DataType) (DataType, bool) {
 	// clear the stored values from the type parameters (so that
 	// comparisons work properly after this generate is created)
 	for _, p := range gt.TypeParams {
-		*p.placeholderRef = nil
+		*p.PlaceholderRef = nil
 	}
 
 	return generate, true
@@ -105,10 +105,9 @@ func (gt *GenericType) copyTemplate() DataType {
 // associated with this type parameter so that the type value
 // can be filled in whenever this parameter is initialized
 type TypeParam struct {
-	Name string
-
-	placeholderRef *DataType
-	restrictors    []DataType
+	Name           string
+	Restrictors    []DataType
+	PlaceholderRef *DataType
 }
 
 // InitWithType attempts to fill in the placeholder types with
@@ -117,14 +116,14 @@ type TypeParam struct {
 // If the type parameter has no restrictors, then it all type
 // values are considered value and this function always succeeds.
 func (tp *TypeParam) InitWithType(dt DataType) bool {
-	if len(tp.restrictors) == 0 {
-		*tp.placeholderRef = dt
+	if len(tp.Restrictors) == 0 {
+		*tp.PlaceholderRef = dt
 		return true
 	}
 
-	for _, r := range tp.restrictors {
+	for _, r := range tp.Restrictors {
 		if CoerceTo(r, dt) {
-			*tp.placeholderRef = dt
+			*tp.PlaceholderRef = dt
 			return true
 		}
 	}

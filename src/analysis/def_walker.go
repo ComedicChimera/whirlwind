@@ -53,7 +53,6 @@ func (w *Walker) walkTypeDef(branch *syntax.ASTBranch) bool {
 
 	// set up the state elements of the type def
 	closed := false
-	genericParams := make(map[string]*types.TypeParam)
 
 	// collect positional data
 	var typeSymPos *util.TextPosition
@@ -65,9 +64,7 @@ func (w *Walker) walkTypeDef(branch *syntax.ASTBranch) bool {
 		case *syntax.ASTBranch:
 			switch v.Name {
 			case "generic_tag":
-				if gp, ok := w.walkGenericTag(v); ok {
-					genericParams = gp
-				} else {
+				if !w.setupGenericContext(v) {
 					return false
 				}
 			case "typeset":
@@ -107,40 +104,28 @@ func (w *Walker) walkTypeDef(branch *syntax.ASTBranch) bool {
 	}
 
 	// generate and declare the type definition
-	if len(genericParams) == 0 {
-		if !closed {
-			if ts, ok := typeSym.Type.(*types.TypeSet); ok {
-				if ts.SetKind == types.TSKindAlgebraic || ts.SetKind == types.TSKindEnum {
-					for _, member := range ts.Members {
-						emname := member.(*types.EnumMember).Name
+	if !closed {
+		if ts, ok := typeSym.Type.(*types.TypeSet); ok {
+			if ts.SetKind == types.TSKindAlgebraic || ts.SetKind == types.TSKindEnum {
+				for _, member := range ts.Members {
+					emname := member.(*types.EnumMember).Name
 
-						if !w.Define(&common.Symbol{
-							Name:       emname,
-							Type:       member,
-							Constant:   true,
-							DeclStatus: w.DeclStatus,
-							DefKind:    common.SKindTypeDef,
-						}) {
-							ThrowMultiDefError(emname, enumMemberPositions[emname])
-							return false
-						}
+					if !w.Define(&common.Symbol{
+						Name:       emname,
+						Type:       member,
+						Constant:   true,
+						DeclStatus: w.DeclStatus,
+						DefKind:    common.SKindTypeDef,
+					}) {
+						ThrowMultiDefError(emname, enumMemberPositions[emname])
+						return false
 					}
 				}
 			}
 		}
-
-		if w.Define(typeSym) {
-			w.Root.Elements = append(w.Root.Elements, tdefNode)
-		} else {
-			ThrowMultiDefError(typeSym.Name, typeSymPos)
-			return false
-		}
-
 	}
 
-	// TODO: generic stuff
-
-	return true
+	return w.finishDefinition(typeSym, tdefNode, typeSymPos)
 }
 
 // walkNewType walks a `newtype` node.  (tdn = type def node)
@@ -181,8 +166,6 @@ func (w *Walker) walkNewType(branch *syntax.ASTBranch, tdn *common.HIRTypeDef, m
 		}
 
 		return ts, true
-	case "tupled_suffix":
-		// TODO: named tuples -- decide on implementation
 	case "struct_suffix":
 		members := make(map[string]*types.StructMember)
 
@@ -201,8 +184,8 @@ func (w *Walker) walkNewType(branch *syntax.ASTBranch, tdn *common.HIRTypeDef, m
 						} else {
 							// next logical item is `type_ext`
 							var dt types.DataType
-							if dt_, ok := w.walkTypeExt(v); ok {
-								dt = dt_
+							if wdt, ok := w.walkTypeExt(v); ok {
+								dt = wdt
 							} else {
 								return nil, false
 							}
@@ -254,8 +237,6 @@ func (w *Walker) walkNewType(branch *syntax.ASTBranch, tdn *common.HIRTypeDef, m
 
 // walkInterfDef walks an `interf_def` node
 func (w *Walker) walkInterfDef(branch *syntax.ASTBranch) bool {
-	// TODO: generic stuff
-
 	// create the base interface type -- no self type rules needed here
 	tInterf := &types.TypeInterf{
 		Methods: make(map[string]*types.Method),
@@ -270,35 +251,75 @@ func (w *Walker) walkInterfDef(branch *syntax.ASTBranch) bool {
 		Type:       types.NewInterface(name, tInterf),
 	}
 
-	interfBlock := &common.HIRInterfDef{
+	interfNode := &common.HIRInterfDef{
 		Sym: interfSym,
 	}
 
+	// if the node at position 2 is a Branch, then we know it is a `generic_tag`
+	if b, ok := branch.Content[2].(*syntax.ASTBranch); ok {
+		if !w.setupGenericContext(b) {
+			return false
+		}
+	}
+
 	// extract the methods of the interface
-	if w.walkInterfBody(branch.Last().(*syntax.ASTBranch), tInterf.Methods, func(m common.HIRNode) {
-		interfBlock.Methods = append(interfBlock.Methods, m)
+	if w.walkInterfBody(branch.Last().(*syntax.ASTBranch), tInterf, false, func(m common.HIRNode) {
+		interfNode.Methods = append(interfNode.Methods, m)
 	}) {
 		return false
 	}
 
-	// define and load up everything
-	if w.Define(interfSym) {
-		return true
-	}
-
-	ThrowMultiDefError(interfSym.Name, branch.Content[1].Position())
-	return false
+	return w.finishDefinition(interfSym, interfNode, branch.Content[1].Position())
 }
 
 // walkInterfBind walks an `interf_bind` node
 func (w *Walker) walkInterfBind(branch *syntax.ASTBranch) bool {
+	// TODO: generic interface binding
+
 	return false
 }
 
 // extractMethods walks an `interf_body` node and adds the methods it finds to
 // the method map it is passed.  DOES NOT PARSE THEIR BODIES.
-func (w *Walker) walkInterfBody(branch *syntax.ASTBranch, methods map[string]*types.Method, addMethod func(common.HIRNode)) bool {
-	return false
+func (w *Walker) walkInterfBody(branch *syntax.ASTBranch, tInterf *types.TypeInterf, isBinding bool, addMethodNode func(common.HIRNode)) bool {
+	for _, item := range branch.Content {
+		// only branch in `interf_body` is `interf_member`
+		if imemberBranch, ok := item.(*syntax.ASTBranch); ok {
+			imember := imemberBranch.BranchAt(0)
+
+			switch imember.Name {
+			case "func_def":
+				if defnode, ok := w.walkFuncDef(imember); ok {
+					var fnNode *common.HIRFuncDef
+					namePos := imember.LeafAt(1).Position()
+
+					switch v := defnode.(type) {
+					case *common.HIRFuncDef:
+						fnNode = v
+					case *common.HIRGeneric:
+						fnNode = v.GenericNode.(*common.HIRFuncDef)
+					}
+
+					var mk int
+					// TODO: figure out how to get the method kind
+
+					if !tInterf.AddMethod(fnNode.Sym.Name, fnNode.Sym.Type, mk) {
+						util.ThrowError(
+							fmt.Sprintf("Method defined multiple times: `%s`", fnNode.Sym.Name),
+							"Name",
+							namePos,
+						)
+
+						return false
+					}
+				} else {
+					return false
+				}
+			}
+		}
+	}
+
+	return true
 }
 
 // walkFuncDef walks a `func_def` node and extracts a HIRFuncDef from it.
@@ -306,8 +327,6 @@ func (w *Walker) walkInterfBody(branch *syntax.ASTBranch, methods map[string]*ty
 // anything (allows this function to be used a number of places).  It may also
 // produce a generic as necessary.
 func (w *Walker) walkFuncDef(branch *syntax.ASTBranch) (common.HIRNode, bool) {
-	// TODO: generic stuff
-
 	_, boxable := w.CtxAnnotations["intrinsic"]
 	ft := &types.FuncType{Boxable: boxable}
 	var name string
@@ -318,11 +337,15 @@ func (w *Walker) walkFuncDef(branch *syntax.ASTBranch) (common.HIRNode, bool) {
 		switch v := item.(type) {
 		case *syntax.ASTBranch:
 			switch v.Name {
+			case "generic_tag":
+				if !w.setupGenericContext(v) {
+					return nil, false
+				}
 			case "signature":
 				if amap, ok := w.walkFuncSignature(v, ft, false); ok {
 					argData = amap
 				} else {
-					return nil, true
+					return nil, false
 				}
 			case "func_body":
 				if l, ok := v.Content[0].(*syntax.ASTLeaf); ok && l.Kind == syntax.CONST {
@@ -361,7 +384,8 @@ func (w *Walker) walkFuncDef(branch *syntax.ASTBranch) (common.HIRNode, bool) {
 		ArgData:     argData,
 	}
 
-	return fnode, false
+	// use a dummy symbol for sake of ease :)
+	return w.makeGeneric(&common.Symbol{Type: ft}, fnode), true
 }
 
 func (w *Walker) walkOperatorOverload(branch *syntax.ASTBranch) bool {
@@ -377,8 +401,9 @@ func (w *Walker) walkOperatorOverload(branch *syntax.ASTBranch) bool {
 
 		switch b.Name {
 		case "generic_tag":
-			// TODO: generic stuff
-			break
+			if !w.setupGenericContext(b) {
+				return false
+			}
 		case "signature":
 			if adata, ok := w.walkFuncSignature(b, ft, true); ok {
 				argData = adata
@@ -434,15 +459,18 @@ func (w *Walker) walkOperatorOverload(branch *syntax.ASTBranch) bool {
 		}
 	}
 
-	if w.addOperOverload(opKind, ft) {
-		w.Root.Elements = append(w.Root.Elements, &common.HIROperDecl{
-			OperKind:    opKind,
-			Signature:   ft,
-			Annotations: w.CtxAnnotations,
-			Body:        funcBody,
-			ArgData:     argData,
-		})
+	var operDecl common.HIRNode = &common.HIROperDecl{
+		OperKind:    opKind,
+		Signature:   ft,
+		Annotations: w.CtxAnnotations,
+		Body:        funcBody,
+		ArgData:     argData,
+	}
+	dummySym := &common.Symbol{Type: ft}
+	operDecl = w.makeGeneric(dummySym, operDecl)
 
+	if w.addOperOverload(opKind, dummySym.Type) {
+		w.Root.Elements = append(w.Root.Elements, operDecl)
 		return true
 	}
 
@@ -567,6 +595,14 @@ func (w *Walker) walkFuncSignature(branch *syntax.ASTBranch, ft *types.FuncType,
 	return initMap, true
 }
 
+// walkVariantDef walks a `variant_def` node and returns a HIRNode instead of declaring
+// anything (so as to work w/ methods -- same behavior as `walkFuncDef`)
+func (w *Walker) walkVariantDef(branch *syntax.ASTBranch) (common.HIRNode, bool) {
+	// TODO: figure out how to bind the variant to the generic
+
+	return nil, false
+}
+
 // walkAnnotatedDef walks an `annotated_def` or an `annotated_method` node.
 func (w *Walker) walkAnnotatedDef(branch *syntax.ASTBranch) bool {
 	for i, item := range branch.Content {
@@ -594,4 +630,22 @@ func (w *Walker) walkAnnotatedDef(branch *syntax.ASTBranch) bool {
 
 	// unreachable
 	return false
+}
+
+// finishDefinition is used to globally declare a definition and add its node to
+// the HIRRoot if possible.  It also handles all generics involved in the
+// definition.
+func (w *Walker) finishDefinition(sym *common.Symbol, node common.HIRNode, namePos *util.TextPosition) bool {
+	if len(w.TypeParams) > 0 {
+		node = w.makeGeneric(sym, node)
+	}
+
+	if !w.Define(sym) {
+		ThrowMultiDefError(sym.Name, namePos)
+		return false
+	}
+
+	w.Root.Elements = append(w.Root.Elements, node)
+
+	return true
 }

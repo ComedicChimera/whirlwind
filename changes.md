@@ -73,14 +73,18 @@ checking on the next line (works like it does in Python).
 - the `default` keyword
   - `case _ do` is just as clear
   - inline with rest of language (inc. inline `match`)
+- C-Style for loop
+  - accomplishable (basically) with iterators and while loops
+  - just looks ugly
+- implicit infinite loop
+  - just kinda looks ugly
+  - not necessarily unclear but really not very idiomatic
 
 ## Control Flow/Conditionals Update
 
 - two kinds of loops
-  - `loop` is for infinite and conditional loops
-    - omitting the header expression => infinite
-  - `for` is for iteration-based loops
-    - c-style and iterator-based
+  - `while` is for conditional loops
+  - `for` is for iterator-based loops
 - the `match` upgrade (and condensing)
   - all use `to` to begin their blocks
   - match statement
@@ -208,7 +212,7 @@ checking on the next line (works like it does in Python).
 
 - vector constructor: `<value : const_len>` or `<{elems...}>`
 - vector data type: `<size>type` (only valid on integral, floating point or pointer types)
-- vector generics: `<T, vsize N>` (N is a size parameter to a vector data type)
+- vector generics: `<T, N>` (N is a size parameter to a vector data type)
 - all basic arithmetic operations are valid on vectors (scalar and vector mult)
 - additional intrinsics and utilities (eg. `__vec_sum(v)` and `__shuffle_vec(v1, v2, mask)`)
 - `#vec_unroll` annotation to cause vector functions to be optimized (as much as possible)
@@ -218,29 +222,19 @@ checking on the next line (works like it does in Python).
 
 ## Context Managers
 
-- syntax: `with name := expr do`
-  - name can be `_` (if using an already created resource)
-  - can manage multiple resources (eg. `with name1 := expr1; name2 := expr2 do`)
-- ensure that resources are cleaned up before they close (via. `close()` method)
-- even in case of runtime panic
-- same guarantee about `finally` block
-- even circumvents breaks and returns (temporarily)
-  - occurs before
-- used when handling "hot" resources that must be properly disposed (at all costs, in all cases)
-- can be used "monadically" (to handle monadic types)
-  - use `<-` instead of `:=`, written the same way
-  - apply monadic operators to extract values (very functional pattern)
-  - basically just syntactic sugar for repeat calls of `after`
-  - also valid inline form for monadic types: `with v <- f() => v`
-    - uses `apply` instead of `after`
-    - rhs must be of the same type as is returned by `f`
-- can have `else` block that runs if the context manager is unsuccessful at
-acquiring the resources/extracting the monadic value
-- the `:=` operator can be used for monadic values if the their contained value is `Contextual`
-  - fills the role of both operators in this case
-  - for example: `with f := fs::open(path) do`
-    - `open` returns a `Result<File>`
-- associated interfaces: `Contextual` and `Monad`
+- Allow for the creation of managed/safe contexts
+- Uses the `Contextual` interface
+- Inspired by Monads and `using` in C#
+- Syntax: `with item <- f() do`
+  - Also has an expression form: replace `do` with `=>` followed by an expression
+  - Can include multiple items (separated by semilinebrs)
+  - Can perform unpacking inline
+  - Usage of `_` allowed (though not common)
+- Has a `finally` clause that is guaranteed to run after (even in context of a return)
+  - Perhaps even on a runtime panic?
+    - Need to find some way to allow `Contextual` to add to `finally` if that is the case
+- Works for both "Monadic" types and volatile types like files
+  - controls both context entrance and context exit
 
 ## Improved Operator Overloading
 
@@ -259,6 +253,7 @@ is applied to mutable values (where mutation is expected, not where it is possib
   provided the argument in their position is marked `const` (allows for compound assignment forms
   of the operator work as desired).
     - the compiler should determine this immutablility reasonably
+  - specified by a `#inplace` annotation
 - **all** operator overloads aggressively elide copies (even in violation of Whirlwind's value
 semantics - eg. the underlying array of a list will not copied even if the operator is called
 as a function)
@@ -284,9 +279,6 @@ as a function)
   - this includes anywhere where null is implicit (eg. null initialization)
     - if the compiler can determine that null value is never used (ie. open-form initialization)
     before it given a proper value, the compiler should not throw an error
-- higher-kinded generics (already a thing; just formalizing)
-  - `interf<T> for Type<T> is Interface<Type<T>>` should work
-  - as should `interf<M, V> Interface<M<V>>` (and with previous)
 
 ## Syntactic Sugar and Smaller Adjustments
 

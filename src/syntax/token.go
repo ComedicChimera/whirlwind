@@ -25,7 +25,7 @@ const (
 	WHEN
 	FINALLY
 	NOBREAK
-	LOOP
+	WHILE
 	FALLTHROUGH
 	WITH
 	DO
@@ -112,20 +112,21 @@ const (
 	AND
 	OR
 
-	// bitwise and memory operators
+	// bitwise operators
 	AMP
 	PIPE
 	BXOR
 	LSHIFT
 	RSHIFT
 	COMPL
-	MOVE
-	NULLTEST
+
+	// memory operators
+	MOVE     // :>
+	NULLTEST // ?
 
 	// assignment/declaration operators
-	ASSIGN  // =
-	BINDTO  // <-
-	IMPDECL // :=
+	ASSIGN // =
+	BINDTO // <-
 
 	// dots
 	DOT
@@ -175,7 +176,7 @@ var keywordPatterns = map[string]int{
 	"when":        WHEN,
 	"nobreak":     NOBREAK,
 	"finally":     FINALLY,
-	"loop":        LOOP,
+	"while":       WHILE,
 	"fallthrough": FALLTHROUGH,
 	"with":        WITH,
 	"do":          DO,
@@ -264,7 +265,6 @@ var symbolPatterns = map[string]int{
 	";":   SEMICOLON,
 	":":   COLON,
 	"::":  GETNAME,
-	":=":  IMPDECL,
 	":>":  MOVE,
 	"=>":  ARROW,
 	"<-":  BINDTO,

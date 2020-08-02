@@ -5,11 +5,6 @@ import (
 	"github.com/ComedicChimera/whirlwind/src/types"
 )
 
-// walkGenericTag extracts the type parameters from a generic tag
-func (w *Walker) walkGenericTag(branch *syntax.ASTBranch) (map[string]*types.TypeParam, bool) {
-	return nil, false
-}
-
 // walkTypeExt walks a `type_ext` node and returns the type it denotes
 func (w *Walker) walkTypeExt(branch *syntax.ASTBranch) (types.DataType, bool) {
 	return w.walkTypeLabel(branch.BranchAt(1))
