@@ -636,7 +636,7 @@ func (w *Walker) walkAnnotatedDef(branch *syntax.ASTBranch) bool {
 // the HIRRoot if possible.  It also handles all generics involved in the
 // definition.
 func (w *Walker) finishDefinition(sym *common.Symbol, node common.HIRNode, namePos *util.TextPosition) bool {
-	if len(w.TypeParams) > 0 {
+	if w.shouldCreateGeneric() {
 		node = w.makeGeneric(sym, node)
 	}
 
