@@ -2,7 +2,6 @@ package build
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"path"
 	"path/filepath"
@@ -163,7 +162,7 @@ func (c *Compiler) Compile(forceGrammarRebuild bool) {
 	parser, err := syntax.NewParser(path.Join(c.whirlpath, "/config/grammar.ebnf"), forceGrammarRebuild)
 
 	if err != nil {
-		fmt.Println(err)
+		util.LogMod.LogFatal(err.Error())
 		return
 	}
 

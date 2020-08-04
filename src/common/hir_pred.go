@@ -53,7 +53,7 @@ type HIRSimpleStmt struct {
 	StmtKind int
 
 	// May be `nil` if the statement contains no elements
-	Content []HIRNode
+	Content []HIRExpr
 }
 
 func (*HIRSimpleStmt) Kind() int {

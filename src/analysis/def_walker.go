@@ -26,7 +26,17 @@ func (w *Walker) walkDefinitions(branch *syntax.ASTBranch) bool {
 			}
 		case "interf_bind":
 		case "operator_def":
+			if !w.walkOperatorOverload(defNode) {
+				return false
+			}
 		case "func_def":
+			if fnode, ok := w.walkFuncDef(defNode); ok {
+				if !w.defineFunc(fnode, defNode.Content[1].Position()) {
+					return false
+				}
+			} else {
+				return false
+			}
 		case "decorator":
 		case "annotated_def":
 			if !w.walkAnnotatedDef(defNode) {
@@ -34,6 +44,11 @@ func (w *Walker) walkDefinitions(branch *syntax.ASTBranch) bool {
 			}
 		case "variable_decl":
 		case "variant_def":
+			if vnode, ok := w.walkVariantDef(defNode); ok {
+				w.Root.Elements = append(w.Root.Elements, vnode)
+			} else {
+				return false
+			}
 		}
 	}
 
@@ -646,6 +661,25 @@ func (w *Walker) finishDefinition(sym *common.Symbol, node common.HIRNode, nameP
 	}
 
 	w.Root.Elements = append(w.Root.Elements, node)
+	return true
+}
 
+// defineFunc defines a generic or non-generic function locally or globally
+func (w *Walker) defineFunc(fnode common.HIRNode, namePos *util.TextPosition) bool {
+	var sym *common.Symbol
+	switch v := fnode.(type) {
+	case *common.HIRFuncDef:
+		sym = v.Sym
+	case *common.HIRGeneric:
+		*sym = *v.GenericNode.(*common.HIRFuncDef).Sym
+		sym.Type = v.Generic
+	}
+
+	if !w.Define(sym) {
+		ThrowMultiDefError(sym.Name, namePos)
+		return false
+	}
+
+	w.Root.Elements = append(w.Root.Elements, fnode)
 	return true
 }

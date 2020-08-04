@@ -4,12 +4,6 @@ package types
 // additional modifiers
 type TupleType []DataType
 
-// NewTupleType get a new tuple type from a list of data types and adds its
-// entry to the global type table
-func NewTupleType(types []DataType) DataType {
-	return TupleType(types)
-}
-
 // tuples don't have any coercion logic
 func (tt TupleType) coerce(dt DataType) bool {
 	return false
@@ -78,5 +72,5 @@ func (tt TupleType) copyTemplate() DataType {
 		newtuple[i] = v.copyTemplate()
 	}
 
-	return NewTupleType(newtuple)
+	return TupleType(newtuple)
 }

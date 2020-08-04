@@ -1,11 +1,79 @@
 package analysis
 
 import (
-	"fmt"
-
 	"github.com/ComedicChimera/whirlwind/src/common"
 	"github.com/ComedicChimera/whirlwind/src/types"
-	"github.com/ComedicChimera/whirlwind/src/util"
+)
+
+// Scope represents an enclosing local scope
+type Scope struct {
+	Symbols map[string]*common.Symbol
+
+	// Kind is represents what type of scope this is (const, mutable, or unknown)
+	Kind int
+
+	// Context represents the context imposed by the scope
+	Context *ScopeContext
+
+	// ReturnsValue is used to indicate that a given scope/code-path returns a
+	// value (deterministically - return always occurs; can be via `yield`)
+	ReturnsValue bool
+}
+
+// ScopeContext is a construct used to store the contextual variables that make
+// up the context created by a given scope.
+type ScopeContext struct {
+	// NonNullRefs stores all of the references who due to some enclosing operation
+	// have been marked as non-null in contrast to their data type (by name)
+	NonNullRefs map[string]struct{}
+
+	// Func is the enclosing function of a scope.  May be `nil` under certain
+	// circumstances (eg. inside an interface definition but outside of a method)
+	Func *types.FuncType
+
+	// EnclosingLoop indicates that the given scope represents a loop and
+	// therefore `break` and `continue` should be valid in all subscopes.
+	EnclosingLoop bool
+
+	// EnclosingMatch indicates that the given scope represents a match
+	// statement and therefore `fallthrough` should be valid in all subscopes.
+	EnclosingMatch bool
+}
+
+// NewContext creates a new scope context based on an enclosing context
+func (sc *ScopeContext) NewContext() *ScopeContext {
+	nnr := make(map[string]struct{})
+	for name := range sc.NonNullRefs {
+		nnr[name] = struct{}{}
+	}
+
+	return &ScopeContext{
+		Func:           sc.Func,
+		NonNullRefs:    nnr,
+		EnclosingLoop:  sc.EnclosingLoop,
+		EnclosingMatch: sc.EnclosingMatch,
+	}
+}
+
+// LoopContext creates a new scope context for a loop
+func (sc *ScopeContext) LoopContext() *ScopeContext {
+	newCtx := sc.NewContext()
+	newCtx.EnclosingLoop = true
+	return newCtx
+}
+
+// MatchContext creates a new scope context for an match statement
+func (sc *ScopeContext) MatchContext() *ScopeContext {
+	newCtx := sc.NewContext()
+	newCtx.EnclosingMatch = true
+	return newCtx
+}
+
+// Enumeration of the different scope kinds
+const (
+	SKConst = iota
+	SKMutable
+	SKUnknown // default scope kind
 )
 
 // Lookup looks up a symbol from the current walker context. Returns `nil` if no
@@ -60,22 +128,28 @@ func (w *Walker) Define(sym *common.Symbol) bool {
 }
 
 // PushScope adds a new working scope to the scope stack
-func (w *Walker) PushScope() {
+func (w *Walker) PushScope(ctx *ScopeContext) {
 	w.Scopes = append(w.Scopes, &Scope{
-		Symbols:     make(map[string]*common.Symbol),
-		NonNullRefs: make(map[string]struct{}),
-		Kind:        SKUnknown,
-		CtxFunc:     w.CurrScope().CtxFunc, // copy the CtxFunc reference
+		Symbols: make(map[string]*common.Symbol),
+		Kind:    SKUnknown,
+		Context: ctx,
 	})
 }
 
 // PushFuncScope adds a new function scope to the stack
 func (w *Walker) PushFuncScope(ctxfn *types.FuncType, sk int) {
+	var newCtx *ScopeContext
+	if len(w.Scopes) > 0 {
+		newCtx = w.CurrScope().Context.NewContext()
+		newCtx.Func = ctxfn
+	} else {
+		newCtx = &ScopeContext{Func: ctxfn}
+	}
+
 	w.Scopes = append(w.Scopes, &Scope{
-		Symbols:     make(map[string]*common.Symbol),
-		NonNullRefs: make(map[string]struct{}),
-		Kind:        sk,
-		CtxFunc:     ctxfn,
+		Symbols: make(map[string]*common.Symbol),
+		Kind:    sk,
+		Context: newCtx,
 	})
 }
 
@@ -89,14 +163,4 @@ func (w *Walker) PopScope() {
 // GlobalTable as a scope: if the scope stack is empty => PANIC)
 func (w *Walker) CurrScope() *Scope {
 	return w.Scopes[len(w.Scopes)-1]
-}
-
-// ThrowMultiDefError will log an error indicating that a symbol of a given name
-// is declared multiple times in the current scope.
-func ThrowMultiDefError(name string, pos *util.TextPosition) {
-	util.ThrowError(
-		fmt.Sprintf("Symbol `%s` declared multiple times", name),
-		"Name",
-		pos,
-	)
 }
