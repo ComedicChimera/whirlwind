@@ -1,0 +1,25 @@
+export of
+    interf Iterator<T> of
+        func next Option<T>
+
+    type IterableMask<T> = Iterator<T>
+
+    interf Iterable<T> of
+        func iter Iterator<T>
+
+    interf<T> for IterableMask<T> is Iterable<T> of
+        func iter Iterator<T> => this as Iterator<T>
+
+type MapIterator<T, R> {
+    base: &Iterator<T>
+    fn: func(T)(R)
+}
+
+interf<T, R> for MapIterator<T, R> is Iterator<R> of
+    func next Option<R>
+        => this.base.next().apply(fn)
+
+
+    
+
+

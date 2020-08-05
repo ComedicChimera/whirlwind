@@ -86,6 +86,8 @@ func (w *Walker) walkSimpleStmt(branch *syntax.ASTBranch) (common.HIRNode, bool)
 		return w.makeReturnValueStmt(stmtBranch, common.SSKReturn)
 	case "yield_stmt":
 		return w.makeReturnValueStmt(stmtBranch, common.SSKYield)
+	case "delete_stmt":
+	case "resize_stmt":
 	}
 
 	return nil, false
@@ -93,7 +95,88 @@ func (w *Walker) walkSimpleStmt(branch *syntax.ASTBranch) (common.HIRNode, bool)
 
 // walkVarDecl walks a `variable_decl` node
 func (w *Walker) walkVarDecl(branch *syntax.ASTBranch) (common.HIRNode, bool) {
-	return nil, false
+	var constant, volatile bool
+	varDecls := make(common.HIRVarDecl)
+
+	for _, item := range branch.Content {
+		switch v := item.(type) {
+		case *syntax.ASTLeaf:
+			switch v.Kind {
+			case syntax.CONST:
+				constant = true
+			case syntax.VOL:
+				volatile = true
+			}
+		case *syntax.ASTBranch:
+			switch v.Name {
+			case "var":
+				sym := &common.Symbol{
+					Constant:   constant,
+					Name:       v.LeafAt(0).Value,
+					DeclStatus: common.DSLocal,
+					DefKind:    common.SKindNamedValue,
+				}
+
+				var initializer common.HIRExpr
+
+				switch v.Len() {
+				case 0:
+					util.ThrowError(
+						"Unable to determine type of variable",
+						"Type",
+						v.Position(),
+					)
+
+					return nil, false
+				case 1:
+					switch v.Name {
+					case "type_ext":
+						if dt, ok := w.walkTypeExt(v.BranchAt(1)); ok {
+							sym.Type = dt
+						} else {
+							return nil, false
+						}
+					case "initializer":
+						if expr, ok := w.walkExpr(v.BranchAt(1).BranchAt(1)); ok {
+							sym.Type = expr.Type()
+							initializer = expr
+						} else {
+							return nil, false
+						}
+					}
+				case 2:
+					if dt, ok := w.walkTypeExt(v.BranchAt(1)); ok {
+						sym.Type = dt
+					} else {
+						return nil, false
+					}
+
+					if expr, ok := w.walkExpr(v.BranchAt(2).BranchAt(1)); ok {
+						if !types.CoerceTo(expr.Type(), sym.Type) {
+							ThrowCoercionError(
+								expr.Type(), sym.Type,
+								v.BranchAt(2).Content[1].Position(),
+							)
+
+							return nil, false
+						}
+
+						initializer = expr
+					} else {
+						return nil, false
+					}
+				}
+
+				varDecls[sym.Name] = &common.DeclVar{
+					Sym: sym, Initializer: initializer, Volatile: volatile,
+				}
+			}
+		}
+	}
+
+	_ = volatile
+
+	return varDecls, true
 }
 
 // walkExprStmt walks an `expr_stmt` node

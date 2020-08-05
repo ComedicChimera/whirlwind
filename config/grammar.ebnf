@@ -112,7 +112,7 @@ yield_stmt = 'yield' expr_list ;
 delete_stmt = 'delete' expr_list ;
 resize_stmt = 'make' expr 'to' heap_alloc ;
 
-variable_decl = ('let' | 'const') ['vol'] ? (unpack_var | var {',' var} ) [initializer] ? ;
+variable_decl = ('let' | 'const') ['vol'] ? (unpack_var initializer | var {',' var} ) ? ;
 var = 'IDENTIFIER' [type_ext] [initializer];
 unpack_var = '(' unpack_elem {',' unpack_elem} ['...'] ')' ;
 unpack_elem = 'IDENTIFIER' | unpack_var ;

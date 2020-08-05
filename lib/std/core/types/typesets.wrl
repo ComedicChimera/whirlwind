@@ -1,0 +1,17 @@
+export of
+    type __stdtypeset {
+        ptr: &byte
+        kind: int
+        size: int
+    }
+
+    type Integral = int | uint | short | ushort | long | ulong
+
+    type Floating = float | double
+
+    type Numeric = int | uint | short | ushort | long | ulong | float | double
+
+    type Stringlike = string | char
+
+    type Bytelike = byte | sbyte
+

@@ -87,16 +87,6 @@ type HIRArgData struct {
 	Initializer HIRNode // can be `nil`
 }
 
-// HIRVarDecl is used to represent a variable or constant declaration
-type HIRVarDecl struct {
-	Vars         []*Symbol
-	Initializers []HIRNode
-}
-
-func (*HIRVarDecl) Kind() int {
-	return NKVarDecl
-}
-
 // HIRVariantDef is used to represent a variant definition
 type HIRVariantDef struct {
 	RootGeneric *Symbol

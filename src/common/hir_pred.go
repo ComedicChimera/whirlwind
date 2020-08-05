@@ -1,6 +1,8 @@
 package common
 
-import "github.com/ComedicChimera/whirlwind/src/syntax"
+import (
+	"github.com/ComedicChimera/whirlwind/src/syntax"
+)
 
 // This file describes the predicates (expressions, blocks, statements, etc.)
 // that are used to facilitate HIR's functionality at the lower-levels of
@@ -71,6 +73,20 @@ const (
 	SSKFallthrough
 	SSKFallMatch // fallthrough to match
 )
+
+// HIRVarDecl represents a variable declaration
+type HIRVarDecl map[string]*DeclVar
+
+// DeclVar represents a single variable in declaration
+type DeclVar struct {
+	Sym         *Symbol
+	Initializer HIRExpr
+	Volatile    bool
+}
+
+func (HIRVarDecl) Kind() int {
+	return NKVarDecl
+}
 
 // HIRAssignment represents an assignment or move statement
 type HIRAssignment struct {

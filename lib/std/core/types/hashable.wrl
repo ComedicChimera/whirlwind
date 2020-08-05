@@ -1,0 +1,5 @@
+interf Hashable of
+    func hash ulong
+
+interf<T: Integral> for T is Hashable of
+    func hash ulong => this
