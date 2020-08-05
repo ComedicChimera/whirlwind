@@ -75,7 +75,10 @@ const (
 )
 
 // HIRVarDecl represents a variable declaration
-type HIRVarDecl map[string]*DeclVar
+type HIRVarDecl struct {
+	Vars      map[string]*DeclVar
+	TupleInit HIRExpr
+}
 
 // DeclVar represents a single variable in declaration
 type DeclVar struct {

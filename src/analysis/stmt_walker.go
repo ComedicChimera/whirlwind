@@ -96,7 +96,9 @@ func (w *Walker) walkSimpleStmt(branch *syntax.ASTBranch) (common.HIRNode, bool)
 // walkVarDecl walks a `variable_decl` node
 func (w *Walker) walkVarDecl(branch *syntax.ASTBranch) (common.HIRNode, bool) {
 	var constant, volatile bool
-	varDecls := make(common.HIRVarDecl)
+	varDecl := &common.HIRVarDecl{
+		Vars: make(map[string]*common.DeclVar),
+	}
 
 	for _, item := range branch.Content {
 		switch v := item.(type) {
@@ -120,7 +122,7 @@ func (w *Walker) walkVarDecl(branch *syntax.ASTBranch) (common.HIRNode, bool) {
 				var initializer common.HIRExpr
 
 				switch v.Len() {
-				case 0:
+				case 1:
 					util.ThrowError(
 						"Unable to determine type of variable",
 						"Type",
@@ -128,7 +130,7 @@ func (w *Walker) walkVarDecl(branch *syntax.ASTBranch) (common.HIRNode, bool) {
 					)
 
 					return nil, false
-				case 1:
+				case 2:
 					switch v.Name {
 					case "type_ext":
 						if dt, ok := w.walkTypeExt(v.BranchAt(1)); ok {
@@ -144,7 +146,7 @@ func (w *Walker) walkVarDecl(branch *syntax.ASTBranch) (common.HIRNode, bool) {
 							return nil, false
 						}
 					}
-				case 2:
+				case 3:
 					if dt, ok := w.walkTypeExt(v.BranchAt(1)); ok {
 						sym.Type = dt
 					} else {
@@ -167,16 +169,58 @@ func (w *Walker) walkVarDecl(branch *syntax.ASTBranch) (common.HIRNode, bool) {
 					}
 				}
 
-				varDecls[sym.Name] = &common.DeclVar{
+				varDecl.Vars[sym.Name] = &common.DeclVar{
 					Sym: sym, Initializer: initializer, Volatile: volatile,
+				}
+
+				if !w.Define(sym) {
+					ThrowMultiDefError(sym.Name, v.Content[0].Position())
+					return nil, false
+				}
+			case "unpack_var":
+				if initExpr, ok := w.walkExpr(v.Last().(*syntax.ASTBranch).BranchAt(1)); ok {
+					if tt, ok := initExpr.Type().(*types.TupleType); ok {
+						if exVars, ok := w.walkTupleUnpackVar(v, tt); ok {
+							for name, uvar := range exVars {
+								sym := &common.Symbol{
+									Name:       name,
+									Type:       uvar.Type,
+									Constant:   constant,
+									DeclStatus: common.DSLocal,
+									DefKind:    common.SKindNamedValue,
+								}
+
+								if !w.Define(sym) {
+									ThrowMultiDefError(name, uvar.Pos)
+									return nil, false
+								}
+
+								varDecl.Vars[name] = &common.DeclVar{
+									Sym: sym, Volatile: volatile,
+								}
+							}
+
+							varDecl.TupleInit = initExpr
+						} else {
+							return nil, false
+						}
+					} else {
+						util.ThrowError(
+							"Expecting a tuple on the rhs of the declaration",
+							"Type",
+							v.Last().Position(),
+						)
+
+						return nil, false
+					}
+				} else {
+					return nil, false
 				}
 			}
 		}
 	}
 
-	_ = volatile
-
-	return varDecls, true
+	return varDecl, true
 }
 
 // walkExprStmt walks an `expr_stmt` node
