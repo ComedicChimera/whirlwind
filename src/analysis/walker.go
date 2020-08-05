@@ -73,6 +73,9 @@ func (w *Walker) WalkFile() bool {
 
 // WalkPredicates walks all of the unevaluated predicates
 func (w *Walker) WalkPredicates() bool {
+	// cause all symbols in the predicates to be declared locally
+	w.DeclStatus = common.DSLocal
+
 	return true
 }
 

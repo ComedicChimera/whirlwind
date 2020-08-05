@@ -115,7 +115,7 @@ func (w *Walker) walkVarDecl(branch *syntax.ASTBranch) (common.HIRNode, bool) {
 				sym := &common.Symbol{
 					Constant:   constant,
 					Name:       v.LeafAt(0).Value,
-					DeclStatus: common.DSLocal,
+					DeclStatus: w.DeclStatus,
 					DefKind:    common.SKindNamedValue,
 				}
 
@@ -186,7 +186,7 @@ func (w *Walker) walkVarDecl(branch *syntax.ASTBranch) (common.HIRNode, bool) {
 									Name:       name,
 									Type:       uvar.Type,
 									Constant:   constant,
-									DeclStatus: common.DSLocal,
+									DeclStatus: w.DeclStatus,
 									DefKind:    common.SKindNamedValue,
 								}
 
