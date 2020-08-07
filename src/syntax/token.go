@@ -121,7 +121,7 @@ const (
 	COMPL
 
 	// memory operators
-	MOVE     // :>
+	MOVE     // ->
 	NULLTEST // ?
 
 	// assignment/declaration operators
@@ -265,7 +265,7 @@ var symbolPatterns = map[string]int{
 	";":   SEMICOLON,
 	":":   COLON,
 	"::":  GETNAME,
-	":>":  MOVE,
+	"->":  MOVE,
 	"=>":  ARROW,
 	"<-":  BINDTO,
 

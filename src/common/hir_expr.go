@@ -206,6 +206,15 @@ type HIRName struct {
 	Position *util.TextPosition
 }
 
+// NewIdentifierFromSymbol creates a new HIRName for the given symbol
+func NewIdentifierFromSymbol(sym *Symbol, pos *util.TextPosition) *HIRName {
+	return &HIRName{
+		ExprBase: ExprBase{dataType: sym.Type, constant: sym.Constant, category: LValue},
+		Name:     sym.Name,
+		Position: pos,
+	}
+}
+
 // HIRValue represents a literal value or defined constant
 type HIRValue struct {
 	ExprBase
@@ -214,4 +223,13 @@ type HIRValue struct {
 
 	// back-end can also point to specific values
 	Position *util.TextPosition
+}
+
+// NewLiteral creates a new HIRValue with the given type, value, and position
+func NewLiteral(value string, dt types.DataType, pos *util.TextPosition) *HIRValue {
+	return &HIRValue{
+		ExprBase: ExprBase{dataType: dt, constant: false, category: RValue},
+		Value:    value,
+		Position: pos,
+	}
 }

@@ -9,9 +9,6 @@ import (
 type Scope struct {
 	Symbols map[string]*common.Symbol
 
-	// Kind is represents what type of scope this is (const, mutable, or unknown)
-	Kind int
-
 	// Context represents the context imposed by the scope
 	Context *ScopeContext
 
@@ -69,13 +66,6 @@ func (sc *ScopeContext) MatchContext() *ScopeContext {
 	return newCtx
 }
 
-// Enumeration of the different scope kinds
-const (
-	SKConst = iota
-	SKMutable
-	SKUnknown // default scope kind
-)
-
 // Lookup looks up a symbol from the current walker context. Returns `nil` if no
 // symbol is found.  Searches all scopes.  NOTE: should be used exclusively for
 // read lookups not mutation/write lookups.
@@ -131,13 +121,12 @@ func (w *Walker) Define(sym *common.Symbol) bool {
 func (w *Walker) PushScope(ctx *ScopeContext) {
 	w.Scopes = append(w.Scopes, &Scope{
 		Symbols: make(map[string]*common.Symbol),
-		Kind:    SKUnknown,
 		Context: ctx,
 	})
 }
 
 // PushFuncScope adds a new function scope to the stack
-func (w *Walker) PushFuncScope(ctxfn *types.FuncType, sk int) {
+func (w *Walker) PushFuncScope(ctxfn *types.FuncType) {
 	var newCtx *ScopeContext
 	if len(w.Scopes) > 0 {
 		newCtx = w.CurrScope().Context.NewContext()
@@ -148,7 +137,6 @@ func (w *Walker) PushFuncScope(ctxfn *types.FuncType, sk int) {
 
 	w.Scopes = append(w.Scopes, &Scope{
 		Symbols: make(map[string]*common.Symbol),
-		Kind:    sk,
 		Context: newCtx,
 	})
 }

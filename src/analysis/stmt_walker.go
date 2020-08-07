@@ -178,43 +178,80 @@ func (w *Walker) walkVarDecl(branch *syntax.ASTBranch) (common.HIRNode, bool) {
 					return nil, false
 				}
 			case "unpack_var":
-				if initExpr, ok := w.walkExpr(v.Last().(*syntax.ASTBranch).BranchAt(1)); ok {
-					if tt, ok := initExpr.Type().(*types.TupleType); ok {
-						if exVars, ok := w.walkTupleUnpackVar(v, tt); ok {
-							for name, uvar := range exVars {
+				endingBranch := v.Last().(*syntax.ASTBranch).BranchAt(1)
+
+				if endingBranch.Name == "initializer" {
+					if initExpr, ok := w.walkExpr(v.Last().(*syntax.ASTBranch).BranchAt(1)); ok {
+						if tt, ok := initExpr.Type().(*types.TupleType); ok {
+							if exVars, ok := w.walkTupleUnpackVar(v, tt); ok {
+								for name, uvar := range exVars {
+									sym := &common.Symbol{
+										Name:       name,
+										Type:       uvar.Type,
+										Constant:   constant,
+										DeclStatus: w.DeclStatus,
+										DefKind:    common.SKindNamedValue,
+									}
+
+									if !w.Define(sym) {
+										ThrowMultiDefError(name, uvar.Pos)
+										return nil, false
+									}
+
+									varDecl.Vars[name] = &common.DeclVar{
+										Sym: sym, Volatile: volatile,
+									}
+								}
+
+								varDecl.TupleInit = initExpr
+							} else {
+								return nil, false
+							}
+						} else {
+							util.ThrowError(
+								"Expecting a tuple on the rhs of the declaration",
+								"Type",
+								v.Last().Position(),
+							)
+
+							return nil, false
+						}
+					} else {
+						return nil, false
+					}
+				} else if dt, ok := w.walkTypeLabel(endingBranch); ok /* `type_ext` */ {
+					for _, item := range v.Content {
+						switch v2 := item.(type) {
+						case *syntax.ASTBranch:
+							if idLeaf, ok := v2.Content[0].(*syntax.ASTLeaf); ok {
 								sym := &common.Symbol{
-									Name:       name,
-									Type:       uvar.Type,
+									Name:       idLeaf.Value,
+									Type:       dt,
 									Constant:   constant,
 									DeclStatus: w.DeclStatus,
 									DefKind:    common.SKindNamedValue,
 								}
 
 								if !w.Define(sym) {
-									ThrowMultiDefError(name, uvar.Pos)
+									ThrowMultiDefError(sym.Name, idLeaf.Position())
 									return nil, false
 								}
 
-								varDecl.Vars[name] = &common.DeclVar{
-									Sym: sym, Volatile: volatile,
+								varDecl.Vars[idLeaf.Value] = &common.DeclVar{
+									Sym:      sym,
+									Volatile: volatile,
 								}
+							} else {
+								util.ThrowError(
+									"All variables in a multideclaration should be on the same level",
+									"Usage",
+									v2.Position(),
+								)
+
+								return nil, false
 							}
-
-							varDecl.TupleInit = initExpr
-						} else {
-							return nil, false
 						}
-					} else {
-						util.ThrowError(
-							"Expecting a tuple on the rhs of the declaration",
-							"Type",
-							v.Last().Position(),
-						)
-
-						return nil, false
 					}
-				} else {
-					return nil, false
 				}
 			}
 		}
@@ -232,18 +269,6 @@ func (w *Walker) walkExprStmt(branch *syntax.ASTBranch) (common.HIRNode, bool) {
 // value or values (ie. no empty returns)
 func (w *Walker) makeReturnValueStmt(stmtBranch *syntax.ASTBranch, sskind int) (common.HIRNode, bool) {
 	if exprList, ok := w.walkExprList(stmtBranch.BranchAt(1)); ok {
-		for i, expr := range exprList {
-			if err := checkReturn(expr); err != nil {
-				util.ThrowError(
-					err.Error(),
-					"Value",
-					stmtBranch.BranchAt(1).BranchAt(i*2).Position(),
-				)
-
-				return nil, false
-			}
-		}
-
 		var dt types.DataType
 		if len(exprList) == 1 {
 			dt = exprList[0].Type()

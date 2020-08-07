@@ -41,6 +41,8 @@ func NewWalker(pb *PackageBuilder, file *common.WhirlFile) *Walker {
 
 // WalkFile begins walking a file from the top level
 func (w *Walker) WalkFile() bool {
+	w.DeclStatus = common.DSInternal
+
 	// we don't do any error-suppressing in this function as if a definition
 	// doesn't pass, it cause a slough of errors in other definitions that
 	// aren't actually useful to the end user and just serve to clutter up

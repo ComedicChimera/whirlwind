@@ -1,22 +1,22 @@
 package types
 
-import "github.com/ComedicChimera/whirlwind/src/util"
+import (
+	"strings"
+
+	"github.com/ComedicChimera/whirlwind/src/util"
+)
 
 // ReferenceType represents the type of reference (eg. &int)
 type ReferenceType struct {
 	ElemType        DataType
 	Owned, Constant bool
-}
-
-// NewReferenceType creates a reference type and initializes it in the type table
-func NewReferenceType(eType DataType, owned bool, constant bool) DataType {
-	return &ReferenceType{ElemType: eType, Owned: owned, Constant: constant}
+	Nullable        bool
 }
 
 // reference types can cast on their elem type
 func (rt *ReferenceType) cast(other DataType) bool {
 	if ort, ok := other.(*ReferenceType); ok {
-		return CastTo(rt.ElemType, ort.ElemType) && rt.Constant == ort.Constant && rt.Owned == ort.Owned
+		return CastTo(rt.ElemType, ort.ElemType) && rt.Constant == ort.Constant && rt.Owned == ort.Owned && rt.Nullable == ort.Nullable
 	}
 
 	return false
@@ -25,7 +25,7 @@ func (rt *ReferenceType) cast(other DataType) bool {
 // a mutable reference can be coerced to a const reference
 func (rt *ReferenceType) coerce(other DataType) bool {
 	if ort, ok := other.(*ReferenceType); ok {
-		return Equals(rt.ElemType, ort.ElemType) && rt.Constant && !ort.Constant && rt.Owned == ort.Owned
+		return rt.Owned == ort.Owned && rt.OwnershipBlindEquals(ort)
 	}
 
 	return false
@@ -33,7 +33,7 @@ func (rt *ReferenceType) coerce(other DataType) bool {
 
 func (rt *ReferenceType) equals(other DataType) bool {
 	if ort, ok := other.(*ReferenceType); ok {
-		return Equals(rt.ElemType, ort.ElemType) && rt.Constant == ort.Constant && rt.Owned == ort.Owned
+		return rt.Owned == ort.Owned && rt.OwnershipBlindEquals(ort)
 	}
 
 	return false
@@ -49,26 +49,38 @@ func (*ReferenceType) AlignOf() uint {
 	return util.PointerSize
 }
 
-// Borrow returns an unowned "copy" of a ReferenceType
-func (rt *ReferenceType) Borrow() DataType {
-	return NewReferenceType(rt.ElemType, false, rt.Constant)
+// OwnershipBlindEquals performs a coercion without considering whether or not
+// the references are owned or unowned.
+func (rt *ReferenceType) OwnershipBlindEquals(ort *ReferenceType) bool {
+	return Equals(rt.ElemType, ort.ElemType) && rt.Constant == ort.Constant && rt.Nullable == ort.Nullable
 }
 
 // Repr of a reference type just rebuilds its type signature
 func (rt *ReferenceType) Repr() string {
-	prefix := ""
-
-	if rt.Constant {
-		prefix += "const"
-	}
+	reprValue := strings.Builder{}
 
 	if rt.Owned {
-		prefix += "own"
+		reprValue.WriteString("own ")
 	}
 
-	return prefix + "& " + rt.ElemType.Repr()
+	reprValue.WriteRune('&')
+
+	if rt.Constant {
+		reprValue.WriteString("const ")
+	}
+
+	reprValue.WriteString(rt.ElemType.Repr())
+
+	if rt.Nullable {
+		reprValue.WriteRune('?')
+	}
+
+	return reprValue.String()
 }
 
 func (rt *ReferenceType) copyTemplate() DataType {
-	return NewReferenceType(rt.ElemType.copyTemplate(), rt.Owned, rt.Constant)
+	return &ReferenceType{
+		ElemType: rt.ElemType.copyTemplate(),
+		Owned:    rt.Owned, Constant: rt.Constant,
+	}
 }

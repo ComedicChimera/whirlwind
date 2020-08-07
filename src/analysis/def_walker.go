@@ -183,59 +183,72 @@ func (w *Walker) walkNewType(branch *syntax.ASTBranch, tdn *common.HIRTypeDef, m
 		return ts, true
 	case "struct_suffix":
 		members := make(map[string]*types.StructMember)
+		var deriving *types.StructType
 
 		for _, item := range branch.Content {
-			// subbranch = `struct_member`
 			if subbranch, ok := item.(*syntax.ASTBranch); ok {
-				var names []string
-				var constant, volatile bool
+				if subbranch.Name == "struct_member" {
+					var names []string
+					var constant, volatile bool
 
-			memberloop:
-				for i, elem := range subbranch.Content {
-					switch v := elem.(type) {
-					case *syntax.ASTBranch:
-						if v.Name == "identifier_list" {
-							names = namesFromIDList(v)
-						} else {
-							// next logical item is `type_ext`
-							var dt types.DataType
-							if wdt, ok := w.walkTypeExt(v); ok {
-								dt = wdt
+				memberloop:
+					for i, elem := range subbranch.Content {
+						switch v := elem.(type) {
+						case *syntax.ASTBranch:
+							if v.Name == "identifier_list" {
+								names = namesFromIDList(v)
 							} else {
-								return nil, false
-							}
-
-							for _, name := range names {
-								if _, ok := members[name]; ok {
-									util.ThrowError(
-										"Each struct member must have a unique name",
-										"Name",
-										subbranch.BranchAt(0).Content[i*2].Position(),
-									)
-
+								// next logical item is `type_ext`
+								var dt types.DataType
+								if wdt, ok := w.walkTypeExt(v); ok {
+									dt = wdt
+								} else {
 									return nil, false
 								}
 
-								if initNode, ok := subbranch.Content[i+1].(*syntax.ASTBranch); ok {
-									tdn.FieldInits[name] = (*common.HIRIncomplete)(initNode.BranchAt(1))
+								for _, name := range names {
+									if _, ok := members[name]; ok {
+										util.ThrowError(
+											"Each struct member must have a unique name",
+											"Name",
+											subbranch.BranchAt(0).Content[i*2].Position(),
+										)
+
+										return nil, false
+									}
+
+									if initNode, ok := subbranch.Content[i+1].(*syntax.ASTBranch); ok {
+										tdn.FieldInits[name] = (*common.HIRIncomplete)(initNode.BranchAt(1))
+									}
+
+									members[name] = &types.StructMember{
+										Constant: constant, Volatile: volatile, Type: dt,
+									}
 								}
 
-								members[name] = &types.StructMember{
-									Constant: constant, Volatile: volatile, Type: dt,
-								}
+								break memberloop
 							}
-
-							break memberloop
-						}
-					case *syntax.ASTLeaf:
-						if v.Kind == syntax.CONST {
-							constant = true
-						} else {
-							// only other token that reaches this far
-							volatile = true
+						case *syntax.ASTLeaf:
+							if v.Kind == syntax.CONST {
+								constant = true
+							} else {
+								// only other token that reaches this far
+								volatile = true
+							}
 						}
 					}
+				} else if dt, ok := w.walkTypeLabel(subbranch); ok /* subbranch == "type" */ {
+					if st, ok := dt.(*types.StructType); ok {
+						deriving = st
+					} else {
+						util.ThrowError(
+							"Structured types can only derive from other structured types",
+							"Type",
+							subbranch.Position(),
+						)
+					}
 				}
+
 			}
 		}
 
@@ -244,7 +257,7 @@ func (w *Walker) walkNewType(branch *syntax.ASTBranch, tdn *common.HIRTypeDef, m
 			packed = true
 		}
 
-		return types.NewStructType(tdn.Sym.Name, members, packed), true
+		return types.NewStructType(tdn.Sym.Name, members, packed, deriving), true
 	}
 
 	return nil, false
@@ -343,7 +356,7 @@ func (w *Walker) walkInterfBody(branch *syntax.ASTBranch, tInterf *types.TypeInt
 // produce a generic as necessary.
 func (w *Walker) walkFuncDef(branch *syntax.ASTBranch) (common.HIRNode, bool) {
 	_, boxable := w.CtxAnnotations["intrinsic"]
-	ft := &types.FuncType{Boxable: boxable}
+	ft := &types.FuncType{Boxable: boxable, ConstStatus: types.CSUnknown}
 	var name string
 	var funcBody common.HIRNode
 	var argData map[string]*common.HIRArgData
@@ -364,7 +377,7 @@ func (w *Walker) walkFuncDef(branch *syntax.ASTBranch) (common.HIRNode, bool) {
 				}
 			case "func_body":
 				if l, ok := v.Content[0].(*syntax.ASTLeaf); ok && l.Kind == syntax.CONST {
-					ft.Constant = true
+					ft.ConstStatus = types.CSConstant
 				}
 
 				funcBody = (*common.HIRIncomplete)(v)

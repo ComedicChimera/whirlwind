@@ -14,7 +14,7 @@ type FuncParam struct {
 	Type               DataType // actually contains value :)
 	Optional, Variadic bool
 
-	// Stored here to make determining copy ellision easier
+	// Stored here to make copy ellision easier
 	Constant bool
 }
 
@@ -55,17 +55,17 @@ func (fp *FuncParam) compareNames(otherName string) bool {
 
 // FuncType represents the general function data type (both boxed and pure)
 type FuncType struct {
-	Params     []*FuncParam
-	ReturnType DataType
-	Async      bool
-	Boxed      bool
-	Boxable    bool
-	Constant   bool
+	Params      []*FuncParam
+	ReturnType  DataType
+	Async       bool
+	Boxed       bool
+	Boxable     bool
+	ConstStatus int
 }
 
 // NewFuncType creates a new function type (boxable)
-func NewFuncType(fparams []*FuncParam, rttype DataType, async bool, boxed bool, constant bool) DataType {
-	return &FuncType{Params: fparams, ReturnType: rttype, Async: async, Boxed: boxed, Boxable: true, Constant: constant}
+func NewFuncType(fparams []*FuncParam, rttype DataType, async bool, boxed bool, cs int) DataType {
+	return &FuncType{Params: fparams, ReturnType: rttype, Async: async, Boxed: boxed, Boxable: true, ConstStatus: cs}
 }
 
 // NewIntrinsic creates a new instrinsic function data type
@@ -158,10 +158,11 @@ func (ft *FuncType) copyTemplate() DataType {
 	}
 
 	return &FuncType{
-		ReturnType: ft.ReturnType.copyTemplate(),
-		Params:     newParams,
-		Async:      ft.Async,
-		Boxed:      ft.Boxed,
-		Boxable:    ft.Boxable,
+		ReturnType:  ft.ReturnType.copyTemplate(),
+		Params:      newParams,
+		Async:       ft.Async,
+		Boxed:       ft.Boxed,
+		Boxable:     ft.Boxable,
+		ConstStatus: ft.ConstStatus,
 	}
 }

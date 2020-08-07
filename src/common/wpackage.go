@@ -13,10 +13,6 @@ type WhirlFile struct {
 	// Root stores the HIR root of the file
 	Root *HIRRoot
 
-	// Stores all definitions local to this file.  No exported symbols should be
-	// placed in this table
-	LocalTable map[string]*Symbol
-
 	// Stores all file-level annotations for the file (value is empty if the
 	// annotation is just a flag)
 	Annotations map[string]string

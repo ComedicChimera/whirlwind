@@ -59,7 +59,7 @@ newtype = ? enum_suffix ? | struct_suffix ;
 enum_suffix = enum_type_member {enum_type_member} ;
 enum_type_member = '|' 'IDENTIFIER' [tupled_suffix] ;
 tupled_suffix = '(' type {',' type} ')' ;
-struct_suffix = '{' struct_member { struct_member } '}' ;
+struct_suffix = ['of' type] '{' struct_member { struct_member } '}' ;
 struct_member = ['CONST'] ['VOL'] identifier_list type_ext [initializer] 'NEWLINE' ;
 
 (* expr can be a list of decorators *)
@@ -112,15 +112,15 @@ yield_stmt = 'yield' expr_list ;
 delete_stmt = 'delete' expr_list ;
 resize_stmt = 'make' expr 'to' heap_alloc ;
 
-variable_decl = ('let' | 'const') ['vol'] ? (unpack_var initializer | var {',' var} ) ? ;
+variable_decl = ('let' | 'const') ['vol'] ? (unpack_var (type_ext | initializer) | var {',' var} ) ? ;
 var = 'IDENTIFIER' [type_ext] [initializer];
-unpack_var = '(' unpack_elem {',' unpack_elem} ['...'] ')' ;
+unpack_var = '(' unpack_elem {',' unpack_elem} [',' '...'] ')' ;
 unpack_elem = 'IDENTIFIER' | unpack_var ;
 
 expr_stmt = mut_expr {',' mut_expr} [assign_op expr_list | '++' | '--'] ;
 mut_expr = ['await'] ['*'] mut_atom {trailer} ;
 mut_atom = 'IDENTIFIER' | '(' expr ')' ;
-assign_op = ['+' | '-' | '*' | '/' | '%' | '~/' | '~^' | '>>' | '<<' | '&' | '|' | '^'] '=' | ':>' ;
+assign_op = ['+' | '-' | '*' | '/' | '%' | '~/' | '~^' | '>>' | '<<' | '&' | '|' | '^'] '=' | '->' ;
 
 expr = (match_expr ['if' match_expr 'else' expr ] | closure | with_expr) ;
 closure = ['async'] ('||' | '|' [closure_arg {',' closure_arg}] '|' func_body) ;
@@ -193,7 +193,7 @@ value_type = prim_type | col_type | vec_type | func_type | tup_type ;
 prim_type = 'int' | 'uint' | 'ushort' | 'short' | 'ulong' | 'long' | 'nothing'
 | 'sbyte' | 'sbyte' | 'string' | 'char' | 'float' | 'double' | 'bool' | 'any' ;
 col_type = '[' type [':' type] ']' | '[' ']' type ;
-ref_type = ['own'] '&' ['const'] (value_type | named_type) ;
+ref_type = ['own'] '&' ['const'] (value_type | named_type) '?' ;
 vec_type = '<' (prim_type | 'IDENTIFIER') '*' ('IDENTIFIER' | 'INTLIT') '>' ;
 func_type = ('func' | 'async') '(' [func_type_args] ')' '(' [type_list] ')' ;
 func_type_args = (func_type_arg {',' func_type_arg} [',' func_type_var_arg] | func_type_var_arg) ;
