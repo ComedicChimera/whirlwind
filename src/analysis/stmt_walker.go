@@ -28,8 +28,6 @@ func (w *Walker) walkSimpleStmt(branch *syntax.ASTBranch) (common.HIRNode, bool)
 			"Context",
 			stmtBranch.Position(),
 		)
-
-		return nil, false
 	case "break_stmt":
 		if w.CurrScope().Context.EnclosingLoop {
 			return &common.HIRSimpleStmt{
@@ -42,8 +40,6 @@ func (w *Walker) walkSimpleStmt(branch *syntax.ASTBranch) (common.HIRNode, bool)
 			"Context",
 			stmtBranch.Position(),
 		)
-
-		return nil, false
 	case "fallthrough_stmt":
 		var ssk int
 		if stmtBranch.Len() == 1 {
@@ -63,8 +59,6 @@ func (w *Walker) walkSimpleStmt(branch *syntax.ASTBranch) (common.HIRNode, bool)
 			"Context",
 			stmtBranch.Position(),
 		)
-
-		return nil, false
 	// Context.Func should always be valid (for yield and return)
 	case "return_stmt":
 		if stmtBranch.Len() == 1 {
@@ -79,14 +73,44 @@ func (w *Walker) walkSimpleStmt(branch *syntax.ASTBranch) (common.HIRNode, bool)
 				"Type",
 				stmtBranch.Position(),
 			)
-
-			return nil, false
 		}
 
 		return w.makeReturnValueStmt(stmtBranch, common.SSKReturn)
 	case "yield_stmt":
 		return w.makeReturnValueStmt(stmtBranch, common.SSKYield)
 	case "delete_stmt":
+		if exprs, ok := w.walkExprList(stmtBranch.BranchAt(1)); ok {
+			var exprsValid bool
+
+			for i, expr := range exprs {
+				if rt, ok := expr.Type().(*types.ReferenceType); ok {
+					if rt.Owned && rt.Nullable {
+						continue
+					}
+
+					util.ThrowError(
+						"Only owned, nullable references can be deleted",
+						"Type",
+						stmtBranch.BranchAt(1).Content[i*2].Position(),
+					)
+				} else {
+					util.ThrowError(
+						"Only references can be deleted",
+						"Type",
+						stmtBranch.BranchAt(1).Content[i*2].Position(),
+					)
+				}
+
+				exprsValid = false
+			}
+
+			if exprsValid {
+				return &common.HIRSimpleStmt{
+					StmtKind: common.SSKDelete,
+					Content:  exprs,
+				}, true
+			}
+		}
 	case "resize_stmt":
 	}
 

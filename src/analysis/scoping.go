@@ -1,8 +1,11 @@
 package analysis
 
 import (
+	"fmt"
+
 	"github.com/ComedicChimera/whirlwind/src/common"
 	"github.com/ComedicChimera/whirlwind/src/types"
+	"github.com/ComedicChimera/whirlwind/src/util"
 )
 
 // Scope represents an enclosing local scope
@@ -85,6 +88,58 @@ func (w *Walker) Lookup(name string) *common.Symbol {
 	}
 
 	return nil
+}
+
+// PositionedName is a construct used in performing package lookups
+type PositionedName struct {
+	Name string
+	Pos  *util.TextPosition
+}
+
+// GetSymbolFromPackage looks up a symbol based on the given list of positioned
+// names where the names are assumed to make up a static-get expression.
+func (w *Walker) GetSymbolFromPackage(pnames []PositionedName) (*common.Symbol, error) {
+	retImportError := func(pname, sname string, pos *util.TextPosition) error {
+		return util.NewWhirlError(
+			fmt.Sprintf("Unable to import symbol `%s` from package `%s`", pname, sname),
+			"Import",
+			pos,
+		)
+	}
+
+	retUndefError := func(sname string, pos *util.TextPosition) error {
+		return util.NewWhirlError(
+			fmt.Sprintf("Symbol `%s` undefined", sname),
+			"Name",
+			pos,
+		)
+	}
+
+	var pkg *common.WhirlPackage
+	for i, pname := range pnames {
+		if i == len(pnames) {
+			if sym, ok := pkg.GlobalTable[pname.Name]; ok && sym.VisibleExternally() {
+				return sym, nil
+			}
+
+			return nil, retImportError(pkg.Name, pname.Name, pname.Pos)
+		} else if pkg == nil {
+			if vpkg, ok := w.File.VisiblePackages[pname.Name]; ok {
+				pkg = vpkg
+			} else {
+				return nil, retUndefError(pname.Name, pname.Pos)
+			}
+		} else if wimport, ok := pkg.ImportTable[pname.Name]; ok && wimport.Exported {
+			pkg = wimport.PackageRef
+		} else {
+			return nil, retImportError(
+				pkg.Name, pname.Name, pname.Pos,
+			)
+		}
+	}
+
+	// unreachable
+	return nil, nil
 }
 
 // Define creates a new symbol in the given scope and returns a bool indicating

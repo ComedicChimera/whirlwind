@@ -17,6 +17,25 @@ func ThrowMultiDefError(name string, pos *util.TextPosition) {
 	)
 }
 
+// ThrowUndefinedError will log a symbol undefined error
+func ThrowUndefinedError(name string, pos *util.TextPosition) {
+	util.ThrowError(
+		fmt.Sprintf("Symbol `%s` undefined", name),
+		"Name",
+		pos,
+	)
+}
+
+// ThrowSymbolUsageError will log a misuse of a symbol (eg. something is used in
+// type label that is not a type def)
+func ThrowSymbolUsageError(name, expectedUsage string, pos *util.TextPosition) {
+	util.ThrowError(
+		fmt.Sprintf("Symbol `%s` is not a %s", name, expectedUsage),
+		"Usage",
+		pos,
+	)
+}
+
 // ThrowCoercionError throws an error indicating that a type was not coercible
 // to another type
 func ThrowCoercionError(src, dest types.DataType, pos *util.TextPosition) {

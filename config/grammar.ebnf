@@ -187,7 +187,7 @@ type_pattern_list = type_pattern {',' type_pattern};
 type_pattern = ['IDENTIFIER' ':'] type ;
 
 type = value_type | named_type | ref_type ;
-named_type = 'IDENTIFIER' {'::' 'IDENTIFIER' | generic_tag};
+named_type = 'IDENTIFIER' {'::' 'IDENTIFIER'} ['<' type_list '>'];
 
 value_type = prim_type | col_type | vec_type | func_type | tup_type ;
 prim_type = 'int' | 'uint' | 'ushort' | 'short' | 'ulong' | 'long' | 'nothing'

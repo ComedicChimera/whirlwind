@@ -66,4 +66,7 @@ type WhirlImport struct {
 
 	// All items that were actually used by the package
 	ImportedSymbols map[string]*Symbol
+
+	// Indicates whether or not this package exports its import
+	Exported bool
 }

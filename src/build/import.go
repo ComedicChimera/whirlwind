@@ -1,6 +1,7 @@
 package build
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/ComedicChimera/whirlwind/src/analysis"
@@ -139,11 +140,11 @@ func (c *Compiler) walkImport(currpkg *common.WhirlPackage, node *syntax.ASTBran
 
 					if leaf.Kind == syntax.IDENTIFIER {
 						if _, ok := importedSymbolNames[leaf.Value]; ok {
-							util.LogMod.LogError(util.NewWhirlError(
-								"Unable to import a symbol multiple times",
+							util.ThrowError(
+								fmt.Sprintf("Unable to import symbol `%s` multiple times", leaf.Value),
 								"Import",
 								leaf.Position(),
-							))
+							)
 
 							return false
 						}
@@ -167,11 +168,11 @@ func (c *Compiler) walkImport(currpkg *common.WhirlPackage, node *syntax.ASTBran
 	currfile := currpkg.Files[util.CurrentFile]
 	if pkg, ok := c.importPackage(pkgpath); ok {
 		if pkg.PackageID == currpkg.PackageID {
-			util.LogMod.LogError(util.NewWhirlError(
+			util.ThrowError(
 				"Package cannot import itself",
 				"Import",
 				pkgpathPos,
-			))
+			)
 
 			return false
 		}
@@ -188,11 +189,11 @@ func (c *Compiler) walkImport(currpkg *common.WhirlPackage, node *syntax.ASTBran
 						}
 					}
 				} else {
-					util.LogMod.LogError(util.NewWhirlError(
+					util.ThrowError(
 						"Namespace pollution between interdependent packages",
 						"Import",
 						pos,
-					))
+					)
 
 					return false
 				}
@@ -204,11 +205,11 @@ func (c *Compiler) walkImport(currpkg *common.WhirlPackage, node *syntax.ASTBran
 						if imsym.VisibleExternally() {
 							importedSymbols[name] = imsym.Import(exported)
 						} else {
-							util.LogMod.LogError(util.NewWhirlError(
-								"Unable to import an internal symbol",
+							util.ThrowError(
+								fmt.Sprintf("Unable to import symbol `%s` from package `%s`", name, pkg.Name),
 								"Import",
 								pos,
-							))
+							)
 
 							return false
 						}
