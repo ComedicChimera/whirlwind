@@ -111,6 +111,28 @@ func (w *Walker) walkTypeBranch(branch *syntax.ASTBranch, allowHigherKindedTypes
 				"Type",
 				branch.Last().Position(),
 			)
+		} else if !allowHigherKindedTypes {
+			// prevent generics from being used as a form of this open type in
+			// the label (also check to make sure the current type state isn't
+			// generic which would obviously be a problem :D).
+			if ot, ok := dsym.Type.(*types.OpenType); ok {
+				if ot.BlockGenerics() {
+					// if we can BlockGenerics successfully, then we can return safely
+					return dsym.Type, true
+				}
+			} else if _, ok := dsym.Type.(*types.GenericType); !ok {
+				// if we do not have a generic, we can return safely
+				return dsym.Type, true
+			}
+
+			// otherwise, ERROR!
+			util.ThrowError(
+				"Type label cannot be a generic type",
+				"Usage",
+				branch.Position(),
+			)
+
+			return nil, false
 		} else {
 			return dsym.Type, true
 		}

@@ -87,6 +87,10 @@ func (w *Walker) Lookup(name string) *common.Symbol {
 		return rsym.SymRef
 	}
 
+	if lsym, ok := w.File.LocalTable[name]; ok {
+		return lsym
+	}
+
 	return nil
 }
 
@@ -117,9 +121,17 @@ func (w *Walker) GetSymbolFromPackage(pnames []PositionedName) (*common.Symbol, 
 
 	var pkg *common.WhirlPackage
 	for i, pname := range pnames {
+		// TODO: implicit imports?
+
 		if i == len(pnames) {
 			if sym, ok := pkg.GlobalTable[pname.Name]; ok && sym.VisibleExternally() {
 				return sym, nil
+			}
+
+			for _, file := range pkg.Files {
+				if sym, ok := file.LocalTable[pname.Name]; ok && sym.VisibleExternally() {
+					return sym, nil
+				}
 			}
 
 			return nil, retImportError(pkg.Name, pname.Name, pname.Pos)
@@ -129,8 +141,6 @@ func (w *Walker) GetSymbolFromPackage(pnames []PositionedName) (*common.Symbol, 
 			} else {
 				return nil, retUndefError(pname.Name, pname.Pos)
 			}
-		} else if wimport, ok := pkg.ImportTable[pname.Name]; ok && wimport.Exported {
-			pkg = wimport.PackageRef
 		} else {
 			return nil, retImportError(
 				pkg.Name, pname.Name, pname.Pos,
@@ -150,6 +160,10 @@ func (w *Walker) Define(sym *common.Symbol) bool {
 			return false
 		}
 
+		if _, ok := w.File.LocalTable[sym.Name]; ok {
+			return false
+		}
+
 		// make sure any resolving symbols and/or remote symbols are handled
 		if rs, ok := w.Builder.ResolvingSymbols[sym.Name]; ok {
 			*rs.SymRef = *sym
@@ -157,7 +171,7 @@ func (w *Walker) Define(sym *common.Symbol) bool {
 		}
 
 		if remsym, ok := w.Builder.Pkg.RemoteSymbols[sym.Name]; ok {
-			*remsym = *sym
+			*remsym.SymRef = *sym
 			delete(w.Builder.Pkg.RemoteSymbols, sym.Name)
 		}
 	}

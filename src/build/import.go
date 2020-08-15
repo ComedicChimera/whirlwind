@@ -90,10 +90,10 @@ func (c *Compiler) collectImports(pkg *common.WhirlPackage) bool {
 				// one might be slightly faster than that of an if but who
 				// cares)
 				allImportsResolved = allImportsResolved && c.walkImport(pkg, branch, false)
-			case "exported_import":
-				// this kills me inside too; trust me
-				allImportsResolved = allImportsResolved && c.walkImport(
-					pkg, branch.Content[1].(*syntax.ASTBranch), true)
+			case "export_stmt":
+				// since `export_stmt` is formatted about the same as an
+				// `import_stmt` for symbols, they can be used together.
+				allImportsResolved = allImportsResolved && c.walkImport(pkg, branch, true)
 			// as soon as we encounter one of these blocks, we want to exit
 			case "top_level", "export_block":
 				// I have written so many of these now, I almost forgot I was
@@ -108,9 +108,11 @@ func (c *Compiler) collectImports(pkg *common.WhirlPackage) bool {
 	return allImportsResolved
 }
 
-// walkImport walks an `import_stmt` AST node (because Go is annoying about
-// circular imports, this has to be here instead of in the walker).
+// walkImport walks an `import_stmt` OR an `export_stmt` (since they are very
+// similar) AST node (because Go is annoying about circular imports, this has to
+// be here instead of in the walker).
 func (c *Compiler) walkImport(currpkg *common.WhirlPackage, node *syntax.ASTBranch, exported bool) bool {
+	// extract all of the information about the `import_stmt`
 	importedSymbolNames := make(map[string]*util.TextPosition)
 	var pkgpath, rename string
 	var pkgpathPos *util.TextPosition
@@ -166,7 +168,10 @@ func (c *Compiler) walkImport(currpkg *common.WhirlPackage, node *syntax.ASTBran
 
 	// use the current package while it is still value
 	currfile := currpkg.Files[util.CurrentFile]
+
+	// attempt to import the package
 	if pkg, ok := c.importPackage(pkgpath); ok {
+		// catch unresolvable cyclic imports
 		if pkg.PackageID == currpkg.PackageID {
 			util.ThrowError(
 				"Package cannot import itself",
@@ -177,11 +182,18 @@ func (c *Compiler) walkImport(currpkg *common.WhirlPackage, node *syntax.ASTBran
 			return false
 		}
 
+		// store a map of all the symbols imported by package
+		// (not the names => just the `importedSymbols`)
 		importedSymbols := make(map[string]*common.Symbol)
 
+		// if there are any symbol names, attempt to import them
 		if len(importedSymbolNames) > 0 {
 			// handle full namespace imports
 			if pos, ok := importedSymbolNames["..."]; ok {
+				// if the package has already been analyzed, then we are able to
+				// do a full namespace import.  Otherwise, we don't know what
+				// symbols are declared and so we can't properly to a full
+				// namespace import.
 				if pkg.AnalysisDone {
 					for _, imsym := range pkg.GlobalTable {
 						if imsym.VisibleExternally() {
@@ -189,6 +201,9 @@ func (c *Compiler) walkImport(currpkg *common.WhirlPackage, node *syntax.ASTBran
 						}
 					}
 				} else {
+					// This error conveys the idea of a full namespace import
+					// failing. Full namespace imports are explicitly namespace
+					// pollution so this error makes sense.
 					util.ThrowError(
 						"Namespace pollution between interdependent packages",
 						"Import",
@@ -202,6 +217,8 @@ func (c *Compiler) walkImport(currpkg *common.WhirlPackage, node *syntax.ASTBran
 				for name, pos := range importedSymbolNames {
 					// try to import the current symbol from the outer package
 					if imsym, ok := pkg.GlobalTable[name]; ok {
+						// if it is not visible externally, we have to throw an
+						// error because such an imports are invalid.
 						if imsym.VisibleExternally() {
 							importedSymbols[name] = imsym.Import(exported)
 						} else {
@@ -214,17 +231,24 @@ func (c *Compiler) walkImport(currpkg *common.WhirlPackage, node *syntax.ASTBran
 							return false
 						}
 					} else if rsym, ok := pkg.RemoteSymbols[name]; ok {
-						// if this symbol has already been requested, use the shared
-						// reference so resolution applies generally
-						importedSymbols[name] = rsym
+						// if this symbol has already been requested, use the
+						// shared reference so resolution applies generally.
+						// This doesn't guarantee resolution, just that
+						// resolution is possible.
+						importedSymbols[name] = rsym.SymRef
 					} else {
 						// otherwise, create a new remote symbol for the package
 						ssym := &common.Symbol{Name: name}
-						pkg.RemoteSymbols[name] = ssym
+						pkg.RemoteSymbols[name] = &common.RemoteSymbol{
+							SymRef:   ssym,
+							Position: pos,
+						}
 						importedSymbols[name] = ssym
 					}
 				}
 
+				// add an appropriate import entry to the import table for the
+				// current package (so that the import is tracked)
 				if wimport, ok := currpkg.ImportTable[pkg.PackageID]; ok {
 					for name, importedSym := range importedSymbols {
 						wimport.ImportedSymbols[name] = importedSym
@@ -237,15 +261,32 @@ func (c *Compiler) walkImport(currpkg *common.WhirlPackage, node *syntax.ASTBran
 
 				// add our symbols to the local file
 				for name, sym := range importedSymbols {
+					// resolve remote symbols based on imports
+					if exported {
+						if rsym, ok := currpkg.RemoteSymbols[name]; ok {
+							*rsym.SymRef = *sym
+							delete(currpkg.RemoteSymbols, name)
+						}
+					}
+
 					currfile.LocalTable[name] = sym
 				}
 			}
 		} else {
+			// otherwise, assume we are doing a full package import
 			name := rename
 			if name == "" {
 				name = pkg.Name
 			}
 
+			// add an appropriate import entry to the import table
+			if _, ok := currpkg.ImportTable[pkg.PackageID]; !ok {
+				currpkg.ImportTable[pkg.PackageID] = &common.WhirlImport{
+					PackageRef: pkg, ImportedSymbols: make(map[string]*common.Symbol),
+				}
+			}
+
+			// make this usage appropriately in visible packages
 			currfile.VisiblePackages[name] = pkg
 		}
 	}

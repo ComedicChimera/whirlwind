@@ -3,6 +3,7 @@ package common
 import (
 	"github.com/ComedicChimera/whirlwind/src/syntax"
 	"github.com/ComedicChimera/whirlwind/src/types"
+	"github.com/ComedicChimera/whirlwind/src/util"
 )
 
 // WhirlFile represents a single program file in a package
@@ -12,6 +13,11 @@ type WhirlFile struct {
 
 	// Root stores the HIR root of the file
 	Root *HIRRoot
+
+	// LocalTable stores all of the symbols imported in the current file
+	// that exist at the top level (ie. globally) but are not visible in
+	// other files in the same package (used to facilitate imports)
+	LocalTable map[string]*Symbol
 
 	// Stores all file-level annotations for the file (value is empty if the
 	// annotation is just a flag)
@@ -45,7 +51,7 @@ type WhirlPackage struct {
 
 	// Stores all of the symbols that other packages depend on in this package
 	// that have not been resolved (ie. for handling cyclic imports)
-	RemoteSymbols map[string]*Symbol
+	RemoteSymbols map[string]*RemoteSymbol
 
 	// Stores all of the packages that this package imports (by ID) as well as
 	// what items it imports (useful in building LLVM modules)
@@ -66,7 +72,13 @@ type WhirlImport struct {
 
 	// All items that were actually used by the package
 	ImportedSymbols map[string]*Symbol
+}
 
-	// Indicates whether or not this package exports its import
-	Exported bool
+// RemoteSymbol represents a symbol that was requested/imported by another
+// package that has yet to be resolved.  These symbols include a shared symbol
+// reference (for all users of the remote symbol) as well as a reference to the
+// first position this remote symbol was requested in.
+type RemoteSymbol struct {
+	SymRef   *Symbol
+	Position *util.TextPosition
 }

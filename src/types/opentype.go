@@ -1,6 +1,7 @@
 package types
 
 import (
+	"reflect"
 	"strings"
 
 	"github.com/ComedicChimera/whirlwind/src/util"
@@ -61,6 +62,12 @@ type OpenType struct {
 	// any corresponding judgement that passes will allow the unified element to
 	// be valid (ie. only one judgement must pass on unification)
 	Judgements []TypeJudgement
+
+	// AllowGenerics is used to indicate whether or not this OpenType can be a
+	// higher-kinded (generic) type.  This is used to prevent indirect usage of
+	// generics in places like tables where such usage would violate the laws of
+	// the language (and create a whole bunch of ugly errors).
+	AllowGenerics bool
 }
 
 // Finalize attempts to produce a single, unified type for the OpenType.  This
@@ -95,11 +102,51 @@ func (ot *OpenType) Finalize() bool {
 	return false
 }
 
+// BlockGenerics attempts to prevent this OpenType from allowing generics.  If
+// the type state of the OpenType is already generic, it returns `false`
+// indicating that such an attempted block is impossible.  Otherwise, it return
+// `true` and updates `AllowGenerics` accordingly.
+func (ot *OpenType) BlockGenerics() bool {
+	if len(ot.TypeState) > 0 {
+		// generic type states will at most be a length of one
+		if _, ok := ot.TypeState[0].(*GenericType); ok {
+			return false
+		}
+	}
+
+	ot.AllowGenerics = false
+	return true
+}
+
 // equals first attempts to test for equality against the current type state if
 // such an operation is defined.  If this fails for either reason, it then
 // attempts to deduce the current type from the provided type.  If such a
 // deduction succeeds, it will be applied.  Otherwise, it will fail.
 func (ot *OpenType) equals(other DataType) bool {
+	// check for generics if necessary
+	if _, ok := other.(*GenericType); ok {
+		// we cannot accept generics if they are explicitly prohibited
+		if !ot.AllowGenerics {
+			return false
+		}
+
+		// we also cannot allow them if they can't be unified into the current
+		// type state (ie. some super-position incorporating a generic)
+		if len(ot.TypeState) > 0 {
+			// the type state that contains a valid generic will at most be a
+			// length one so we only need to check the first element for
+			// "equality" -- using pure equality here for obvious reasons
+			return reflect.DeepEqual(ot.TypeState[0], other)
+		}
+	} else if len(ot.TypeState) > 0 {
+		// The type state is not unifiable and therefore we should error
+		for _, item := range ot.TypeState {
+			if _, ok := item.(*GenericType); ok {
+				return false
+			}
+		}
+	}
+
 	// begin by saving and clearing the equality context
 	prevEq := pureEquality
 	pureEquality = true

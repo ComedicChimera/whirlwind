@@ -21,9 +21,11 @@ The Formal Whirlwind Language Grammar
 *)
 
 (* file is our goal symbol *)
-file = {annotation} {exported_import} {import_stmt} (export_block { export_block } [ top_level ] | top_level) ;
+file = {annotation} {export_stmt} {import_stmt} (export_block { export_block } [ top_level ] | top_level) ;
 
-exported_import = 'export' import_stmt ;
+(* export_stmt designates a remote symbol export -- built on top of import statements *)
+export_stmt = 'export' ( identifier_list | '...' ) 'from' package_name 'NEWLINE' ;
+
 import_stmt = 'import' ( package_name ['as' 'IDENTIFIER'] | ( identifier_list | '...' ) 'from' package_name ) 'NEWLINE' ;
 package_name = 'IDENTIFIER' { '::' 'IDENTIFIER' } | '.' ;
 

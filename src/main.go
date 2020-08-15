@@ -1,6 +1,6 @@
 package main
 
-import "../cmd"
+import "github.com/ComedicChimera/whirlwind/src/cmd"
 
 func main() {
 	cmd.Execute()
