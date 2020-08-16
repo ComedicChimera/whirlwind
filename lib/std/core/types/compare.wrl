@@ -1,0 +1,38 @@
+export of
+    // `Ord` is used to represent the idea of ordinality (ie. how values relate
+    // to each other in comparison).  It has 4 possible values: the first three
+    // are fairly self-explanatory; however, the last value corresponds to the
+    // idea of two values not being comparable to each other (eg. an int is not
+    // comparable to a vector, etc.) thus the symbol NC (for NotComparable).
+    closed type Ord
+        | Less
+        | More
+        | Equal
+        | NC 
+
+    // `Comparable` is an interface used to represent the idea that one value
+    // can be compared to another.  Several builtin types implement this
+    // interface. NOTE: The `compare_to` method ONLY works for identical types
+    // in most cases. Unless you types are identical already, you should use the
+    // Prelude `compare` function to access this method indirectly as it will
+    // implicitly coerce your types to the same type.
+    interf Comparable of
+        // NOTE: This method compares `self` to `other` (ie. Less corresponds to
+        // `a < b` not `b < a`)
+        func compare_to(other: Comparable) Ord
+
+    // This binding implements `Comparable` for all builtin Numeric types.
+    interf<T: Numeric> for T is Comparable of
+        func compare_to(other: Comparable) Ord do
+            if other is ov: T do
+                if this < other do
+                    return Ord::Less
+                elif this > other do
+                    return Ord::More
+                else
+                    return Ord::Equal
+
+            return Ord::NC
+
+
+        

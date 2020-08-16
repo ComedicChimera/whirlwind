@@ -1,0 +1,14 @@
+export of
+    func panic(s: Showable) do
+        fatalpanic(s.show())
+
+    func exit(code: int) do
+        let s = ctx_strand()
+
+        if s != null do
+            s.abort(code)
+        else
+            fatalpanic("Invalid exit")
+
+func fatalpanic(s: string) do
+    ...

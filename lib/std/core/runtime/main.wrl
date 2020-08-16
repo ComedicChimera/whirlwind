@@ -1,0 +1,36 @@
+import OS__exit from core::sys
+
+// `__user_main` represents the full form of the user's main function.  It is
+// resolved by the compiler as necessary and is often wrapped to ensure that all
+// valid forms of `main` will be permissible.
+#intrinsic
+func __user_main(args: []string)
+
+// The true main function for all applications (used to call `user_main` as
+// necessary)
+func main do
+    match init_runtime() to
+        case Ok(_) do
+            let rt_code = exec_user_main(__user_main, get_app_cmdl_args())
+
+            if cleanup_runtime() do
+                OS__exit(rt_code)
+            else
+                log_fatal_msg("Failed to cleanup runtime")
+        case Err(e) do
+            log_fatal_msg(e.message())
+    
+    OS__exit(-1)
+
+// `exec_user_main` safely executes the user's main function such that even in
+// the situation of a runtime panic, our outer code will continue successfully.
+func exec_user_main(user_main: func([]string)(int), args: []string) int do
+    with main_strand <- bind_strand(get_main_thread()) as Option<&Strand<nothing>> do
+        main_strand.set_task(|| => user_main(args))
+        
+        await main_strand.exec()
+
+        if main_strand.exit_status() match Some(v) && v is rt_code: int do
+            return rt_code
+
+    return -1

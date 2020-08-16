@@ -6,14 +6,22 @@ import (
 	"github.com/ComedicChimera/whirlwind/src/util"
 )
 
-// GenericType is an abstraction used to represent
-// a generic data type (type that accepts type
-// parameters).  It also associates the various
-// monomorphic type forms of the generic type
+// GenericType is an abstraction used to represent a generic data type (type
+// that accepts type parameters).  It also associates the various monomorphic
+// type forms of the generic type
 type GenericType struct {
 	Template   DataType
 	Forms      []*GenericForm
 	TypeParams []*TypeParam
+
+	// This field doesn't technically "belong" on the generic type but rather on
+	// the GenericNode.  However, since we cannot easily access the generic node
+	// after it is created, it is preferrable to store the variant references
+	// here.  (Not a perfect solution but good enough).  The value of each
+	// position is the index in the enclosing node that `HIRVariant` is located
+	// at.  This is the simplest way to avoid an import cycle (since Golang has
+	// one up the a** about that...)
+	Variants []int
 }
 
 // NewGenericType creates a new generic type based on the given template
@@ -227,3 +235,18 @@ func (tpp *TypeParamPlaceholder) AlignOf() uint {
 func (tpp *TypeParamPlaceholder) copyTemplate() DataType {
 	return (*tpp.placeholderRef).copyTemplate()
 }
+
+// TODO: fix GenericInstance (...)
+// // GenericInstance represents a usage of a generic where the actual generic form
+// // can't yet by created (most likely due to the fact that the generic to which
+// // type parameters are being passed is an OpenType/TypeParam).  It stores
+// // information about what the root OpenType is and what type parameters are
+// // passed in.  NOTE: the GenericInstances should be stored in a table like
+// // OpenTypes so that they can be checked later, ideally with some kind of
+// // position (again in the same way that Open Types).
+// type GenericInstance struct {
+// 	OpenGeneric *OpenType
+// 	TypeParams  []DataType
+// }
+
+// // GenericInstances can

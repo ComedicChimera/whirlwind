@@ -1,2 +1,2 @@
 interf Error of
-    func details string
+    func message string
