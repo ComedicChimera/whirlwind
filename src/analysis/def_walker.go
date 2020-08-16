@@ -43,8 +43,21 @@ func (w *Walker) walkDefinitions(branch *syntax.ASTBranch) bool {
 				return false
 			}
 		case "variable_decl":
+			if vdecl, ok := w.walkVarDecl(defNode); ok {
+				w.Root.Elements = append(w.Root.Elements, vdecl)
+			} else {
+				return false
+			}
 		case "variant_def":
-			if vnode, ok := w.walkVariantDef(defNode); ok {
+			if vnode, ok := w.walkVariantDef(defNode, func(name string) (types.DataType, bool) {
+				if sym := w.Lookup(name); sym != nil {
+					return sym.Type, true
+				} else {
+					return nil, false
+				}
+			}); ok {
+				rg := vnode.(*common.HIRVariantDef).RootGeneric
+				rg.Variants = append(rg.Variants, len(w.Root.Elements))
 				w.Root.Elements = append(w.Root.Elements, vnode)
 			} else {
 				return false
@@ -291,8 +304,9 @@ func (w *Walker) walkInterfDef(branch *syntax.ASTBranch) bool {
 	}
 
 	// extract the methods of the interface
-	if w.walkInterfBody(branch.Last().(*syntax.ASTBranch), tInterf, false, func(m common.HIRNode) {
+	if w.walkInterfBody(branch.Last().(*syntax.ASTBranch), tInterf, false, func(m common.HIRNode) int {
 		interfNode.Methods = append(interfNode.Methods, m)
+		return len(interfNode.Methods) - 1
 	}) {
 		return false
 	}
@@ -307,9 +321,10 @@ func (w *Walker) walkInterfBind(branch *syntax.ASTBranch) bool {
 	return false
 }
 
-// extractMethods walks an `interf_body` node and adds the methods it finds to
-// the method map it is passed.  DOES NOT PARSE THEIR BODIES.
-func (w *Walker) walkInterfBody(branch *syntax.ASTBranch, tInterf *types.TypeInterf, isBinding bool, addMethodNode func(common.HIRNode)) bool {
+// walkInterfBody walks an `interf_body` node and adds the methods it finds to
+// the method map it is passed.  DOES NOT PARSE THEIR BODIES.  `addMethodNode`
+// accepts a node to add and returns the position at which it was added.
+func (w *Walker) walkInterfBody(branch *syntax.ASTBranch, tInterf *types.TypeInterf, isBinding bool, addMethodNode func(common.HIRNode) int) bool {
 	for _, item := range branch.Content {
 		// only branch in `interf_body` is `interf_member`
 		if imemberBranch, ok := item.(*syntax.ASTBranch); ok {
@@ -340,6 +355,22 @@ func (w *Walker) walkInterfBody(branch *syntax.ASTBranch, tInterf *types.TypeInt
 
 						return false
 					}
+
+					addMethodNode(defnode)
+				} else {
+					return false
+				}
+			case "variant_def":
+				if vnode, ok := w.walkVariantDef(imember, func(name string) (types.DataType, bool) {
+					if method, ok := tInterf.Methods[name]; ok {
+						return method.FnType, true
+					} else {
+						return nil, false
+					}
+				}); ok {
+					rg := vnode.(*common.HIRVariantDef).RootGeneric
+					rg.Variants = append(rg.Variants, addMethodNode(vnode))
+
 				} else {
 					return false
 				}
@@ -625,10 +656,35 @@ func (w *Walker) walkFuncSignature(branch *syntax.ASTBranch, ft *types.FuncType,
 
 // walkVariantDef walks a `variant_def` node and returns a HIRNode instead of declaring
 // anything (so as to work w/ methods -- same behavior as `walkFuncDef`)
-func (w *Walker) walkVariantDef(branch *syntax.ASTBranch) (common.HIRNode, bool) {
-	// TODO: figure out how to bind the variant to the generic
+func (w *Walker) walkVariantDef(branch *syntax.ASTBranch, lookupGeneric func(string) (types.DataType, bool)) (common.HIRNode, bool) {
+	typeList, ok := w.walkTypeList(branch.BranchAt(2))
 
-	return nil, false
+	if !ok {
+		return nil, false
+	}
+
+	idLeaf := branch.LeafAt(4)
+	dt, ok := lookupGeneric(idLeaf.Value)
+	if !ok {
+		ThrowUndefinedError(idLeaf.Value, idLeaf.Position())
+		return nil, false
+	}
+
+	if gt, ok := dt.(*types.GenericType); ok {
+		return &common.HIRVariantDef{
+			RootGeneric: gt,
+			TypeParams:  typeList,
+			Body:        (*common.HIRIncomplete)(branch.BranchAt(5)),
+		}, true
+	} else {
+		util.ThrowError(
+			fmt.Sprintf("Variant symbol `%s` must be a generic type", idLeaf.Value),
+			"Type",
+			idLeaf.Position(),
+		)
+
+		return nil, false
+	}
 }
 
 // walkAnnotatedDef walks an `annotated_def` or an `annotated_method` node.

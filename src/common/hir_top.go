@@ -89,7 +89,7 @@ type HIRArgData struct {
 
 // HIRVariantDef is used to represent a variant definition
 type HIRVariantDef struct {
-	RootGeneric *Symbol
+	RootGeneric *types.GenericType
 	TypeParams  []types.DataType
 
 	Body HIRNode
