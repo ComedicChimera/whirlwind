@@ -18,11 +18,6 @@ type FuncParam struct {
 	Constant bool
 }
 
-// NewFuncParam creates a new function parameter value
-func NewFuncParam(n string, t DataType, o, v bool) *FuncParam {
-	return &FuncParam{Name: n, Type: t, Optional: o, Variadic: v}
-}
-
 // Equals determines whether or not two function parameters are equal
 func (fp *FuncParam) Equals(other *FuncParam) bool {
 	return fp.compareNames(other.Name) && Equals(fp.Type, other.Type) && fp.Optional == other.Optional && fp.Variadic == other.Variadic

@@ -1,0 +1,119 @@
+export of
+    // `__stdlist` is the implementation of Whirlwind's list data type.
+    type __stdlist<T> {
+        arr: own &[]T
+        length: uint
+    }
+
+    // `__stdlist_iterator` is the implementation of an iterator for a list (goes
+    // through and outputs the elements in order)
+    type __stdlist_iterator<T> {
+        list: &[T]
+        ndx: uint
+    }
+
+    const 
+        LIST_START_CAP = 16   // the starting capacity of a standard list
+        LIST_BLOCK_CAP = 1024 // the capacity from which the list capacity grows linearly
+
+    // TODO: fix the memory model to allow this implementation (or close to it)
+    // of a list to work as intended
+
+    // The implementation of `__stdlist`
+    interf<T> for __stdlist<T> is Iterable<T>, Sequence<T> of
+        // `iter` just returns a `__stdlist_iterator`
+        func iter Iterator<T>
+            => __stdlist_iterator{
+                list: &this,
+                ndx: 0
+            }
+
+        // `at` gives a specific element in the list
+        func at(ndx: int) T
+            => this[ndx] // we just use the operator overload here
+
+        // `len` gives the length of the list
+        func len uint
+            => this.length
+
+        // `cap` gives the current capacity of the list
+        func cap uint
+            => this.arr.len()
+
+        // `grow` increases the capacity of the list to hold the given length
+        func grow(new_length: uint) do
+            // The list capacity grows exponentially (doubling) up until the
+            // `LIST_BLOCK_CAP` is reached at which point is starts growing
+            // linearly.  This is to allow it to grow quickly up until it would
+            // become wasteful for it to.
+            while this.cap() < new_length do
+                if cap >= LIST_BLOCK_CAP do
+                    make this.arr to this.cap() + LIST_BLOCK_CAP
+                else
+                    make this.arr to this.cap() * 2
+
+            this.length = new_length
+
+        // `shrink_to_fit` reduces the capacity of the list to be the minimum
+        // that can hold the list's current length
+        func shrink_to_fit do
+            let curr_cap = 0
+            while let next_cap = this.cap(); next_cap > this.length do
+                curr_cap = next_cap
+
+                if next_cap > LIST_BLOCK_CAP do
+                    next_cap -= LIST_BLOCK_CAP
+                elif next_cap > LIST_START_CAP do
+                    next_cap ~/= 2
+                else
+                    break
+            
+            // `curr_cap > 0` if the cap changed
+            if curr_cap > 0 do
+                make this.arr to curr_cap
+
+        // `push` adds a new element to the end of the list
+        func push(elem: T) do
+            this.grow(this.length + 1)
+            this.arr[this.length-1] = elem
+
+        // `pop` removes the last element from a list and returns it
+        func pop T do
+            let elem = this[-1]
+            this.length--
+            return elem
+
+        // `unshift` adds a new element to the front of the list
+        func unshift(elem: T) do
+            this.grow(this.length + 1)
+            copy_to(this.arr[:this.length-1], this.arr[1:])
+            this.arr[0] = elem
+
+        // `shift` removes the first element of the list and returns it
+        func shift T do
+            let elem = this[0]
+            this.length--
+            copy_to(this.arr[1:], this.arr[:this.length])
+            return elem
+
+        // `insert` adds a new element to the list at a given position
+        func insert(elem: T, ndx: int) do
+            // we grow first to allow insert to work at the end of the list
+            this.grow(this.length + 1)
+
+            if ndx >= this.length do
+                panic(bounds_error())
+
+            copy_to(this.arr[ndx:], this.arr[ndx+1:])
+            this.arr[ndx] = elem
+
+        // `remove_at` removes an element at a specific position and returns it
+        func remove_at(ndx: int) do
+            let elem = this[ndx]
+            copy_to(this.arr[ndx+1:this.length], this.arr[ndx:this.length-1])
+            this.length--
+            return elem
+            
+
+        
+

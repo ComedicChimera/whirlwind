@@ -168,40 +168,33 @@ func (gf *GenericForm) Match(typeList []DataType) (DataType, bool) {
 // type parameter in any given location (eg. Type<T>, T is a TPP)
 type TypeParamPlaceholder struct {
 	TPName         string
-	placeholderRef *DataType
-}
-
-// NewTypeParamPlaceholder creates a new placeholder for the given
-// type parameter storing the given placeholder reference
-func NewTypeParamPlaceholder(name string, pref *DataType) DataType {
-	return &TypeParamPlaceholder{TPName: name, placeholderRef: pref}
+	PlaceholderRef *DataType
 }
 
 // all type relational functions relate based on the underlying type
 // if it exists, otherwise they assume that the comparison succeeds
-
 func (tpp *TypeParamPlaceholder) coerce(other DataType) bool {
-	if *tpp.placeholderRef == nil {
+	if *tpp.PlaceholderRef == nil {
 		return true
 	}
 
-	return CoerceTo(*tpp.placeholderRef, other)
+	return CoerceTo(*tpp.PlaceholderRef, other)
 }
 
 func (tpp *TypeParamPlaceholder) cast(other DataType) bool {
-	if *tpp.placeholderRef == nil {
+	if *tpp.PlaceholderRef == nil {
 		return true
 	}
 
-	return CastTo(*tpp.placeholderRef, other)
+	return CastTo(*tpp.PlaceholderRef, other)
 }
 
 func (tpp *TypeParamPlaceholder) equals(other DataType) bool {
-	if *tpp.placeholderRef == nil {
+	if *tpp.PlaceholderRef == nil {
 		return true
 	}
 
-	return Equals(*tpp.placeholderRef, other)
+	return Equals(*tpp.PlaceholderRef, other)
 }
 
 // Repr of a placeholder is just the name of the type
@@ -213,27 +206,27 @@ func (tpp *TypeParamPlaceholder) Repr() string {
 // SizeOf a placeholder is undefined it has not been given
 // a type value. Otherwise, it is the size of the type value.
 func (tpp *TypeParamPlaceholder) SizeOf() uint {
-	if *tpp.placeholderRef == nil {
+	if *tpp.PlaceholderRef == nil {
 		util.LogMod.LogFatal("Unable to calculate size of unsatisfied placeholder")
 	}
 
-	return (*tpp.placeholderRef).SizeOf()
+	return (*tpp.PlaceholderRef).SizeOf()
 }
 
 // AlignOf a placeholder is undefined it has not been given a
 // type value. Otherwise, it is the alignment of the type value.
 func (tpp *TypeParamPlaceholder) AlignOf() uint {
-	if *tpp.placeholderRef == nil {
+	if *tpp.PlaceholderRef == nil {
 		util.LogMod.LogFatal("Unable to calculate alignment of unsatisfied placeholder")
 	}
 
-	return (*tpp.placeholderRef).AlignOf()
+	return (*tpp.PlaceholderRef).AlignOf()
 }
 
 // copyTemplate on a type parameter placeholder removes the reference
 //boxing on it and returns the current value of its type reference
 func (tpp *TypeParamPlaceholder) copyTemplate() DataType {
-	return (*tpp.placeholderRef).copyTemplate()
+	return (*tpp.PlaceholderRef).copyTemplate()
 }
 
 // TODO: fix GenericInstance (...)

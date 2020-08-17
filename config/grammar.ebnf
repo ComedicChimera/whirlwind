@@ -112,7 +112,7 @@ fallthrough_stmt = 'fallthrough' ['to' 'match'] ;
 return_stmt = 'return' [ expr_list ] ;
 yield_stmt = 'yield' expr_list ;
 delete_stmt = 'delete' expr_list ;
-resize_stmt = 'make' expr 'to' heap_alloc ;
+resize_stmt = 'make' expr 'to' expr ; (* don't need a formal heap alloc here b/c the T stays the same *)
 
 variable_decl = ('let' | 'const') ['vol'] ? (unpack_var (type_ext | initializer) | var {',' var} ) ? ;
 var = 'IDENTIFIER' [type_ext] [initializer];
@@ -196,7 +196,7 @@ prim_type = 'int' | 'uint' | 'ushort' | 'short' | 'ulong' | 'long' | 'nothing'
 | 'sbyte' | 'sbyte' | 'string' | 'char' | 'float' | 'double' | 'bool' | 'any' ;
 col_type = '[' type [':' type] ']' | '[' ']' type ;
 ref_type = ['own'] '&' ['const'] (value_type | named_type) '?' ;
-vec_type = '<' (prim_type | 'IDENTIFIER') '*' ('IDENTIFIER' | 'INTLIT') '>' ;
+vec_type = '<' type '*' ('IDENTIFIER' | 'INTLIT') '>' ;
 func_type = ('func' | 'async') '(' [func_type_args] ')' '(' [type_list] ')' ;
 func_type_args = (func_type_arg {',' func_type_arg} [',' func_type_var_arg] | func_type_var_arg) ;
 func_type_arg = ['~'] type ;
