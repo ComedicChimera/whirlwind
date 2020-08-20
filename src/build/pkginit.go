@@ -19,113 +19,65 @@ import (
 // name.  It does not extract any definitions or do anything more than
 // initialize a package based on the contents and name of a provided directory.
 // Note: User should check LogModule after this is called as file level errors
-// are not returned!  `pkgpath` should be a relative path.
-func (c *Compiler) initPackage(pkgpath string) (*common.WhirlPackage, error) {
-	if abspath := c.getPkgAbsPath(pkgpath); abspath != "" {
-		pkgName := path.Base(abspath)
+// are not returned!  `abspath` should be the absolute path to the package.
+func (c *Compiler) initPackage(abspath string) (*common.WhirlPackage, error) {
+	pkgName := path.Base(abspath)
 
-		if !isValidPkgName(pkgName) {
-			return nil, fmt.Errorf("Invalid package name: `%s`", pkgName)
-		}
+	if !isValidPkgName(pkgName) {
+		return nil, fmt.Errorf("Invalid package name: `%s`", pkgName)
+	}
 
-		pkg := &common.WhirlPackage{
-			PackageID:     c.newPackageID(),
-			Name:          pkgName,
-			RootDirectory: abspath,
-			Files:         make(map[string]*common.WhirlFile),
-		}
+	pkg := &common.WhirlPackage{
+		PackageID:     c.newPackageID(),
+		Name:          pkgName,
+		RootDirectory: abspath,
+		Files:         make(map[string]*common.WhirlFile),
+	}
 
-		// all file level errors are logged with the log module for display
-		// later
-		err := filepath.Walk(abspath, func(fpath string, info os.FileInfo, ferr error) error {
-			if ferr != nil {
-				util.LogMod.LogError(ferr)
-			} else if info.IsDir() {
-				return nil
-			}
-
-			if filepath.Ext(fpath) == util.SrcFileExtension {
-				util.CurrentFile = fpath
-
-				sc, err := syntax.NewScanner(fpath)
-
-				if err != nil {
-					util.LogMod.LogError(err)
-				}
-
-				ast, err := c.parser.Parse(sc)
-
-				if err != nil {
-					util.LogMod.LogError(err)
-				}
-
-				abranch := ast.(*syntax.ASTBranch)
-				annots, shouldCompile := c.preprocessFile(abranch)
-
-				if shouldCompile {
-					pkg.Files[fpath] = &common.WhirlFile{AST: abranch, Annotations: annots}
-				}
-			}
-
+	// all file level errors are logged with the log module for display
+	// later
+	err := filepath.Walk(abspath, func(fpath string, info os.FileInfo, ferr error) error {
+		if ferr != nil {
+			util.LogMod.LogError(ferr)
+		} else if info.IsDir() {
 			return nil
-		})
-
-		if err != nil {
-			return nil, err
 		}
 
-		if len(pkg.Files) == 0 {
-			return nil, fmt.Errorf("Unable to load package by name `%s` because it contains no source files", pkg.Name)
+		if filepath.Ext(fpath) == util.SrcFileExtension {
+			util.CurrentFile = fpath
+
+			sc, err := syntax.NewScanner(fpath)
+
+			if err != nil {
+				util.LogMod.LogError(err)
+			}
+
+			ast, err := c.parser.Parse(sc)
+
+			if err != nil {
+				util.LogMod.LogError(err)
+			}
+
+			abranch := ast.(*syntax.ASTBranch)
+			annots, shouldCompile := c.preprocessFile(abranch)
+
+			if shouldCompile {
+				pkg.Files[fpath] = &common.WhirlFile{AST: abranch, Annotations: annots}
+			}
 		}
 
-		return pkg, nil
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("Unable to find valid package directory at path `%s`", pkgpath)
-}
-
-// getPkgAbsPath converts a package relative path to a package absolute path if
-// possible.  It will index all available directories to find this path. If it
-// is unable to find anything, it will return an empty string.
-func (c *Compiler) getPkgAbsPath(relpath string) string {
-	validPath := func(abspath string) bool {
-		fi, err := os.Stat(abspath)
-
-		if err == nil {
-			return fi.IsDir()
-		}
-
-		return false
+	if len(pkg.Files) == 0 {
+		return nil, fmt.Errorf("Unable to load package by name `%s` because it contains no source files", pkg.Name)
 	}
 
-	bdAbsPath := filepath.Join(c.buildDirectory, relpath)
-	if validPath(bdAbsPath) {
-		return bdAbsPath
-	}
-
-	for _, ldirpath := range c.localPkgDirectories {
-		localAbsPath, err := filepath.Abs(filepath.Join(ldirpath, relpath))
-
-		if err != nil {
-			continue
-		}
-
-		if validPath(localAbsPath) {
-			return localAbsPath
-		}
-	}
-
-	pubdirabspath := filepath.Join(c.whirlpath, "lib/pub", relpath)
-	if validPath(pubdirabspath) {
-		return pubdirabspath
-	}
-
-	stddirabspath := filepath.Join(c.whirlpath, "lib/std", relpath)
-	if validPath(stddirabspath) {
-		return stddirabspath
-	}
-
-	return ""
+	return pkg, nil
 }
 
 // isValidPkgName tests if the package name would be a usable identifier within

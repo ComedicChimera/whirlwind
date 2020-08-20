@@ -1,11 +1,6 @@
 // Not all of these imports may occur in every instance of the Prelude. On
 // occasion the compiler may choose to selectively elide such an import if it is
 // redundant/unnecessary (eg. `core::runtime` doesn't need to import itself).
-export ... from core::types
-
-// TODO: select rest of runtime items to export
-export Strand, Scheduler, Future from core::runtime
-
 export of
     // `iota` creates an array of `n` integers starting at `start` with a
     // spacing of `spacing`.  Useful for creating a complex range quickly.

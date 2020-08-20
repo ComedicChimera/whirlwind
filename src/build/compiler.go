@@ -45,8 +45,8 @@ type Compiler struct {
 	// depGraph represents the graph of all the packages used in a given project
 	// along with their connections.  It is the main way the compiler will store
 	// dependencies and keep track of what imports what.  It is also used to
-	// help manage and resolve cyclic dependencies.  The key is the package path
-	// relative to the build directory (NOT the full path).
+	// help manage and resolve cyclic dependencies.  The key is the ABSOLUTE
+	// package path.
 	depGraph map[string]*common.WhirlPackage
 }
 

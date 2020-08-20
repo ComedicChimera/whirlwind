@@ -25,7 +25,7 @@ type StructMember struct {
 // packed
 func NewStructType(name string, members map[string]*StructMember, packed bool, deriving *StructType) DataType {
 	return &StructType{
-		Name:    util.CurrentPackage + "::" + name,
+		Name:    util.CurrentPackageID + "::" + name,
 		Members: members, Packed: packed, Deriving: deriving,
 	}
 }

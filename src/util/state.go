@@ -9,9 +9,12 @@ var LogMod *LogModule
 // CurrentFile is the path to the current file being compiled by the compiler
 var CurrentFile string
 
-// CurrentPackage is the ID of the current package being compiled. This is not
+// CurrentPackageID is the ID of the current package being compiled. This is not
 // meant for display: facilitates global bindings, etc.
-var CurrentPackage string
+var CurrentPackageID string
+
+// // CurrentPackagePath is absolute path to the current package
+// var CurrentPackagePath string
 
 // PointerSize is the size of a pointer on the target architecture.  Initialized
 // by the compiler when it is created

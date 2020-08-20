@@ -113,6 +113,20 @@ export of
             copy_to(this.arr[ndx+1:this.length], this.arr[ndx:this.length-1])
             this.length--
             return elem
+
+    // A list iterator just goes through the elements of the list C-style
+    interf<T> for __stdlist_iterator<T> is Iterator<T> of
+        #introspect
+        func next Option<T> do
+            if this.ndx < this.list.len() do
+                yield Some(this.list.arr[this.ndx])
+                this.ndx++
+
+            return None
+
+    // TODO: List operators
+
+
             
 
         

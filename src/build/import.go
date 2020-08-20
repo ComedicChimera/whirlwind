@@ -2,6 +2,8 @@ package build
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/ComedicChimera/whirlwind/src/analysis"
@@ -15,15 +17,15 @@ import (
 // performs all the necessary steps of importing. This function acts to run the
 // full front-end of the compiler for the given node.  It returns a boolean
 // indicating whether or not the package was successfully imported as well as
-// the package itself.  `pkgpath` should be relative to the build directory.
+// the package itself.  `pkgpath` should be an absolute path.
 func (c *Compiler) importPackage(pkgpath string) (*common.WhirlPackage, bool) {
 	// depGraph stores package path's relatively (non-absolute paths)
 	if depgpkg, ok := c.depGraph[pkgpath]; ok {
 		return depgpkg, true
 	}
 
+	// initialize the package (scan and parse)
 	pkg, err := c.initPackage(pkgpath)
-
 	if err != nil {
 		util.LogMod.LogError(err)
 		return nil, false
@@ -33,15 +35,15 @@ func (c *Compiler) importPackage(pkgpath string) (*common.WhirlPackage, bool) {
 	// to at the init/loading level (this if branch runs if it is successful)
 	if util.LogMod.CanProceed() {
 		// make sure proper context is restored/updated before this function returns
-		prevPkgID := util.CurrentPackage
-		util.CurrentPackage = pkg.PackageID
+		prevPkgID := util.CurrentPackageID
+		util.CurrentPackageID = pkg.PackageID
 		defer (func() {
 			// make sure that analysis is marked as complete before this function
 			// returns (regardless of whether or not it fails)
 			pkg.AnalysisDone = true
 
 			// restore global package context
-			util.CurrentPackage = prevPkgID
+			util.CurrentPackageID = prevPkgID
 		})()
 
 		// add our package to the dependency graph (with a full path)
@@ -70,6 +72,11 @@ func (c *Compiler) collectImports(pkg *common.WhirlPackage) bool {
 		// no need to manage context here b/c it will be overridden on the next
 		// loop cycle (it will only be inaccurate when errors won't be thrown)
 		util.CurrentFile = fpath
+
+		// perform the prelude import (done first to prevent conflicts)
+		if !c.addPrelude(pkg, wf) {
+			return false
+		}
 
 		// top of file is always `file`
 	nodeloop:
@@ -168,6 +175,19 @@ func (c *Compiler) walkImport(currpkg *common.WhirlPackage, node *syntax.ASTBran
 
 	// use the current package while it is still value
 	currfile := currpkg.Files[util.CurrentFile]
+
+	// calculate the absolute package path before importing
+	if pkgabspath := c.getPkgAbsPath(pkgpath); pkgabspath != "" {
+		pkgpath = pkgabspath
+	} else {
+		util.ThrowError(
+			fmt.Sprintf("Unable to find package directory at `%s`", pkgpath),
+			"Import",
+			pkgpathPos,
+		)
+
+		return false
+	}
 
 	// attempt to import the package
 	if pkg, ok := c.importPackage(pkgpath); ok {
@@ -294,6 +314,50 @@ func (c *Compiler) walkImport(currpkg *common.WhirlPackage, node *syntax.ASTBran
 	// if a package can't be imported, it will be logged later so we can fail
 	// silently here (won't progress to the next stage anyway)
 	return false
+}
+
+// getPkgAbsPath converts a package relative path to a package absolute path if
+// possible.  It will index all available directories to find this path. If it
+// is unable to find anything, it will return an empty string.
+func (c *Compiler) getPkgAbsPath(relpath string) string {
+	validPath := func(abspath string) bool {
+		fi, err := os.Stat(abspath)
+
+		if err == nil {
+			return fi.IsDir()
+		}
+
+		return false
+	}
+
+	bdAbsPath := filepath.Join(c.buildDirectory, relpath)
+	if validPath(bdAbsPath) {
+		return bdAbsPath
+	}
+
+	for _, ldirpath := range c.localPkgDirectories {
+		localAbsPath, err := filepath.Abs(filepath.Join(ldirpath, relpath))
+
+		if err != nil {
+			continue
+		}
+
+		if validPath(localAbsPath) {
+			return localAbsPath
+		}
+	}
+
+	pubdirabspath := filepath.Join(c.whirlpath, "lib/pub", relpath)
+	if validPath(pubdirabspath) {
+		return pubdirabspath
+	}
+
+	stddirabspath := filepath.Join(c.whirlpath, "lib/std", relpath)
+	if validPath(stddirabspath) {
+		return stddirabspath
+	}
+
+	return ""
 }
 
 // walkPackage walks through all of the files in a package after their imports
