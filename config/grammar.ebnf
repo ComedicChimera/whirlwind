@@ -196,7 +196,7 @@ prim_type = 'int' | 'uint' | 'ushort' | 'short' | 'ulong' | 'long' | 'nothing'
 | 'sbyte' | 'sbyte' | 'string' | 'char' | 'float' | 'double' | 'bool' | 'any' ;
 col_type = '[' type [':' type] ']' | '[' ']' type ;
 ref_type = ['own'] '&' ['const'] (value_type | named_type) '?' ;
-vec_type = '<' type '*' ('IDENTIFIER' | 'INTLIT') '>' ;
+vec_type = '<' 'INTLIT' '>' type ;
 func_type = ('func' | 'async') '(' [func_type_args] ')' '(' [type_list] ')' ;
 func_type_args = (func_type_arg {',' func_type_arg} [',' func_type_var_arg] | func_type_var_arg) ;
 func_type_arg = ['~'] type ;

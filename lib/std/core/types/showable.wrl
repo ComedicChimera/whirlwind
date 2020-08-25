@@ -1,0 +1,44 @@
+export of
+    // `Showable` is an interface representing any type that can be "shown" (ie.
+    // converted to a string or given a string representation)
+    interf Showable of
+        func show string
+
+    // Provide several basic implementations for builtin types
+    interf for string is Showable of
+        func show string => this
+
+    interf for char is Showable of
+        func show string => this as string
+
+    // No other implementations since those will be given in `stringutil`
+    // using more efficient `itoa` and `ftoa` (enhanced with StringBuilder)
+
+// Below are some very basic and inefficient conversion methods used on occasion
+// to display information in the runtime core.  These functions are not exported
+// as the versions provided in `stringutil` are the ones that are intended for
+// public use as they are more safe and efficient.
+
+// `itoa` stringifies an `Integral` type so it can be displayed a string
+func itoa<T: Integral>(n: T) string do
+    let num_string: string
+
+    if n < 0 do
+        num_string = "-"
+        n = -n
+
+    while let ok = true; ok do
+        num_string += '0' + (n % 10 as char)
+        n ~/= 10
+
+        ok = n > 0
+
+    return num_string
+
+// TODO: `ftoa` and `itoa_hex`
+
+    
+
+    
+
+    

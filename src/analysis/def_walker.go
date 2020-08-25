@@ -447,6 +447,8 @@ func (w *Walker) walkFuncDef(branch *syntax.ASTBranch) (common.HIRNode, bool) {
 	return w.makeGeneric(&common.Symbol{Type: ft}, fnode), true
 }
 
+// `walkOperatorOverload` walks an `operator_overload` node and adds the
+// overload to the overload table.
 func (w *Walker) walkOperatorOverload(branch *syntax.ASTBranch) bool {
 	opBranch := branch.BranchAt(2)
 	opKind := opBranch.Content[util.BoolToInt(opBranch.Len() < 3)].(*syntax.ASTLeaf).Kind
@@ -528,7 +530,7 @@ func (w *Walker) walkOperatorOverload(branch *syntax.ASTBranch) bool {
 	dummySym := &common.Symbol{Type: ft}
 	operDecl = w.makeGeneric(dummySym, operDecl)
 
-	if w.addOperOverload(opKind, dummySym.Type) {
+	if w.addOperatorOverload(opKind, dummySym.Type) {
 		w.Root.Elements = append(w.Root.Elements, operDecl)
 		return true
 	}

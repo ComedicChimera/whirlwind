@@ -27,6 +27,11 @@ type WhirlFile struct {
 	// in this specific file (faciliates package importing).  The key is the
 	// name by which the package is accessible in the current package.
 	VisiblePackages map[string]*WhirlPackage
+
+	// LocalOperatorOverloads contains the signatures of all the operator
+	// overloads only visible in this file (via. imports).  The values are the
+	// operator overload signatures (since export statuses don't matter).
+	LocalOperatorOverloads map[int][]types.DataType
 }
 
 // WhirlPackage represents a full, Whirlwind package (translation unit)
@@ -57,12 +62,23 @@ type WhirlPackage struct {
 	// what items it imports (useful in building LLVM modules)
 	ImportTable map[string]*WhirlImport
 
-	// Stores all of the overloaded operator definitions
-	OperatorOverloads map[string]types.DataType
+	// Stores all of the overloaded operator definitions by their operator kind
+	OperatorOverloads map[int][]*WhirlOperatorOverload
 
 	// AnalysisDone is a flag indicating whether or not the package has been
 	// fully analyzed yet.  It is used to test for import cycles.
 	AnalysisDone bool
+}
+
+// WhirlOperatorOverload represents an operator overload definition
+type WhirlOperatorOverload struct {
+	// Signature is the function type or generic type representing the
+	// operator form (eg. `Integral + Integral => `Integral` = `func(Integral,
+	// Integral)(Integral)`) defined for this operator overload.
+	Signature types.DataType
+
+	// Exported indicates whether or not the overload is exported
+	Exported bool
 }
 
 // WhirlImport represents the collective imports of an entire package (so

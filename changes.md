@@ -212,7 +212,8 @@ checking on the next line (works like it does in Python).
 
 - vector constructor: `<value : const_len>` or `<{elems...}>`
 - vector data type: `<size>type` (only valid on integral, floating point or pointer types)
-- vector generics: `<T, N>` (N is a size parameter to a vector data type)
+- vectors can be used generically using the `Vector` built-in type set
+  - eg. `T: Vector<int>` (gives all `int` vectors regardless of size)
 - all basic arithmetic operations are valid on vectors (scalar and vector mult)
 - additional intrinsics and utilities (eg. `__vec_sum(v)` and `__shuffle_vec(v1, v2, mask)`)
 - `#vec_unroll` annotation to cause vector functions to be optimized (as much as possible)

@@ -1,3 +1,5 @@
+import core::unsafe
+
 export of
     // `__stdlist` is the implementation of Whirlwind's list data type.
     type __stdlist<T> {
@@ -124,7 +126,25 @@ export of
 
             return None
 
-    // TODO: List operators
+    #introspect
+    operator<T> ([]) (const list: [T], const ndx: int) T do
+        if ndx < 0 do
+            ndx = list.len() + ndx
+
+        if -1 < ndx < list.len() do
+            return *unsafe::access_offset(list.arr.ref, ndx)
+        else
+            panic(BoundsError(ndx))
+
+    #introspect
+    operator<T> ([]) (list: [T], const ndx: int, const value: T) do
+        if ndx < 0 do
+            ndx = list.len() + ndx
+
+        if -1 < ndx < list.len() do
+            *(unsafe::access_offset(list.arr.ref, ndx)) = value
+        else
+            panic(BoundsError(ndx))
 
 
             

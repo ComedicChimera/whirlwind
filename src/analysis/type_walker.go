@@ -93,11 +93,12 @@ func (w *Walker) walkValueType(branch *syntax.ASTBranch) (types.DataType, bool) 
 	case "prim_types":
 		return types.NewPrimitiveTypeFromLabel(branch.LeafAt(0).Value), true
 	case "vec_type":
-		if dt, ok := w.walkTypeLabel(tbranch.BranchAt(1)); ok {
+		if dt, ok := w.walkTypeLabel(tbranch.BranchAt(3)); ok {
 			dtOk := false
-			switch dt.(type) {
+			switch pt := dt.(type) {
 			case *types.PrimitiveType:
-				dtOk = true
+				// TODO: should `string` be represented using a different type?
+				dtOk = int(*pt) != types.PrimString
 			}
 
 			if !dtOk {
@@ -110,57 +111,71 @@ func (w *Walker) walkValueType(branch *syntax.ASTBranch) (types.DataType, bool) 
 				return nil, false
 			}
 
-			var vsize uint
-			sizeLeaf := tbranch.LeafAt(3)
-			if sizeLeaf.Kind == syntax.INTLIT {
-				ilsize, err := strconv.Atoi(tbranch.LeafAt(1).Value)
-				if err != nil {
-					util.ThrowError(
-						"Unable to interpret integer literal",
-						"Usage",
-						sizeLeaf.Position(),
-					)
-
-					return nil, false
-				}
-
-				vsize = uint(ilsize)
-			} else {
-				sym := w.Lookup(sizeLeaf.Value)
-
-				if sym == nil {
-					ThrowUndefinedError(sym.Name, sizeLeaf.Position())
-				}
-
-				if tpl, ok := sym.Type.(*types.TypeParamPlaceholder); ok {
-					if tpl.PlaceholderRef == nil {
-						vec := &types.VectorType{ElemType: dt}
-
-						// TODO: fix vector size parameter so I don't have to
-						// punch a hole through the fabric of reality to do
-						// them...
-
-						return vec, true
-					} else if vsdt, ok := (*tpl.PlaceholderRef).(types.VectorSize); ok {
-						// it could be non-nil in the context of a generic function body
-						vsize = uint(vsdt)
-					}
-				}
-
+			vsize, err := strconv.Atoi(tbranch.LeafAt(1).Value)
+			if err != nil {
 				util.ThrowError(
-					"Expecting a vector size parameter",
+					"Unable to interpret integer literal",
 					"Usage",
-					sizeLeaf.Position(),
+					tbranch.Content[1].Position(),
 				)
+
+				return nil, false
 			}
 
 			return &types.VectorType{
 				ElemType: dt,
-				Size:     vsize,
+				Size:     uint(vsize),
 			}, true
 		}
 	case "col_type":
-		// TODO: collection imports
+		makeBuiltinGeneric := func(bt types.DataType, typeList ...types.DataType) (types.DataType, bool) {
+			// TODO: open type builtins (for possible late definition)
+
+			if gt, ok := bt.(*types.GenericType); ok {
+				if generate, ok := gt.CreateGenerate(typeList); ok {
+					return generate, true
+				}
+
+				util.ThrowError(
+					fmt.Sprintf("Failed to create desired built-in generate of `%s`", bt.Repr()),
+					"Usage",
+					branch.Position(),
+				)
+			} else {
+				util.ThrowError(
+					fmt.Sprintf("Expected builtin type to be a generic not `%s`", bt.Repr()),
+					"Usage",
+					branch.Position(),
+				)
+			}
+
+			return nil, false
+		}
+
+		// if `col_type` ends with `]`
+		if _, ok := branch.Last().(*syntax.ASTLeaf); ok {
+			// dictionary
+			if branch.Len() == 5 {
+				if keyType, ok := w.walkTypeLabel(branch.BranchAt(1)); ok {
+					if valueType, ok := w.walkTypeLabel(branch.BranchAt(3)); ok {
+						if dictDt, ok := w.getBuiltin("__stddict", branch.Position()); ok {
+							return makeBuiltinGeneric(dictDt, keyType, valueType)
+						}
+					}
+				}
+			} else /* list */ if elemType, ok := w.walkTypeLabel(branch.BranchAt(1)); ok {
+				if listDt, ok := w.getBuiltin("__stdlist", branch.Position()); ok {
+					return makeBuiltinGeneric(listDt, elemType)
+				}
+			}
+		} else if elemType, ok := w.walkTypeLabel(branch.BranchAt(2)); ok {
+			if arrDt, ok := w.getBuiltin("__stdarray", branch.Position()); ok {
+				return makeBuiltinGeneric(arrDt, elemType)
+			}
+
+		}
+
+		return nil, false
 	case "func_type":
 		f := &types.FuncType{Boxed: true, Boxable: true, ReturnType: nothingType}
 		for _, item := range tbranch.Content {
@@ -325,6 +340,30 @@ func (w *Walker) walkNamedType(branch *syntax.ASTBranch, allowHigherKindedTypes 
 	}
 
 	return dsym.Type, true
+}
+
+// builtinTypeTable stores all of the globally defined built-in types
+var builtinTypeTable = make(map[string]types.DataType)
+
+// getBuiltin gets a built-in type from the built-ins table or attempts to
+// load a new entry from the global table.  If this fails, then it throws a
+// non-fatal error and returns false.
+func (w *Walker) getBuiltin(name string, pos *util.TextPosition) (types.DataType, bool) {
+	if bt, ok := builtinTypeTable[name]; ok {
+		return bt, true
+	}
+
+	if sym := w.Lookup(name); sym != nil {
+		return sym.Type, true
+	}
+
+	util.ThrowError(
+		fmt.Sprintf("Built-in type symbol `%s` used but not defined", name),
+		"Usage",
+		pos,
+	)
+
+	return nil, false
 }
 
 // isReference checks if a data type is a reference type (or contains one)

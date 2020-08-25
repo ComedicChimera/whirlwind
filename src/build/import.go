@@ -309,6 +309,17 @@ func (c *Compiler) walkImport(currpkg *common.WhirlPackage, node *syntax.ASTBran
 			// make this usage appropriately in visible packages
 			currfile.VisiblePackages[name] = pkg
 		}
+
+		// move the operator overloads over from the imported package
+		for opKind, overloads := range pkg.OperatorOverloads {
+			// only add the operators that have not been overridden
+			for _, operator := range overloads {
+				if operator.Exported && !analysis.OperatorExists(currpkg, currfile, opKind, operator.Signature) {
+					// hmmm? why do I have to type the same thing twice again...
+					currfile.LocalOperatorOverloads[opKind] = append(currfile.LocalOperatorOverloads[opKind], operator.Signature)
+				}
+			}
+		}
 	}
 
 	// if a package can't be imported, it will be logged later so we can fail
