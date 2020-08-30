@@ -3,7 +3,7 @@ import core::unsafe
 export of
     // `__stdlist` is the implementation of Whirlwind's list data type.
     type __stdlist<T> {
-        arr: own &[]T
+        arr: scoped &[]T
         length: uint
     }
 
@@ -50,9 +50,9 @@ export of
             // become wasteful for it to.
             while this.cap() < new_length do
                 if cap >= LIST_BLOCK_CAP do
-                    make this.arr to this.cap() + LIST_BLOCK_CAP
+                    this.arr -> make scoped for (T * this.cap() + LIST_BLOCK_CAP) 
                 else
-                    make this.arr to this.cap() * 2
+                    this.arr -> make scoped for (T * this.cap() * 2) 
 
             this.length = new_length
 
@@ -72,7 +72,7 @@ export of
             
             // `curr_cap > 0` if the cap changed
             if curr_cap > 0 do
-                make this.arr to curr_cap
+                this.arr -> make scoped for (T * curr_cap)
 
         // `push` adds a new element to the end of the list
         func push(elem: T) do

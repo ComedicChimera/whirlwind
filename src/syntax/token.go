@@ -39,7 +39,8 @@ const (
 
 	// memory management
 	VOL
-	OWN
+	SCOPED
+	GLOBAL
 	MAKE
 	DELETE
 
@@ -123,6 +124,7 @@ const (
 	// memory operators
 	MOVE     // ->
 	NULLTEST // ?
+	INSPECT  // $
 
 	// assignment/declaration operators
 	ASSIGN // =
@@ -185,7 +187,8 @@ var keywordPatterns = map[string]int{
 	"yield":       YIELD,
 	"vol":         VOL,
 	"make":        MAKE,
-	"own":         OWN,
+	"scoped":      SCOPED,
+	"global":      GLOBAL,
 	"delete":      DELETE,
 	"func":        FUNC,
 	"async":       ASYNC,
@@ -250,6 +253,7 @@ var symbolPatterns = map[string]int{
 	"~":   COMPL,
 	"=":   ASSIGN,
 	"?":   NULLTEST,
+	"$":   INSPECT,
 	".":   DOT,
 	"..":  RANGETO,
 	"...": ELLIPSIS,

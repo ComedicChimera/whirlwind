@@ -127,63 +127,63 @@ checking on the next line (works like it does in Python).
       - eg. `expr match Some(v)`
     - no block, distinguishing factor, also suffix
 
-## Memory Update (Ownership, Nullability, Constancy, Category)
+## Memory Update (References, Nullability, Constancy, Category)
 
-- Ownership
-  - use references instead of pointers
-    - like a pointer except they are not treated as memory addresses
-    - no pointer arithmetic (no direct address manipulation)
-      - can be supplemented (unsafely) via intrinsics
-    - cleaner syntax
-  - two kinds of references: regular and const references
-  - `make` returns a reference
-    - if it is a single item, it returns a reference to that item
-    - if it is a block, returns a reference to an array
-    - can be resized via `make ref to new_size`
-      - called resize statement
-      - new_size has same semantics as regular make
-  - created with syntax `&value` or `&const value`
-  - type label: `&type` or `&const type`
-  - dereferences must be explicit; however,
-    - many operators have reference forms (as well as nullable forms)
-    - eg. `ref_struct.x`, `ref_array[2]`
-  - compiler-determined lifetimes, user-defined ownership status
-    - ownership informs lifetime
-  - protective semantics
-    - lifetime congruence (eg. can't return a stack reference, can't make a stack reference global)
-    - `own` is a type specifier that determines what type of reference we are dealing with
-    - ownership status must match exactly
-      - maintained when value categories differ
-      - dropped when they are the same
-    - operator usage: `:>`, `delete`, and resize on mutable owned references, `=` on unowned references
-    - **note**: the move operator can be elided to an assignment operator if the compiler can determine
-    that the reference stores no meaningful value
-      - via nullability checks / open-form initialization / explicit `null`
-  - lifetimes can be bound to data structures (selectively, via. `own` keyword)
-    - ownership => lifetime therefore lifetime bound to owner
-  - double references are not allowed (and of course triple, quadruple, etc. are also disallowed)
-    - can use combo of `own` or `const` to achieve equivalent behavior to C++ (rvalue references)
-- Nullability
-  - references have a nullability status
-  - designated like so `&byte?`
-  - non-nullable references cannot be deleted (implicitly or explicitly)
-  - nullable operators only valid on nullable references
-  - type logic:
-    - cannot be casted or coerced (given or taken away) on lvalue or cvalue references
-    - rvalue references can become nullable but cannot become non-nullable
-    - null coalescence (and possible null checking if exprs) can cause it to disappear.
-  - null safety verification
-  - nullable operators must be used on nullable types unless compiler determines that
-  you have already checked nullability
-    - combines with ownership model
-  - in place of several nullable operators, use single null-test operator `?`
-  - added as a trailer suffix (`?`)
-  - combines with the nearest operation if possible
-  - denotes that if the type is null (or invalid), will accumulate to null
-  - if not, it simply accumulates the value to null if it is invalid
-    - eg. `ref? == null` would be a way to test if a reference is invalid
-  - makes dereference syntax a bit nicer `*ref?`
-  - solves reference validity vs. reference nullability
+- References and Dynamic Memory
+  - Like pointers but can't be treated as memory addresses
+  - Cannot contain sub-references 
+  - Allow for block-references: used to refer to blocks of memory
+  - Four Kinds of References:
+    - Scoped Reference: dynamic memory with a lifetime bound to its enclosing scope
+      - Can be *moved* and *returned*
+      - Scope can change based on usage (ie. if it is returned/elevating from its enclosing scope)
+      - Can only be created locally
+    - Global Reference: dynamic memory with no definite lifetime
+      - Can be *moved*, *deleted*, and *returned*
+      - Can be created locally or globally (! - local creation should be handled with caution)
+      - Cannot be used in place of a scoped reference or store a scoped reference
+      - Unmanaged by the compiler
+    - Free Local Reference: unowning dynamic or stack reference created in local scope
+      - Can be `assigned`
+      - Used to represent a "view" of another reference or a stack element
+      - Has no memory semantics (pure reference)
+      - Normally created from another existing object
+    - Free Nonlocal Reference: unowning dynamic or stack reference created in an outer scope
+      - Can be `assigned` or `returned`
+      - Outer scope refers to outside the current function
+      - Eg. parameters or global references
+      - Can be context dependent: captured references are local in their enclosing scope and nonlocal
+      in a function subscope (ie. a local function/closure)
+  - Seven Fundamental Memory Operations
+    - "malloc" -- `make scoped/global ...`
+      - Create a new piece of dynamic memory
+      - Regular or block reference
+      - Always owned (ie. scoped or global)
+    - "resize" -- `base_ref -> make scoped/global ...`
+      - Resize a block reference
+      - Operates on piece of preexisting memory
+      - Special variation of "malloc" (ie. `realloc`)
+      - Should be recognized by compiler as a pattern
+    - "move" -- `src_ref -> dest_ref`
+      - Move an owned reference 
+      - Deletes/disposes of previous data and points reference to new data
+      - Similar to C++ style move semantics
+    - "inspect" -- `$(own_ref)`
+      - Access an owned reference in an unowned way
+      - Eg: Immutable linked list traversal
+      - Produces an Free reference (scoped = local or global = nonlocal)
+      - Used to allow for things like assignment
+    - "delete" -- `delete ...`
+      - Deletes all memory associated with a particular memory address
+      - Only valid on Global References (for safety purposes)
+    - "copy" -- `copy(...)/copy_to(src, dest)`
+      - Clone/copy a reference creating a new local reference
+      - Has special global variants: `copy_global`
+      - `copy_to` requires an "inspect"
+    - "test" -- `ref?/ref?op`
+      - Tests if whether or not a reference contains a value
+      - Accumulates to `null` if not
+      - Can be combined with operators such as `[]` to create nullable forms
 - Constancy
   - only applies to references and variables (mutable, named values)
   - for variable declarators:
