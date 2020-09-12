@@ -155,7 +155,7 @@ unary_op = '&' ['const'] | '*' | '-' | '~' | '$' ;
 power = atom_expr {'~^' atom_expr} ;
 
 atom_expr = atom {trailer} | make_expr ;
-make_expr = 'make' ['global' | 'scoped'] ('for' heap_alloc | expr) ;
+make_expr = 'make' ('nonlocal' | 'local') ('for' heap_alloc | expr) ;
 heap_alloc = type | '(' type '*' expr ')' ;
 
 trailer = '.' ( 'IDENTIFIER' | 'INTLIT' )
@@ -201,7 +201,7 @@ func_type_arg = ['~'] type ;
 func_type_var_arg = '...' type ;
 tup_type = '(' type ',' type {',' type} ')' ;
 
-ref_type = ['scoped' | 'global'] '&' ['const'] (value_type | named_type) ;
+ref_type = ['own'] ('local' | 'nonlocal') '&' ['const'] (value_type | named_type) ;
 
 (* generic constructions *)
 generic_tag = '<' generic_param {',' generic_param} '>' ;

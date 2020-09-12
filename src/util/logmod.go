@@ -161,6 +161,12 @@ func (lm *LogModule) LogWarning(wm string) {
 	lm.warnings = append(lm.warnings, wm)
 }
 
+// LogFinished prints out a conclusive/final compiler message indicating either
+// compilation success or compilation failure
+func (lm *LogModule) LogFinished(successful bool) {
+
+}
+
 const fatalErrorMessage = `Uh oh! That wasn't supposed to happen.
 Please open an issue on Github at https://github.com/ComedicChimera/Whirlwind
 that contains the "bug" label along with some way to access to code you

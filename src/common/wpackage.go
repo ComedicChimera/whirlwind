@@ -3,7 +3,6 @@ package common
 import (
 	"github.com/ComedicChimera/whirlwind/src/syntax"
 	"github.com/ComedicChimera/whirlwind/src/types"
-	"github.com/ComedicChimera/whirlwind/src/util"
 )
 
 // WhirlFile represents a single program file in a package
@@ -36,10 +35,10 @@ type WhirlFile struct {
 
 // WhirlPackage represents a full, Whirlwind package (translation unit)
 type WhirlPackage struct {
-	// PackageID is a randomly-generated string assigned to every package to be
-	// placed before exported definitions to prevent name clashes and is used as
-	// its entry the dependency graph and for import resolution
-	PackageID string
+	// PackageID is a hash value of the package's path that is assigned to every
+	// package to be placed before exported definitions to prevent name clashes
+	// and is used as its entry the dependency graph and for import resolution
+	PackageID uint
 
 	// Name is the inferred name of the package based on its directory name
 	Name string
@@ -54,20 +53,12 @@ type WhirlPackage struct {
 	// Stores all of the globally-defined symbols in the package.
 	GlobalTable map[string]*Symbol
 
-	// Stores all of the symbols that other packages depend on in this package
-	// that have not been resolved (ie. for handling cyclic imports)
-	RemoteSymbols map[string]*RemoteSymbol
-
-	// Stores all of the packages that this package imports (by ID) as well as
-	// what items it imports (useful in building LLVM modules)
-	ImportTable map[string]*WhirlImport
-
 	// Stores all of the overloaded operator definitions by their operator kind
 	OperatorOverloads map[int][]*WhirlOperatorOverload
 
-	// AnalysisDone is a flag indicating whether or not the package has been
-	// fully analyzed yet.  It is used to test for import cycles.
-	AnalysisDone bool
+	// Stores all of the packages that this package imports (by ID) as well as
+	// what items it imports (useful for constructing dependency graph)
+	ImportTable map[string]*WhirlImport
 }
 
 // WhirlOperatorOverload represents an operator overload definition
@@ -86,15 +77,7 @@ type WhirlOperatorOverload struct {
 type WhirlImport struct {
 	PackageRef *WhirlPackage
 
-	// All items that were actually used by the package
+	// All items that were actually used by the package.  (If value is `nil`,
+	// then symbol hasn't be located yet -- and needs to be).
 	ImportedSymbols map[string]*Symbol
-}
-
-// RemoteSymbol represents a symbol that was requested/imported by another
-// package that has yet to be resolved.  These symbols include a shared symbol
-// reference (for all users of the remote symbol) as well as a reference to the
-// first position this remote symbol was requested in.
-type RemoteSymbol struct {
-	SymRef   *Symbol
-	Position *util.TextPosition
 }

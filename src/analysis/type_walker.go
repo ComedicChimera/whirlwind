@@ -53,7 +53,7 @@ func (w *Walker) walkTypeBranch(branch *syntax.ASTBranch, allowHigherKindedTypes
 			switch v := item.(type) {
 			case *syntax.ASTBranch:
 				if dt, ok := w.walkTypeBranch(v, false); ok {
-					if isReference(dt) {
+					if _, ok := isReference(dt); ok {
 						util.ThrowError(
 							"Unable to have a double reference type",
 							"Type",
@@ -71,10 +71,10 @@ func (w *Walker) walkTypeBranch(branch *syntax.ASTBranch, allowHigherKindedTypes
 				switch v.Kind {
 				case syntax.OWN:
 					rt.Owned = true
+				case syntax.LOCAL:
+					rt.Local = true // defaults to false for nonlocal
 				case syntax.CONST:
 					rt.Constant = true
-				case syntax.NULLTEST:
-					rt.Nullable = true
 				}
 			}
 		}
@@ -340,52 +340,4 @@ func (w *Walker) walkNamedType(branch *syntax.ASTBranch, allowHigherKindedTypes 
 	}
 
 	return dsym.Type, true
-}
-
-// builtinTypeTable stores all of the globally defined built-in types
-var builtinTypeTable = make(map[string]types.DataType)
-
-// getBuiltin gets a built-in type from the built-ins table or attempts to
-// load a new entry from the global table.  If this fails, then it throws a
-// non-fatal error and returns false.
-func (w *Walker) getBuiltin(name string, pos *util.TextPosition) (types.DataType, bool) {
-	if bt, ok := builtinTypeTable[name]; ok {
-		return bt, true
-	}
-
-	if sym := w.Lookup(name); sym != nil {
-		return sym.Type, true
-	}
-
-	util.ThrowError(
-		fmt.Sprintf("Built-in type symbol `%s` used but not defined", name),
-		"Usage",
-		pos,
-	)
-
-	return nil, false
-}
-
-// isReference checks if a data type is a reference type (or contains one)
-func isReference(dt types.DataType) bool {
-	switch v := dt.(type) {
-	case *types.ReferenceType:
-		return true
-	case *types.OpenType:
-		if len(v.TypeState) == 1 {
-			if _, ok := v.TypeState[0].(*types.ReferenceType); ok {
-				return true
-			}
-		}
-	case *types.TypeSet:
-		if v.SetKind == types.TSKindUnion {
-			for _, item := range v.Members {
-				if isReference(item) {
-					return true
-				}
-			}
-		}
-	}
-
-	return false
 }

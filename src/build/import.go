@@ -1,380 +1,48 @@
 package build
 
 import (
-	"fmt"
-	"os"
-	"path/filepath"
-	"strings"
-
-	"github.com/ComedicChimera/whirlwind/src/analysis"
 	"github.com/ComedicChimera/whirlwind/src/common"
-	"github.com/ComedicChimera/whirlwind/src/syntax"
-	"github.com/ComedicChimera/whirlwind/src/util"
 )
 
-// importPackage is the main function used to faciliate the compilation
-// front-end.  It takes a directory to import (relative to buildDirectory) and
-// performs all the necessary steps of importing. This function acts to run the
-// full front-end of the compiler for the given node.  It returns a boolean
-// indicating whether or not the package was successfully imported as well as
-// the package itself.  `pkgpath` should be an absolute path.
-func (c *Compiler) importPackage(pkgpath string) (*common.WhirlPackage, bool) {
-	// depGraph stores package path's relatively (non-absolute paths)
-	if depgpkg, ok := c.depGraph[pkgpath]; ok {
-		return depgpkg, true
-	}
+/*
+IMPORT ALGORITHM
+----------------
+1. Construct a directed, cyclic graph of all of the packages required to build
+   the root package with their associated dependencies. All packages should be
+   initialized in this stage.
 
-	// initialize the package (scan and parse)
-	pkg, err := c.initPackage(pkgpath)
-	if err != nil {
-		util.LogMod.LogError(err)
-		return nil, false
-	}
+2. For each package in the graph, determine if that package is in a cycle with
+   another package.  If so, cross-resolve the symbols of the packages across the
+   entire cycle (by considering their global tables spliced).  Otherwise,
+   cross-resolve the symbols of the current package exclusively.
 
-	// catch/stop for any errors that were caught at the file level as opposed
-	// to at the init/loading level (this if branch runs if it is successful)
-	if util.LogMod.CanProceed() {
-		// make sure proper context is restored/updated before this function returns
-		prevPkgID := util.CurrentPackageID
-		util.CurrentPackageID = pkg.PackageID
-		defer (func() {
-			// make sure that analysis is marked as complete before this function
-			// returns (regardless of whether or not it fails)
-			pkg.AnalysisDone = true
+   a) By cross-resolve, we mean resolve the symbols nonlinearly such that
+   definitions that are provided out of proper order can be reorganized sensibly
+   without having to late-resolve any symbols.
 
-			// restore global package context
-			util.CurrentPackageID = prevPkgID
-		})()
+   b) By splicing the tables of mutually dependent packages, we mean perform
+   cross-resolution as if the packages were sharing a symbol table although they
+   are not ultimately.  Note that this method of resolution does not corrupt the
+   integrity of any package's namespace as it is being resolved.
 
-		// add our package to the dependency graph (with a full path)
-		c.depGraph[pkgpath] = pkg
+   c) All unresolved or unresolvable symbols should be identified in this stage.
 
-		// unable to resolve imports
-		if !c.collectImports(pkg) {
-			return nil, false
-		}
+   d) Every symbol resolved implies that an satisfactory definition was found for
+   it and said definition has undergone top-level analysis (so as to produce as
+   a top-level HIR node).
 
-		return pkg, c.walkPackage(pkg)
-	}
+3. Extract and evaluate all the predicates of the top-level definitions.
+   Subsequently, analyze any generates produced.  After this phase, the package
+   is said to "imported".  However, it has yet to be "built" (-- "compiled").
 
-	return nil, false
-}
+   a) Final target code generation will be accomplished at a later stage (this
+   is what is referred to by "built").
 
-// collectImports walks the header's of all package collecting their imports
-// (both exported and unexported), declares them within the package and adds
-// them to the dependency graph.  NOTE: should be called for the package walking
-// is attempted (ensures all dependencies are accounted for).
-func (c *Compiler) collectImports(pkg *common.WhirlPackage) bool {
-	// we want to evaluate as many imports as possible so we uses this flag :)
-	allImportsResolved := true
+   b) This algorithm's completion also connotes the full completion of analysis.
+*/
 
-	for fpath, wf := range pkg.Files {
-		// no need to manage context here b/c it will be overridden on the next
-		// loop cycle (it will only be inaccurate when errors won't be thrown)
-		util.CurrentFile = fpath
-
-		// perform the prelude import (done first to prevent conflicts)
-		if !c.addPrelude(pkg, wf) {
-			return false
-		}
-
-		// top of file is always `file`
-	nodeloop:
-		for _, node := range wf.AST.Content {
-			// all top level are branches
-			branch := node.(*syntax.ASTBranch)
-
-			switch branch.Name {
-			case "import_stmt":
-				// can we all just agree that you need to have a compound
-				// assignment operator for booleans?  Please?  Oh and if you
-				// thought we could simply use bitwise operators, well you would
-				// be wrong because the great Go overloads don't believe in such
-				// silly things.  Before someone suggests an if statement, what
-				// I have written is literally equivalent to an if statement but
-				// slightly more "concise" b/c logical operators short circuit
-				// which technically involves a conditional branch (only this
-				// one might be slightly faster than that of an if but who
-				// cares)
-				allImportsResolved = allImportsResolved && c.walkImport(pkg, branch, false)
-			case "export_stmt":
-				// since `export_stmt` is formatted about the same as an
-				// `import_stmt` for symbols, they can be used together.
-				allImportsResolved = allImportsResolved && c.walkImport(pkg, branch, true)
-			// as soon as we encounter one of these blocks, we want to exit
-			case "top_level", "export_block":
-				// I have written so many of these now, I almost forgot I was
-				// writing a `goto` in disguise.  `break` literally does nothing
-				// that isn't already implicit in a Go switch statement so why
-				// the f*ck does it break the switch and not the loop.  SMH...
-				break nodeloop
-			}
-		}
-	}
-
-	return allImportsResolved
-}
-
-// walkImport walks an `import_stmt` OR an `export_stmt` (since they are very
-// similar) AST node (because Go is annoying about circular imports, this has to
-// be here instead of in the walker).
-func (c *Compiler) walkImport(currpkg *common.WhirlPackage, node *syntax.ASTBranch, exported bool) bool {
-	// extract all of the information about the `import_stmt`
-	importedSymbolNames := make(map[string]*util.TextPosition)
-	var pkgpath, rename string
-	var pkgpathPos *util.TextPosition
-
-	for _, item := range node.Content {
-		switch v := item.(type) {
-		case *syntax.ASTBranch:
-			if v.Name == "package_name" {
-				pb := strings.Builder{}
-
-				for _, elem := range v.Content {
-					leaf := elem.(*syntax.ASTLeaf)
-
-					if leaf.Kind == syntax.IDENTIFIER {
-						pb.WriteString(leaf.Value)
-					} else {
-						// both `.` and `::` should write a `/`
-						pb.WriteRune('/')
-					}
-				}
-
-				pkgpathPos = v.Position()
-				pkgpath = pb.String()
-			} else /* only other node is `identifier_list` */ {
-				for _, elem := range v.Content {
-					leaf := elem.(*syntax.ASTLeaf)
-
-					if leaf.Kind == syntax.IDENTIFIER {
-						if _, ok := importedSymbolNames[leaf.Value]; ok {
-							util.ThrowError(
-								fmt.Sprintf("Unable to import symbol `%s` multiple times", leaf.Value),
-								"Import",
-								leaf.Position(),
-							)
-
-							return false
-						}
-
-						importedSymbolNames[leaf.Value] = leaf.Position()
-					}
-				}
-			}
-		case *syntax.ASTLeaf:
-			switch v.Kind {
-			// only use of IDENTIFIER token is in rename
-			case syntax.IDENTIFIER:
-				rename = v.Value
-			case syntax.ELLIPSIS:
-				importedSymbolNames["..."] = v.Position()
-			}
-		}
-	}
-
-	// use the current package while it is still value
-	currfile := currpkg.Files[util.CurrentFile]
-
-	// calculate the absolute package path before importing
-	if pkgabspath := c.getPkgAbsPath(pkgpath); pkgabspath != "" {
-		pkgpath = pkgabspath
-	} else {
-		util.ThrowError(
-			fmt.Sprintf("Unable to find package directory at `%s`", pkgpath),
-			"Import",
-			pkgpathPos,
-		)
-
-		return false
-	}
-
-	// attempt to import the package
-	if pkg, ok := c.importPackage(pkgpath); ok {
-		// catch unresolvable cyclic imports
-		if pkg.PackageID == currpkg.PackageID {
-			util.ThrowError(
-				"Package cannot import itself",
-				"Import",
-				pkgpathPos,
-			)
-
-			return false
-		}
-
-		// store a map of all the symbols imported by package
-		// (not the names => just the `importedSymbols`)
-		importedSymbols := make(map[string]*common.Symbol)
-
-		// if there are any symbol names, attempt to import them
-		if len(importedSymbolNames) > 0 {
-			// handle full namespace imports
-			if pos, ok := importedSymbolNames["..."]; ok {
-				// if the package has already been analyzed, then we are able to
-				// do a full namespace import.  Otherwise, we don't know what
-				// symbols are declared and so we can't properly to a full
-				// namespace import.
-				if pkg.AnalysisDone {
-					for _, imsym := range pkg.GlobalTable {
-						if imsym.VisibleExternally() {
-							importedSymbols[imsym.Name] = imsym.Import(exported)
-						}
-					}
-				} else {
-					// This error conveys the idea of a full namespace import
-					// failing. Full namespace imports are explicitly namespace
-					// pollution so this error makes sense.
-					util.ThrowError(
-						"Namespace pollution between interdependent packages",
-						"Import",
-						pos,
-					)
-
-					return false
-				}
-			} else {
-				// handle specific symbol imports
-				for name, pos := range importedSymbolNames {
-					// try to import the current symbol from the outer package
-					if imsym, ok := pkg.GlobalTable[name]; ok {
-						// if it is not visible externally, we have to throw an
-						// error because such an imports are invalid.
-						if imsym.VisibleExternally() {
-							importedSymbols[name] = imsym.Import(exported)
-						} else {
-							util.ThrowError(
-								fmt.Sprintf("Unable to import symbol `%s` from package `%s`", name, pkg.Name),
-								"Import",
-								pos,
-							)
-
-							return false
-						}
-					} else if rsym, ok := pkg.RemoteSymbols[name]; ok {
-						// if this symbol has already been requested, use the
-						// shared reference so resolution applies generally.
-						// This doesn't guarantee resolution, just that
-						// resolution is possible.
-						importedSymbols[name] = rsym.SymRef
-					} else {
-						// otherwise, create a new remote symbol for the package
-						ssym := &common.Symbol{Name: name}
-						pkg.RemoteSymbols[name] = &common.RemoteSymbol{
-							SymRef:   ssym,
-							Position: pos,
-						}
-						importedSymbols[name] = ssym
-					}
-				}
-
-				// add an appropriate import entry to the import table for the
-				// current package (so that the import is tracked)
-				if wimport, ok := currpkg.ImportTable[pkg.PackageID]; ok {
-					for name, importedSym := range importedSymbols {
-						wimport.ImportedSymbols[name] = importedSym
-					}
-				} else {
-					currpkg.ImportTable[pkg.PackageID] = &common.WhirlImport{
-						PackageRef: pkg, ImportedSymbols: importedSymbols,
-					}
-				}
-
-				// add our symbols to the local file
-				for name, sym := range importedSymbols {
-					// resolve remote symbols based on imports
-					if exported {
-						if rsym, ok := currpkg.RemoteSymbols[name]; ok {
-							*rsym.SymRef = *sym
-							delete(currpkg.RemoteSymbols, name)
-						}
-					}
-
-					currfile.LocalTable[name] = sym
-				}
-			}
-		} else {
-			// otherwise, assume we are doing a full package import
-			name := rename
-			if name == "" {
-				name = pkg.Name
-			}
-
-			// add an appropriate import entry to the import table
-			if _, ok := currpkg.ImportTable[pkg.PackageID]; !ok {
-				currpkg.ImportTable[pkg.PackageID] = &common.WhirlImport{
-					PackageRef: pkg, ImportedSymbols: make(map[string]*common.Symbol),
-				}
-			}
-
-			// make this usage appropriately in visible packages
-			currfile.VisiblePackages[name] = pkg
-		}
-
-		// move the operator overloads over from the imported package
-		for opKind, overloads := range pkg.OperatorOverloads {
-			// only add the operators that have not been overridden
-			for _, operator := range overloads {
-				if operator.Exported && !analysis.OperatorExists(currpkg, currfile, opKind, operator.Signature) {
-					// hmmm? why do I have to type the same thing twice again...
-					currfile.LocalOperatorOverloads[opKind] = append(currfile.LocalOperatorOverloads[opKind], operator.Signature)
-				}
-			}
-		}
-	}
-
-	// if a package can't be imported, it will be logged later so we can fail
-	// silently here (won't progress to the next stage anyway)
-	return false
-}
-
-// getPkgAbsPath converts a package relative path to a package absolute path if
-// possible.  It will index all available directories to find this path. If it
-// is unable to find anything, it will return an empty string.
-func (c *Compiler) getPkgAbsPath(relpath string) string {
-	validPath := func(abspath string) bool {
-		fi, err := os.Stat(abspath)
-
-		if err == nil {
-			return fi.IsDir()
-		}
-
-		return false
-	}
-
-	bdAbsPath := filepath.Join(c.buildDirectory, relpath)
-	if validPath(bdAbsPath) {
-		return bdAbsPath
-	}
-
-	for _, ldirpath := range c.localPkgDirectories {
-		localAbsPath, err := filepath.Abs(filepath.Join(ldirpath, relpath))
-
-		if err != nil {
-			continue
-		}
-
-		if validPath(localAbsPath) {
-			return localAbsPath
-		}
-	}
-
-	pubdirabspath := filepath.Join(c.whirlpath, "lib/pub", relpath)
-	if validPath(pubdirabspath) {
-		return pubdirabspath
-	}
-
-	stddirabspath := filepath.Join(c.whirlpath, "lib/std", relpath)
-	if validPath(stddirabspath) {
-		return stddirabspath
-	}
-
-	return ""
-}
-
-// walkPackage walks through all of the files in a package after their imports
-// have been collected and resolved.
-func (c *Compiler) walkPackage(pkg *common.WhirlPackage) bool {
-	pb := analysis.PackageBuilder{Pkg: pkg}
-
-	return pb.BuildPackage()
+// initDependencies extracts, parses, and evaluates all the imports of an
+// already initialized package (performing step 1 of the Import Algorithm)
+func (c *Compiler) initDependencies(pkg *common.WhirlPackage) bool {
+	return true
 }

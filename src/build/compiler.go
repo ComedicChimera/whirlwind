@@ -45,9 +45,8 @@ type Compiler struct {
 	// depGraph represents the graph of all the packages used in a given project
 	// along with their connections.  It is the main way the compiler will store
 	// dependencies and keep track of what imports what.  It is also used to
-	// help manage and resolve cyclic dependencies.  The key is the ABSOLUTE
-	// package path.
-	depGraph map[string]*common.WhirlPackage
+	// help manage and resolve cyclic dependencies.  The key is the package ID.
+	depGraph map[uint]*common.WhirlPackage
 }
 
 // AddLocalPackageDirectories interprets a command-line input string for the
@@ -151,9 +150,9 @@ func (c *Compiler) setPointerSize() {
 	}
 }
 
-// Compile runs the main compilation algorithm: it returns no value and does all
-// necessary creation and error handling (program should simply exit after this
-// returns).
+// Compile initializes the compiler (for building) and runs the main compilation
+// algorithm: it returns no value and does all necessary creation and error
+// handling (program should simply exit after this returns).
 func (c *Compiler) Compile(forceGrammarRebuild bool) {
 	// initialize any necessary globals
 	c.setPointerSize()
@@ -167,7 +166,7 @@ func (c *Compiler) Compile(forceGrammarRebuild bool) {
 	}
 
 	c.parser = parser
-	c.depGraph = make(map[string]*common.WhirlPackage)
+	c.depGraph = make(map[uint]*common.WhirlPackage)
 
 	// make sure all information is displayed as necessary before compiler exits
 	defer util.LogMod.ShowStatus()
@@ -176,8 +175,22 @@ func (c *Compiler) Compile(forceGrammarRebuild bool) {
 	util.LogMod.ShowInfo(c.targetos, c.targetarch, c.debugTarget)
 	util.LogMod.ShowStateChange("Analyzing")
 
-	// "/" imports starting from the given root path
-	if _, ok := c.importPackage("/"); ok {
-		return
+	// now that we are setup and ready to go, we can begin building
+	util.LogMod.LogFinished(c.buildMainPackage())
+}
+
+// buildMainPackage is the main compilation function: it goes through and builds the
+// main package as well as its dependencies (from start to finish).
+func (c *Compiler) buildMainPackage() bool {
+	rootPkg, err := c.initPackage(c.buildDirectory)
+	if err != nil {
+		util.LogMod.LogError(err)
+		return false
 	}
+
+	if !c.initDependencies(rootPkg) {
+		return false
+	}
+
+	return true
 }

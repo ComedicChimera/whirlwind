@@ -2,12 +2,10 @@ package build
 
 import (
 	"fmt"
-	"math/rand"
+	"hash/fnv"
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
-	"time"
 
 	"github.com/ComedicChimera/whirlwind/src/common"
 	"github.com/ComedicChimera/whirlwind/src/syntax"
@@ -28,7 +26,7 @@ func (c *Compiler) initPackage(abspath string) (*common.WhirlPackage, error) {
 	}
 
 	pkg := &common.WhirlPackage{
-		PackageID:     c.newPackageID(),
+		PackageID:     getPackageID(abspath),
 		Name:          pkgName,
 		RootDirectory: abspath,
 		Files:         make(map[string]*common.WhirlFile),
@@ -86,7 +84,7 @@ func (c *Compiler) initPackage(abspath string) (*common.WhirlPackage, error) {
 func isValidPkgName(pkgName string) bool {
 	if syntax.IsLetter(rune(pkgName[0])) || pkgName[0] == '_' {
 		for i := 1; i < len(pkgName); i++ {
-			if !strings.ContainsRune(pkgIDCharset, rune(pkgName[i])) && pkgName[i] != '_' {
+			if !syntax.IsLetter(rune(pkgName[i])) && !syntax.IsDigit(rune(pkgName[i])) && pkgName[i] != '_' {
 				return false
 			}
 		}
@@ -97,38 +95,9 @@ func isValidPkgName(pkgName string) bool {
 	return false
 }
 
-// PackageIDLen is a constant representing the length of a package ID string
-const PackageIDLen = 8
-
-// newPkgID generates a random package ID that does not already exist in the
-// dependency graph (so as to avoid name clashes).
-func (c *Compiler) newPackageID() string {
-	var randName string
-
-	for ok := true; ok; _, ok = c.depGraph[randName] {
-		randName = newRandString(PackageIDLen)
-	}
-
-	return randName
-}
-
-// charset for package IDs
-const pkgIDCharset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-
-// seeded random number generator for random strings
-var seededRand *rand.Rand = rand.New(
-	rand.NewSource(time.Now().UnixNano()),
-)
-
-// newRandString returns a new random string of the given length based on the
-// globally declared charset (pkgIDCharset).
-func newRandString(length int) string {
-	strbytes := make([]byte, length)
-	charsetLen := len(pkgIDCharset)
-
-	for i := range strbytes {
-		strbytes[i] = pkgIDCharset[seededRand.Intn(charsetLen)]
-	}
-
-	return string(strbytes)
+// getPackageID calculates a package ID hash based on a package's file path
+func getPackageID(abspath string) uint {
+	h := fnv.New32a()
+	h.Write([]byte(abspath))
+	return uint(h.Sum32())
 }

@@ -39,8 +39,9 @@ const (
 
 	// memory management
 	VOL
-	SCOPED
-	GLOBAL
+	LOCAL
+	NONLOCAL
+	OWN
 	MAKE
 	DELETE
 
@@ -187,8 +188,9 @@ var keywordPatterns = map[string]int{
 	"yield":       YIELD,
 	"vol":         VOL,
 	"make":        MAKE,
-	"scoped":      SCOPED,
-	"global":      GLOBAL,
+	"local":       LOCAL,
+	"nonlocal":    NONLOCAL,
+	"own":         OWN,
 	"delete":      DELETE,
 	"func":        FUNC,
 	"async":       ASYNC,

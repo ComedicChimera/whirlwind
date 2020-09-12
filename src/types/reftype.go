@@ -8,15 +8,15 @@ import (
 
 // ReferenceType represents the type of reference (eg. &int)
 type ReferenceType struct {
-	ElemType        DataType
-	Owned, Constant bool
-	Nullable        bool
+	ElemType     DataType
+	Local, Owned bool
+	Constant     bool
 }
 
 // reference types can cast on their elem type
 func (rt *ReferenceType) cast(other DataType) bool {
 	if ort, ok := other.(*ReferenceType); ok {
-		return CastTo(rt.ElemType, ort.ElemType) && rt.Constant == ort.Constant && rt.Owned == ort.Owned && rt.Nullable == ort.Nullable
+		return CastTo(rt.ElemType, ort.ElemType) && rt.compareRefAspects(ort)
 	}
 
 	return false
@@ -25,7 +25,7 @@ func (rt *ReferenceType) cast(other DataType) bool {
 // a mutable reference can be coerced to a const reference
 func (rt *ReferenceType) coerce(other DataType) bool {
 	if ort, ok := other.(*ReferenceType); ok {
-		return rt.Owned == ort.Owned && rt.OwnershipBlindEquals(ort)
+		return CoerceTo(rt.ElemType, ort.ElemType) && rt.compareRefAspects(ort)
 	}
 
 	return false
@@ -33,10 +33,16 @@ func (rt *ReferenceType) coerce(other DataType) bool {
 
 func (rt *ReferenceType) equals(other DataType) bool {
 	if ort, ok := other.(*ReferenceType); ok {
-		return rt.Owned == ort.Owned && rt.OwnershipBlindEquals(ort)
+		return Equals(rt.ElemType, ort.ElemType) && rt.compareRefAspects(ort)
 	}
 
 	return false
+}
+
+// compareRefAspects checks that all of the aspects of a reference types are
+// equal with the exception of reference data types
+func (rt *ReferenceType) compareRefAspects(ort *ReferenceType) bool {
+	return rt.Constant == ort.Constant && rt.Local == ort.Local && rt.Owned == ort.Owned
 }
 
 // SizeOf a reference type is just the size of a pointer
@@ -49,18 +55,18 @@ func (*ReferenceType) AlignOf() uint {
 	return util.PointerSize
 }
 
-// OwnershipBlindEquals performs a coercion without considering whether or not
-// the references are owned or unowned.
-func (rt *ReferenceType) OwnershipBlindEquals(ort *ReferenceType) bool {
-	return Equals(rt.ElemType, ort.ElemType) && rt.Constant == ort.Constant && rt.Nullable == ort.Nullable
-}
-
 // Repr of a reference type just rebuilds its type signature
 func (rt *ReferenceType) Repr() string {
 	reprValue := strings.Builder{}
 
 	if rt.Owned {
 		reprValue.WriteString("own ")
+	}
+
+	if rt.Local {
+		reprValue.WriteString("local ")
+	} else {
+		reprValue.WriteString("nonlocal ")
 	}
 
 	reprValue.WriteRune('&')
@@ -71,16 +77,13 @@ func (rt *ReferenceType) Repr() string {
 
 	reprValue.WriteString(rt.ElemType.Repr())
 
-	if rt.Nullable {
-		reprValue.WriteRune('?')
-	}
-
 	return reprValue.String()
 }
 
 func (rt *ReferenceType) copyTemplate() DataType {
 	return &ReferenceType{
 		ElemType: rt.ElemType.copyTemplate(),
-		Owned:    rt.Owned, Constant: rt.Constant,
+		Local:    rt.Local, Owned: rt.Owned,
+		Constant: rt.Constant,
 	}
 }

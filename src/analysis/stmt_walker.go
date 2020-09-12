@@ -83,25 +83,29 @@ func (w *Walker) walkSimpleStmt(branch *syntax.ASTBranch) (common.HIRNode, bool)
 			var exprsValid bool
 
 			for i, expr := range exprs {
-				if rt, ok := expr.Type().(*types.ReferenceType); ok {
-					if rt.Owned && rt.Nullable {
-						continue
-					}
+				refs := getContainedReferences(expr.Type())
 
+				if len(refs) == 0 {
 					util.ThrowError(
-						"Only owned, nullable references can be deleted",
-						"Type",
+						"Only references or types containing references can be deleted",
+						"Memory",
 						stmtBranch.BranchAt(1).Content[i*2].Position(),
 					)
 				} else {
-					util.ThrowError(
-						"Only references can be deleted",
-						"Type",
-						stmtBranch.BranchAt(1).Content[i*2].Position(),
-					)
-				}
+					for _, ref := range refs {
+						if !ref.Owned && !ref.Local {
+							util.ThrowError(
+								"Only owned, nonlocal references can be deleted",
+								"Memory",
+								stmtBranch.BranchAt(1).Content[i*2].Position(),
+							)
 
-				exprsValid = false
+							exprsValid = false
+							break
+						}
+
+					}
+				}
 			}
 
 			if exprsValid {
@@ -111,7 +115,6 @@ func (w *Walker) walkSimpleStmt(branch *syntax.ASTBranch) (common.HIRNode, bool)
 				}, true
 			}
 		}
-	case "resize_stmt":
 	}
 
 	return nil, false
