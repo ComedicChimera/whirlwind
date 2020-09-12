@@ -3,12 +3,17 @@ package common
 import (
 	"github.com/ComedicChimera/whirlwind/src/syntax"
 	"github.com/ComedicChimera/whirlwind/src/types"
+	"github.com/ComedicChimera/whirlwind/src/util"
 )
 
 // WhirlFile represents a single program file in a package
 type WhirlFile struct {
 	// Stores the root AST for the file (`file`)
 	AST *syntax.ASTBranch
+
+	// Stores all file-level annotations for the file (value is empty if the
+	// annotation is just a flag)
+	Annotations map[string]string
 
 	// Root stores the HIR root of the file
 	Root *HIRRoot
@@ -18,19 +23,14 @@ type WhirlFile struct {
 	// other files in the same package (used to facilitate imports)
 	LocalTable map[string]*Symbol
 
-	// Stores all file-level annotations for the file (value is empty if the
-	// annotation is just a flag)
-	Annotations map[string]string
-
-	// VisiblePackages is a list of all of the packages whose names are visible
-	// in this specific file (faciliates package importing).  The key is the
-	// name by which the package is accessible in the current package.
-	VisiblePackages map[string]*WhirlPackage
-
 	// LocalOperatorOverloads contains the signatures of all the operator
 	// overloads only visible in this file (via. imports).  The values are the
 	// operator overload signatures (since export statuses don't matter).
 	LocalOperatorOverloads map[int][]types.DataType
+
+	// VisiblePackages lists all the packages that are visible by name or rename
+	// in the current file.  The key is the name by with the package is visible.
+	VisiblePackages map[string]*WhirlPackage
 }
 
 // WhirlPackage represents a full, Whirlwind package (translation unit)
@@ -58,7 +58,7 @@ type WhirlPackage struct {
 
 	// Stores all of the packages that this package imports (by ID) as well as
 	// what items it imports (useful for constructing dependency graph)
-	ImportTable map[string]*WhirlImport
+	ImportTable map[uint]*WhirlImport
 }
 
 // WhirlOperatorOverload represents an operator overload definition
@@ -77,7 +77,23 @@ type WhirlOperatorOverload struct {
 type WhirlImport struct {
 	PackageRef *WhirlPackage
 
-	// All items that were actually used by the package.  (If value is `nil`,
-	// then symbol hasn't be located yet -- and needs to be).
-	ImportedSymbols map[string]*Symbol
+	// All of the symbols imported/used in the current package.  This field is
+	// meaningless and therefore can be ignored during a namespace import.
+	ImportedSymbols map[string]*WhirlSymbolImport
+
+	// NamespaceImport indicates whether the entire foreign namespace is
+	// imported (and the current is polluted) or not (ie. handles `...` imports)
+	NamespaceImport bool
+}
+
+// WhirlSymbolImport represents an imported symbol (with reference and position)
+type WhirlSymbolImport struct {
+	// Name of the imported symbol
+	Name string
+
+	// SymbolRef is a reference to the symbol imported
+	SymbolRef *Symbol
+
+	// Positions is a list of all places where this symbol is imported
+	Positions []*util.TextPosition
 }

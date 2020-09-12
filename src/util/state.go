@@ -11,7 +11,7 @@ var CurrentFile string
 
 // CurrentPackageID is the ID of the current package being compiled. This is not
 // meant for display: facilitates global bindings, etc.
-var CurrentPackageID string
+var CurrentPackageID uint
 
 // // CurrentPackagePath is absolute path to the current package
 // var CurrentPackagePath string

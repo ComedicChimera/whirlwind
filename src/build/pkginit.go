@@ -75,6 +75,7 @@ func (c *Compiler) initPackage(abspath string) (*common.WhirlPackage, error) {
 		return nil, fmt.Errorf("Unable to load package by name `%s` because it contains no source files", pkg.Name)
 	}
 
+	c.depGraph[pkg.PackageID] = pkg
 	return pkg, nil
 }
 
