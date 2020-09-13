@@ -1,6 +1,10 @@
 package types
 
-import "github.com/ComedicChimera/whirlwind/src/util"
+import (
+	"fmt"
+
+	"github.com/ComedicChimera/whirlwind/src/util"
+)
 
 // StructType represents a named explicitly structured data type
 type StructType struct {
@@ -25,7 +29,7 @@ type StructMember struct {
 // packed
 func NewStructType(name string, members map[string]*StructMember, packed bool, deriving *StructType) DataType {
 	return &StructType{
-		Name:    util.CurrentPackageID + "::" + name,
+		Name:    fmt.Sprint(util.CurrentPackageID) + "::" + name,
 		Members: members, Packed: packed, Deriving: deriving,
 	}
 }

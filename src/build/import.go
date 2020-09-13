@@ -51,14 +51,14 @@ IMPORT ALGORITHM
 // initDependencies extracts, parses, and evaluates all the imports of an
 // already initialized package (performing step 1 of the Import Algorithm)
 func (c *Compiler) initDependencies(pkg *common.WhirlPackage) bool {
-   util.CurrentPackageID = pkg.PackageID
-   defer func() {
-      // ensure current package context is restored when this function returns
-      util.CurrentPackageID = pkg.PackageID
-   }
+	util.CurrentPackageID = pkg.PackageID
+	defer (func() {
+		// ensure current package context is restored when this function returns
+		util.CurrentPackageID = pkg.PackageID
+	})()
 
 	for fpath, file := range pkg.Files {
-      util.CurrentFile = fpath
+		util.CurrentFile = fpath
 
 	fileastloop:
 		for i, item := range file.AST.Content {
@@ -92,7 +92,7 @@ func (c *Compiler) initDependencies(pkg *common.WhirlPackage) bool {
 // processImport walks and evaluates a given import for the current package
 func (c *Compiler) processImport(pkg *common.WhirlPackage, file *common.WhirlFile, ibranch *syntax.ASTBranch, exported bool) bool {
 	var relPath, rename string
-	var pathPosition, renamePosition *util.TextPosition
+	var pathPosition, namePosition *util.TextPosition
 	var importedSymbols map[string]*util.TextPosition
 
 	// walk the import/export statement and extract all meaningful information
@@ -104,7 +104,7 @@ func (c *Compiler) processImport(pkg *common.WhirlPackage, file *common.WhirlFil
 				// only raw IDENTIFIER token present in `import_stmt` and `export_stmt`
 				// is the package rename (after AS)
 				rename = v.Value
-				renamePosition = v.Position()
+				namePosition = v.Position()
 			case syntax.ELLIPSIS:
 				// the `...` in importedSymbols represents a full-namespace import
 				importedSymbols["..."] = v.Position()
@@ -117,6 +117,10 @@ func (c *Compiler) processImport(pkg *common.WhirlPackage, file *common.WhirlFil
 						importedSymbols[leaf.Value] = elem.Position()
 					}
 				}
+
+				// `namePosition` will be overridden with the position of the
+				// rename `IDENTIFIER` token if one exists
+				namePosition = v.Position()
 			} else /* `package_name` */ {
 				pathBuilder := strings.Builder{}
 
@@ -160,67 +164,21 @@ func (c *Compiler) processImport(pkg *common.WhirlPackage, file *common.WhirlFil
 		}
 	}
 
-	// update the current package's imports
-	if wimport, ok := pkg.ImportTable[newpkg.PackageID]; ok {
-		if len(importedSymbols) > 0 {
-			for name, pos := range importedSymbols {
-				// `...` implies a full namespace import (stored in
-				// `importedSymbols`)
-				if name == "..." {
-					wimport.NamespaceImport = true
-					break
-				}
-
-				if wsi, ok := wimport.ImportedSymbols[name]; ok {
-					wsi.Positions = append(wsi.Positions, pos)
-				} else {
-					// `SymbolRef` is initialized to `nil` (b/c it is unknown)
-					wimport.ImportedSymbols[name] = &common.WhirlSymbolImport{
-						Name:      name,
-						Positions: []*util.TextPosition{pos},
-					}
-				}
-			}
-		}
-	} else /* add a new import entry for the current package */ {
-		wimport = &common.WhirlImport{PackageRef: newpkg}
-
-		if len(importedSymbols) > 0 {
-			for name, pos := range importedSymbols {
-				// as before, `...` implies a full namespace import
-				if name == "..." {
-					wimport.NamespaceImport = true
-					break
-				}
-
-				// all symbols in a new import are new/unique
-				wimport.ImportedSymbols[name] = &common.WhirlSymbolImport{
-					Name:      name,
-					Positions: []*util.TextPosition{pos},
-				}
-			}
-		}
-
-		// add the new import to the current package's import table
-		pkg.ImportTable[newpkg.PackageID] = wimport
+	// check for self-imports (which are illegal)
+	if pkg.PackageID == newpkg.PackageID {
+		util.LogMod.LogError(util.NewWhirlErrorWithSuggestion(
+			fmt.Sprintf("Package `%s` cannot import itself", pkg.Name),
+			"Import",
+			"Make sure you aren't using the package prefix to access local symbols.",
+			namePosition,
+		))
 	}
 
-	// make the package visible if it is imported as a named entity
-	if len(importedSymbols) == 0 {
-		// rename supercedes original name
-		name := rename
-		if name == "" {
-			name = newpkg.Name
-		}
-
-		file.VisiblePackages[name] = newpkg
-   }
-
-	return c.initDependencies(newPkg)
+	return c.attachPackageToFile(pkg, file, newpkg, importedSymbols, rename, namePosition)
 }
 
 // getPackagePath determines, from a relative path, the absolute path to a
-// package
+// package (from build dir, local pkg dir, global/pub pkg dir or std pkg dir)
 func (c *Compiler) getPackagePath(relpath string) string {
 	validPath := func(abspath string) bool {
 		fi, err := os.Stat(abspath)
@@ -260,4 +218,93 @@ func (c *Compiler) getPackagePath(relpath string) string {
 	}
 
 	return ""
+}
+
+// attachPackageToFile attaches an already loaded package to a file (completing
+// first stage of importing package for that file).  NOTE: `rename` can be blank
+// if the package is not renamed, `namePosition` should point whatever token or
+// branch is used name of the package is derived from (not just rename).
+func (c *Compiler) attachPackageToFile(pkg *common.WhirlPackage, file *common.WhirlFile,
+	apkg *common.WhirlPackage, importedSymbols map[string]*util.TextPosition, rename string, namePosition *util.TextPosition) bool {
+
+	// update the current package's imports
+	if wimport, ok := pkg.ImportTable[apkg.PackageID]; ok {
+		if len(importedSymbols) > 0 {
+			for name, pos := range importedSymbols {
+				// `...` implies a full namespace import (stored in
+				// `importedSymbols`)
+				if name == "..." {
+					wimport.NamespaceImport = true
+					break
+				}
+
+				if wsi, ok := wimport.ImportedSymbols[name]; ok {
+					wsi.Positions = append(wsi.Positions, pos)
+					file.LocalTable[name] = wsi.SymbolRef
+				} else {
+					// create a blank shared symbol reference
+					sref := &common.Symbol{}
+
+					// add to the import and to the file's local table
+					wimport.ImportedSymbols[name] = &common.WhirlSymbolImport{
+						Name:      name,
+						SymbolRef: sref,
+						Positions: []*util.TextPosition{pos},
+					}
+					file.LocalTable[name] = sref
+				}
+			}
+		}
+	} else /* add a new import entry for the current package */ {
+		wimport = &common.WhirlImport{PackageRef: apkg}
+
+		if len(importedSymbols) > 0 {
+			for name, pos := range importedSymbols {
+				// as before, `...` implies a full namespace import
+				if name == "..." {
+					wimport.NamespaceImport = true
+					break
+				}
+
+				// create a blank shared symbol reference
+				sref := &common.Symbol{}
+
+				// add to the import and to the file's local table
+				wimport.ImportedSymbols[name] = &common.WhirlSymbolImport{
+					Name:      name,
+					SymbolRef: sref,
+					Positions: []*util.TextPosition{pos},
+				}
+				file.LocalTable[name] = sref
+			}
+		}
+
+		// add the new import to the current package's import table
+		pkg.ImportTable[apkg.PackageID] = wimport
+	}
+
+	// make the package visible if it is imported as a named entity
+	if len(importedSymbols) == 0 {
+		// rename supercedes original name
+		name := rename
+		if name == "" {
+			name = apkg.Name
+		}
+
+		if _, ok := file.VisiblePackages[name]; ok {
+			util.LogMod.LogError(util.NewWhirlErrorWithSuggestion(
+				fmt.Sprintf("Multiple packages imported with `%s`", name),
+				"Import",
+				"Consider renaming the import",
+				namePosition,
+			))
+
+			return false
+		}
+
+		file.VisiblePackages[name] = apkg
+	}
+
+	// we need to recursively initialize dependencies
+	return c.initDependencies(apkg)
 }
