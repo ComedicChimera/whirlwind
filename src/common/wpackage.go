@@ -30,6 +30,10 @@ type WhirlFile struct {
 
 	// VisiblePackages lists all the packages that are visible by name or rename
 	// in the current file.  The key is the name by with the package is visible.
+	// Full namespace imports should also be stored here (using some form of
+	// unique suffix) -- namespace import status should be determined by
+	// confirming it with package's import entry in the import table (which
+	// should list the files that import its namespace)
 	VisiblePackages map[string]*WhirlPackage
 }
 
@@ -81,9 +85,10 @@ type WhirlImport struct {
 	// meaningless and therefore can be ignored during a namespace import.
 	ImportedSymbols map[string]*WhirlSymbolImport
 
-	// NamespaceImport indicates whether the entire foreign namespace is
-	// imported (and the current is polluted) or not (ie. handles `...` imports)
-	NamespaceImport bool
+	// NamespaceImports is a map of all of the files that import the package's
+	// namespace (ie. use the `...` import notation).  This is a map for fast
+	// look-ups.
+	NamespaceImports map[*WhirlFile]struct{}
 }
 
 // WhirlSymbolImport represents an imported symbol (with reference and position)

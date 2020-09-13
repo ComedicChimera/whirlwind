@@ -234,7 +234,8 @@ func (c *Compiler) attachPackageToFile(pkg *common.WhirlPackage, file *common.Wh
 				// `...` implies a full namespace import (stored in
 				// `importedSymbols`)
 				if name == "..." {
-					wimport.NamespaceImport = true
+					wimport.NamespaceImports[file] = struct{}{}
+					file.VisiblePackages[apkg.Name+"..."] = apkg
 					break
 				}
 
@@ -262,7 +263,8 @@ func (c *Compiler) attachPackageToFile(pkg *common.WhirlPackage, file *common.Wh
 			for name, pos := range importedSymbols {
 				// as before, `...` implies a full namespace import
 				if name == "..." {
-					wimport.NamespaceImport = true
+					wimport.NamespaceImports[file] = struct{}{}
+					file.VisiblePackages[apkg.Name+"..."] = apkg
 					break
 				}
 
