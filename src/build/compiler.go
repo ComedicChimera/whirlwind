@@ -175,6 +175,11 @@ func (c *Compiler) Compile(forceGrammarRebuild bool) {
 	util.LogMod.ShowInfo(c.targetos, c.targetarch, c.debugTarget)
 	util.LogMod.ShowStateChange("Analyzing")
 
+	// load the prelude before we begin the building process (this only proceeds
+	// through stage 1 of the import algorithm: it will be finished off during
+	// the main building algorithm)
+	c.initPrelude()
+
 	// now that we are setup and ready to go, we can begin building
 	util.LogMod.LogFinished(c.buildMainPackage())
 }
