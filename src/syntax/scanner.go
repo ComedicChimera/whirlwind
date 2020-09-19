@@ -7,11 +7,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ComedicChimera/whirlwind/src/util"
+	"github.com/ComedicChimera/whirlwind/src/logging"
 )
 
 // NewScanner creates a scanner for the given file
-func NewScanner(fpath string) (*Scanner, error) {
+func NewScanner(fpath string, lctx *logging.LogContext) (*Scanner, error) {
 	f, err := os.Open(fpath)
 
 	if err != nil {
@@ -34,6 +34,8 @@ func IsDigit(r rune) bool {
 
 // Scanner works like an io.Reader for a file (outputting tokens)
 type Scanner struct {
+	lctx *logging.LogContext
+
 	file  *bufio.Reader
 	fpath string
 
@@ -245,11 +247,10 @@ func (s *Scanner) ReadToken() (*Token, error) {
 					// if we encounter something that is not a whitespace
 					// character before we encounter a newline, the character is
 					// invalid and we mark only that character as erroneous
-					return nil, util.NewWhirlErrorWithSuggestion(
+					return nil, s.lctx.CreateMessage(
 						"Expecting a Line Break before next non-whitespace character",
-						"Token",
-						"Did you mean to write `/`?",
-						&util.TextPosition{StartLn: s.line, StartCol: s.col - 1, EndLn: s.line, EndCol: s.col},
+						logging.LMKToken,
+						&logging.TextPosition{StartLn: s.line, StartCol: s.col - 1, EndLn: s.line, EndCol: s.col},
 					)
 				}
 			}
@@ -299,9 +300,10 @@ func (s *Scanner) ReadToken() (*Token, error) {
 
 		// error out on any malformed tokens (using contents of token builder)
 		if malformed {
-			return nil, util.NewWhirlError(
-				fmt.Sprintf("Malformed Token \"%s\"", s.tokBuilder.String()), "Token",
-				&util.TextPosition{StartLn: s.line, StartCol: s.col, EndLn: s.line, EndCol: s.col + s.tokBuilder.Len()},
+			return nil, s.lctx.CreateMessage(
+				fmt.Sprintf("Malformed Token \"%s\"", s.tokBuilder.String()),
+				logging.LMKToken,
+				&logging.TextPosition{StartLn: s.line, StartCol: s.col, EndLn: s.line, EndCol: s.col + s.tokBuilder.Len()},
 			)
 		}
 
@@ -343,7 +345,7 @@ func (s *Scanner) readNext() bool {
 			return false
 		}
 
-		util.LogMod.LogFatal("Error reading file " + s.fpath)
+		logging.LogFatal("Error reading file " + s.fpath)
 	}
 
 	// do line and column counting after the newline token
@@ -369,7 +371,7 @@ func (s *Scanner) skipNext() bool {
 			return false
 		}
 
-		util.LogMod.LogFatal("Error reading file " + s.fpath)
+		logging.LogFatal("Error reading file " + s.fpath)
 	}
 
 	// do line and column counting after the newline token

@@ -12,6 +12,11 @@ func displayLogMessage(lm *LogMessage, isError bool) {
 
 }
 
+// displayStdError displays a standard Go error that is not a LogMessage
+func displayStdError(err error) {
+	fmt.Println(err)
+}
+
 // fatalErrorMessage is the string printed before after any fatal error
 const fatalErrorMessage = `Uh oh! That wasn't supposed to happen.
 Please open an issue on Github at https://github.com/ComedicChimera/Whirlwind

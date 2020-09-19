@@ -1,7 +1,7 @@
 package common
 
 import (
-	"github.com/ComedicChimera/whirlwind/src/types"
+	"github.com/ComedicChimera/whirlwind/src/typing"
 )
 
 // HIR stands for high-level IR.  It is a structural system used to represent a
@@ -89,8 +89,8 @@ type HIRArgData struct {
 
 // HIRVariantDef is used to represent a variant definition
 type HIRVariantDef struct {
-	RootGeneric *types.GenericType
-	TypeParams  []types.DataType
+	// TODO: RootGeneric *typing.GenericType
+	TypeParams []typing.DataType
 
 	Body HIRNode
 }
@@ -101,7 +101,7 @@ func (*HIRVariantDef) Kind() int {
 
 // HIRGeneric is an enclosing node wrapping any generic definition
 type HIRGeneric struct {
-	Generic     *types.GenericType
+	// TODO: Generic     *typing.GenericType
 	GenericNode HIRNode
 }
 
@@ -114,7 +114,7 @@ func (*HIRGeneric) Kind() int {
 type HIRInterfBind struct {
 	// Symbol is anonymous: used to store aspects like DeclStatus
 	Interf    *Symbol
-	BoundType types.DataType
+	BoundType typing.DataType
 
 	Methods []HIRNode
 }
@@ -129,7 +129,7 @@ type HIROperDecl struct {
 	OperKind int
 
 	// Signature is the function signature of the operator
-	Signature *types.FuncType
+	// TODO: Signature *typing.FuncType
 
 	Annotations map[string]string
 	Body        HIRNode

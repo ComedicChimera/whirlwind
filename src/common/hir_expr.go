@@ -1,8 +1,8 @@
 package common
 
 import (
-	"github.com/ComedicChimera/whirlwind/src/types"
-	"github.com/ComedicChimera/whirlwind/src/util"
+	"github.com/ComedicChimera/whirlwind/src/logging"
+	"github.com/ComedicChimera/whirlwind/src/typing"
 )
 
 // ---------------------------
@@ -29,7 +29,7 @@ import (
 // HIRExpr is an interface used by all expressions
 type HIRExpr interface {
 	// Type is the type of the expression result
-	Type() types.DataType
+	Type() typing.DataType
 
 	// Category is value category of the expression result
 	Category() int
@@ -42,7 +42,7 @@ type HIRExpr interface {
 // their base.  All of the properties are accessed via methods of HIRExpr which
 // all types that use `ExprBase` implicitly implement
 type ExprBase struct {
-	dataType types.DataType
+	dataType typing.DataType
 
 	// Category is the expression's value category -> should be one of the
 	// enumerated categories below (using an int for extensibility)
@@ -59,7 +59,7 @@ const (
 )
 
 // Type of ExprBase is its dataType property
-func (eb *ExprBase) Type() types.DataType {
+func (eb *ExprBase) Type() typing.DataType {
 	return eb.dataType
 }
 
@@ -172,7 +172,7 @@ type HIROperApp struct {
 type HIRApp struct {
 	ExprBase
 
-	Function  *types.FuncType
+	// TODO: Function  *typing.FuncType
 	Arguments []HIRNode
 }
 
@@ -193,7 +193,7 @@ type HIRGenerate struct {
 	ExprBase
 
 	// Generic contains the generic source for the generate
-	Generic *types.GenericType
+	// TODO: Generic *typing.GenericType
 }
 
 // HIRName represents an identifier or variable access
@@ -203,11 +203,11 @@ type HIRName struct {
 	Name string
 
 	// back-end can still point to specific names
-	Position *util.TextPosition
+	Position *logging.TextPosition
 }
 
 // NewIdentifierFromSymbol creates a new HIRName for the given symbol
-func NewIdentifierFromSymbol(sym *Symbol, pos *util.TextPosition) *HIRName {
+func NewIdentifierFromSymbol(sym *Symbol, pos *logging.TextPosition) *HIRName {
 	return &HIRName{
 		ExprBase: ExprBase{dataType: sym.Type, constant: sym.Constant, category: LValue},
 		Name:     sym.Name,
@@ -222,11 +222,11 @@ type HIRValue struct {
 	Value string
 
 	// back-end can also point to specific values
-	Position *util.TextPosition
+	Position *logging.TextPosition
 }
 
 // NewLiteral creates a new HIRValue with the given type, value, and position
-func NewLiteral(value string, dt types.DataType, pos *util.TextPosition) *HIRValue {
+func NewLiteral(value string, dt typing.DataType, pos *logging.TextPosition) *HIRValue {
 	return &HIRValue{
 		ExprBase: ExprBase{dataType: dt, constant: false, category: RValue},
 		Value:    value,

@@ -29,6 +29,12 @@ type LogMessage struct {
 	Context  *LogContext
 }
 
+// Implementation of `error` for LogMessage (so it can be returned as one). This
+// method should not be used to display a LogMessage.
+func (lm *LogMessage) Error() string {
+	return lm.Message
+}
+
 // Enumeration of the different kinds of a log messages
 const (
 	LMKToken  = iota // Error generating a token
@@ -49,6 +55,16 @@ type TextPosition struct {
 
 // LogContext represents the context in which an error occurred
 type LogContext struct {
-	PackageID int
+	PackageID uint
 	FilePath  string
+}
+
+// CreateMessage is used to generate a log message in the given context
+func (lctx *LogContext) CreateMessage(message string, kind int, pos *TextPosition) *LogMessage {
+	return &LogMessage{
+		Message:  message,
+		Kind:     kind,
+		Position: pos,
+		Context:  lctx,
+	}
 }

@@ -10,8 +10,20 @@ import (
 var logger Logger
 
 // Initialize initializes the global logger with the provided log level
-func Initialize(loglevel int) {
-	logger = Logger{LogLevel: loglevel}
+func Initialize(loglevelname string) {
+	logger = Logger{}
+
+	switch loglevelname {
+	case "silent":
+		logger.LogLevel = LogLevelSilent
+	case "error":
+		logger.LogLevel = LogLevelError
+	case "warning":
+		logger.LogLevel = LogLevelWarning
+	// everything else (including invalid log levels) should default to verbose
+	default:
+		logger.LogLevel = LogLevelVerbose
+	}
 }
 
 // NOTE TO READER: all log functions will only display if the appropriate log
@@ -24,6 +36,21 @@ func LogError(lctx *LogContext, message string, kind int, pos *TextPosition) {
 
 	if logger.LogLevel > LogLevelSilent {
 		displayLogMessage(&LogMessage{Context: lctx, Message: message, Kind: kind, Position: pos}, true)
+	}
+}
+
+// LogStdError logs a standard Go `error` appropriately.  If it is a LogMessage,
+// this function has the same behavior as `LogError`.  If it is not, it will be
+// printed without any boxing. NOTE: `err` should NOT be `nil` -- this function
+// will panic if it is.
+func LogStdError(err error) {
+	if logger.LogLevel > LogLevelSilent {
+		if lm, ok := err.(*LogMessage); ok {
+			logger.ErrorCount++
+			displayLogMessage(lm, true)
+		} else {
+			displayStdError(err)
+		}
 	}
 }
 

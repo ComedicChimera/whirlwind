@@ -9,7 +9,7 @@ import (
 	"runtime"
 
 	"github.com/ComedicChimera/whirlwind/src/build"
-	"github.com/ComedicChimera/whirlwind/src/util"
+	"github.com/ComedicChimera/whirlwind/src/logging"
 )
 
 // Execute should be called from main and initializes the compiler
@@ -46,7 +46,6 @@ func Execute() {
 	if err != nil {
 		fmt.Println("Config Error: " + err.Error())
 		os.Exit(1)
-		// util.LogMod.LogError(err)
 	}
 }
 
@@ -128,8 +127,8 @@ func Build(wp string) error {
 		}
 	}
 
-	// setup the global LogModule (based on log level)
-	util.NewLogModule(buildCommand.Lookup("loglevel").Value.String())
+	// setup the global Logger (based on log level)
+	logging.Initialize(buildCommand.Lookup("loglevel").Value.String())
 
 	// run the main compilation algorithm
 	compiler.Compile(buildCommand.Lookup("forcegrebuild").Value.String() == "true")

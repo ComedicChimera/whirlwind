@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/ComedicChimera/whirlwind/src/common"
+	"github.com/ComedicChimera/whirlwind/src/logging"
 	"github.com/ComedicChimera/whirlwind/src/syntax"
-	"github.com/ComedicChimera/whirlwind/src/util"
 )
 
 /*
@@ -51,14 +51,14 @@ IMPORT ALGORITHM
 // initDependencies extracts, parses, and evaluates all the imports of an
 // already initialized package (performing step 1 of the Import Algorithm)
 func (c *Compiler) initDependencies(pkg *common.WhirlPackage) bool {
-	util.CurrentPackageID = pkg.PackageID
+	c.lctx.PackageID = pkg.PackageID
 	defer (func() {
 		// ensure current package context is restored when this function returns
-		util.CurrentPackageID = pkg.PackageID
+		c.lctx.PackageID = pkg.PackageID
 	})()
 
 	for fpath, file := range pkg.Files {
-		util.CurrentFile = fpath
+		c.lctx.FilePath = fpath
 
 	fileastloop:
 		for i, item := range file.AST.Content {
@@ -92,8 +92,8 @@ func (c *Compiler) initDependencies(pkg *common.WhirlPackage) bool {
 // processImport walks and evaluates a given import for the current package
 func (c *Compiler) processImport(pkg *common.WhirlPackage, file *common.WhirlFile, ibranch *syntax.ASTBranch, exported bool) bool {
 	var relPath, rename string
-	var pathPosition, namePosition *util.TextPosition
-	var importedSymbols map[string]*util.TextPosition
+	var pathPosition, namePosition *logging.TextPosition
+	var importedSymbols map[string]*logging.TextPosition
 
 	// walk the import/export statement and extract all meaningful information
 	for _, item := range ibranch.Content {
@@ -144,9 +144,10 @@ func (c *Compiler) processImport(pkg *common.WhirlPackage, file *common.WhirlFil
 	// calculate the absolute path to the package
 	abspath := c.getPackagePath(relPath)
 	if abspath == "" {
-		util.ThrowError(
+		logging.LogError(
+			c.lctx,
 			fmt.Sprintf("Unable to locate package at path `%s`", relPath),
-			"Import",
+			logging.LMKImport,
 			pathPosition,
 		)
 
@@ -159,19 +160,19 @@ func (c *Compiler) processImport(pkg *common.WhirlPackage, file *common.WhirlFil
 		var err error
 		newpkg, err = c.initPackage(abspath)
 		if err != nil {
-			util.LogMod.LogError(err)
+			logging.LogStdError(err)
 			return false
 		}
 	}
 
 	// check for self-imports (which are illegal)
 	if pkg.PackageID == newpkg.PackageID {
-		util.LogMod.LogError(util.NewWhirlErrorWithSuggestion(
+		logging.LogError(
+			c.lctx,
 			fmt.Sprintf("Package `%s` cannot import itself", pkg.Name),
-			"Import",
-			"Make sure you aren't using the package prefix to access local symbols.",
+			logging.LMKImport,
 			namePosition,
-		))
+		)
 	}
 
 	return c.attachPackageToFile(pkg, file, newpkg, importedSymbols, rename, namePosition)
@@ -225,7 +226,7 @@ func (c *Compiler) getPackagePath(relpath string) string {
 // if the package is not renamed, `namePosition` should point whatever token or
 // branch is used name of the package is derived from (not just rename).
 func (c *Compiler) attachPackageToFile(pkg *common.WhirlPackage, file *common.WhirlFile,
-	apkg *common.WhirlPackage, importedSymbols map[string]*util.TextPosition, rename string, namePosition *util.TextPosition) bool {
+	apkg *common.WhirlPackage, importedSymbols map[string]*logging.TextPosition, rename string, namePosition *logging.TextPosition) bool {
 
 	// update the current package's imports
 	if wimport, ok := pkg.ImportTable[apkg.PackageID]; ok {
@@ -250,7 +251,7 @@ func (c *Compiler) attachPackageToFile(pkg *common.WhirlPackage, file *common.Wh
 					wimport.ImportedSymbols[name] = &common.WhirlSymbolImport{
 						Name:      name,
 						SymbolRef: sref,
-						Positions: []*util.TextPosition{pos},
+						Positions: []*logging.TextPosition{pos},
 					}
 					file.LocalTable[name] = sref
 				}
@@ -275,7 +276,7 @@ func (c *Compiler) attachPackageToFile(pkg *common.WhirlPackage, file *common.Wh
 				wimport.ImportedSymbols[name] = &common.WhirlSymbolImport{
 					Name:      name,
 					SymbolRef: sref,
-					Positions: []*util.TextPosition{pos},
+					Positions: []*logging.TextPosition{pos},
 				}
 				file.LocalTable[name] = sref
 			}
@@ -294,12 +295,12 @@ func (c *Compiler) attachPackageToFile(pkg *common.WhirlPackage, file *common.Wh
 		}
 
 		if _, ok := file.VisiblePackages[name]; ok {
-			util.LogMod.LogError(util.NewWhirlErrorWithSuggestion(
+			logging.LogError(
+				c.lctx,
 				fmt.Sprintf("Multiple packages imported with `%s`", name),
-				"Import",
-				"Consider renaming the import",
+				logging.LMKImport,
 				namePosition,
-			))
+			)
 
 			return false
 		}

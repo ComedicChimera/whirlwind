@@ -1,24 +1,24 @@
 package syntax
 
-import "github.com/ComedicChimera/whirlwind/src/util"
+import "github.com/ComedicChimera/whirlwind/src/logging"
 
 // ASTNode represents a piece of the Abstract Syntax Tree (AST)
 type ASTNode interface {
 	// Position should span the entire ASTNode (meaningfully)
-	Position() *util.TextPosition
+	Position() *logging.TextPosition
 }
 
 // ASTLeaf is simply a token in the AST (at the end of branch)
 type ASTLeaf Token
 
 // Position of a leaf is just the position of the token it contains
-func (a *ASTLeaf) Position() *util.TextPosition {
+func (a *ASTLeaf) Position() *logging.TextPosition {
 	return TextPositionOfToken((*Token)(a))
 }
 
 // TextPositionOfToken takes in a token and returns its text position
-func TextPositionOfToken(tok *Token) *util.TextPosition {
-	return &util.TextPosition{StartLn: tok.Line, StartCol: tok.Col - len(tok.Value), EndLn: tok.Line, EndCol: tok.Col}
+func TextPositionOfToken(tok *Token) *logging.TextPosition {
+	return &logging.TextPosition{StartLn: tok.Line, StartCol: tok.Col - len(tok.Value), EndLn: tok.Line, EndCol: tok.Col}
 }
 
 // ASTBranch is a named set of leaves and branches
@@ -29,11 +29,11 @@ type ASTBranch struct {
 
 // Position of a branch is the starting position of its first node and the
 // ending position of its last node (node can be leaf or branch)
-func (a *ASTBranch) Position() *util.TextPosition {
+func (a *ASTBranch) Position() *logging.TextPosition {
 	// Note: empty AST nodes SHOULD never occur, but we check anyway (so if they
 	// do, we see the error)
 	if len(a.Content) == 0 {
-		util.LogMod.LogFatal("Unable to take position of empty AST node")
+		logging.LogFatal("Unable to take position of empty AST node")
 		// if there is just one item in the branch, just return the position of
 		// that item
 	} else if len(a.Content) == 1 {
@@ -43,7 +43,7 @@ func (a *ASTBranch) Position() *util.TextPosition {
 	} else {
 		first, last := a.Content[0].Position(), a.Content[len(a.Content)-1].Position()
 
-		return &util.TextPosition{StartLn: first.StartLn, StartCol: first.StartCol, EndLn: last.EndLn, EndCol: last.EndCol}
+		return &logging.TextPosition{StartLn: first.StartLn, StartCol: first.StartCol, EndLn: last.EndLn, EndCol: last.EndCol}
 	}
 
 	// unreachable

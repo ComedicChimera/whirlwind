@@ -1,9 +1,9 @@
 package common
 
 import (
+	"github.com/ComedicChimera/whirlwind/src/logging"
 	"github.com/ComedicChimera/whirlwind/src/syntax"
-	"github.com/ComedicChimera/whirlwind/src/types"
-	"github.com/ComedicChimera/whirlwind/src/util"
+	"github.com/ComedicChimera/whirlwind/src/typing"
 )
 
 // WhirlFile represents a single program file in a package
@@ -26,7 +26,7 @@ type WhirlFile struct {
 	// LocalOperatorOverloads contains the signatures of all the operator
 	// overloads only visible in this file (via. imports).  The values are the
 	// operator overload signatures (since export statuses don't matter).
-	LocalOperatorOverloads map[int][]types.DataType
+	LocalOperatorOverloads map[int][]typing.DataType
 
 	// VisiblePackages lists all the packages that are visible by name or rename
 	// in the current file.  The key is the name by with the package is visible.
@@ -70,7 +70,7 @@ type WhirlOperatorOverload struct {
 	// Signature is the function type or generic type representing the
 	// operator form (eg. `Integral + Integral => `Integral` = `func(Integral,
 	// Integral)(Integral)`) defined for this operator overload.
-	Signature types.DataType
+	Signature typing.DataType
 
 	// Exported indicates whether or not the overload is exported
 	Exported bool
@@ -100,5 +100,5 @@ type WhirlSymbolImport struct {
 	SymbolRef *Symbol
 
 	// Positions is a list of all places where this symbol is imported
-	Positions []*util.TextPosition
+	Positions []*logging.TextPosition
 }

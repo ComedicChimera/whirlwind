@@ -1,11 +1,11 @@
 package common
 
-import "github.com/ComedicChimera/whirlwind/src/types"
+import "github.com/ComedicChimera/whirlwind/src/typing"
 
 // Symbol represents a named value (stored locally or globally)
 type Symbol struct {
 	Name string
-	Type types.DataType
+	Type typing.DataType
 
 	// Constant indicates that the symbol is defined as constant
 	Constant bool
@@ -51,10 +51,10 @@ const (
 	DSShared // declared in another package, exported by this package
 )
 
-// Symbol Kinds
+// Definition Kinds
 const (
-	SKindTypeDef = iota
-	SKindBinding
-	SKindFuncDef
-	SKindNamedValue
+	DefKindTypeDef = iota
+	DefKindBinding
+	DefKindFuncDef
+	DefKindNamedValue
 )

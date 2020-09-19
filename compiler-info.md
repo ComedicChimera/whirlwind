@@ -7,6 +7,7 @@ what.
 
 - [Compilation Pipeline](#pipeline)
 - [Package Legend](#legend)
+- [HIR Optimizations](#hir-optim)
 - [Common Fixes](#fixes)
 
 ## <a name="pipeline"/> Compilation Pipeline 
@@ -75,6 +76,16 @@ This section describes the layout of packages (ie. where to find what)
 | syntax | Scans and parses files to produce syntactically valid ASTs (stage #1) |
 | typing | Defines the type system and facilitates type checking (stage #3) |
 | validate | Converts an AST into a semantically-valid, unoptimized HIR tree  (stage #3) |
+
+## <a name="hir-optim"> HIR Optimizations
+
+### Range Optimizations
+
+### Implicit Constancy
+
+### First-Class Function Reduction
+
+### Implicit Vectorization
 
 ## <a name="fixes"/> Common Fixes
 

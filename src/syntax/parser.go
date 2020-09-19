@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ComedicChimera/whirlwind/src/util"
+	"github.com/ComedicChimera/whirlwind/src/logging"
 )
 
 // Parser is a modified LALR(1) parser designed for Whirlwind
 type Parser struct {
+	// `lctx` is updated every call to `parse`
+	lctx *logging.LogContext
+
 	// scanner containing reference to the file being parsed
 	sc *Scanner
 
@@ -97,6 +100,7 @@ func NewParser(grammarPath string, forceGBuild bool) (*Parser, error) {
 // Parse runs the main parsing algorithm on the given scanner
 func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 	p.sc = sc
+	p.lctx = sc.lctx
 	p.stateStack = []int{0}
 	p.semanticStack = nil // clear semantic stack
 
@@ -129,9 +133,9 @@ func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 				break
 			// generate descriptive error messages for special tokens
 			case EOF:
-				return nil, util.NewWhirlError(
+				return nil, p.lctx.CreateMessage(
 					"Unexpected End of File",
-					"Syntax",
+					logging.LMKSyntax,
 					nil, // EOFs only happen in one place :)
 				)
 			case INDENT, DEDENT:
@@ -141,16 +145,16 @@ func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 					// is actually an unexpected EOF not an unexpected
 					// indentation change (caused by closing DEDENT)
 					if tok, err := p.sc.ReadToken(); err == io.EOF || (err == nil && tok.Kind == EOF) {
-						return nil, util.NewWhirlError(
+						return nil, p.lctx.CreateMessage(
 							"Unexpected End of File",
-							"Syntax",
+							logging.LMKSyntax,
 							nil,
 						)
 					}
 
-					return nil, util.NewWhirlError(
+					return nil, p.lctx.CreateMessage(
 						"Unexpected Indentation Change",
-						"Syntax",
+						logging.LMKSyntax,
 						TextPositionOfToken(p.lookahead),
 					)
 				}
@@ -166,9 +170,9 @@ func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 
 				fallthrough
 			default:
-				return nil, util.NewWhirlError(
+				return nil, p.lctx.CreateMessage(
 					fmt.Sprintf("Unexpected Token `%s`", p.lookahead.Value),
-					"Syntax",
+					logging.LMKSyntax,
 					TextPositionOfToken(p.lookahead),
 				)
 			}

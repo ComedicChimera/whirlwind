@@ -8,9 +8,13 @@ import (
 	"path/filepath"
 
 	"github.com/ComedicChimera/whirlwind/src/common"
+	"github.com/ComedicChimera/whirlwind/src/logging"
 	"github.com/ComedicChimera/whirlwind/src/syntax"
-	"github.com/ComedicChimera/whirlwind/src/util"
 )
+
+// SrcFileExtension is used to indicate what the file extension is for a
+// Whirlwind source file (used to identify files when loading packages)
+const SrcFileExtension = ".wrl"
 
 // initPackage takes a directory path and parses all files in the directory and
 // creates entries for them in a new package created based on the directory's
@@ -36,24 +40,24 @@ func (c *Compiler) initPackage(abspath string) (*common.WhirlPackage, error) {
 	// later
 	err := filepath.Walk(abspath, func(fpath string, info os.FileInfo, ferr error) error {
 		if ferr != nil {
-			util.LogMod.LogError(ferr)
+			logging.LogStdError(ferr)
 		} else if info.IsDir() {
 			return nil
 		}
 
-		if filepath.Ext(fpath) == util.SrcFileExtension {
-			util.CurrentFile = fpath
+		if filepath.Ext(fpath) == SrcFileExtension {
+			c.lctx.FilePath = fpath
 
-			sc, err := syntax.NewScanner(fpath)
+			sc, err := syntax.NewScanner(fpath, c.lctx)
 
 			if err != nil {
-				util.LogMod.LogError(err)
+				logging.LogStdError(err)
 			}
 
 			ast, err := c.parser.Parse(sc)
 
 			if err != nil {
-				util.LogMod.LogError(err)
+				logging.LogStdError(err)
 			}
 
 			abranch := ast.(*syntax.ASTBranch)

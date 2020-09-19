@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/ComedicChimera/whirlwind/src/common"
+	"github.com/ComedicChimera/whirlwind/src/logging"
 	"github.com/ComedicChimera/whirlwind/src/syntax"
-	"github.com/ComedicChimera/whirlwind/src/util"
 )
 
 // Store the different possible output formats for the compiler
@@ -37,6 +37,9 @@ type Compiler struct {
 	buildDirectory      string
 	outputFormat        int
 	debugTarget         bool
+
+	// global, shared log context
+	lctx *logging.LogContext
 
 	// parser is the a shared reference to a `Parser` struct used throughout
 	// compilation ("singleton" - shared parsing table ref)
@@ -142,12 +145,12 @@ func NewCompiler(o string, a string, op string, bd string, debugT bool, whirlpat
 // determines the pointer size for any given architecture (and/or platform)
 // TODO: confirm that these sizes will work as a general rule
 func (c *Compiler) setPointerSize() {
-	switch c.targetarch {
-	case "x86":
-		util.PointerSize = 4
-	case "x64":
-		util.PointerSize = 8
-	}
+	// switch c.targetarch {
+	// case "x86":
+	// 	logging.PointerSize = 4
+	// case "x64":
+	// 	logging.PointerSize = 8
+	// }
 }
 
 // Compile initializes the compiler (for building) and runs the main compilation
@@ -161,19 +164,19 @@ func (c *Compiler) Compile(forceGrammarRebuild bool) {
 	parser, err := syntax.NewParser(path.Join(c.whirlpath, "/config/grammar.ebnf"), forceGrammarRebuild)
 
 	if err != nil {
-		util.LogMod.LogFatal(err.Error())
+		logging.LogFatal(err.Error())
 		return
 	}
 
 	c.parser = parser
 	c.depGraph = make(map[uint]*common.WhirlPackage)
 
-	// make sure all information is displayed as necessary before compiler exits
-	defer util.LogMod.ShowStatus()
+	// make sure we log the completion of compilation
+	defer logging.LogFinished()
 
 	// give verbose feedback as necessary
-	util.LogMod.ShowInfo(c.targetos, c.targetarch, c.debugTarget)
-	util.LogMod.ShowStateChange("Analyzing")
+	logging.LogInfo(c.targetos, c.targetarch, c.debugTarget)
+	logging.LogStateChange("Analyzing")
 
 	// load the prelude before we begin the building process (this only proceeds
 	// through stage 1 of the import algorithm: it will be finished off during
@@ -181,7 +184,8 @@ func (c *Compiler) Compile(forceGrammarRebuild bool) {
 	c.initPrelude()
 
 	// now that we are setup and ready to go, we can begin building
-	util.LogMod.LogFinished(c.buildMainPackage())
+	c.buildMainPackage()
+
 }
 
 // buildMainPackage is the main compilation function: it goes through and builds the
@@ -189,7 +193,7 @@ func (c *Compiler) Compile(forceGrammarRebuild bool) {
 func (c *Compiler) buildMainPackage() bool {
 	rootPkg, err := c.initPackage(c.buildDirectory)
 	if err != nil {
-		util.LogMod.LogError(err)
+		logging.LogStdError(err)
 		return false
 	}
 

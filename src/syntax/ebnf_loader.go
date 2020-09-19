@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ComedicChimera/whirlwind/src/util"
+	"github.com/ComedicChimera/whirlwind/src/logging"
 )
 
 // simple scanner/parser to read in and create grammar
@@ -87,7 +87,7 @@ func (gl *gramLoader) next() bool {
 			return false
 		}
 
-		util.LogMod.LogFatal(err.Error())
+		logging.LogFatal(err.Error())
 	}
 
 	if r == '\n' {

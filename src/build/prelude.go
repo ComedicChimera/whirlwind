@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/ComedicChimera/whirlwind/src/common"
-	"github.com/ComedicChimera/whirlwind/src/util"
+	"github.com/ComedicChimera/whirlwind/src/logging"
 )
 
 // preludeImports is a list of the imported prelude packages (after they are loaded)
@@ -35,14 +35,14 @@ func (c *Compiler) initPrelude() {
 			// throw a fatal compiler error: they are NECESSARY for compilation
 			npkg, err := c.initPackage(preludePath)
 			if err != nil {
-				util.LogMod.LogError(err)
-				util.LogMod.LogFatal(fmt.Sprintf("Unable to load necessary prelude package: `%s`", stdpkgname))
+				logging.LogStdError(err)
+				logging.LogFatal(fmt.Sprintf("Unable to load necessary prelude package: `%s`", stdpkgname))
 			}
 
 			if c.initDependencies(npkg) {
 				preludeImports[stdpkgname] = npkg
 			} else {
-				util.LogMod.LogFatal(fmt.Sprintf("Unable to load necessary prelude package: `%s`", stdpkgname))
+				logging.LogFatal(fmt.Sprintf("Unable to load necessary prelude package: `%s`", stdpkgname))
 			}
 		}
 	}
@@ -66,7 +66,7 @@ func (c *Compiler) attachPrelude(pkg *common.WhirlPackage, file *common.WhirlFil
 			// positions). If the compiler needs to throw an error involving
 			// these imports specifically and it encounters a `nil` position, it
 			// should consider the error fatal.
-			importedSymbols := make(map[string]*util.TextPosition)
+			importedSymbols := make(map[string]*logging.TextPosition)
 			for _, importedSymbolName := range preludeImportPatterns[stdpkgname] {
 				importedSymbols[importedSymbolName] = nil
 			}
