@@ -134,7 +134,7 @@ Linked List:
 
 ***TODO: Insert links***
 
-Information about the compiler and all of its components can be found [here](insert link here).
+Information about the compiler and all of its components can be found [here](compiler-info.md).
 
 If you would like to contribute to this compiler or this language, please review the information above
 and join our Discord and other social media to get up to speed on the language in its current state.
