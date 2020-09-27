@@ -175,7 +175,7 @@ func (c *Compiler) processImport(pkg *common.WhirlPackage, file *common.WhirlFil
 		)
 	}
 
-	return c.attachPackageToFile(pkg, file, newpkg, importedSymbols, rename, namePosition)
+	return c.attachFileToPackage(pkg, file, newpkg, importedSymbols, rename, namePosition)
 }
 
 // getPackagePath determines, from a relative path, the absolute path to a
@@ -221,11 +221,11 @@ func (c *Compiler) getPackagePath(relpath string) string {
 	return ""
 }
 
-// attachPackageToFile attaches an already loaded package to a file (completing
+// attachFileToPackage attaches an already loaded file to a package (completing
 // first stage of importing package for that file).  NOTE: `rename` can be blank
 // if the package is not renamed, `namePosition` should point whatever token or
 // branch is used name of the package is derived from (not just rename).
-func (c *Compiler) attachPackageToFile(pkg *common.WhirlPackage, file *common.WhirlFile,
+func (c *Compiler) attachFileToPackage(pkg *common.WhirlPackage, file *common.WhirlFile,
 	apkg *common.WhirlPackage, importedSymbols map[string]*logging.TextPosition, rename string, namePosition *logging.TextPosition) bool {
 
 	// update the current package's imports
@@ -235,8 +235,8 @@ func (c *Compiler) attachPackageToFile(pkg *common.WhirlPackage, file *common.Wh
 				// `...` implies a full namespace import (stored in
 				// `importedSymbols`)
 				if name == "..." {
-					wimport.NamespaceImports[file] = struct{}{}
-					file.VisiblePackages[apkg.Name+"..."] = apkg
+					wimport.NamespaceImport = true
+					file.NamespaceImports[apkg.PackageID] = apkg
 					break
 				}
 
@@ -264,8 +264,8 @@ func (c *Compiler) attachPackageToFile(pkg *common.WhirlPackage, file *common.Wh
 			for name, pos := range importedSymbols {
 				// as before, `...` implies a full namespace import
 				if name == "..." {
-					wimport.NamespaceImports[file] = struct{}{}
-					file.VisiblePackages[apkg.Name+"..."] = apkg
+					wimport.NamespaceImport = true
+					file.NamespaceImports[apkg.PackageID] = apkg
 					break
 				}
 

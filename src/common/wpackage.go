@@ -30,11 +30,12 @@ type WhirlFile struct {
 
 	// VisiblePackages lists all the packages that are visible by name or rename
 	// in the current file.  The key is the name by with the package is visible.
-	// Full namespace imports should also be stored here (using some form of
-	// unique suffix) -- namespace import status should be determined by
-	// confirming it with package's import entry in the import table (which
-	// should list the files that import its namespace)
 	VisiblePackages map[string]*WhirlPackage
+
+	// NamespaceImports lists the packages whose exported namespaces are
+	// imported by the current file (this is factored into the package level
+	// WhirlImport as well)
+	NamespaceImports []*WhirlPackage
 }
 
 // WhirlPackage represents a full, Whirlwind package (translation unit)
@@ -51,17 +52,19 @@ type WhirlPackage struct {
 	// directory)
 	RootDirectory string
 
-	// Stores all of the files in a package
+	// Files stores all of the files in a package
 	Files map[string]*WhirlFile
 
-	// Stores all of the globally-defined symbols in the package.
+	// GlobalTable stores all of the globally-defined symbols in the package.
 	GlobalTable map[string]*Symbol
 
-	// Stores all of the overloaded operator definitions by their operator kind
+	// OperatorOverloads stores all of the overloaded operator definitions by
+	// their operator kind
 	OperatorOverloads map[int][]*WhirlOperatorOverload
 
-	// Stores all of the packages that this package imports (by ID) as well as
-	// what items it imports (useful for constructing dependency graph)
+	// ImportTable Stores all of the packages that this package imports (by ID)
+	// as well as what items it imports (useful for constructing dependency
+	// graph)
 	ImportTable map[uint]*WhirlImport
 }
 
@@ -85,10 +88,9 @@ type WhirlImport struct {
 	// meaningless and therefore can be ignored during a namespace import.
 	ImportedSymbols map[string]*WhirlSymbolImport
 
-	// NamespaceImports is a map of all of the files that import the package's
-	// namespace (ie. use the `...` import notation).  This is a map for fast
-	// look-ups.
-	NamespaceImports map[*WhirlFile]struct{}
+	// NamespaceImport indicates whether the imported package's exported
+	// namespace is used in its entirety by a namespace import in this package.
+	NamespaceImport bool
 }
 
 // WhirlSymbolImport represents an imported symbol (with reference and position)

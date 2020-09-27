@@ -73,7 +73,7 @@ func (c *Compiler) attachPrelude(pkg *common.WhirlPackage, file *common.WhirlFil
 
 			// prelude packages are never imported by name so we can leave the
 			// fields that relate to names and renames blank
-			c.attachPackageToFile(pkg, file, piPkg, importedSymbols, "", nil)
+			c.attachFileToPackage(pkg, file, piPkg, importedSymbols, "", nil)
 		}
 	}
 }
