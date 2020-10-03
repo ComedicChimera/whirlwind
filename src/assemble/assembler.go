@@ -37,11 +37,40 @@ func NewPackageAssembler(pkgs ...*common.WhirlPackage) *PAssembler {
 
 // Assemble runs the main cross-resolution and assembly algorithm
 func (pa *PAssembler) Assemble() bool {
+	// we want every package to at least attempt local resolution so we get a
+	// comprehensive error analysis so we store the resolution status as a flag
+	// so we can exit before cross-resolution instead of failing immediately.
+	allresolvedok := true
 	for _, r := range pa.Resolvers {
 		if !r.ResolveLocals() {
-			return false
+			allresolvedok = false
+		}
+	}
+
+	if !allresolvedok {
+		return false
+	}
+
+	// determine if any resolvers have unresolved symbols.  If so, attempt
+	// cross-resolution for the whole assembly group.  Otherwise, just exit.
+	for _, r := range pa.Resolvers {
+		if r.DefQueue.Len() > 0 {
+			// if there is only one resolver, then cross-resolution would be
+			// pointless and every externally defined symbol should be
+			// considered undefined.
+			if len(pa.Resolvers) == 1 {
+				r.logUnresolved()
+				return false
+			}
+
+			return pa.crossResolve()
 		}
 	}
 
 	return true
+}
+
+// crossResolve runs the cross-resolution algorithm for multiple packages
+func (pa *PAssembler) crossResolve() bool {
+	return false
 }

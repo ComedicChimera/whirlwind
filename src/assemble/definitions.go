@@ -8,17 +8,15 @@ import (
 
 // Definition represents a definition that is still being resolved
 type Definition struct {
-	// Node is the ASTNode associated with the given definition
-	Node *syntax.ASTNode
+	// Branch is the ASTBranch associated with the given definition
+	Branch *syntax.ASTBranch
+
+	// DefNames is a list of the names created by this definition
+	DefNames []string
 
 	// RequiredSymbols is a list of the symbols needed to produce the HIRNode
-	// for the given definition along with their first position in the Node.
+	// for the given definition along with their first position in the Branch.
 	RequiredSymbols map[string]*logging.TextPosition
-
-	// ResolutionSymbol is the symbol that this definition should fill in on
-	// completion.  This field can be nil -- if it is, then no value is filled
-	// in.
-	ResolutionSymbol *common.Symbol
 
 	// SrcFile is the file this definition occurs in.
 	SrcFile     *common.WhirlFile

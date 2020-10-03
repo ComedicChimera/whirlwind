@@ -247,7 +247,7 @@ func (c *Compiler) attachFileToPackage(pkg *common.WhirlPackage, file *common.Wh
 					// create a blank shared symbol reference
 					sref := &common.Symbol{}
 
-					// add to the import and to the file's local table
+					// add to the import and the file's local table
 					wimport.ImportedSymbols[name] = &common.WhirlSymbolImport{
 						Name:      name,
 						SymbolRef: sref,
@@ -272,7 +272,7 @@ func (c *Compiler) attachFileToPackage(pkg *common.WhirlPackage, file *common.Wh
 				// create a blank shared symbol reference
 				sref := &common.Symbol{}
 
-				// add to the import and to the file's local table
+				// add to the import and the file's local table
 				wimport.ImportedSymbols[name] = &common.WhirlSymbolImport{
 					Name:      name,
 					SymbolRef: sref,

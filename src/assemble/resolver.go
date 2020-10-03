@@ -5,6 +5,7 @@ import (
 
 	"github.com/ComedicChimera/whirlwind/src/common"
 	"github.com/ComedicChimera/whirlwind/src/logging"
+	"github.com/ComedicChimera/whirlwind/src/syntax"
 )
 
 // The Resolution Algorithm (Single-Package)
@@ -75,12 +76,14 @@ func (r *Resolver) ResolveLocals() bool {
 		for i := 0; i < r.DefQueue.Len(); i++ {
 			top := r.DefQueue.Peek()
 
-			// check if this symbol is in the unaccounted unknowns => cyclic
-			// definition -- two symbols depend on each other in an
-			// unresolveable way :(.
-			if uerr, ok := unaccountedUnknowns[top.ResolutionSymbol.Name]; ok {
-				// update the error to be a cyclic definition error
-				uerr.Message = fmt.Sprintf("Symbol `%s` defined cyclically", top.ResolutionSymbol.Name)
+			// check if any of this definition's names are in the unaccounted
+			// unknowns => cyclic definition -- two symbols depend on each other
+			// in an unresolveable way :(.
+			for _, name := range top.DefNames {
+				if uerr, ok := unaccountedUnknowns[name]; ok {
+					// update the error to be a cyclic definition error
+					uerr.Message = fmt.Sprintf("Symbol `%s` defined cyclically", name)
+				}
 			}
 
 			for name, pos := range top.RequiredSymbols {
@@ -123,7 +126,55 @@ func (r *Resolver) ResolveLocals() bool {
 
 // initialPass performs step 1 of the resolution algorithm
 func (r *Resolver) initialPass() {
+	for fpath, wfile := range r.GetPackage().Files {
+		wfile.Root = &common.HIRRoot{}
 
+		// pass over all of the export blocks as necessary before passing over
+		// the file as a whole.
+		for _, item := range wfile.AST.Content {
+			itembranch := item.(*syntax.ASTBranch)
+
+			if itembranch.Name == "export_block" {
+				r.initialPassOverBlock(fpath, wfile, itembranch.BranchAt(3))
+			} else {
+				// we know this is the "top_level" node and we do not need to
+				// expect any other export blocks.
+				r.initialPassOverBlock(fpath, wfile, itembranch)
+			}
+		}
+
+		// free the top AST -- it is no longer needed :)
+		wfile.AST = nil
+	}
+}
+
+// initialPassOverBlock takes an AST over which to perform the initial
+// resolution pass (walks a top_level `node`)
+func (r *Resolver) initialPassOverBlock(fpath string, wfile *common.WhirlFile, block *syntax.ASTBranch) {
+	for _, topast := range block.Content {
+		branch := topast.(*syntax.ASTBranch)
+		syms, hirn, unknowns := r.walkDef(branch)
+		if hirn == nil {
+			// create our definition's defined names slice
+			defNames := make([]string, len(syms))
+			n := 0
+			for sym := range syms {
+				defNames[n] = sym.Name
+				n++
+			}
+
+			r.DefQueue.Enqueue(&Definition{
+				Branch:          branch,
+				DefNames:        defNames,
+				RequiredSymbols: unknowns,
+				SrcFile:         wfile,
+				SrcFilePath:     fpath,
+			})
+		} else {
+			// all declaration errors handled by declare
+			r.declare(fpath, wfile, syms, hirn)
+		}
+	}
 }
 
 // resolutionPass performs step 2 of the resolution algorithm
@@ -170,5 +221,60 @@ func (r *Resolver) resolutionPass() {
 
 // resolveDef attempts to resolve and declare a definition
 func (r *Resolver) resolveDef(def *Definition) bool {
-	return false
+	// first, update the required symbols of this definition to account for any
+	// newly defined symbols -- this will inform us on the status of this
+	// definition and allow for more efficient checking and error handling later.
+	for req := range def.RequiredSymbols {
+		if _, ok := r.Table.Lookup(req); ok {
+			// The mutation here is unproblematic as this element has already
+			// been handled (so we can delete freely)
+			delete(def.RequiredSymbols, req)
+		}
+	}
+
+	// if there are still unknown required symbols, then this definition is is
+	// not ready for resolution, and we indicate as such
+	if len(def.RequiredSymbols) > 0 {
+		return false
+	}
+
+	// this should always succeed if all required symbols exist
+	syms, hirn, _ := r.walkDef(def.Branch)
+
+	// even if declaration fails, we still want to "succeed here" so that this
+	// definition doesn't linger in the queue.  It has been "resolved", it is
+	// simply erroneous.  All of its dependencies will not resolve and so its
+	// consequences will be handled there.
+	r.declare(def.SrcFilePath, def.SrcFile, syms, hirn)
+	return true
+}
+
+// declare finalizes and declares a finished definition. `fpath` is needed to
+// throw errors on any symbol that declared multiple times in the global scope.
+func (r *Resolver) declare(fpath string, wfile *common.WhirlFile, syms map[*common.Symbol]*logging.TextPosition, hirn common.HIRNode) {
+	// create a reusable log context for this declared
+	lctx := &logging.LogContext{
+		PackageID: r.GetPackage().PackageID,
+		FilePath:  fpath,
+	}
+
+	allok := true
+	for sym, pos := range syms {
+		if !r.Table.Define(sym) {
+			logging.LogError(lctx, fmt.Sprintf("Symbol `%s` declared multiple times", sym.Name), logging.LMKName, pos)
+			allok = false
+		}
+	}
+
+	if allok {
+		// only want to finalize the definition if the symbols are all declared "ok"
+		wfile.Root.Elements = append(wfile.Root.Elements, hirn)
+	}
+}
+
+// logUnresolved considers the resolution stage finished for this resolver and
+// causes it to log the appropriate errors for all unresolved imports or symbols
+// referenced via. namespace imports.
+func (r *Resolver) logUnresolved() {
+
 }
