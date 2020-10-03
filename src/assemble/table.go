@@ -22,8 +22,10 @@ type ResolutionTable struct {
 	// CurrFile represents the file containing definition being operated on
 	CurrFile *common.WhirlFile
 
-	// Unknowns is a map of a symbols that are currently unknown but required
-	Unknowns map[string]struct{}
+	// Unknowns is a map of a symbols that are currently unknown but required.
+	// The boolean field indicates whether or not the symbol is imported and
+	// undefined.
+	Unknowns map[string]bool
 }
 
 // Lookup attempts to find a symbol in the current package or global symbol
@@ -40,12 +42,17 @@ func (rt *ResolutionTable) Lookup(name string) (*common.Symbol, bool) {
 		return sym, true
 	}
 
-	// if the symbol has no name, then it is undefined (accessed via import)
-	if sym, ok := rt.CurrFile.LocalTable[name]; ok && sym.Name != "" {
+	if sym, ok := rt.CurrFile.LocalTable[name]; ok {
+		// if the symbol has no name, then it is undefined (accessed via import)
+		if sym.Name == "" {
+			rt.Unknowns[name] = true
+			return nil, false
+		}
+
 		return sym, true
 	}
 
-	rt.Unknowns[name] = struct{}{}
+	rt.Unknowns[name] = false
 	return nil, false
 }
 
@@ -74,7 +81,7 @@ func (rt *ResolutionTable) Define(sym *common.Symbol) bool {
 
 // ClearUnknowns resets the map of unknowns before another definition is analyzed
 func (rt *ResolutionTable) ClearUnknowns() {
-	rt.Unknowns = make(map[string]struct{})
+	rt.Unknowns = make(map[string]bool)
 }
 
 // importFromNamespace attempts to import a symbol by name from the exported

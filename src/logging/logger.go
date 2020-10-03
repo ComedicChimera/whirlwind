@@ -43,6 +43,7 @@ const (
 	LMKTyping        // Error in type checking
 	LMKMemory        // Error in memory analysis
 	LMKImmut         // Error mutating an immutable value
+	LMKName          // Error occurring due a misused/undefined name
 	LMKUsage         // Error ocurring generally (due to some other rule)
 	// TODO: add more as needed
 )

@@ -2,6 +2,7 @@ package assemble
 
 import (
 	"github.com/ComedicChimera/whirlwind/src/common"
+	"github.com/ComedicChimera/whirlwind/src/logging"
 	"github.com/ComedicChimera/whirlwind/src/syntax"
 )
 
@@ -11,19 +12,17 @@ type Definition struct {
 	Node *syntax.ASTNode
 
 	// RequiredSymbols is a list of the symbols needed to produce the HIRNode
-	// for the given definition.
-	RequiredSymbols map[string]struct{}
+	// for the given definition along with their first position in the Node.
+	RequiredSymbols map[string]*logging.TextPosition
 
 	// ResolutionSymbol is the symbol that this definition should fill in on
 	// completion.  This field can be nil -- if it is, then no value is filled
 	// in.
 	ResolutionSymbol *common.Symbol
 
-	// SrcPackage is the package this definition occurs in.
-	SrcPackage *common.WhirlPackage
-
 	// SrcFile is the file this definition occurs in.
-	SrcFile *common.WhirlFile
+	SrcFile     *common.WhirlFile
+	SrcFilePath string // used for logging
 }
 
 // DefinitionQueue is a simple queue implementation used for the definition
