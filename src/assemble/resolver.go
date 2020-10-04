@@ -62,7 +62,9 @@ func (r *Resolver) GetPackage() *common.WhirlPackage {
 // function will mark any symbols that are definitively unresolveable.
 func (r *Resolver) ResolveLocals() bool {
 	r.initialPass()
-	r.resolutionPass()
+
+	// perform our resolution pass (step 2)
+	r.queuePass(r.resolveDef)
 
 	// stage 3 of resolution algorithm below
 	if r.DefQueue.Len() > 0 {
@@ -177,8 +179,12 @@ func (r *Resolver) initialPassOverBlock(fpath string, wfile *common.WhirlFile, b
 	}
 }
 
-// resolutionPass performs step 2 of the resolution algorithm
-func (r *Resolver) resolutionPass() {
+// queuePass is a utility function that repeatedly calls a function as it cycles
+// through the elements of the queue until no changes occur or the queue is
+// emptied.  The function should indicate whether the current (top) element
+// should be cycled to the back (false) or dequeued (true).  It used both in
+// single-file and cross-file resolution.
+func (r *Resolver) queuePass(queueFunc func(top *Definition) bool) {
 	// mark is a variable used to keep track of the first symbol rotated to the
 	// back on each pass.  If the mark is encountered again and length of the
 	// queue has not changed (no new definitions declared), then this stage
@@ -189,7 +195,7 @@ func (r *Resolver) resolutionPass() {
 	for r.DefQueue.Len() > 0 {
 		top := r.DefQueue.Peek()
 
-		if r.resolveDef(top) {
+		if queueFunc(top) {
 			// if we resolve our mark, we have to set it to nil so as not to get
 			// caught in an infinite loop -- update our resolution state
 			// appropriately.
@@ -261,7 +267,7 @@ func (r *Resolver) declare(fpath string, wfile *common.WhirlFile, syms map[*comm
 	allok := true
 	for sym, pos := range syms {
 		if !r.Table.Define(sym) {
-			logging.LogError(lctx, fmt.Sprintf("Symbol `%s` declared multiple times", sym.Name), logging.LMKName, pos)
+			logging.LogError(lctx, fmt.Sprintf("Symbol `%s` defined multiple times", sym.Name), logging.LMKName, pos)
 			allok = false
 		}
 	}
@@ -276,5 +282,45 @@ func (r *Resolver) declare(fpath string, wfile *common.WhirlFile, syms map[*comm
 // causes it to log the appropriate errors for all unresolved imports or symbols
 // referenced via. namespace imports.
 func (r *Resolver) logUnresolved() {
+	// make sure errors for misimported symbols are not logged multiple times
+	importedSymbolErrors := make(map[string]struct{})
 
+	for r.DefQueue.Len() > 0 {
+		top := r.DefQueue.Peek()
+		lctx := &logging.LogContext{
+			PackageID: r.GetPackage().PackageID,
+			FilePath:  top.SrcFilePath,
+		}
+
+		for name, pos := range top.RequiredSymbols {
+			// if it is the local table but has not been resolved then, the
+			// symbol was imported but a definition was never found for it,
+			// so we need to throw an import error on the symbol
+			if _, ok := top.SrcFile.LocalTable[name]; ok {
+				// if the error has not already been logged
+				if _, logged := importedSymbolErrors[name]; !logged {
+					// find the location of the symbol import
+					for _, wimport := range r.GetPackage().ImportTable {
+						if wsi, ok := wimport.ImportedSymbols[name]; ok {
+							ipos := wsi.Positions[top.SrcFile]
+							logging.LogError(
+								lctx,
+								fmt.Sprintf("Symbol `%s` is not contained in package `%s`", name, wimport.PackageRef.Name),
+								logging.LMKName,
+								ipos,
+							)
+							break
+						}
+					}
+
+					importedSymbolErrors[name] = struct{}{}
+				}
+			} else {
+				// otherwise, just throw a regular undefined error -- namespace import
+				logging.LogError(lctx, fmt.Sprintf("Symbol `%s` undefined", name), logging.LMKName, pos)
+			}
+		}
+
+		r.DefQueue.Dequeue()
+	}
 }

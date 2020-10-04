@@ -13,6 +13,9 @@ import (
 //    queue and attempt to resolve them with cross resolution.  This algorithm
 //    works much the same as the single-package resolution algorithm just using
 //    multiple definition queues.
+//    i. Resolve all namespace imports by passing through the queues repeatedly
+//    doing implicit "import from package" calls until no more symbols are
+//    resolved on each pass
 
 // PAssembler is the construct responsible for managing package assembly --
 // construction of top-level of a package or packages.  It is the implementation
@@ -72,5 +75,51 @@ func (pa *PAssembler) Assemble() bool {
 
 // crossResolve runs the cross-resolution algorithm for multiple packages
 func (pa *PAssembler) crossResolve() bool {
+	pa.crossResolveNamespaceImports()
+
 	return false
+}
+
+// crossResolveNamespaceImports handles namespace import (`...` syntax) cross
+// resolution as described @ the top of this file.
+func (pa *PAssembler) crossResolveNamespaceImports() {
+	// flag to indicate whether any namespace imports were resolved
+	importResolved := true
+	for importResolved {
+		importResolved = false
+
+		// go through each resolver and attempt to resolve any and all namespace imports
+		for _, r := range pa.Resolvers {
+			// pkg := r.GetPackage()
+
+			r.queuePass(func(top *Definition) bool {
+				// as we defined more and more namespace imported symbols, more
+				// and more definitions will resolve themselves without having
+				// the check for namespace imports.  So we still attempt normal
+				// resolution at the start.
+				if r.resolveDef(top) {
+					return true
+				}
+
+				for req := range top.RequiredSymbols {
+					for ni, exported := range top.SrcFile.NamespaceImports {
+						if sym, ok := importFromNamespace(ni, req); ok {
+							top.SrcFile.LocalTable[sym.Name] = sym.Import(exported)
+							delete(top.RequiredSymbols, req)
+						}
+					}
+				}
+
+				if len(top.RequiredSymbols) == 0 {
+					// same logic here as `resolveDef` -- just without the first check.
+					syms, hirn, _ := r.walkDef(top.Branch)
+
+					r.declare(top.SrcFilePath, top.SrcFile, syms, hirn)
+					return true
+				}
+
+				return false
+			})
+		}
+	}
 }

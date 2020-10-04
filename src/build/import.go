@@ -175,7 +175,8 @@ func (c *Compiler) processImport(pkg *common.WhirlPackage, file *common.WhirlFil
 		)
 	}
 
-	return c.attachFileToPackage(pkg, file, newpkg, importedSymbols, rename, namePosition)
+	// now that we have processed the import, we can attach the package to a file
+	return c.attachPackageToFile(pkg, file, newpkg, importedSymbols, rename, namePosition, exported)
 }
 
 // getPackagePath determines, from a relative path, the absolute path to a
@@ -221,12 +222,12 @@ func (c *Compiler) getPackagePath(relpath string) string {
 	return ""
 }
 
-// attachFileToPackage attaches an already loaded file to a package (completing
+// attachPackageToFile attaches an already loaded file to a package (completing
 // first stage of importing package for that file).  NOTE: `rename` can be blank
 // if the package is not renamed, `namePosition` should point whatever token or
 // branch is used name of the package is derived from (not just rename).
-func (c *Compiler) attachFileToPackage(pkg *common.WhirlPackage, file *common.WhirlFile,
-	apkg *common.WhirlPackage, importedSymbols map[string]*logging.TextPosition, rename string, namePosition *logging.TextPosition) bool {
+func (c *Compiler) attachPackageToFile(pkg *common.WhirlPackage, file *common.WhirlFile,
+	apkg *common.WhirlPackage, importedSymbols map[string]*logging.TextPosition, rename string, namePosition *logging.TextPosition, exported bool) bool {
 
 	// update the current package's imports
 	if wimport, ok := pkg.ImportTable[apkg.PackageID]; ok {
@@ -240,8 +241,13 @@ func (c *Compiler) attachFileToPackage(pkg *common.WhirlPackage, file *common.Wh
 					break
 				}
 
+				if _, ok := file.LocalTable[name]; ok {
+					logging.LogError(c.lctx, fmt.Sprintf("Symbol `%s` defined multiple times", name), logging.LMKName, pos)
+					return false
+				}
+
 				if wsi, ok := wimport.ImportedSymbols[name]; ok {
-					wsi.Positions = append(wsi.Positions, pos)
+					wsi.Positions[file] = pos
 					file.LocalTable[name] = wsi.SymbolRef
 				} else {
 					// create a blank shared symbol reference
@@ -249,9 +255,8 @@ func (c *Compiler) attachFileToPackage(pkg *common.WhirlPackage, file *common.Wh
 
 					// add to the import and the file's local table
 					wimport.ImportedSymbols[name] = &common.WhirlSymbolImport{
-						Name:      name,
 						SymbolRef: sref,
-						Positions: []*logging.TextPosition{pos},
+						Positions: map[*common.WhirlFile]*logging.TextPosition{file: pos},
 					}
 					file.LocalTable[name] = sref
 				}
@@ -274,9 +279,8 @@ func (c *Compiler) attachFileToPackage(pkg *common.WhirlPackage, file *common.Wh
 
 				// add to the import and the file's local table
 				wimport.ImportedSymbols[name] = &common.WhirlSymbolImport{
-					Name:      name,
 					SymbolRef: sref,
-					Positions: []*logging.TextPosition{pos},
+					Positions: map[*common.WhirlFile]*logging.TextPosition{file: pos},
 				}
 				file.LocalTable[name] = sref
 			}
@@ -297,7 +301,7 @@ func (c *Compiler) attachFileToPackage(pkg *common.WhirlPackage, file *common.Wh
 		if _, ok := file.VisiblePackages[name]; ok {
 			logging.LogError(
 				c.lctx,
-				fmt.Sprintf("Multiple packages imported with `%s`", name),
+				fmt.Sprintf("Multiple packages imported with the name `%s`", name),
 				logging.LMKImport,
 				namePosition,
 			)

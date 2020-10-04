@@ -32,9 +32,9 @@ type ResolutionTable struct {
 // table. If it is unsuccessful, it marks the symbol as unknown.  Otherwise, it
 // returns the symbol it finds.
 func (rt *ResolutionTable) Lookup(name string) (*common.Symbol, bool) {
-	for _, nipkg := range rt.CurrFile.NamespaceImports {
+	for nipkg, exported := range rt.CurrFile.NamespaceImports {
 		if sym, ok := importFromNamespace(nipkg, name); ok {
-			return sym, true
+			return sym.Import(exported), true
 		}
 	}
 

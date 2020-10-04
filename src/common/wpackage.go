@@ -34,8 +34,9 @@ type WhirlFile struct {
 
 	// NamespaceImports lists the packages whose exported namespaces are
 	// imported by the current file (this is factored into the package level
-	// WhirlImport as well)
-	NamespaceImports []*WhirlPackage
+	// WhirlImport as well).  The value indicates whether or not the namespace
+	// should be exported or not.
+	NamespaceImports map[*WhirlPackage]bool
 }
 
 // WhirlPackage represents a full, Whirlwind package (translation unit)
@@ -85,7 +86,8 @@ type WhirlImport struct {
 	PackageRef *WhirlPackage
 
 	// All of the symbols imported/used in the current package.  This field is
-	// meaningless and therefore can be ignored during a namespace import.
+	// meaningless and therefore can be ignored during a namespace import.  The
+	// key is the name of the symbol (which may not be given in the SymbolRef).
 	ImportedSymbols map[string]*WhirlSymbolImport
 
 	// NamespaceImport indicates whether the imported package's exported
@@ -95,12 +97,9 @@ type WhirlImport struct {
 
 // WhirlSymbolImport represents an imported symbol (with reference and position)
 type WhirlSymbolImport struct {
-	// Name of the imported symbol
-	Name string
-
 	// SymbolRef is a reference to the symbol imported
 	SymbolRef *Symbol
 
 	// Positions is a list of all places where this symbol is imported
-	Positions []*logging.TextPosition
+	Positions map[*WhirlFile]*logging.TextPosition
 }
