@@ -75,7 +75,12 @@ func (w *Walker) define(sym *common.Symbol) bool {
 
 // implicitImport attempts to perform an implicit import of a symbol from a visible package
 func (w *Walker) implicitImport(ipkg *common.WhirlPackage, name string) (*common.Symbol, bool) {
-	sym, ok := ipkg.ImportFromNamespace(name)
+	// avoid repeated imports if possible
+	if sym, ok := w.SrcPackage.ImportTable[ipkg.PackageID].ImportedSymbols[name]; ok {
+		return sym, true
+	}
+
+	nsym, ok := ipkg.ImportFromNamespace(name)
 
 	// update the unknowns as necessary
 	if !ok && w.Unknowns != nil {
@@ -86,7 +91,10 @@ func (w *Walker) implicitImport(ipkg *common.WhirlPackage, name string) (*common
 		}
 	}
 
-	return sym, ok
+	// update entry in import table
+	w.SrcPackage.ImportTable[ipkg.PackageID].ImportedSymbols[name] = nsym
+
+	return nsym, ok
 }
 
 // clearUnknowns resets the map of unknowns before another definition is analyzed
