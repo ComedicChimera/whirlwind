@@ -226,18 +226,24 @@ func (c *Compiler) getPackagePath(relpath string) string {
 // first stage of importing package for that file).  NOTE: `rename` can be blank
 // if the package is not renamed, `namePosition` should point whatever token or
 // branch is used name of the package is derived from (not just rename).
-func (c *Compiler) attachPackageToFile(pkg *common.WhirlPackage, file *common.WhirlFile,
+func (c *Compiler) attachPackageToFile(fpkg *common.WhirlPackage, file *common.WhirlFile,
 	apkg *common.WhirlPackage, importedSymbols map[string]*logging.TextPosition, rename string, namePosition *logging.TextPosition, exported bool) bool {
 
+	// get the appropriate declaration status for all symbols
+	ds := common.DSRemote
+	if exported {
+		ds = common.DSShared
+	}
+
 	// update the current package's imports
-	if wimport, ok := pkg.ImportTable[apkg.PackageID]; ok {
+	if wimport, ok := fpkg.ImportTable[apkg.PackageID]; ok {
 		if len(importedSymbols) > 0 {
 			for name, pos := range importedSymbols {
 				// `...` implies a full namespace import (stored in
 				// `importedSymbols`)
 				if name == "..." {
 					wimport.NamespaceImport = true
-					file.NamespaceImports[apkg.PackageID] = apkg
+					file.NamespaceImports[apkg] = exported
 					break
 				}
 
@@ -246,19 +252,23 @@ func (c *Compiler) attachPackageToFile(pkg *common.WhirlPackage, file *common.Wh
 					return false
 				}
 
-				if wsi, ok := wimport.ImportedSymbols[name]; ok {
-					wsi.Positions[file] = pos
-					file.LocalTable[name] = wsi.SymbolRef
+				if wisym, ok := wimport.ImportedSymbols[name]; ok {
+					file.LocalTable[name] = &common.WhirlSymbolImport{
+						SymbolRef:  wisym,
+						Position:   pos,
+						SrcPackage: apkg,
+					}
 				} else {
 					// create a blank shared symbol reference
-					sref := &common.Symbol{}
+					sref := &common.Symbol{DeclStatus: ds}
 
 					// add to the import and the file's local table
-					wimport.ImportedSymbols[name] = &common.WhirlSymbolImport{
-						SymbolRef: sref,
-						Positions: map[*common.WhirlFile]*logging.TextPosition{file: pos},
+					wimport.ImportedSymbols[name] = sref
+					file.LocalTable[name] = &common.WhirlSymbolImport{
+						SymbolRef:  sref,
+						Position:   pos,
+						SrcPackage: apkg,
 					}
-					file.LocalTable[name] = sref
 				}
 			}
 		}
@@ -270,24 +280,27 @@ func (c *Compiler) attachPackageToFile(pkg *common.WhirlPackage, file *common.Wh
 				// as before, `...` implies a full namespace import
 				if name == "..." {
 					wimport.NamespaceImport = true
-					file.NamespaceImports[apkg.PackageID] = apkg
+					file.NamespaceImports[apkg] = exported
 					break
 				}
 
-				// create a blank shared symbol reference
-				sref := &common.Symbol{}
+				// create a blank shared symbol reference with the appropriate
+				// export/import status
+				sref := &common.Symbol{DeclStatus: ds}
 
 				// add to the import and the file's local table
-				wimport.ImportedSymbols[name] = &common.WhirlSymbolImport{
-					SymbolRef: sref,
-					Positions: map[*common.WhirlFile]*logging.TextPosition{file: pos},
+				wimport.ImportedSymbols[name] = sref
+				file.LocalTable[name] = &common.WhirlSymbolImport{
+					SymbolRef:  sref,
+					Position:   pos,
+					SrcPackage: apkg,
 				}
-				file.LocalTable[name] = sref
+
 			}
 		}
 
 		// add the new import to the current package's import table
-		pkg.ImportTable[apkg.PackageID] = wimport
+		fpkg.ImportTable[apkg.PackageID] = wimport
 	}
 
 	// make the package visible if it is imported as a named entity

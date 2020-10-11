@@ -26,22 +26,6 @@ func (s *Symbol) VisibleExternally() bool {
 	return s.DeclStatus == DSExported || s.DeclStatus == DSShared
 }
 
-// Import moves a symbol into a new package.  If it needs to update the
-// DeclStatus, creates a new symbol with that statuses, if not simply acts as an
-// identity (does not always copy).
-func (s *Symbol) Import(exported bool) *Symbol {
-	// if we are exported, nothing needs to change
-	if exported {
-		return s
-	}
-
-	// will always become a Remote import
-	return &Symbol{
-		Name: s.Name, Type: s.Type, Constant: s.Constant,
-		DeclStatus: DSRemote, DefKind: s.DefKind,
-	}
-}
-
 // Declaration Statuses
 const (
 	DSLocal = iota

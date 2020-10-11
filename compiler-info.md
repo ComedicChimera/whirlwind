@@ -28,7 +28,7 @@ as well as the construction of the (directed) dependency graph representing the
 full, interlocked web of dependencies necessary to fully produce the output
 binary.
 
-### Stage 2 - Assembly
+### Stage 2 - Resolution
 
 All top-level definitions are analyzed and converted into HIR-Nodes and Symbols.
 All imports and top-level symbol usages are resolved (or deemed unresolvable in
@@ -66,16 +66,16 @@ This section describes the layout of packages (ie. where to find what)
 
 | Package | Purpose |
 | ------- | ------- |
-| assemble | Responsible for package assembly (stage #2) |
 | build | Acts as compiler's "main"/control package (stage #1) |
 | common | Stores many common definitions (to prevent circular imports) |
 | cmd | Responsible for command-line processing and most auxilliary functions of `whirl` |
 | generate | Produces target LLVM code/output and assembles output binary (stage #5) |
 | logging | Used to log warnings and errors throughout compilation and maintain context |
 | optimize | Performs high-level (HIR) tree optimizations (stage #4) |
+| resolve | Responsible for symbol resolution and package assembly (stage #2) |
 | syntax | Scans and parses files to produce syntactically valid ASTs (stage #1) |
 | typing | Defines the type system and facilitates type checking (stage #3) |
-| validate | Converts an AST into a semantically-valid, unoptimized HIR tree  (stage #3) |
+| walk | Converts an AST into a semantically-valid, unoptimized HIR tree  (stage #3) |
 
 ## <a name="hir-optim"> HIR Optimizations
 

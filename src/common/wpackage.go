@@ -21,7 +21,7 @@ type WhirlFile struct {
 	// LocalTable stores all of the symbols imported in the current file
 	// that exist at the top level (ie. globally) but are not visible in
 	// other files in the same package (used to facilitate imports)
-	LocalTable map[string]*Symbol
+	LocalTable map[string]*WhirlSymbolImport
 
 	// LocalOperatorOverloads contains the signatures of all the operator
 	// overloads only visible in this file (via. imports).  The values are the
@@ -37,6 +37,24 @@ type WhirlFile struct {
 	// WhirlImport as well).  The value indicates whether or not the namespace
 	// should be exported or not.
 	NamespaceImports map[*WhirlPackage]bool
+}
+
+// WhirlSymbolImport represents a locally imported symbol in a file. The export
+// status is implicit in the DeclStatus field of the symbol reference.
+type WhirlSymbolImport struct {
+	// SymbolRef is a reference to the symbol imported (shared).  The symbol
+	// referenced will have no name until the symbol is resolved.  The
+	// declaration status of this reference MUST NOT BE OVERIDDEN during
+	// resolution.
+	SymbolRef *Symbol
+
+	// Position is the text position of the identifier for this symbol in its
+	// explicit import.  This field is `nil` if this symbol was imported via a
+	// namespace import.
+	Position *logging.TextPosition
+
+	// SrcPackage is the package this symbol was imported from
+	SrcPackage *WhirlPackage
 }
 
 // WhirlPackage represents a full, Whirlwind package (translation unit)
@@ -88,18 +106,9 @@ type WhirlImport struct {
 	// All of the symbols imported/used in the current package.  This field is
 	// meaningless and therefore can be ignored during a namespace import.  The
 	// key is the name of the symbol (which may not be given in the SymbolRef).
-	ImportedSymbols map[string]*WhirlSymbolImport
+	ImportedSymbols map[string]*Symbol
 
 	// NamespaceImport indicates whether the imported package's exported
 	// namespace is used in its entirety by a namespace import in this package.
 	NamespaceImport bool
-}
-
-// WhirlSymbolImport represents an imported symbol (with reference and position)
-type WhirlSymbolImport struct {
-	// SymbolRef is a reference to the symbol imported
-	SymbolRef *Symbol
-
-	// Positions is a list of all places where this symbol is imported
-	Positions map[*WhirlFile]*logging.TextPosition
 }
