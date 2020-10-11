@@ -2,11 +2,12 @@ package validate
 
 import "github.com/ComedicChimera/whirlwind/src/common"
 
-// lookup attempts to find a symbol in the current package or global symbol
+// Lookup attempts to find a symbol in the current package or global symbol
 // table. If it succeeds, it returns the symbol it finds.  If it fails, it
 // returns false, and marks it as unknown as necessary.  The position of the
-// symbol will need to updated AFTER this function exits.
-func (w *Walker) lookup(name string) (*common.Symbol, bool) {
+// symbol will need to updated AFTER this function exits.  Externally visible
+// for use in symbol resolution.
+func (w *Walker) Lookup(name string) (*common.Symbol, bool) {
 	for nipkg, exported := range w.SrcFile.NamespaceImports {
 		if sym, ok := nipkg.ImportFromNamespace(name); ok {
 			// update the declaration status appropriately for the symbol
