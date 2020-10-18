@@ -9,6 +9,7 @@ import (
 
 	"github.com/ComedicChimera/whirlwind/src/common"
 	"github.com/ComedicChimera/whirlwind/src/logging"
+	"github.com/ComedicChimera/whirlwind/src/resolve"
 	"github.com/ComedicChimera/whirlwind/src/syntax"
 )
 
@@ -191,13 +192,22 @@ func (c *Compiler) Compile(forceGrammarRebuild bool) {
 // buildMainPackage is the main compilation function: it goes through and builds the
 // main package as well as its dependencies (from start to finish).
 func (c *Compiler) buildMainPackage() bool {
+	// start by initializing the root package
 	rootPkg, err := c.initPackage(c.buildDirectory)
 	if err != nil {
 		logging.LogStdError(err)
 		return false
 	}
 
+	// then, initialize all of its dependencies (recursively)
 	if !c.initDependencies(rootPkg) {
+		return false
+	}
+
+	// once the dependency graph has been created, group and resolve all
+	// dependencies (using the Grouper)
+	g := resolve.NewGrouper(rootPkg, c.depGraph)
+	if !g.ResolveAll() {
 		return false
 	}
 
