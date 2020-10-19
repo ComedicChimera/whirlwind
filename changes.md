@@ -44,7 +44,6 @@ checking on the next line (works like it does in Python).
 - also ignore indentation in block definitions
   - for, if, elif, match, async-for, with
   - inside with expressions
-- use `:=` declaration operator for `with` and c-style for loop
 - reorder match expression (`match ... to` instead of `... match to`)
 
 ## Removals
@@ -275,19 +274,22 @@ checking on the next line (works like it does in Python).
 
 ## Context Managers
 
-- Allow for the creation of managed/safe contexts
-- Uses the `Contextual` interface
-- Inspired by Monads and `using` in C#
-- Syntax: `with item <- f() do`
-  - Also has an expression form: replace `do` with `=>` followed by an expression
-  - Can include multiple items (separated by semilinebrs)
-  - Can perform unpacking inline
-  - Usage of `_` allowed (though not common)
-- Has a `finally` clause that is guaranteed to run after (even in context of a return)
-  - Perhaps even on a runtime panic?
-    - Need to find some way to allow `Contextual` to add to `finally` if that is the case
-- Works for both "Monadic" types and volatile types like files
-  - controls both context entrance and context exit
+- Used for concise unpacking and chaining of monadic types
+  - Effectively enforces a monadic context
+- Exists as a block statement and as an expression
+  - Block: `with monadic_context do`
+  - Expression: `with monadic_context => expr`
+    - Type of expression and type of monadic context must be same
+  - Monadic Context is a series of binding expressions:
+    - `a <- monadic_value`
+    - Each one fails if the previous fails
+- Block has an `else` that will be run if the context isn't established
+  - Can be a plain `else` that justs naively runs
+  - Or it can pattern match with `else match to` which will allow you
+  to match over the failed value
+- Expression has no else clause => simply accumulates to the condition
+that failed
+- Used for avoid endless match statements
 
 ## Improved Operator Overloading
 
