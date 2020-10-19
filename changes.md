@@ -127,63 +127,115 @@ checking on the next line (works like it does in Python).
       - eg. `expr match Some(v)`
     - no block, distinguishing factor, also suffix
 
-## Memory Update (References, Nullability, Constancy, Category)
+## Memory Update (References, Regions, Constancy)
 
-- References and Dynamic Memory
-  - Like pointers but can't be treated as memory addresses
-  - Cannot contain sub-references 
-  - Allow for block-references: used to refer to blocks of memory
-  - Four Kinds of References:
-    - Scoped Reference: dynamic memory with a lifetime bound to its enclosing scope
-      - Can be *moved* and *returned*
-      - Scope can change based on usage (ie. if it is returned/elevating from its enclosing scope)
-      - Can only be created locally
-    - Global Reference: dynamic memory with no definite lifetime
-      - Can be *moved*, *deleted*, and *returned*
-      - Can be created locally or globally (! - local creation should be handled with caution)
-      - Cannot be used in place of a scoped reference or store a scoped reference
-      - Unmanaged by the compiler
-    - Free Local Reference: unowning dynamic or stack reference created in local scope
-      - Can be `assigned`
-      - Used to represent a "view" of another reference or a stack element
-      - Has no memory semantics (pure reference)
-      - Normally created from another existing object
-    - Free Nonlocal Reference: unowning dynamic or stack reference created in an outer scope
-      - Can be `assigned` or `returned`
-      - Outer scope refers to outside the current function
-      - Eg. parameters or global references
-      - Can be context dependent: captured references are local in their enclosing scope and nonlocal
-      in a function subscope (ie. a local function/closure)
-  - Seven Fundamental Memory Operations
-    - "malloc" -- `make scoped/global ...`
-      - Create a new piece of dynamic memory
-      - Regular or block reference
-      - Always owned (ie. scoped or global)
-    - "resize" -- `base_ref -> make scoped/global ...`
-      - Resize a block reference
-      - Operates on piece of preexisting memory
-      - Special variation of "malloc" (ie. `realloc`)
-      - Should be recognized by compiler as a pattern
-    - "move" -- `src_ref -> dest_ref`
-      - Move an owned reference 
-      - Deletes/disposes of previous data and points reference to new data
-      - Similar to C++ style move semantics
-    - "inspect" -- `$(own_ref)`
-      - Access an owned reference in an unowned way
-      - Eg: Immutable linked list traversal
-      - Produces an Free reference (scoped = local or global = nonlocal)
-      - Used to allow for things like assignment
-    - "delete" -- `delete ...`
-      - Deletes all memory associated with a particular memory address
-      - Only valid on Global References (for safety purposes)
-    - "copy" -- `copy(...)/copy_to(src, dest)`
-      - Clone/copy a reference creating a new local reference
-      - Has special global variants: `copy_global`
-      - `copy_to` requires an "inspect"
-    - "test" -- `ref?/ref?op`
-      - Tests if whether or not a reference contains a value
-      - Accumulates to `null` if not
-      - Can be combined with operators such as `[]` to create nullable forms
+- References and Regions
+  - A reference is like a pointer, but it cannot be treated as a numeric value
+    - No arithmetic of any kind
+    - Double references (and any higher degree) are not allowed
+      - References are semantic constructs -- not values
+  - Three Kinds of References:
+    - Free: `&type`
+      - Not affiliated with any particular region
+      - Created using the `&` operator -- for stack references
+      - Can be created from an owned reference using the `borrow` function
+      - Can NOT be created from a block reference
+      - These references can NEVER be returned from functions
+    - Owned: `own &type`
+      - Affiliated with a specific region determined when they are created
+        - They are region-locked (owned by a particular region)
+      - Used to represent single-valued dynamic memory
+        - They are not blocks of memory -- they cannot be resized
+    - Block: `[&]type`
+      - Also affiliated with a particular region when created
+      - Used to represent a block of memory (as a psuedo-array)
+        - Can be moved and resized
+      - A block reference may store other references as its element
+      - However, an reference may not have a block reference as its stored type
+      - Resized using the `resize` function -- works in-place
+        - Eg. `resize(block, 10)` -- resizes a block to store 10 elements
+  - A region is a large "block" of memory that holds the contents of a large
+  number of dynamic references (sort of like a page)
+    - Regions are equivalent to scopes but for dynamic memory
+    - Individual dynamic references CAN NOT BE DELETED
+      - Block references can be "resized" which does entail a reallocation,
+      but they are only "deleted" during the window in which they are being resized
+    - Regions are deleted as one discrete block -- they can NOT be explicitly deleted
+    - Regions can contain sub-regions (and sub-regions can contain sub-regions like scopes)
+      - A region can only be deleted once all of its sub-regions have been
+    - Each function in addition to defining a stack frame also defines a region
+      - Sub-regions expand out from the parent region of the main function
+      - When a function exits, its region is deleted/destroyed (assumes all sub-regions
+      have also been destroyed)
+    - Regions can also be defined explicitly using the `region of` syntax (defines a new block
+    and lexical scope)
+      - These regions are consider a sub-region of their enclosing function
+      - An explicitly defined region can NOT be created within another explicitly defined region
+        - Avoids unnecessary complication and prevents "unidiomatic" programming practices
+  - Dynamic references are allocated in an explicit region when they are created
+    - Their region is not explicit in their type, but rather stored as a contextual tag
+    - These references can be created using the `make` syntax which is structured as follows:
+      - `make region-specifier allocation-parameter`
+    - The "region-specifier" defines in what region relative to the allocation the reference will
+    be created in.
+      - `local` specifies that the reference is created in the current region
+      - `nonlocal[func]` specifies that the reference is created in the region enclosing
+      its parent function
+        - The `[func]` can be elided whenever the context is unambiguous (ie. the allocation
+        is not occurring within an explicitly defined region)
+      - `nonlocal[region]` specifies that the reference is created in the region of its
+      parent function 
+        - Can only be used inside an explicitly defined region: used to elevate a resource to the
+        level of its parent function
+    - The "allocation-parameter" determines what dynamic reference is produced
+      - When this is a type, an owned reference is produced
+        - Eg. `make local int` produces an `own &int`
+      - When this is a tuple of a type an a value, a block reference is produced
+        - Eg. `make local (int, 10)` produces an `[&]int` of a 10 elements
+      - When this is a value (structured type), it will allocate enough memory
+        to store that value and then store it in that allocated memory
+        - Eg. `make local Struct{v=10}`
+    - The compiler will enforce region locking to prevent null-dereferences
+      - A reference created in a specific region will not be allowed to "leave" that region
+        - Eg. you can't return a `local` or `nonlocal[region]` reference from a function
+        - You can't put a standard reference in the global region
+  - Finally, there exists a region known as the global region that is allocated global and
+  is not affiliated with any particular Strand or scope.
+    - Memory can be allocated here using the region specifier `global`
+    - References allocated in the global region have a special type specifier: `global`.
+      - Both owned references and block references can be made global by putting this
+      specifier before their definition
+      - Eg. `global own& int` or `global [&]float`
+      - Free references cannot be marked as global
+    - You can NOT borrow a global reference
+      - This is to avoid null-reference errors
+    - Unlike references in all other regions, global references CAN be deleted and must
+    be managed explicitly
+      - It is impossible to determine a consistent lifetime for them statically
+      - They are deleted using the `delete` function which works for both global and
+      block references
+      - This is part of the reason why global references can not be borrowed and have
+      an explicit tag on them
+        - Prevents them from being confused with normal references and helps to minimize
+        null-reference errors
+    - They should only be used when necessary
+      - When data must be stored and managed globally
+      - When the references is being shared by multiple strands as the global region is
+      strand agnostic
+  - Nullable operators can be used on all references to help prevent null-reference errors
+    - The null test operator is used like so: `ref?` where `ref` is some reference and
+    accumulates that reference to `null` if it has already been deallocated/points to
+    garbage memory or is itself `null`
+      - Sort of like a null-coalescing operator
+      - Intended to be used like so: `ref? == null` to test if a reference is null
+    - Several operators including `.` and `[]` can be "paired" with a null test operator
+    to prevent them from throwing errors on null references
+      - The `?` is placed before the operator like so: `?.`
+      - It produces an `Option` type representing the value of the operation
+      - It runs a null test before the operator, and if the reference the operator would be
+      acting on is not safe for use (eg. it has already been deallocated), it will
+      produce a `None` value.  If it is safe for use, then it will be produce a `Some` value
+        - Will not stop any non-memory-related panics (eg. index out of bounds)
 - Constancy
   - only applies to references and variables (mutable, named values)
   - for variable declarators:
@@ -205,8 +257,8 @@ checking on the next line (works like it does in Python).
     - they can also be inferred to be constant
   - cannot take a non-const reference to a constant value
 - Value Categories
-  - lvalue (well-defined, mutable value, able to take both kinds of references to it)
-  - rvalue (undefined, immutable value, unable to take any kind of reference to it)
+  - lvalue (well-defined, mutable value, able to take a free reference to it)
+  - rvalue (undefined/poorly-defined, immutable value, unable to take any kind of reference to it)
 
 ## Vectors
 
@@ -340,6 +392,9 @@ to return the yield-value early
     it faster)
     - note: behavior is not the instructions executed or how they are executed, but
     rather the actual task performed by the program
+- region deletion occurs concurrently
+  - a region is marked for deletion and then deleted later to save time on the main/working
+  strands
 
 ## Compiler UX
 

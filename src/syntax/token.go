@@ -41,9 +41,10 @@ const (
 	VOL
 	LOCAL
 	NONLOCAL
+	GLOBAL
 	OWN
 	MAKE
-	DELETE
+	REGION
 
 	// function definitions
 	FUNC
@@ -122,11 +123,6 @@ const (
 	RSHIFT
 	COMPL
 
-	// memory operators
-	MOVE     // ->
-	NULLTEST // ?
-	INSPECT  // $
-
 	// assignment/declaration operators
 	ASSIGN // =
 	BINDTO // <-
@@ -138,6 +134,9 @@ const (
 
 	// name access (::)
 	GETNAME
+
+	// null testing/null coalescion (?)
+	NULLTEST
 
 	// punctuation
 	DECORAT
@@ -190,8 +189,9 @@ var keywordPatterns = map[string]int{
 	"make":        MAKE,
 	"local":       LOCAL,
 	"nonlocal":    NONLOCAL,
+	"global":      GLOBAL,
 	"own":         OWN,
-	"delete":      DELETE,
+	"region":      REGION,
 	"func":        FUNC,
 	"async":       ASYNC,
 	"variant":     VARIANT,
@@ -255,7 +255,6 @@ var symbolPatterns = map[string]int{
 	"~":   COMPL,
 	"=":   ASSIGN,
 	"?":   NULLTEST,
-	"$":   INSPECT,
 	".":   DOT,
 	"..":  RANGETO,
 	"...": ELLIPSIS,
@@ -271,7 +270,6 @@ var symbolPatterns = map[string]int{
 	";":   SEMICOLON,
 	":":   COLON,
 	"::":  GETNAME,
-	"->":  MOVE,
 	"=>":  ARROW,
 	"<-":  BINDTO,
 
