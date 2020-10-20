@@ -394,9 +394,10 @@ to return the yield-value early
     it faster)
     - note: behavior is not the instructions executed or how they are executed, but
     rather the actual task performed by the program
-- region deletion occurs concurrently
-  - a region is marked for deletion and then deleted later to save time on the main/working
-  strands
+- region deletion should be performed by the Strand who owns the section the region
+is in (not concurrently)
+  - avoids endless livelocking w/ the memory deletion thread
+  - TO BE FURTHER EXPLORED
 
 ## Compiler UX
 

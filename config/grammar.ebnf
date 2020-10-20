@@ -97,10 +97,10 @@ async_for_loop = 'async' 'for' iterator do_block [nobreak_clause] ;
 while_loop = 'while' [variable_decl ';'] expr do_block [nobreak_clause] ;
 nobreak_clause = 'nobreak' (do_block | block) ;
 
-ctx_manager = 'with' ? full_ctx ? do_block [else_block] [finally_clause] ;
+ctx_manager = 'with' ? full_ctx ? do_block [else_block] [ctx_else_clause] ;
 full_ctx = ctx_elem {semilinebr ctx_elem} ;
 ctx_elem = identifier_list '<-' expr ;
-finally_clause = 'finally' (do_block | block) ;
+ctx_else_clause = 'else' (block | do_block | 'match' val_match_block) ;
 
 region_def = 'region' 'of' block ;
 
