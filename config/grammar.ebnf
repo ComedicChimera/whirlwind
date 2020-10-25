@@ -49,7 +49,7 @@ operator_value = '+' | '-' | '*' | '/' | '~/' | '~*'
   | '~' | '[' [':'] ']' ;
 
 func_def = ('func' | 'async') 'IDENTIFIER' [generic_tag] [signature] [func_body] ;
-signature = [args_decl] type ;
+signature = [args_decl] [`nonlocal` | `local`] type ;
 args_decl = '(' (arg_decl {',' arg_decl } [',' var_arg_decl] | var_arg_decl ) ')' ;
 arg_decl = ['const'] ['vol'] identifier_list type_ext [initializer] ;
 var_arg_decl = '...' 'IDENTIFIER' type_ext ;
