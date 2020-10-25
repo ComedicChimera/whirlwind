@@ -184,8 +184,10 @@ checking on the next line (works like it does in Python).
         is not occurring within an explicitly defined region)
       - `nonlocal[region]` specifies that the reference is created in the region of its
       parent function 
-        - Can only be used inside an explicitly defined region: used to elevate a resource to the
-        level of its parent function
+      - `nonlocal[r]` allows one to specify a region explicitly for allocation
+        - `r` is an identifier with a type of `region`
+        - the current region can be accessed in "literal" form using the `ctx_region` function
+        - used to allow allocation at an indefinite level
     - The "allocation-parameter" determines what dynamic reference is produced
       - When this is a type, an owned reference is produced
         - Eg. `make local int` produces an `own &int`
