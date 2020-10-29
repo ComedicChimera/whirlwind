@@ -24,6 +24,7 @@ type PrimitiveType struct {
 	PrimKind uint8
 
 	// PrimSpec is the specific kind of primitive (uint, float, etc.)
+	// Ordered from smallest value to largest (for non-integral types)
 	PrimSpec uint8
 }
 
@@ -47,3 +48,33 @@ const (
 	PrimIntUlong
 	PrimIntLong
 )
+
+// VectorType represents a vector
+type VectorType struct {
+	ElemType DataType
+	Size     uint
+}
+
+// TupleType represents a tuple
+type TupleType []DataType
+
+// FuncType represents a function
+type FuncType struct {
+	Params         map[string]*TypeValue
+	ReturnType     DataType
+	Boxed, Boxable bool
+	Constant       bool
+}
+
+// StructType represents a structure type
+type StructType struct {
+	Name    string
+	Members map[string]*TypeValue
+	Packed  bool
+}
+
+// TypeValue represents a value-like component of a type
+type TypeValue struct {
+	Type               DataType
+	Constant, Volatile bool
+}
