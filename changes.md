@@ -184,8 +184,10 @@ checking on the next line (works like it does in Python).
         is not occurring within an explicitly defined region)
       - `nonlocal[region]` specifies that the reference is created in the region of its
       parent function 
-        - Can only be used inside an explicitly defined region: used to elevate a resource to the
-        level of its parent function
+      - `nonlocal[r]` allows one to specify a region explicitly for allocation
+        - `r` is an identifier with a type of `region`
+        - the current region can be accessed in "literal" form using the `ctx_region` function
+        - used to allow allocation at an indefinite level
     - The "allocation-parameter" determines what dynamic reference is produced
       - When this is a type, an owned reference is produced
         - Eg. `make local int` produces an `own &int`
@@ -198,6 +200,12 @@ checking on the next line (works like it does in Python).
       - A reference created in a specific region will not be allowed to "leave" that region
         - Eg. you can't return a `local` or `nonlocal[region]` reference from a function
         - You can't put a standard reference in the global region
+  - Functions returning non-global owned references must indicate to what region those references
+  belong.
+    - `local` => the reference belongs to the region of the caller
+    - `nonlocal` => the reference belonds to a region above the caller
+      - Can be returned as a `local` reference from any function that received it as `nonlocal`
+      - This handles explicitly specified region allocation
   - Finally, there exists a region known as the global region that is allocated global and
   is not affiliated with any particular Strand or scope.
     - Memory can be allocated here using the region specifier `global`

@@ -49,7 +49,7 @@ operator_value = '+' | '-' | '*' | '/' | '~/' | '~*'
   | '~' | '[' [':'] ']' ;
 
 func_def = ('func' | 'async') 'IDENTIFIER' [generic_tag] [signature] [func_body] ;
-signature = [args_decl] type ;
+signature = [args_decl] [`nonlocal` | `local`] type ;
 args_decl = '(' (arg_decl {',' arg_decl } [',' var_arg_decl] | var_arg_decl ) ')' ;
 arg_decl = ['const'] ['vol'] identifier_list type_ext [initializer] ;
 var_arg_decl = '...' 'IDENTIFIER' type_ext ;
@@ -159,7 +159,7 @@ power = atom_expr {'~^' atom_expr} ;
 atom_expr = atom {trailer} | make_expr ;
 make_expr = 'make' region_spec alloc_param ;
 region_spec = 'local' | 'nonlocal' [nonlocal_spec] | 'global' ;
-nonlocal_spec = '[' ('region' | 'func') ']';
+nonlocal_spec = '[' ('region' | 'func' | 'IDENTIFIER') ']';
 alloc_param = type | '(' type ',' expr ')' | 'IDENTIFIER' '{' [init_list] '}';
 
 trailer = '.' ( 'IDENTIFIER' | 'INTLIT' )
@@ -190,7 +190,7 @@ type_ext = ':' type ;
 type_pattern_list = type_pattern {',' type_pattern};
 type_pattern = ['IDENTIFIER' ':'] type ;
 
-type = value_type | named_type | ref_type ;
+type = value_type | named_type | ref_type | region_type ;
 named_type = 'IDENTIFIER' {'::' 'IDENTIFIER'} ['<' type_list '>'];
 
 value_type = prim_type | col_type | vec_type | func_type | tup_type ;
@@ -208,6 +208,8 @@ ref_type = dynamic_ref | base_ref ;
 dynamic_ref = ['global'] ('own' base_ref | block_ref) ;
 base_ref = '&' ['const'] (value_type | named_type) ;
 block_ref = '[' '&' ']' type ;
+
+region_type = 'region' ;
 
 (* generic constructions *)
 generic_tag = '<' generic_param {',' generic_param} '>' ;
