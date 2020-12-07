@@ -166,6 +166,9 @@ checking on the next line (works like it does in Python).
       - Sub-regions expand out from the parent region of the main function
       - When a function exits, its region is deleted/destroyed (assumes all sub-regions
       have also been destroyed)
+      - A function can be made up of multiple regions of equal scope.
+        - There regions all have the same "rank" (that is they are all subregions of the same region)
+        - All such regions of equal rank are deleted when the function exits.
     - Regions can also be defined explicitly using the `region of` syntax (defines a new block
     and lexical scope)
       - These regions are consider a sub-region of their enclosing function
@@ -188,6 +191,18 @@ checking on the next line (works like it does in Python).
         - `r` is an identifier with a type of `region`
         - the current region can be accessed in "literal" form using the `ctx_region` function
         - used to allow allocation at an indefinite level
+      - nonlocal allocation will segment the region that it is allocating in
+        - since subregions are placed directly after their main parent region, it is impossible to
+        allocate again in that parent region once the subregion has been created so such allocation
+        will segment a region -- creating a second region of the same rank as the original region
+        - these regions will both be deleted when the enclosing scope or region exits
+        - it is not possible to "merge" the two regions since after the subregions are deleted, the
+        space they once occupied still exists between the two regions; this space is reclaimed when the
+        parent region is deleted.
+        - subregion allocation will now occur in a subregion of this newly segmented region
+        - this is yet another argument for the use of explicit regions: this segmentation (and the "voids"
+        it creates) are a major performance concern that can be remedied by using semantic regions to contain
+        segmentation: ie. DO NOT SEGMENT THE "MAIN" REGION
     - The "allocation-parameter" determines what dynamic reference is produced
       - When this is a type, an owned reference is produced
         - Eg. `make local int` produces an `own &int`
