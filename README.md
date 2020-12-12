@@ -6,8 +6,6 @@ It boasts numerous new and old features and is designed to represent the needs o
 
 ***Language and Source Code Copyright &copy; Jordan Gaines 2019-2020***
 
-*Note: Most of this will be moved to a formal website at some point.*
-
 *Note: All here is subject to change.*
 
 ***NOTE: This language is still in development!***
@@ -18,6 +16,8 @@ It boasts numerous new and old features and is designed to represent the needs o
 - [Notable Features](#features)
 - [Feature Demos](#demos)
 - [Examples](#examples)
+- [Documentation](#docs)
+- [Development Workflow](#workflow)
 - [Contributing](#contributing)
 - [Author's Note](#note)
 
@@ -130,21 +130,46 @@ Linked List:
             println(p.value)
             p = p.next
 
+## <a name="docs"/> Documentation
+
+The language currently does not have a website or any other source of formal documentation as it is
+still very much in development.  However, there is some documentation pertaining to the compiler's
+design, the memory model, and other more significant aspects of the language and/or changes from
+previous versions stored in the [docs](docs/) directory.  There is no table of contents or other
+formal arrangement of these various documents.  Most of them are either Markdown files or plain text.
+There are named in accordance with what they document.
+
+There is a plan to create a more formal documentation (and ideally a website) as well as a full
+start-up guide.  This README will be updated when that process is finalized.
+
+# <a name="workflow"> Development Workflow
+
+There is no formal schedule to the development of this language -- it has been very much on and off as
+I also have to content with schoolwork, college apps, and general fatigue from working on this project
+so long.  There may be large swaths of time in which no real progress is made.  I have not abandoned the
+project -- I am simply taking a break for one of the reasons enumerated above and/or because something else
+in my life has taken precedence.  It is also worth noting that although there may be no commits to this
+repository, there may still be development going on.  Designing a language takes a lot more than just brute
+coding -- I spend a lot of time just toying with different ideas and thinking about design approaches.
+
+When I have more time I may create a formal Trello to place here so you can see what I am currently working on.
+I expect that as college apps start to fade out and my senior year starts to wind down, I will have more time
+to work.  Building a language can be very tiresome, and there are days on which I may have some free time but
+may simply be too tired or distracted to really sit down and work.  I hope this will be less of a problem as
+time goes on but that remains to be seen.
+
 ## <a name="contributing"/> Contributing
 
 ***TODO: Insert links***
 
-Information about the compiler and all of its components can be found [here](compiler-info.md).
+Information about the compiler and all of its components can be found [here](docs/compiler-info.md).
 
 If you would like to contribute to this compiler or this language, please review the information above
 and join our Discord and other social media to get up to speed on the language in its current state.
 
 - [Discord](insert link here)
 - [Slack](insert link here)
-- [Reddit](insert link here
-
-**Please read the full reference provided above before contributing the
-repository.**
+- [Reddit](insert link here)
 
 ## <a name="note"/> Author's Note
 
@@ -153,5 +178,5 @@ and language design pretty much since the first day I picked up programming. I h
 can be as amazing to you as it is to me. I am always happy to have people who want to make
 suggestions and contributions to help make this language as great as it can be.
 
-By the time it is finished, this language will likely be the culminations of thousands of hours of work
+By the time it is finished, this language will likely be the culminations of thousands of hours of work,
 and I sincerely believe it will be worth it.
