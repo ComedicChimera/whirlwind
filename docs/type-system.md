@@ -10,39 +10,39 @@ situations in which the powers of dynamic typing are required.
 
 ## Fundamental Types
 
-Primitives
-: These are the standard "simple" types builtin to most languages including
-: various sizes of integer and floating point numbers, a character type, a string
-: type (strings are considered primitive in Whirlwind), and a boolean type.
+**Primitives**
+These are the standard "simple" types builtin to most languages including
+various sizes of integer and floating point numbers, a character type, a string
+type (strings are considered primitive in Whirlwind), and a boolean type.
 
-References
-: See explanation of the reference type in the [Memory Model Documentation](memory-model.md)
+**References**
+See explanation of the reference type in the [Memory Model Documentation](memory-model.md)
 
-Tuples
-: A tuple is an ordered n-tuple of variously typed values.  Eg. the pair `(int, string)` is
-: a tuple with an integer in the first position and a string in the second position.
+**Tuples**
+A tuple is an ordered n-tuple of variously typed values.  Eg. the pair `(int, string)` is
+a tuple with an integer in the first position and a string in the second position.
 
-Vectors
-: A vector represents a fixed-length set of numeric values.  This type is used for efficient
-: and idiomatic SIMD computations.  There is a [section on vectors](#vectors) toward the
-: bottom of this document explaining them more throughougly.
+**Vectors**
+A vector represents a fixed-length set of numeric values.  This type is used for efficient
+and idiomatic SIMD computations.  There is a [section on vectors](#vectors) toward the
+bottom of this document explaining them more throughougly.
 
-Structures
-: A structure or struct is modeled after a C-style struct type.  It is a record of named,
-: typed fields that can be accessed and mutated.  
+**Structures**
+A structure or struct is modeled after a C-style struct type.  It is a record of named,
+typed fields that can be accessed and mutated.  
 
-Interfaces
-: An interface a type used to group types based on behavior.  For an explanation on
-: how they work, consult the [Polymorphism and Interface Binding](#polyinterf) section
-: of this document.
+**Interfaces**
+An interface a type used to group types based on behavior.  For an explanation on
+how they work, consult the [Polymorphism and Interface Binding](#polyinterf) section
+of this document.
 
-Function Types
-: A function type represents a first-class function "object" (not in the OOP sense)
-: that can be called, passed, and composed.
+**Function Types**
+A function type represents a first-class function "object" (not in the OOP sense)
+that can be called, passed, and composed.
 
-Algebraic Types
-: An algebraic type is a type defined with multiple discreet values/instances.  For
-: a more in depth explanation of this type, consult the [Algebraic Types](#algebraic) section.
+**Algebraic Types**
+An algebraic type is a type defined with multiple discreet values/instances.  For
+a more in depth explanation of this type, consult the [Algebraic Types](#algebraic) section.
 
 ## Builtin Types
 
