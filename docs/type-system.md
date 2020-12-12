@@ -49,11 +49,11 @@ a more in depth explanation of this type, consult the [Algebraic Types](#algebra
 Whirlwind also features several important builtin types that are
 used for collections or sequences.
 
-Arrays
+**Arrays**
 
-Lists
+**Lists**
 
-Dictionaries
+**Dictionaries**
 
 ## <a name="polyinterf"/> Polymorphism and Interface Binding
 
