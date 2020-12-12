@@ -90,13 +90,14 @@ Radix Sort:
     func radix_sort(list: [uint]) [uint] do
         let mx = list.max()
 
-        for it = 0; 10 ~^ it < mx; it++ do
+        while let it = 0; 10 ~^ it < mx do
             let buckets = [null as [int] for _ in 1..10]
 
             for item in list do
                 buckets[item ~/ (10 ~^ it) % 10].push(item)            
 
             list = list.flatten().to_list()
+            it++
 
         return list
 
