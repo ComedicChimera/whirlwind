@@ -10,6 +10,7 @@ good read and very helpful for understand why I chose to approach some aspects o
 memory model the way I did.
 
 ## References
+
 A reference is like a pointer, but it cannot be treated as a numeric value.
 
   - No arithmetic of any kind
@@ -37,6 +38,7 @@ A reference is like a pointer, but it cannot be treated as a numeric value.
         - Eg. `resize(block, 10)` -- resizes a block to store 10 elements
 
 ## Regions 
+
 A region is a large "block" of memory that holds the contents of a large number of dynamic references
 
   - Regions are equivalent to scopes but for dynamic memory
@@ -60,6 +62,11 @@ A region is a large "block" of memory that holds the contents of a large number 
       - An explicitly defined region can NOT be created within another explicitly defined region
         - Avoids unnecessary complication and prevents "unidiomatic" programming practices 
   - A reference's region is not explicit in its type, but rather stored as a contextual tag
+
+This method efficiently prevents memory leaks since the user can freely assign to reference
+variables and "lose" references to earlier data since it will all be cleaned up when the region
+is deleted.  No reference counting is necessary since as region locking is enforced (as discussed
+in the next section).  
 
 ## Allocation
 
@@ -92,12 +99,85 @@ Dynamic references are allocated in an explicit region when they are created.
     - A reference created in a specific region will not be allowed to "leave" that region
       - Eg. you can't return a `local` or `nonlocal[region]` reference from a function
       - You can't put a standard reference in the global region
-  - Functions returning non-global owned references must indicate to what region those references
-  belong.
-    - `local` => the reference belongs to the region of the caller
-    - `nonlocal` => the reference belonds to a region above the caller
-      - Can be returned as a `local` reference from any function that received it as `nonlocal`
-      - This handles explicitly specified region allocation
+      - You can't allocate a variable locally in an explicit region and store it in a variable
+      in a region higher up on the stack.
+
+# Region Consistency
+
+Region consistency is an axiom of Whirlwind's memory model that states that along any given
+codepath, the region to which a reference belongs must be consistent.
+
+This also implies that the compiler should be able to work out the regions each reference
+belongs to *statically*.
+
+For example,
+
+```
+func my_func do
+    let r: own &int
+
+    // ERROR: region of r is not consistent
+    if some_cond do
+        r = make local int
+    else
+        r = make nonlocal int
+
+    // in what region is `r` out here?
+```
+
+We can see that because `r` does not have consistent region, any error is thrown.
+
+> Additionally, you can't dereference an uninitialized reference so accessing `r` before
+> allocation or along a code-path in which is may not have been allocated results in an error.
+
+Function return types have the same property as variables.  This is essential because it
+allows us to determine the region of the return value of the reference allowing us to
+predict where a returned reference is accurately.
+
+However, data structures to do not have the same rules:
+
+```
+type Store {
+    r: own &int
+}
+
+func f1 do
+    let s = Store{r = make local int}
+
+    // -- snip --
+
+func f2 do
+    let s = Store{r = make nonlocal int}
+
+    // -- snip --
+```
+
+An owned reference field of a struct can house many different kinds of owned references.  However,
+region consistency MUST be observed across instances.
+
+Block references must also obey reference consistency.  Moreover, for both kinds of
+references, the compiler should use its knowledge of where a reference is allocated to
+prevent null dereferences (ie. you can't use a reference after its region has been deallocated).
+You also cannot resize a block reference to a reference outside of its original region.
+
+A final quirk of region consistency is that it does NOT necessarily have to observed linearly:
+
+```
+func my_func own &int do
+    let r = make local int
+
+    // -- snip --
+
+    r = make nonlocal int
+
+    // -- snip --
+
+    return r
+```
+
+The above code contains no errors because although the region of `r` changes, it changes deterministically
+meaning that along the code path above, `r` has a predictable and consistent region.  This is why
+we choose to use the idea of region *consistency* rather than region *constancy*.
 
 ## The Global Region
 

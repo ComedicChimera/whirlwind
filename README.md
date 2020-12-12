@@ -117,7 +117,7 @@ Linked List:
         next: own& LLNode
     }
 
-    func ll_range(r: region, val: int) own &LLNode do
+    func ll_range(r: region, val: int) own& LLNode do
         if val == 0 do
             return make nonlocal[r] LLNode{value=val}
 
