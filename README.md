@@ -4,7 +4,7 @@ Whirlwind is a compiled, modern, and multipurpose language designed with intenti
 It is strongly-typed, versatile, expressive, concurrent, and relatively easy to learn.
 It boasts numerous new and old features and is designed to represent the needs of any software developer.
 
-***Language and Source Code Copyright &copy; Jordan Gaines 2019-2020***
+***Language IP and Source Code Copyright &copy; Jordan Gaines 2018-2020***
 
 *Note: All here is subject to change.*
 
