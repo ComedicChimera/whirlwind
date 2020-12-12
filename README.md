@@ -63,10 +63,10 @@ Fibonacci:
 
     import println from io::std
 
-    func fib() func()(int) do
+    func fib func()(int) do
         let a = 0, b = 1
 
-        func f() int do
+        func f int do
             yield a
 
             a, b = b, a + b
@@ -77,7 +77,7 @@ Fibonacci:
         let f = fib()
 
         // prints first 10 fibonacci numbers
-        for i = 0; i < 10; i++ do
+        for _ in 1..10 do
             println(f())
 
         f = fib()
@@ -116,17 +116,17 @@ Linked List:
         next: own& LLNode
     }
 
-    func ll_range(val: int) own &LLNode do
+    func ll_range(r: region, val: int) own &LLNode do
         if val == 0 do
-            return make LLNode{value=val}
+            return make nonlocal[r] LLNode{value=val}
 
-        return make LLNode{value=val, next=ll_range(val - 1)}
+        return make nonlocal[r] LLNode{value=val, next=ll_range(val - 1)}
 
     func main do
-        let ll = ll_range(10)
+        let ll = ll_range(ctx_region(), 10)
 
         let p = ll
-        for i = 0; i < 11; i++ do
+        for _ in 0..10 do
             println(p.value)
             p = p.next
 
