@@ -105,6 +105,7 @@ Dynamic references are allocated in an explicit region when they are created.
     - `nonlocal[r]` allows one to specify a region explicitly for allocation
       - `r` is an identifier with a type of `region`
       - the current region can be accessed in "literal" form using the `ctx_region` function
+        - `ctx_region` can not be used in global namespace (unable to get a reference to the global region)
       - used to allow allocation at an indefinite level
   - The "allocation-parameter" determines what dynamic reference is produced
     - When this is a type, an owned reference is produced
