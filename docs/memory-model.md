@@ -42,10 +42,10 @@ A reference is like a pointer, but it cannot be treated as a numeric value.
         refs share
       - There is also a `copy` function to copy the data from one block reference to another
         - Eg. `copy(src, dest)`
+        - Equivalent to `*r = data` for normal references
         - Both references must be the same size
       - Finally, there is a `move` function that copies the contents of one reference into another
-      and then deletes the contents of the previous reference.
-        - Equivalent to `*r = data` for normal references
+      and then deletes the contents of the previous reference.      
         - This also adjusts the source block reference to point to the data in the destination reference
           - This prevents null errors (again since the internal pointer is mutated/isolated)
         - Both references must be the same size
