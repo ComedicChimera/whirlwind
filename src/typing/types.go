@@ -1,5 +1,7 @@
 package typing
 
+import "strings"
+
 // The Whirlwind Type System is represented in 7 fundamental
 // types from which all others derive.  These types are follows:
 // 1. Primitives -- Single unit types, do not contain sub types
@@ -14,7 +16,16 @@ package typing
 
 // DataType is the general interface for all data types
 type DataType interface {
-	// TODO
+	// Repr returns the string representation of a type
+	Repr() string
+
+	// CoerceTo checks if the current type is coercible to the type passed in as
+	// an argument
+	CoerceTo(dt DataType) bool
+
+	// CastTo checks if the current type can be cast to the type passed in as an
+	// argument
+	CastTo(dt DataType) bool
 }
 
 // Primitive Types
@@ -48,8 +59,71 @@ const (
 	PrimIntLong
 )
 
+func (p *PrimitiveType) Repr() string {
+	switch p.PrimKind {
+	case PrimKindBoolean:
+		return "bool"
+	case PrimKindText:
+		if p.PrimSpec == 0 {
+			return "rune"
+		} else {
+			return "string"
+		}
+	case PrimKindUnit:
+		if p.PrimSpec == 0 {
+			return "nothing"
+		} else {
+			return "any"
+		}
+	case PrimKindFloating:
+		if p.PrimSpec == 0 {
+			return "float"
+		} else {
+			return "double"
+		}
+	case PrimKindIntegral:
+		switch p.PrimSpec {
+		case PrimIntByte:
+			return "byte"
+		case PrimIntSbyte:
+			return "sbyte"
+		case PrimIntShort:
+			return "short"
+		case PrimIntUshort:
+			return "ushort"
+		case PrimIntInt:
+			return "int"
+		case PrimIntUint:
+			return "uint"
+		case PrimIntLong:
+			return "long"
+		case PrimIntUlong:
+			return "ulong"
+		}
+	}
+
+	// unreachable
+	return ""
+}
+
 // TupleType represents a tuple
 type TupleType []DataType
+
+func (tt TupleType) Repr() string {
+	s := strings.Builder{}
+
+	s.WriteRune('(')
+	for i, dt := range tt {
+		s.WriteString(dt.Repr())
+
+		if i < len(tt)-1 {
+			s.WriteString(", ")
+		}
+	}
+	s.WriteRune(')')
+
+	return s.String()
+}
 
 // VectorType represents a vector
 type VectorType struct {
