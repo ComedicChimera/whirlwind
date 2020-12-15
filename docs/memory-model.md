@@ -36,6 +36,25 @@ A reference is like a pointer, but it cannot be treated as a numeric value.
       - However, an reference may not have a block reference as its stored type
       - Resized using the `resize` function -- works in-place
         - Eg. `resize(block, 10)` -- resizes a block to store 10 elements
+      - Block references are actually references to arrays (which contain their own references)
+        - This means that operations like `resize` don't cause null errors on duplicate
+        references since it mutates the internal reference -- not the reference all the block
+        refs share
+      - There is also a `copy` function to copy the data from one block reference to another
+        - Eg. `copy(src, dest)`
+        - Both references must be the same size
+      - Finally, there is a `move` function that copies the contents of one reference into another
+      and then deletes the contents of the previous reference.
+        - Equivalent to `*r = data` for normal references
+        - This also adjusts the source block reference to point to the data in the destination reference
+          - This prevents null errors (again since the internal pointer is mutated/isolated)
+        - Both references must be the same size
+      - `&[]type` and `[&]type` are NOT the same
+        - Block references are implicitly owned and point to the heap
+        - References to arrays are simply that: a reference to some array somewhere
+          - The array may or may not be on the heap
+          - It cannot be resized
+          - `&[]type` is considered a stack reference
 
 ## Regions 
 
