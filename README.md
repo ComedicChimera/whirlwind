@@ -119,9 +119,9 @@ Linked List:
 
     func ll_range(r: region, val: int) own& LLNode do
         if val == 0 do
-            return make nonlocal[r] LLNode{value=val}
+            return make in[r] LLNode{value=val}
 
-        return make nonlocal[r] LLNode{value=val, next=ll_range(val - 1)}
+        return make in[r] LLNode{value=val, next=ll_range(val - 1)}
 
     func main do
         let ll = ll_range(ctx_region(), 10)

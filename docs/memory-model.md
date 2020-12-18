@@ -102,7 +102,7 @@ Dynamic references are allocated in an explicit region when they are created.
       is not occurring within an explicitly defined region)
     - `nonlocal[region]` specifies that the reference is created in the region of its
     parent function 
-    - `nonlocal[r]` allows one to specify a region explicitly for allocation
+    - `in[r]` allows one to specify a region explicitly for allocation
       - `r` is an identifier with a type of `region`
       - the current region can be accessed in "literal" form using the `ctx_region` function
         - `ctx_region` can not be used in global namespace (unable to get a reference to the global region)

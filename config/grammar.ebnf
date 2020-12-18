@@ -158,8 +158,8 @@ power = atom_expr {'~^' atom_expr} ;
 
 atom_expr = atom {trailer} | make_expr ;
 make_expr = 'make' region_spec alloc_param ;
-region_spec = 'local' | 'nonlocal' [nonlocal_spec] | 'global' ;
-nonlocal_spec = '[' ('region' | 'func' | 'IDENTIFIER') ']';
+region_spec = 'local' | 'nonlocal' [nonlocal_spec] | 'in' '[' 'IDENTIFIER' '] | 'global' ;
+nonlocal_spec = '[' ('region' | 'func') ']';
 alloc_param = type | '(' type ',' expr ')' | 'IDENTIFIER' '{' [init_list] '}';
 
 trailer = '.' ( 'IDENTIFIER' | 'INTLIT' )
