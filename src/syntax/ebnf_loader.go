@@ -317,8 +317,8 @@ func (gl *gramLoader) readTerminal() (int, error) {
 					kind = INTLIT
 				case "FLOATLIT":
 					kind = FLOATLIT
-				case "CHARLIT":
-					kind = CHARLIT
+				case "RUNELIT":
+					kind = RUNELIT
 				default:
 					// unknown terminal kind => undefined (0 is
 					// meaningless/arbitrary - not token kind)

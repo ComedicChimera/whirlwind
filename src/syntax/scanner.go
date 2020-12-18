@@ -202,7 +202,7 @@ func (s *Scanner) ReadToken() (*Token, error) {
 		case '"':
 			tok, malformed = s.readStdStringLiteral()
 		case '\'':
-			tok, malformed = s.readCharLiteral()
+			tok, malformed = s.readRuneLiteral()
 		case '`':
 			tok, malformed = s.readRawStringLiteral()
 		// handle comments
@@ -701,28 +701,28 @@ func (s *Scanner) readStdStringLiteral() (*Token, bool) {
 	return s.getToken(STRINGLIT), false
 }
 
-// read in a char literal
-func (s *Scanner) readCharLiteral() (*Token, bool) {
-	// if the char has no content then it is malformed
+// read in a rune literal
+func (s *Scanner) readRuneLiteral() (*Token, bool) {
+	// if the rune has no content then it is malformed
 	if !s.readNext() {
 		return nil, true
 	}
 
-	// if there is an escape sequence, read it and if it is invalid, char lit is
+	// if there is an escape sequence, read it and if it is invalid, rune lit is
 	// malformed
 	if s.curr == '\\' && !s.readEscapeSequence() {
 		return nil, true
 	}
 
 	// if the next token after processing the escape sequence is not a closing
-	// quote than the char literal is too long on we are at EOF => malformed in
+	// quote than the rune literal is too long on we are at EOF => malformed in
 	// either case
 	if !s.readNext() || s.curr != '\'' {
 		return nil, true
 	}
 
 	// assume it is properly formed
-	return s.getToken(CHARLIT), false
+	return s.getToken(RUNELIT), false
 }
 
 func (s *Scanner) readEscapeSequence() bool {

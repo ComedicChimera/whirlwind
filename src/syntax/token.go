@@ -78,7 +78,7 @@ const (
 	STRING
 	FLOAT
 	BOOL
-	CHAR
+	RUNE
 	DOUBLE
 	ANY
 	INT
@@ -156,7 +156,7 @@ const (
 	STRINGLIT
 	INTLIT
 	FLOATLIT
-	CHARLIT
+	RUNELIT
 	BOOLLIT
 
 	// used in parsing algorithm
@@ -211,7 +211,7 @@ var keywordPatterns = map[string]int{
 	"string":      STRING,
 	"float":       FLOAT,
 	"bool":        BOOL,
-	"char":        CHAR,
+	"rune":        RUNE,
 	"double":      DOUBLE,
 	"any":         ANY,
 	"int":         INT,
