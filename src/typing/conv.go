@@ -66,3 +66,87 @@ func (pt *PrimitiveType) CastTo(other DataType) bool {
 
 	return false
 }
+
+func (tt TupleType) CoerceFrom(other DataType) bool {
+	if ott, ok := other.(TupleType); ok {
+		for i, item := range tt {
+			if !item.CoerceFrom(ott[i]) {
+				return false
+			}
+		}
+
+		return true
+	}
+
+	return false
+}
+
+func (tt TupleType) CastTo(other DataType) bool {
+	if ott, ok := other.(TupleType); ok {
+		for i, item := range tt {
+			if !item.CastTo(ott[i]) {
+				return false
+			}
+		}
+
+		return true
+	}
+
+	return false
+}
+
+func (vt *VectorType) CoerceFrom(other DataType) bool {
+	if ovt, ok := other.(*VectorType); ok {
+		return vt.ElemType.CoerceFrom(ovt.ElemType) && vt.Size == ovt.Size
+	}
+
+	return false
+}
+
+func (vt *VectorType) CastTo(other DataType) bool {
+	if ovt, ok := other.(*VectorType); ok {
+		return vt.ElemType.CastTo(ovt.ElemType) && vt.Size == ovt.Size
+	}
+
+	return false
+}
+
+// The coercion possible on references is non-const to const.  This has to do
+// with the fact that &int and &uint although similar at the surface mean very
+// different things: there is no inherent relation between the memory the point
+// to.  A reference's identity is based on what it points to and its value.
+// Thus, such a coercion would not only mean a duplication of the reference
+// itself but also the memory it points to -- since such duplication could mean
+// a wide variety of different things it is better to simply not allow such
+// coercions. Constancy coercion only applies to match regular constancy rules
+// (where a variable can "coerce" to a constant).
+func (rt *RefType) CoerceFrom(other DataType) bool {
+	if ort, ok := other.(*RefType); ok {
+		return (rt.Owned == ort.Owned &&
+			rt.Block == ort.Block &&
+			rt.Global == ort.Global &&
+			rt.ElemType.Equals(ort.ElemType) &&
+			rt.Constant && !ort.Constant)
+	}
+
+	return false
+}
+
+// No additional casts are possible on references.  Converting a reference to
+// an integer value is an unsafe operation (that must be performed using an
+// intrinsic stores in `unsafe`).  All other casts are invalid because either
+// they violate the memory model or fundamentally reinterpret the memory the
+// reference points to which is also considered unsafe.
+func (rt *RefType) CastTo(other DataType) bool {
+	return false
+}
+
+// Since all regions are inherently equal, not other coercions or casts are
+// necessary (since equality must be checked separately from coercion).
+func (rt RegionType) CoerceFrom(other DataType) bool {
+	return false
+}
+
+func (rt RegionType) CastTo(other DataType) bool {
+	return false
+}

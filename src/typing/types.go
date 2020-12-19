@@ -34,6 +34,12 @@ type DataType interface {
 	// type cast, the method Coerce should be called before Cast (along with a
 	// check for equality).
 	CastTo(dt DataType) bool
+
+	// Equals tests if two data types are equivalent.  Unfortunately,
+	// reflect.DeepEqual can't fulfill this task since certain types have
+	// fields/values that do not effect their equivalency but that vary between
+	// different instances of the type.
+	Equals(dt DataType) bool
 }
 
 // Primitive Types
@@ -150,7 +156,9 @@ func (vt *VectorType) Repr() string {
 
 // RefType represents a reference type
 type RefType struct {
-	// Id is used to unique identify this reference during rank analysis.
+	// Id is used to unique identify this reference during rank analysis. This
+	// field should be exchanged across coercions and other such operations as
+	// necessary.
 	Id int
 
 	ElemType        DataType
