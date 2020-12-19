@@ -205,7 +205,7 @@ func (rt RegionType) Repr() string {
 
 // FuncType represents a function
 type FuncType struct {
-	Params         map[string]*FuncParam
+	Params         []*FuncParam
 	ReturnType     DataType
 	Boxed, Boxable bool
 	Constant       bool
@@ -214,6 +214,7 @@ type FuncType struct {
 
 // FuncParam represents a function parameter
 type FuncParam struct {
+	Name                 string
 	Val                  *TypeValue
 	Optional, Indefinite bool
 }
@@ -261,14 +262,18 @@ type StructType struct {
 	Inherits     []*StructType
 }
 
+func (st *StructType) Repr() string {
+	return st.Name
+}
+
 // TypeValue represents a value-like component of a type
 type TypeValue struct {
 	Type               DataType
 	Constant, Volatile bool
 }
 
-func (st *StructType) Repr() string {
-	return st.Name
+func (tv *TypeValue) Equals(otv *TypeValue) bool {
+	return tv.Type.Equals(otv.Type) && tv.Constant == otv.Constant && tv.Volatile == otv.Volatile
 }
 
 // InterfType represents an interface type
@@ -319,14 +324,38 @@ type AlgebraicType struct {
 	Instances map[string]*AlgebraicInstance
 }
 
+func (at *AlgebraicType) Repr() string {
+	return at.Name
+}
+
 // AlgebraicInstance is a type that is an instance of a larger algebraic type
 type AlgebraicInstance struct {
+	Parent *AlgebraicType
 	Name   string
 	Values []DataType
 }
 
-func (at *AlgebraicType) Repr() string {
-	return at.Name
+func (ai *AlgebraicInstance) Repr() string {
+	baseName := fmt.Sprintf("%s::%s", ai.Parent.Repr(), ai.Name)
+
+	if len(ai.Values) == 0 {
+		return baseName
+	} else {
+		sb := strings.Builder{}
+		sb.WriteString(baseName)
+
+		sb.WriteRune('(')
+		for i, val := range ai.Values {
+			sb.WriteString(val.Repr())
+
+			if i < len(ai.Values)-1 {
+				sb.WriteString(", ")
+			}
+		}
+		sb.WriteRune(')')
+
+		return sb.String()
+	}
 }
 
 // TypeSet represents a type set

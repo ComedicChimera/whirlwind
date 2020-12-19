@@ -150,3 +150,129 @@ func (rt RegionType) CoerceFrom(other DataType) bool {
 func (rt RegionType) CastTo(other DataType) bool {
 	return false
 }
+
+// Functions cannot be coerced or cast (because doing so would require creating
+// an implicit wrapper around the original function that casts the arguments on
+// every call -- you can't "cast" functions in LLVM, the operation makes no
+// sense)
+func (ft *FuncType) CoerceFrom(other DataType) bool {
+	return false
+}
+
+func (ft *FuncType) CastTo(other DataType) bool {
+	return false
+}
+
+// Structs cannot be coerced mainly because is structure is unique both in its
+// name and package ID -- where it is declared and what is represents are
+// fundamental aspects of its meaning.  Moreover, if two structs have
+// differently named fields then coercion and casting makes no sense since there
+// is no correspondence between the fields.
+func (st *StructType) CoerceFrom(other DataType) bool {
+	return false
+}
+
+// They can, however, be cast.  However, they can only be cast if they have
+// identical fields since there is some relation between the data the structs
+// store (this also allows for structs with the same name and fields in
+// different packages to be cast between in each other).  Consider the example
+// of the `Vec2` and `Point2D` structs.  They have the same fields (`x` and `y`)
+// and types `int`. Although they are different structs representing different
+// things, a cast still makes sense since it is rational to reinterpret the data
+// of `Point2D` to actually represent the components of a `Vec2`.  By contrast,
+// even if two structs if the same field names, if the fields are different in
+// any way (even two coercible types), then the cast will fail since the two
+// fields may have very different meanings.
+func (st *StructType) CastTo(other DataType) bool {
+	if ost, ok := other.(*StructType); ok {
+		// Packing changes the representation of the data so it should be
+		// semantic illogical to cast between a packed and unpacked struct.
+		if st.Packed != ost.Packed {
+			return false
+		}
+
+		if len(st.Fields) != len(ost.Fields) {
+			return false
+		}
+
+		for name, field := range st.Fields {
+			if ofield, ok := ost.Fields[name]; !ok || !field.Equals(ofield) {
+				return false
+			}
+		}
+
+		// In order to have truly identical fields, their inherits must also match
+		if len(st.Inherits) != len(ost.Inherits) {
+			return false
+		}
+
+		// the inherits don't need to be in the same order so we will need to do
+		// linear search on every inherit.  Luckily, most structs will only have
+		// one or two inherits so that search is fairly trivial.  Moreover, it
+		// is VERY space inefficient to try to store the inherits as map since
+		// it would have to ordered both by name and package ID.
+		for _, inherit := range st.Inherits {
+			for _, oinherit := range ost.Inherits {
+				if !inherit.Equals(oinherit) {
+					return false
+				}
+			}
+		}
+
+		return true
+	}
+
+	return false
+}
+
+// Interfaces can coerce and be cast to any type that fully implements it
+func (it *InterfType) CoerceFrom(other DataType) bool {
+	// TODO: implementation of interface bindings required
+	return false
+}
+
+func (it *InterfType) CastTo(other DataType) bool {
+	// TODO: implementation of interface bindings required
+	return false
+}
+
+// Coercion and casting for algebraic types works the same way it does for
+// struct types (and is designed following the same logic)
+func (at *AlgebraicType) CoerceFrom(other DataType) bool {
+	return false
+}
+
+func (at *AlgebraicType) CastTo(other DataType) bool {
+	if oat, ok := other.(*AlgebraicType); ok {
+		if len(at.Instances) != len(oat.Instances) {
+			return false
+		}
+
+		for _, instance := range at.Instances {
+			if oinstance, ok := oat.Instances[instance.Name]; !ok || !instance.Equals(oinstance) {
+				return false
+			}
+		}
+
+		return true
+	}
+
+	return false
+}
+
+// Algebraic instances and type sets cannot be cast at all
+func (ai *AlgebraicInstance) CoerceFrom(other DataType) bool {
+	return false
+}
+
+func (ai *AlgebraicInstance) CastTo(other DataType) bool {
+	return false
+}
+
+func (ts *TypeSet) CoerceFrom(other DataType) bool {
+	return false
+}
+
+func (ts *TypeSet) CastTo(other DataType) bool {
+	return false
+}
