@@ -22,12 +22,17 @@ type DataType interface {
 	// Repr returns the string representation of a type
 	Repr() string
 
-	// CoerceTo checks if the current type is coercible to the type passed in as
-	// an argument
-	CoerceTo(dt DataType) bool
+	// CoerceFrom checks if the input type is coercible this type.  Note that this
+	// method does not check for equality -- just coercibility.
+	CoerceFrom(dt DataType) bool
 
-	// CastTo checks if the current type can be cast to the type passed in as an
-	// argument
+	// CastTo checks if the this type can be cast to the input type. The order
+	// of operands is reversed from CoerceFrom since casts tend to work downard
+	// (eg. `any` to some other type) whereas coercions tend to work upward (eg
+	// some type to `any`). Note that this method exclusively checks conversions
+	// that are only possible through a type cast.  To actually perform a full
+	// type cast, the method Coerce should be called before Cast (along with a
+	// check for equality).
 	CastTo(dt DataType) bool
 }
 
@@ -46,7 +51,7 @@ const (
 	PrimKindIntegral = iota // integral types
 	PrimKindFloating        // floating-point types
 	PrimKindText            // runes and strings
-	PrimKindUnit            // any and nothing
+	PrimKindUnit            // nothing and any
 	PrimKindBoolean         // bool
 )
 
@@ -107,6 +112,11 @@ func (p *PrimitiveType) Repr() string {
 
 	// unreachable
 	return ""
+}
+
+// Numeric checks if the given PrimType is considered `Numeric`
+func (pt *PrimitiveType) Numeric() bool {
+	return pt.PrimKind == PrimKindIntegral || pt.PrimKind == PrimKindFloating
 }
 
 // TupleType represents a tuple
