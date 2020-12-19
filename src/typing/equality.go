@@ -1,9 +1,11 @@
 package typing
 
-import "reflect"
-
 func (pt *PrimitiveType) Equals(other DataType) bool {
-	return reflect.DeepEqual(pt, other)
+	if opt, ok := other.(*PrimitiveType); ok {
+		return pt.PrimKind == opt.PrimKind && pt.PrimSpec == opt.PrimSpec
+	}
+
+	return false
 }
 
 func (tt TupleType) Equals(other DataType) bool {
