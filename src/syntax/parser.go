@@ -171,7 +171,7 @@ func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 				fallthrough
 			default:
 				return nil, p.lctx.CreateMessage(
-					fmt.Sprintf("Unexpected Token `%s`", p.lookahead.Value),
+					fmt.Sprintf("Unexpected Token: `%s`", p.lookahead.Value),
 					logging.LMKSyntax,
 					TextPositionOfToken(p.lookahead),
 				)

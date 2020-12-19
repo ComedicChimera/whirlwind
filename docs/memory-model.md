@@ -199,6 +199,9 @@ The above code contains no errors because although the region of `r` changes, it
 meaning that along the code path above, `r` has a predictable and consistent region.  This is why
 we choose to use the idea of region *consistency* rather than region *constancy*.
 
+Note: All methods of an interface that return dynamic references must return said references in regions of
+equal rank (or rather an equal rank offset).
+
 ## The Global Region
 
 There exists a region known as the global region that is allocated globally and 
@@ -279,3 +282,37 @@ referenced and what things can't be.
 
 These categories are generally simpler than those present in C++ (only two categories) as
 Whirlwind's data model is a lot simpler.
+
+## Region Static Rank Analysis
+
+While region analysis when the body of single function is fairly trival, when applied across multiple
+functions it can be very difficult.  Moreover, analysis across multiple functions can be quite complex
+and since functions are called in a variety of different contexts, it is profoundly inefficient to simply
+recompute the rank of the resulting region on every single call.  Thus, the return values of functions have
+a rank that is computed as a function of some inputs.  For example, for an input region of rank `n`, the function
+returns an owned reference of region `n`.  Or for an enclosing region of rank `n`, the function returns a reference
+of rank `n + 1`.  This does complicate the representation of regions the `rank` field stored in their data type.
+
+Additionally, it should be obvious that any recursion would cause issues for a naive analyzer.  Thus, another benefit
+of this functional representation is that parameters and return values can be variable.  In effect, we can say that
+the return value has a rank of `m` and determine the value of `m` over time by relating all uses of that value to `m`.
+Ironically, this call also help prevent infinite recursion since if `m` is completely indeterminant than no valid
+base case is ever reached and thus an error can be thrown.  Let us consider a simple example to show case what is
+meant by "variable rank"
+
+```
+func fn(r: region) own &int do
+  if some_cond do
+    return fn()
+
+  return make in[r] int
+```
+
+In the above code, `r` is said to have a rank `n` and `own &int` (the return) is said to have a rank of `m`.  In the
+first conditional branch, `m` is related to itself and thus no change occurs.  In the second branch, however, `m` is
+related to `n` and thus the determined value of `m` is `n`.  Thus the relational signature of our function is: `n -> n`.
+
+Several other data types such as structs have similar relational properties to functions (their fields store references of 
+rank `n` where `n` is determined on a use by use basis).
+
+

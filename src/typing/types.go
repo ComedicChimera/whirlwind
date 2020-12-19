@@ -1,8 +1,11 @@
 package typing
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
-// The Whirlwind Type System is represented in 7 fundamental
+// The Whirlwind Type System is represented in 9 fundamental
 // types from which all others derive.  These types are follows:
 // 1. Primitives -- Single unit types, do not contain sub types
 // 2. Tuples -- A pairing of n-types defines an n-tuple
@@ -131,43 +134,113 @@ type VectorType struct {
 	Size     uint
 }
 
-// RefType represents a reference type
-type RefType struct {
-	ElemType        DataType
-	Block, Constant bool
-	Owned           bool
-
-	// This field may remain nil until memory analysis occurs which means that
-	// it is not a good indicator of whether or not a reference is free thus the
-	// additional `Owned` field.
-	Region *RegionType
+func (vt *VectorType) Repr() string {
+	return fmt.Sprintf("<%d>%s", vt.Size, vt.ElemType.Repr())
 }
 
-// RegionType represents the typing of a region literal
-type RegionType struct {
-	Id, Rank int
+// RefType represents a reference type
+type RefType struct {
+	// Id is used to unique identify this reference during rank analysis.
+	Id int
 
-	// This field can be nil if there is no parent
-	Parent *RegionType
+	ElemType        DataType
+	Block, Constant bool
+	Owned, Global   bool
 
-	// This slice may be empty if there are no children
-	Children []*RegionType
+	// No rank or region information is included in the data type as such
+	// analysis takes place as part of the validator to facilitate more
+	// sophisticated logic.
+}
+
+func (rt *RefType) Repr() string {
+	sb := strings.Builder{}
+
+	if rt.Global {
+		sb.WriteString("global ")
+	}
+
+	if rt.Block {
+		sb.WriteString("[&]")
+	} else if rt.Owned {
+		sb.WriteString("own &")
+	} else {
+		sb.WriteRune('&')
+	}
+
+	if rt.Constant {
+		sb.WriteString("const ")
+	}
+
+	sb.WriteString(rt.ElemType.Repr())
+
+	return sb.String()
+}
+
+// RegionType represents the typing of a region literal. It is simply an integer
+// that is the region's identifier. All rank analysis occurs as part of the
+// validator and is not stored here.
+type RegionType int
+
+func (rt RegionType) Repr() string {
+	return "region"
 }
 
 // FuncType represents a function
 type FuncType struct {
-	Params         map[string]*TypeValue
+	Params         map[string]*FuncParam
 	ReturnType     DataType
 	Boxed, Boxable bool
 	Constant       bool
+	Async          bool
+}
+
+// FuncParam represents a function parameter
+type FuncParam struct {
+	Val                  *TypeValue
+	Optional, Indefinite bool
+}
+
+func (ft *FuncType) Repr() string {
+	sb := strings.Builder{}
+
+	if ft.Async {
+		sb.WriteString("async")
+	} else {
+		sb.WriteString("func")
+	}
+
+	sb.WriteRune('(')
+	n := 0
+	for _, param := range ft.Params {
+		if param.Indefinite {
+			sb.WriteString("...")
+		} else if param.Optional {
+			sb.WriteRune('~')
+		}
+
+		sb.WriteString(param.Val.Type.Repr())
+
+		if n < len(ft.Params)-1 {
+			sb.WriteString(", ")
+		}
+
+		n++
+	}
+	sb.WriteString(")(")
+
+	sb.WriteString(ft.ReturnType.Repr())
+	sb.WriteRune(')')
+
+	return sb.String()
 }
 
 // StructType represents a structure type
 type StructType struct {
-	Name     string
-	Fields   map[string]*TypeValue
-	Packed   bool
-	Inherits []*StructType
+	Name         string
+	SrcPackageID uint
+	Fields       map[string]*TypeValue
+	Packed       bool
+	Inherits     []*StructType
 }
 
 // TypeValue represents a value-like component of a type
@@ -176,12 +249,17 @@ type TypeValue struct {
 	Constant, Volatile bool
 }
 
+func (st *StructType) Repr() string {
+	return st.Name
+}
+
 // InterfType represents an interface type
 type InterfType struct {
 	Methods map[string]*InterfMethod
 
-	// Indicates whether the interface is a type interface or not
-	TypeInterf bool
+	// This field will be "" if this interface is a type or bound interface
+	Name         string
+	SrcPackageID uint
 
 	// Implements can also be generic thus DataType instead of *InterfType
 	Implements []DataType
@@ -207,8 +285,19 @@ const (
 	MKStandard         // Method that is defined on a type interface that is not an override or abstract implementation
 )
 
+func (it *InterfType) Repr() string {
+	if it.Name == "" {
+		return "<type-interf>"
+	}
+
+	return it.Name
+}
+
 // AlgebraicType represents an algebraic type
 type AlgebraicType struct {
+	Name         string
+	SrcPackageID uint
+
 	Instances map[string]*AlgebraicInstance
 }
 
@@ -218,5 +307,18 @@ type AlgebraicInstance struct {
 	Values []DataType
 }
 
+func (at *AlgebraicType) Repr() string {
+	return at.Name
+}
+
 // TypeSet represents a type set
-type TypeSet []DataType
+type TypeSet struct {
+	Name         string
+	SrcPackageID uint
+
+	Types []DataType
+}
+
+func (ts *TypeSet) Repr() string {
+	return ts.Name
+}

@@ -301,7 +301,7 @@ func (s *Scanner) ReadToken() (*Token, error) {
 		// error out on any malformed tokens (using contents of token builder)
 		if malformed {
 			return nil, s.lctx.CreateMessage(
-				fmt.Sprintf("Malformed Token \"%s\"", s.tokBuilder.String()),
+				fmt.Sprintf("Malformed Token: `%s`", s.tokBuilder.String()),
 				logging.LMKToken,
 				&logging.TextPosition{StartLn: s.line, StartCol: s.col, EndLn: s.line, EndCol: s.col + s.tokBuilder.Len()},
 			)
