@@ -37,6 +37,10 @@ type WhirlFile struct {
 	// WhirlImport as well).  The value indicates whether or not the namespace
 	// should be exported or not.
 	NamespaceImports map[*WhirlPackage]bool
+
+	// LocalBindings is a list of the bindings imported from other files that
+	// are only available/visible in the current file.
+	LocalBindings *typing.BindingRegistry
 }
 
 // WhirlSymbolImport represents a locally imported symbol in a file. The export
@@ -85,6 +89,10 @@ type WhirlPackage struct {
 	// as well as what items it imports (useful for constructing dependency
 	// graph)
 	ImportTable map[uint]*WhirlImport
+
+	// GlobalBindings stores all the interface bindings declared a global level
+	// in the current package
+	GlobalBindings *typing.BindingRegistry
 }
 
 // WhirlOperatorOverload represents an operator overload definition

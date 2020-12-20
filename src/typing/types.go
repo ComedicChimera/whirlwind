@@ -5,8 +5,8 @@ import (
 	"strings"
 )
 
-// The Whirlwind Type System is represented in 9 fundamental
-// types from which all others derive.  These types are follows:
+// The Whirlwind Type System is represented in 9 fundamental types from which
+// all others derive.  These types are follows:
 // 1. Primitives -- Single unit types, do not contain sub types
 // 2. Tuples -- A pairing of n-types defines an n-tuple
 // 3. Vectors -- A n-length, uniform type array of numeric primitives
@@ -16,6 +16,9 @@ import (
 // 7. Algebraic Types - A type that contains a finite number of enumerated values
 // 8. Type Sets -- A set/union of multiple type values
 // 9. Regions -- The typing of a region literal
+// There are several other types such as AlgebraicInstances and WildcardTypes
+// that are not actually considered "fundamental types" but rather semantic
+// constructs to assist in compilation and type analysis.
 
 // DataType is the general interface for all data types
 type DataType interface {

@@ -9,6 +9,7 @@ import (
 	"github.com/ComedicChimera/whirlwind/src/common"
 	"github.com/ComedicChimera/whirlwind/src/logging"
 	"github.com/ComedicChimera/whirlwind/src/syntax"
+	"github.com/ComedicChimera/whirlwind/src/typing"
 )
 
 /*
@@ -223,9 +224,11 @@ func (c *Compiler) getPackagePath(relpath string) string {
 }
 
 // attachPackageToFile attaches an already loaded file to a package (completing
-// first stage of importing package for that file).  NOTE: `rename` can be blank
-// if the package is not renamed, `namePosition` should point whatever token or
-// branch is used name of the package is derived from (not just rename).
+// first stage of importing package for that file).  `fpkg` is the current
+// package (package the file is in) and `apkg` is the new package (package being
+// attached).  NOTE: `rename` can be blank if the package is not renamed,
+// `namePosition` should point whatever token or branch is used name of the
+// package is derived from (not just rename).
 func (c *Compiler) attachPackageToFile(fpkg *common.WhirlPackage, file *common.WhirlFile,
 	apkg *common.WhirlPackage, importedSymbols map[string]*logging.TextPosition, rename string, namePosition *logging.TextPosition, exported bool) bool {
 
@@ -323,6 +326,13 @@ func (c *Compiler) attachPackageToFile(fpkg *common.WhirlPackage, file *common.W
 		}
 
 		file.VisiblePackages[name] = apkg
+	}
+
+	// import/move over all of the bindings as necessary
+	if exported {
+		typing.MigrateBindings(apkg.GlobalBindings, fpkg.GlobalBindings, true)
+	} else {
+		typing.MigrateBindings(apkg.GlobalBindings, file.LocalBindings, false)
 	}
 
 	// we need to recursively initialize dependencies

@@ -4,6 +4,17 @@ package typing
 // casts) and contains the implementations for CoerceTo and CastTo for all of
 // the primary data types.
 
+// TypeConverter is a construct used for converting between the different
+// types in Whirlwind.  It stores all the state necessary to facilitate
+// conversions.  It facilitates two kinds of conversions: casts (explicit type
+// casts using the `as` syntax) and coercions (implicit type casts).
+// type TypeConverter struct {
+// 	// Bindings stores a list of visible interface bindings for the given
+// 	// file that corresponds to this converter.  This data structure is used
+// 	// to modularize bindings between different packages and files.
+
+// }
+
 // Rule of Coercion:
 // The rule of coercion specifies that a coercion should be legal between two
 // things of (relatively) equivalent value.  That means no coercion should
@@ -134,7 +145,7 @@ func (rt *RefType) CoerceFrom(other DataType) bool {
 
 // No additional casts are possible on references.  Converting a reference to
 // an integer value is an unsafe operation (that must be performed using an
-// intrinsic stores in `unsafe`).  All other casts are invalid because either
+// intrinsic stored in `unsafe`).  All other casts are invalid because either
 // they violate the memory model or fundamentally reinterpret the memory the
 // reference points to which is also considered unsafe.
 func (rt *RefType) CastTo(other DataType) bool {

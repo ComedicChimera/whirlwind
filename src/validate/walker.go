@@ -3,6 +3,7 @@ package validate
 import (
 	"github.com/ComedicChimera/whirlwind/src/common"
 	"github.com/ComedicChimera/whirlwind/src/logging"
+	"github.com/ComedicChimera/whirlwind/src/typing"
 )
 
 // Walker is used to walk the ASTs of files, validate them, and translate them
@@ -17,6 +18,9 @@ type Walker struct {
 	// If this field is set to `nil`, then resolution is finished and this field
 	// can be ignored.
 	Unknowns map[string]*UnknownSymbol
+
+	// Solver stores the type solver that is used for inference and type deduction
+	Solver *typing.Solver
 }
 
 // UnknownSymbol is a symbol awaiting resolution
@@ -44,6 +48,10 @@ func NewWalker(pkg *common.WhirlPackage, file *common.WhirlFile, fpath string) *
 			FilePath:  fpath,
 		},
 		Unknowns: make(map[string]*UnknownSymbol),
+		Solver: &typing.Solver{
+			GlobalBindings: pkg.GlobalBindings,
+			LocalBindings:  file.LocalBindings,
+		},
 	}
 }
 
