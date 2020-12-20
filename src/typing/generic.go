@@ -38,9 +38,38 @@ func (gt *GenericType) Repr() string {
 	return sb.String()
 }
 
+// Equality for generics is only defined for the sake of comparing definitions
+// inside data types (eg. methods) and thus it is only necessary to consider to
+// generic types as having the potential to be equal; viz. we are not comparing
+// generic to generic instances here.
 func (gt *GenericType) Equals(other DataType) bool {
-	// TODO: equals for generic types
+	if ogt, ok := other.(*GenericType); ok {
+		if !gt.Template.Equals(ogt.Template) {
+			return false
+		}
+
+		if len(gt.TypeParams) != len(ogt.TypeParams) {
+			return false
+		}
+
+		for i, tp := range gt.TypeParams {
+			if !tp.Equals(ogt.TypeParams[i]) {
+				return false
+			}
+		}
+
+		return true
+	}
+
 	return false
+}
+
+// CreateInstance is used to create a new generic instance based on the given type
+// parameters.  It returns false as the second return if either the number of type
+// values provided doesn't match up with the number of type parameters or some of
+// the type values don't satisfy the restrictors on their corresponding parameters.
+func (gt *GenericType) CreateInstance(typeValues []DataType) (DataType, bool) {
+	return nil, false
 }
 
 // WildcardType is a psuedo-type that is used as a stand-in for type parameters
@@ -66,4 +95,39 @@ type WildcardType struct {
 	// generic binding.  For regular usage in the context of generics, this field
 	// should be `false`.
 	ImmediateBind bool
+}
+
+func (wt *WildcardType) Repr() string {
+	if wt.Value == nil {
+		return wt.Name
+	} else {
+		return wt.Value.Repr()
+	}
+}
+
+func (wt *WildcardType) Equals(other DataType) bool {
+	if wt.Value == nil {
+		if len(wt.Restrictors) > 0 {
+			noMatches := true
+
+			for _, r := range wt.Restrictors {
+				if r.Equals(other) {
+					noMatches = false
+					break
+				}
+			}
+
+			if noMatches {
+				return false
+			}
+		}
+
+		if wt.ImmediateBind {
+			wt.Value = other
+		}
+
+		return true
+	}
+
+	return wt.Value.Equals(other)
 }

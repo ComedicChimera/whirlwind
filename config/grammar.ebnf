@@ -67,7 +67,7 @@ struct_member = ['CONST'] ['VOL'] identifier_list type_ext [initializer] 'NEWLIN
 (* expr can be a list of decorators *)
 decorator = '@' expr 'NEWLINE' func_def ;
 
-annotated_def = annotation { annotation } (type_def | func_def | interf_def | interf_bind) ;
+annotated_def = annotation { annotation } (type_def | func_def | interf_def | interf_bind | operator_def) ;
 annotated_method = annotation { annotation } func_def ;
 annotation = '#' 'IDENTIFIER' [ 'STRINGLIT' ] 'NEWLINE' ;
 

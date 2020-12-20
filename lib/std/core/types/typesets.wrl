@@ -15,3 +15,13 @@ export of
 
     type Bytelike = byte | sbyte
 
+    #intrinsic
+    type Vector = nothing
+
+    #intrinsic
+    type TypedVector<T> = T
+
+    #intrinsic
+    type Tuple = nothing
+    
+

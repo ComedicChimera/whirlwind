@@ -86,6 +86,42 @@ func (s *Solver) CoerceTo(src, dest DataType) bool {
 		// TODO: interf binding implementation
 		// Any type that implements (even implicitly) an interface can be cast
 		// to it (duck typing)
+	case *TypeSet:
+		// Any type that is in a type set can be coerced to that type set.
+		// Additionally, several intrinsic type sets (eg. `Vector`) require
+		// a special coercion implementation that is given here.
+		if dv.Intrinsic {
+			switch dv.Name {
+			case "Vector":
+				_, ok := src.(*VectorType)
+				return ok
+			case "Tuple":
+				_, ok := src.(TupleType)
+				return ok
+			case "TypedVector":
+				// Since TypedVector must always be used as its generic
+				// instance, the only type it stores is by definition is type
+				// parameter. Thus, when doing this comparison, we simply check
+				// that the vectors element type is equal to that type parameter
+				// to test if the coercion succeeds.
+				if svt, ok := src.(*VectorType); ok {
+					return svt.ElemType.Equals(dv.Types[0])
+				}
+			}
+		} else {
+			// Coercion into a type set requires equality because the explicit
+			// types that are allowed in a type set define part of its identity.
+			// Thus, coercing other types, even if they may coercible to
+			// elements of that type set into it would violate the identity of
+			// the type set.  Moreover, that would technically require two
+			// distinct, high-level casts to accomplish -- again, not readily
+			// coercible.
+			for _, dt := range dv.Types {
+				if src.Equals(dt) {
+					return true
+				}
+			}
+		}
 	}
 
 	// Note on Struct Coercion:
@@ -206,6 +242,16 @@ func (s *Solver) CastTo(src, dest DataType) bool {
 			}
 
 			return true
+		}
+	case *TypeSet:
+		// Type sets can be cast to anything that could be one of their
+		// elements. Intrinsic type sets do not define this reverse coercion
+		// operation since they are ONLY intended to be used as generic
+		// restrictors -- this is enforced on instance
+		for _, dt := range sv.Types {
+			if dt.Equals(dest) {
+				return true
+			}
 		}
 	}
 

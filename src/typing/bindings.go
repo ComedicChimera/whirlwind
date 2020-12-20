@@ -42,8 +42,22 @@ func (br *BindingRegistry) GetBindings(dt DataType) []*InterfType {
 			case *InterfType:
 				// no wildcards to clear here since this is not a generic binding
 				matches = append(matches, v)
-				// case *GenericType:
+			case *GenericType:
+				typeValues := make([]DataType, len(binding.Wildcards))
 
+				// the compiler MUST check that all wildcards are satisfied when
+				// the binding is created (that is all wildcards can be
+				// determined on match)
+				for i, wc := range binding.Wildcards {
+					typeValues[i] = wc.Value
+
+					// we need to clear the value for subsequent bindings
+					wc.Value = nil
+				}
+
+				// should always succeed if the binding was created properly
+				gi, _ := v.CreateInstance(typeValues)
+				matches = append(matches, gi.(*InterfType))
 			}
 		}
 	}

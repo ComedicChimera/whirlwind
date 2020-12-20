@@ -526,7 +526,8 @@ type TypeSet struct {
 	Name         string
 	SrcPackageID uint
 
-	Types []DataType
+	Types     []DataType
+	Intrinsic bool
 }
 
 func (ts *TypeSet) Repr() string {
