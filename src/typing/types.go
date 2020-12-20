@@ -25,25 +25,14 @@ type DataType interface {
 	// Repr returns the string representation of a type
 	Repr() string
 
-	// CoerceFrom checks if the input type is coercible this type.  Note that this
-	// method does not check for equality -- just coercibility.
-	CoerceFrom(dt DataType) bool
-
-	// CastTo checks if the this type can be cast to the input type. The order
-	// of operands is reversed from CoerceFrom since casts tend to work downard
-	// (eg. `any` to some other type) whereas coercions tend to work upward (eg
-	// some type to `any`). Note that this method exclusively checks conversions
-	// that are only possible through a type cast.  To actually perform a full
-	// type cast, the method Coerce should be called before Cast (along with a
-	// check for equality).
-	CastTo(dt DataType) bool
-
 	// Equals tests if two data types are equivalent.  Unfortunately,
 	// reflect.DeepEqual can't fulfill this task since certain types have
 	// fields/values that do not effect their equivalency but that vary between
 	// different instances of the type.
 	Equals(dt DataType) bool
 }
+
+// -----------------------------------------------------
 
 // Primitive Types
 type PrimitiveType struct {
@@ -123,10 +112,20 @@ func (p *PrimitiveType) Repr() string {
 	return ""
 }
 
+func (pt *PrimitiveType) Equals(other DataType) bool {
+	if opt, ok := other.(*PrimitiveType); ok {
+		return pt.PrimKind == opt.PrimKind && pt.PrimSpec == opt.PrimSpec
+	}
+
+	return false
+}
+
 // Numeric checks if the given PrimType is considered `Numeric`
 func (pt *PrimitiveType) Numeric() bool {
 	return pt.PrimKind == PrimKindIntegral || pt.PrimKind == PrimKindFloating
 }
+
+// -----------------------------------------------------
 
 // TupleType represents a tuple
 type TupleType []DataType
@@ -147,6 +146,23 @@ func (tt TupleType) Repr() string {
 	return s.String()
 }
 
+func (tt TupleType) Equals(other DataType) bool {
+	// Imagine if Go had a map function... (writing before Go generics)
+	if ott, ok := other.(TupleType); ok {
+		for i, item := range tt {
+			if !item.Equals(ott[i]) {
+				return false
+			}
+		}
+
+		return true
+	}
+
+	return false
+}
+
+// -----------------------------------------------------
+
 // VectorType represents a vector
 type VectorType struct {
 	ElemType DataType
@@ -156,6 +172,16 @@ type VectorType struct {
 func (vt *VectorType) Repr() string {
 	return fmt.Sprintf("<%d>%s", vt.Size, vt.ElemType.Repr())
 }
+
+func (vt *VectorType) Equals(other DataType) bool {
+	if ovt, ok := other.(*VectorType); ok {
+		return vt.ElemType.Equals(ovt.ElemType) && vt.Size == ovt.Size
+	}
+
+	return false
+}
+
+// -----------------------------------------------------
 
 // RefType represents a reference type
 type RefType struct {
@@ -197,6 +223,20 @@ func (rt *RefType) Repr() string {
 	return sb.String()
 }
 
+func (rt *RefType) Equals(other DataType) bool {
+	if ort, ok := other.(*RefType); ok {
+		return (rt.ElemType.Equals(ort.ElemType) &&
+			rt.Constant == ort.Constant &&
+			rt.Owned == ort.Owned &&
+			rt.Block == ort.Block &&
+			rt.Global == ort.Global)
+	}
+
+	return false
+}
+
+// -----------------------------------------------------
+
 // RegionType represents the typing of a region literal. It is simply an integer
 // that is the region's identifier. All rank analysis occurs as part of the
 // validator and is not stored here.
@@ -205,6 +245,18 @@ type RegionType int
 func (rt RegionType) Repr() string {
 	return "region"
 }
+
+func (rt RegionType) Equals(other DataType) bool {
+	// `other is RegionType`... wouldn't that be nice?
+	if _, ok := other.(RegionType); ok {
+		// all region types are equivalent
+		return true
+	}
+
+	return false
+}
+
+// -----------------------------------------------------
 
 // FuncType represents a function
 type FuncType struct {
@@ -256,6 +308,59 @@ func (ft *FuncType) Repr() string {
 	return sb.String()
 }
 
+func (ft *FuncType) Equals(other DataType) bool {
+	if oft, ok := other.(*FuncType); ok {
+		if len(ft.Params) != len(oft.Params) {
+			return false
+		}
+
+		// Function parameters must be in the same order
+		for i, param := range ft.Params {
+			oparam := oft.Params[i]
+
+			// Two parameters must either have the same name or have no name and
+			// be in the correct position (as is the case for arguments in the
+			// function data type)
+			if param.Name == oparam.Name || param.Name == "" || oparam.Name == "" {
+				// We don't care about volatility and *value* constancy when
+				// comparing function signatures since both values don't
+				// actually effect what can be passed in and what will be
+				// produced by the function.  Also, value constancy being
+				// ignored doesn't cause any actual constancy violations since
+				// whatever is passed in will be copied and reference constancy
+				// holds.
+				if !(param.Val.Type.Equals(oparam.Val.Type) &&
+					param.Indefinite == oparam.Indefinite &&
+					param.Optional == oparam.Optional) {
+					return false
+				}
+			} else {
+				return false
+			}
+
+		}
+
+		// intrinsic functions are not the same (nor should they be treated) as
+		// regular functions (although I doubt this will ever come up since
+		// instrinsics can't be be boxed anyway ¯\_(ツ)_/¯).  Constancy can't be
+		// emulated/denoted in a function type literal and so that field doesn't
+		// matter for the purposes of type equality (it is however taken into
+		// account when comparing interface methods).  Whether or not a function
+		// is boxed should also be irrelevant here.
+		return ft.Async == oft.Async && ft.Boxable == oft.Boxable
+	}
+
+	return false
+}
+
+// -----------------------------------------------------
+// Equality for all defined types is trivial since two defined types must refer
+// to the same declaration if their name and package ID are the same since only
+// one such type by any particular name may be declared in the same package.
+// Thus, we can just compare the name and package ID to test for equality.  It
+// does make one wish could had generics though.
+// -----------------------------------------------------
+
 // StructType represents a structure type
 type StructType struct {
 	Name         string
@@ -269,6 +374,14 @@ func (st *StructType) Repr() string {
 	return st.Name
 }
 
+func (st *StructType) Equals(other DataType) bool {
+	if ost, ok := other.(*StructType); ok {
+		return st.Name == ost.Name && st.SrcPackageID == ost.SrcPackageID
+	}
+
+	return false
+}
+
 // TypeValue represents a value-like component of a type
 type TypeValue struct {
 	Type               DataType
@@ -278,6 +391,8 @@ type TypeValue struct {
 func (tv *TypeValue) Equals(otv *TypeValue) bool {
 	return tv.Type.Equals(otv.Type) && tv.Constant == otv.Constant && tv.Volatile == otv.Volatile
 }
+
+// -----------------------------------------------------
 
 // InterfType represents an interface type
 type InterfType struct {
@@ -319,6 +434,16 @@ func (it *InterfType) Repr() string {
 	return it.Name
 }
 
+func (it *InterfType) Equals(other DataType) bool {
+	if oit, ok := other.(*InterfType); ok {
+		return it.Name == oit.Name && it.SrcPackageID == oit.SrcPackageID
+	}
+
+	return false
+}
+
+// -----------------------------------------------------
+
 // AlgebraicType represents an algebraic type
 type AlgebraicType struct {
 	Name         string
@@ -329,6 +454,14 @@ type AlgebraicType struct {
 
 func (at *AlgebraicType) Repr() string {
 	return at.Name
+}
+
+func (at *AlgebraicType) Equals(other DataType) bool {
+	if oat, ok := other.(*AlgebraicType); ok {
+		return at.Name == oat.Name && at.SrcPackageID == oat.SrcPackageID
+	}
+
+	return false
 }
 
 // AlgebraicInstance is a type that is an instance of a larger algebraic type
@@ -361,6 +494,33 @@ func (ai *AlgebraicInstance) Repr() string {
 	}
 }
 
+// Algebraic instances are equal if they have the same parent and name and
+// equivalent values in the same positions (since values are initialized
+// positionally).
+func (ai *AlgebraicInstance) Equals(other DataType) bool {
+	if oai, ok := other.(*AlgebraicInstance); ok {
+		if !ai.Parent.Equals(oai.Parent) {
+			return false
+		}
+
+		if len(ai.Values) != len(oai.Values) {
+			return false
+		}
+
+		for i, value := range ai.Values {
+			if !value.Equals(oai.Values[i]) {
+				return false
+			}
+		}
+
+		return ai.Name == oai.Name
+	}
+
+	return false
+}
+
+// -----------------------------------------------------
+
 // TypeSet represents a type set
 type TypeSet struct {
 	Name         string
@@ -371,4 +531,12 @@ type TypeSet struct {
 
 func (ts *TypeSet) Repr() string {
 	return ts.Name
+}
+
+func (ts *TypeSet) Equals(other DataType) bool {
+	if ots, ok := other.(*TypeSet); ok {
+		return ts.Name == ots.Name && ts.SrcPackageID == ots.SrcPackageID
+	}
+
+	return false
 }

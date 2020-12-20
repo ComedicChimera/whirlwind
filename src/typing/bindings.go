@@ -9,9 +9,18 @@ type BindingRegistry struct {
 
 // Binding represents a single binding of a type interface to a given type
 type Binding struct {
-	// TODO: matching stuff
+	// MatchType is a DataType object used the match any given input type
+	// to this binding.  If an input type is equal to this field, then the
+	// Binding is a match.  This works both for generic bindings and regular
+	// bindings since generic bindings will simply contain WildcardTypes in
+	// these fields that will be equal to anything that satisfies their
+	// restrictors (they won't have any given value and will be separate from).
+	MatchType DataType
 
-	TypeInterf *InterfType
+	// Wildcards is a slice of all the Wildcard types used in the binding
+	Wildcards []*WildcardType
+
+	TypeInterf DataType
 	Exported   bool
 }
 
@@ -21,6 +30,25 @@ func (b *Binding) PrivateCopy() *Binding {
 		TypeInterf: b.TypeInterf,
 		Exported:   false,
 	}
+}
+
+// GetBindings fetches all applicable interface bindings for a given type
+func (br *BindingRegistry) GetBindings(dt DataType) []*InterfType {
+	var matches []*InterfType
+
+	for _, binding := range br.Bindings {
+		if binding.MatchType.Equals(dt) {
+			switch v := binding.TypeInterf.(type) {
+			case *InterfType:
+				// no wildcards to clear here since this is not a generic binding
+				matches = append(matches, v)
+				// case *GenericType:
+
+			}
+		}
+	}
+
+	return matches
 }
 
 // MigrateBindings perform importing/lifting of bindings from another package into
