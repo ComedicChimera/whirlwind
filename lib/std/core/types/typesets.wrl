@@ -22,6 +22,9 @@ export of
     type TypedVector<T> = T
 
     #intrinsic
+    type IntegralVector = nothing
+
+    #intrinsic
     type Tuple = nothing
     
 

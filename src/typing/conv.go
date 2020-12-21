@@ -121,6 +121,16 @@ func (s *Solver) CoerceTo(src, dest DataType) bool {
 				if svt, ok := src.(*VectorType); ok {
 					return svt.ElemType.Equals(dv.Types[0])
 				}
+			case "IntegralVector":
+				if svt, ok := src.(*VectorType); ok {
+					return s.CoerceTo(svt.ElemType, &PrimitiveType{
+						PrimKind: PrimKindIntegral,
+						PrimSpec: PrimIntLong,
+					}) || s.CoerceTo(svt.ElemType, &PrimitiveType{
+						PrimKind: PrimKindIntegral,
+						PrimSpec: PrimIntUlong,
+					})
+				}
 			}
 		} else {
 			// Coercion into a type set requires equality because the explicit
