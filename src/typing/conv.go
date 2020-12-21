@@ -22,6 +22,20 @@ func (s *Solver) CoerceTo(src, dest DataType) bool {
 		return true
 	}
 
+	// we need to check for coercions from Wildcard types since they aren't
+	// handled below
+	if swt, ok := src.(*WildcardType); ok {
+		if swt.Value == nil {
+			for _, r := range swt.Restrictors {
+				if s.CoerceTo(r, dest) {
+					return true
+				}
+			}
+		} else {
+			return s.CoerceTo(swt.Value, dest)
+		}
+	}
+
 	switch dv := dest.(type) {
 	case *PrimitiveType:
 		// check for any (since all types can coerce to it)
@@ -122,6 +136,20 @@ func (s *Solver) CoerceTo(src, dest DataType) bool {
 				}
 			}
 		}
+	case *WildcardType:
+		// the only WildcardTypes that reach here have failed the equals check
+		// meaning they either have a value that coercion should be checked on
+		// or the check didn't pass the restrictors on exact equality (so we
+		// have to first check value and then check restrictors)
+		if dv.Value == nil {
+			for _, r := range dv.Restrictors {
+				if s.CoerceTo(src, r) {
+					return true
+				}
+			}
+		} else {
+			return s.CoerceTo(src, dv.Value)
+		}
 	}
 
 	// Note on Struct Coercion:
@@ -142,6 +170,20 @@ func (s *Solver) CoerceTo(src, dest DataType) bool {
 // explicit casts.  Thus, to fulfill the full function of a type cast CoerceTo
 // should be called first (along with any necessary inferencing mechanisms).
 func (s *Solver) CastTo(src, dest DataType) bool {
+	// we need to check for casts to WildcardTypes since such casts will not be
+	// properly handled below (same problem occurs at top of CoerceTo)
+	if dwt, ok := dest.(*WildcardType); ok {
+		if dwt.Value == nil {
+			for _, r := range dwt.Restrictors {
+				if s.CastTo(src, r) {
+					return true
+				}
+			}
+		} else {
+			return s.CastTo(src, dwt.Value)
+		}
+	}
+
 	switch sv := src.(type) {
 	case *PrimitiveType:
 		// any to some other type always succeeds (naively here)
@@ -252,6 +294,20 @@ func (s *Solver) CastTo(src, dest DataType) bool {
 			if dt.Equals(dest) {
 				return true
 			}
+		}
+	case *WildcardType:
+		// same logic that was used for coercion applies when value is not nil,
+		// but when value is nil because `x as WildcardType` was checked at the
+		// top of this function, we are going backwards (`WildcardType as x`).
+		// The reverse logic is also mostly true here so this should be fine.
+		if sv.Value == nil {
+			for _, r := range sv.Restrictors {
+				if s.CastTo(r, dest) {
+					return true
+				}
+			}
+		} else {
+			return s.CastTo(sv.Value, dest)
 		}
 	}
 

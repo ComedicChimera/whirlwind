@@ -33,7 +33,7 @@ func (b *Binding) PrivateCopy() *Binding {
 }
 
 // GetBindings fetches all applicable interface bindings for a given type
-func (br *BindingRegistry) GetBindings(dt DataType) []*InterfType {
+func (s *Solver) GetBindings(br *BindingRegistry, dt DataType) []*InterfType {
 	var matches []*InterfType
 
 	for _, binding := range br.Bindings {
@@ -56,7 +56,7 @@ func (br *BindingRegistry) GetBindings(dt DataType) []*InterfType {
 				}
 
 				// should always succeed if the binding was created properly
-				gi, _ := v.CreateInstance(typeValues)
+				gi, _ := s.CreateGenericInstance(v, typeValues)
 				matches = append(matches, gi.(*InterfType))
 			}
 		}

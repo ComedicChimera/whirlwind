@@ -3,6 +3,8 @@ package typing
 import (
 	"fmt"
 	"strings"
+
+	"github.com/ComedicChimera/whirlwind/src/logging"
 )
 
 // The Whirlwind Type System is represented in 9 fundamental types from which
@@ -30,6 +32,24 @@ type DataType interface {
 	// fields/values that do not effect their equivalency but that vary between
 	// different instances of the type.
 	Equals(dt DataType) bool
+
+	// copyTemplate is used to create a generic instances by duplicate a type
+	// template so as to perserve the temporary values of various wildcard types
+	// in the new instance without requiring that the original template retain
+	// those values.  This is NOT a true deep copy -- several types that can not
+	// contain WildcardTypes are not copied
+	copyTemplate() DataType
+}
+
+// copyTemplateSlice applies copyTemplate to a slice of data types
+func copyTemplateSlice(dtSlice []DataType) []DataType {
+	newList := make([]DataType, len(dtSlice))
+
+	for i, item := range dtSlice {
+		newList[i] = item.copyTemplate()
+	}
+
+	return newList
 }
 
 // -----------------------------------------------------
@@ -120,6 +140,11 @@ func (pt *PrimitiveType) Equals(other DataType) bool {
 	return false
 }
 
+// Primitives can't store WildcardTypes so no copy is necessary
+func (pt *PrimitiveType) copyTemplate() DataType {
+	return pt
+}
+
 // Numeric checks if the given PrimType is considered `Numeric`
 func (pt *PrimitiveType) Numeric() bool {
 	return pt.PrimKind == PrimKindIntegral || pt.PrimKind == PrimKindFloating
@@ -161,6 +186,10 @@ func (tt TupleType) Equals(other DataType) bool {
 	return false
 }
 
+func (tt TupleType) copyTemplate() DataType {
+	return TupleType(copyTemplateSlice(tt))
+}
+
 // -----------------------------------------------------
 
 // VectorType represents a vector
@@ -179,6 +208,13 @@ func (vt *VectorType) Equals(other DataType) bool {
 	}
 
 	return false
+}
+
+func (vt *VectorType) copyTemplate() DataType {
+	return &VectorType{
+		ElemType: vt.ElemType.copyTemplate(),
+		Size:     vt.Size,
+	}
 }
 
 // -----------------------------------------------------
@@ -235,6 +271,18 @@ func (rt *RefType) Equals(other DataType) bool {
 	return false
 }
 
+func (rt *RefType) copyTemplate() DataType {
+	// one of those situations where spread initialization would be nice...
+	return &RefType{
+		Id:       rt.Id,
+		Constant: rt.Constant,
+		Owned:    rt.Owned,
+		Block:    rt.Block,
+		Global:   rt.Global,
+		ElemType: rt.ElemType.copyTemplate(),
+	}
+}
+
 // -----------------------------------------------------
 
 // RegionType represents the typing of a region literal. It is simply an integer
@@ -254,6 +302,11 @@ func (rt RegionType) Equals(other DataType) bool {
 	}
 
 	return false
+}
+
+func (rt RegionType) copyTemplate() DataType {
+	// again, can't contain WildcardTypes so no need for a full copy
+	return rt
 }
 
 // -----------------------------------------------------
@@ -353,6 +406,28 @@ func (ft *FuncType) Equals(other DataType) bool {
 	return false
 }
 
+func (ft *FuncType) copyTemplate() DataType {
+	newParams := make([]*FuncParam, len(ft.Params))
+
+	for i, param := range ft.Params {
+		newParams[i] = &FuncParam{
+			Val:        param.Val.copyTemplate(),
+			Name:       param.Name,
+			Indefinite: param.Indefinite,
+			Optional:   param.Optional,
+		}
+	}
+
+	return &FuncType{
+		Params:     newParams,
+		ReturnType: ft.ReturnType.copyTemplate(),
+		Async:      ft.Async,
+		Boxable:    ft.Boxable,
+		Constant:   ft.Constant,
+		Boxed:      ft.Boxed,
+	}
+}
+
 // -----------------------------------------------------
 // Equality for all defined types is trivial since two defined types must refer
 // to the same declaration if their name and package ID are the same since only
@@ -382,6 +457,27 @@ func (st *StructType) Equals(other DataType) bool {
 	return false
 }
 
+func (st *StructType) copyTemplate() DataType {
+	newFields := make(map[string]*TypeValue)
+
+	for name, field := range st.Fields {
+		newFields[name] = field.copyTemplate()
+	}
+
+	newInherits := make([]*StructType, len(st.Inherits))
+	for i, inherit := range st.Inherits {
+		newInherits[i] = inherit.copyTemplate().(*StructType)
+	}
+
+	return &StructType{
+		Name:         st.Name,
+		SrcPackageID: st.SrcPackageID,
+		Fields:       newFields,
+		Packed:       st.Packed,
+		Inherits:     newInherits,
+	}
+}
+
 // TypeValue represents a value-like component of a type
 type TypeValue struct {
 	Type               DataType
@@ -390,6 +486,14 @@ type TypeValue struct {
 
 func (tv *TypeValue) Equals(otv *TypeValue) bool {
 	return tv.Type.Equals(otv.Type) && tv.Constant == otv.Constant && tv.Volatile == otv.Volatile
+}
+
+func (tv *TypeValue) copyTemplate() *TypeValue {
+	return &TypeValue{
+		Type:     tv.Type.copyTemplate(),
+		Constant: tv.Constant,
+		Volatile: tv.Volatile,
+	}
 }
 
 // -----------------------------------------------------
@@ -402,11 +506,16 @@ type InterfType struct {
 	Name         string
 	SrcPackageID uint
 
-	// Implements can also be generic thus DataType instead of *InterfType
-	Implements []DataType
+	// Implements stores only the various interfaces that this InterfType
+	// implements explicitly (to prevent virtual methods from appearing on
+	// interfaces that don't actually fully implement an interface)
+	Implements []*InterfType
 
-	// Instances lists the various interfaces that implement/are instances of this interface
-	Instances []DataType
+	// Instances stores the various interfaces that are implicit or explicit
+	// instances of the InterfType. This prevents virtual methods from being
+	// passed down while enabling efficient type checking by storing instances
+	// that have already been matched once (memoization)
+	Instances []*InterfType
 }
 
 // InterfMethod represents a method in an interface
@@ -442,6 +551,36 @@ func (it *InterfType) Equals(other DataType) bool {
 	return false
 }
 
+func (it *InterfType) copyTemplate() DataType {
+	newMethods := make(map[string]*InterfMethod, len(it.Methods))
+
+	for name, method := range it.Methods {
+		newMethods[name] = &InterfMethod{
+			Signature: method.Signature.copyTemplate(),
+			Kind:      method.Kind,
+		}
+	}
+
+	// really wishing for generics rn...
+	newImplements := make([]*InterfType, len(it.Implements))
+	for i, implement := range it.Implements {
+		newImplements[i] = implement.copyTemplate().(*InterfType)
+	}
+
+	newInstances := make([]*InterfType, len(it.Instances))
+	for i, inst := range it.Instances {
+		newInstances[i] = inst.copyTemplate().(*InterfType)
+	}
+
+	return &InterfType{
+		Name:         it.Name,
+		SrcPackageID: it.SrcPackageID,
+		Methods:      newMethods,
+		Implements:   newImplements,
+		Instances:    newInstances,
+	}
+}
+
 // -----------------------------------------------------
 
 // AlgebraicType represents an algebraic type
@@ -462,6 +601,24 @@ func (at *AlgebraicType) Equals(other DataType) bool {
 	}
 
 	return false
+}
+
+func (at *AlgebraicType) copyTemplate() DataType {
+	newAt := &AlgebraicType{
+		Name:         at.Name,
+		SrcPackageID: at.SrcPackageID,
+	}
+
+	newAt.Instances = make(map[string]*AlgebraicInstance)
+	for i, inst := range at.Instances {
+		newAt.Instances[i] = &AlgebraicInstance{
+			Name:   inst.Name,
+			Values: copyTemplateSlice(inst.Values),
+			Parent: newAt,
+		}
+	}
+
+	return newAt
 }
 
 // AlgebraicInstance is a type that is an instance of a larger algebraic type
@@ -519,6 +676,14 @@ func (ai *AlgebraicInstance) Equals(other DataType) bool {
 	return false
 }
 
+// AlgebraicInstances should NEVER be directly in templates (because they need
+// to maintain a consistent parent and should never appear in a generic
+// template)
+func (ai *AlgebraicInstance) copyTemplate() DataType {
+	logging.LogFatal("`copyTemplate` applied to `AlgebraicInstance`")
+	return nil
+}
+
 // -----------------------------------------------------
 
 // TypeSet represents a type set
@@ -540,4 +705,13 @@ func (ts *TypeSet) Equals(other DataType) bool {
 	}
 
 	return false
+}
+
+func (ts *TypeSet) copyTemplate() DataType {
+	return &TypeSet{
+		Name:         ts.Name,
+		SrcPackageID: ts.SrcPackageID,
+		Types:        copyTemplateSlice(ts.Types),
+		Intrinsic:    ts.Intrinsic,
+	}
 }

@@ -64,12 +64,72 @@ func (gt *GenericType) Equals(other DataType) bool {
 	return false
 }
 
+// overrideWildcardTemplateCopy is a map that should be nil by default that used
+// to store new WildcardType shared references in the event of a called to
+// copyTemplate on a GenericType (so that way the references can stay synced).
+// If this field is nil, then no override is necessary
+var overrideWildcardTemplateCopy map[string]*WildcardType
+
+// Since GenericTypes can be contained inside templates in the form of methods,
+// an actual duplication function is required
+func (gt *GenericType) copyTemplate() DataType {
+	overrideWildcardTemplateCopy = make(map[string]*WildcardType)
+	defer (func() {
+		overrideWildcardTemplateCopy = nil
+	})()
+
+	newTypeParams := make([]*WildcardType, len(gt.TypeParams))
+	for i, tp := range gt.TypeParams {
+		// Value should always be `nil` if we are copying from a GenericType and
+		// since this should only occur in the cotnext of a method,
+		// ImmediateBind can be ignored and thus the default implementation of
+		// copyTemplate for WildcardTypes is acceptable
+		newTypeParams[i] = tp.copyTemplate().(*WildcardType)
+		overrideWildcardTemplateCopy[tp.Name] = newTypeParams[i]
+	}
+
+	return &GenericType{
+		TypeParams: newTypeParams,
+		Template:   gt.Template.copyTemplate(),
+	}
+}
+
 // CreateInstance is used to create a new generic instance based on the given type
 // parameters.  It returns false as the second return if either the number of type
 // values provided doesn't match up with the number of type parameters or some of
 // the type values don't satisfy the restrictors on their corresponding parameters.
-func (gt *GenericType) CreateInstance(typeValues []DataType) (DataType, bool) {
-	return nil, false
+func (s *Solver) CreateGenericInstance(gt *GenericType, typeValues []DataType) (DataType, bool) {
+	if len(gt.TypeParams) != len(typeValues) {
+		return nil, false
+	}
+
+	for i, wt := range gt.TypeParams {
+		if len(wt.Restrictors) > 0 {
+			matchedRestrictor := false
+
+			for _, r := range wt.Restrictors {
+				if s.CoerceTo(typeValues[i], r) {
+					matchedRestrictor = true
+					break
+				}
+			}
+
+			if !matchedRestrictor {
+				return nil, false
+			}
+		}
+
+		wt.Value = typeValues[i]
+	}
+
+	copy := gt.Template.copyTemplate()
+
+	// clear WildcardTypes after duplicate has been created
+	for _, wt := range gt.TypeParams {
+		wt.Value = nil
+	}
+
+	return copy, true
 }
 
 // WildcardType is a psuedo-type that is used as a stand-in for type parameters
@@ -130,4 +190,22 @@ func (wt *WildcardType) Equals(other DataType) bool {
 	}
 
 	return wt.Value.Equals(other)
+}
+
+func (wt *WildcardType) copyTemplate() DataType {
+	// handle the override case
+	if overrideWildcardTemplateCopy != nil {
+		return overrideWildcardTemplateCopy[wt.Name]
+	}
+
+	return &WildcardType{
+		// Value does not require a copyTemplate since it is the actual thing
+		// that is changing -- the copy needs to propagate up not down
+		Value:       wt.Value,
+		Name:        wt.Name,
+		Restrictors: wt.Restrictors,
+		// copyTemplate should never be applied to a WildcardType that requires
+		// ImmediateBind (or if it is, then clearing ImmediateBind is
+		// appropriate/acceptable)
+	}
 }
