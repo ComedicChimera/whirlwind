@@ -40,6 +40,11 @@ type UnknownSymbol struct {
 
 // NewWalker creates a new walker for the given package and file
 func NewWalker(pkg *common.WhirlPackage, file *common.WhirlFile, fpath string) *Walker {
+	// initialize the files local binding registry (may decide to remove this as
+	// a file field if it is not helpful/necessary and instead embed as a walker
+	// field)
+	file.LocalBindings = &typing.BindingRegistry{}
+
 	return &Walker{
 		SrcPackage: pkg,
 		SrcFile:    file,

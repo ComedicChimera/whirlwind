@@ -167,19 +167,8 @@ func (wt *WildcardType) Repr() string {
 
 func (wt *WildcardType) Equals(other DataType) bool {
 	if wt.Value == nil {
-		if len(wt.Restrictors) > 0 {
-			noMatches := true
-
-			for _, r := range wt.Restrictors {
-				if r.Equals(other) {
-					noMatches = false
-					break
-				}
-			}
-
-			if noMatches {
-				return false
-			}
+		if len(wt.Restrictors) > 0 && !ContainsType(other, wt.Restrictors) {
+			return false
 		}
 
 		if wt.ImmediateBind {

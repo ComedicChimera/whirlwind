@@ -97,9 +97,9 @@ func (s *Solver) CoerceTo(src, dest DataType) bool {
 				dv.Constant && !srt.Constant)
 		}
 	case *InterfType:
-		// TODO: interf binding implementation
-		// Any type that implements (even implicitly) an interface can be cast
-		// to it (duck typing)
+		// Any type that implements (even implicitly) an interface can be
+		// coerced to it (duck typing)
+		return s.ImplementsInterf(src, dv)
 	case *TypeSet:
 		// Any type that is in a type set can be coerced to that type set.
 		// Additionally, several intrinsic type sets (eg. `Vector`) require
@@ -140,11 +140,7 @@ func (s *Solver) CoerceTo(src, dest DataType) bool {
 			// the type set.  Moreover, that would technically require two
 			// distinct, high-level casts to accomplish -- again, not readily
 			// coercible.
-			for _, dt := range dv.Types {
-				if src.Equals(dt) {
-					return true
-				}
-			}
+			return ContainsType(src, dv.Types)
 		}
 	case *WildcardType:
 		// the only WildcardTypes that reach here have failed the equals check
@@ -276,8 +272,8 @@ func (s *Solver) CastTo(src, dest DataType) bool {
 			return true
 		}
 	case *InterfType:
-		// TODO: interface casting logic
 		// Interfaces can be cast to any type that implements them (naively)
+		return s.ImplementsInterf(dest, sv)
 	case *AlgebraicType:
 		// Algebraic types can be cast following the same logic as structs: if
 		// they have the same instances, they can be "reinterpreted" to
@@ -300,11 +296,7 @@ func (s *Solver) CastTo(src, dest DataType) bool {
 		// elements. Intrinsic type sets do not define this reverse coercion
 		// operation since they are ONLY intended to be used as generic
 		// restrictors -- this is enforced on instance
-		for _, dt := range sv.Types {
-			if dt.Equals(dest) {
-				return true
-			}
-		}
+		return ContainsType(dest, sv.Types)
 	case *WildcardType:
 		// same logic that was used for coercion applies when value is not nil,
 		// but when value is nil because `x as WildcardType` was checked at the

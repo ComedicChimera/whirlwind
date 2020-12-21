@@ -41,6 +41,18 @@ type DataType interface {
 	copyTemplate() DataType
 }
 
+// ContainsType checks if a slice of data types contains a type equivalent to
+// the given data type (via. the Equals method)
+func ContainsType(dt DataType, slice []DataType) bool {
+	for _, item := range slice {
+		if item.Equals(dt) {
+			return true
+		}
+	}
+
+	return false
+}
+
 // copyTemplateSlice applies copyTemplate to a slice of data types
 func copyTemplateSlice(dtSlice []DataType) []DataType {
 	newList := make([]DataType, len(dtSlice))
@@ -511,11 +523,11 @@ type InterfType struct {
 	// interfaces that don't actually fully implement an interface)
 	Implements []*InterfType
 
-	// Instances stores the various interfaces that are implicit or explicit
+	// Instances stores the various data types that are implicit or explicit
 	// instances of the InterfType. This prevents virtual methods from being
 	// passed down while enabling efficient type checking by storing instances
 	// that have already been matched once (memoization)
-	Instances []*InterfType
+	Instances []DataType
 }
 
 // InterfMethod represents a method in an interface
@@ -567,17 +579,12 @@ func (it *InterfType) copyTemplate() DataType {
 		newImplements[i] = implement.copyTemplate().(*InterfType)
 	}
 
-	newInstances := make([]*InterfType, len(it.Instances))
-	for i, inst := range it.Instances {
-		newInstances[i] = inst.copyTemplate().(*InterfType)
-	}
-
 	return &InterfType{
 		Name:         it.Name,
 		SrcPackageID: it.SrcPackageID,
 		Methods:      newMethods,
 		Implements:   newImplements,
-		Instances:    newInstances,
+		Instances:    copyTemplateSlice(it.Instances),
 	}
 }
 

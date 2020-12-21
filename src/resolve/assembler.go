@@ -3,6 +3,7 @@ package resolve
 import (
 	"github.com/ComedicChimera/whirlwind/src/common"
 	"github.com/ComedicChimera/whirlwind/src/syntax"
+	"github.com/ComedicChimera/whirlwind/src/typing"
 	"github.com/ComedicChimera/whirlwind/src/validate"
 )
 
@@ -26,6 +27,9 @@ func NewPackageAssembler(pkg *common.WhirlPackage) *PAssembler {
 		DefQueue:   &DefinitionQueue{},
 		Walkers:    make(map[*common.WhirlFile]*validate.Walker),
 	}
+
+	// initialize the package's global bindings before analysis
+	pkg.GlobalBindings = &typing.BindingRegistry{}
 
 	for fpath, wf := range pkg.Files {
 		pa.Walkers[wf] = validate.NewWalker(pkg, wf, fpath)

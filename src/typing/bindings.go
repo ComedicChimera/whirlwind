@@ -65,6 +65,54 @@ func (s *Solver) GetBindings(br *BindingRegistry, dt DataType) []*InterfType {
 	return matches
 }
 
+// ImplementsInterf tests if a given type implements the given interface. The
+// interface should NOT be a type interface.
+func (s *Solver) ImplementsInterf(dt DataType, it *InterfType) bool {
+	if ContainsType(dt, it.Instances) {
+		return true
+	}
+
+	localBindings := s.GetBindings(s.LocalBindings, dt)
+	globalBindings := s.GetBindings(s.GlobalBindings, dt)
+
+outerloop:
+	for name, method := range it.Methods {
+		if method.Kind == MKAbstract {
+			for _, binding := range localBindings {
+				if containsMethod(binding, name, method) {
+					continue outerloop
+				} else {
+					return false
+				}
+			}
+
+			for _, binding := range globalBindings {
+				if containsMethod(binding, name, method) {
+					continue outerloop
+				} else {
+					return false
+				}
+			}
+		}
+	}
+
+	// we want to add this type to the list of instances on the interface
+	// type as form of memoization (that way we don't have to perform the
+	// method lookup multiple times)
+	it.Instances = append(it.Instances, dt)
+
+	return true
+}
+
+// containsMethod checks if a given type interface contains a method
+func containsMethod(binding *InterfType, methodName string, method *InterfMethod) bool {
+	if bmethod, ok := binding.Methods[methodName]; ok {
+		return bmethod.Signature.Equals(method.Signature)
+	}
+
+	return false
+}
+
 // MigrateBindings perform importing/lifting of bindings from another package into
 // either the current file or current package (depends on what registry is passed in).
 func MigrateBindings(src, dest *BindingRegistry, lift bool) {
