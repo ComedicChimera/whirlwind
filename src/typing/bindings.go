@@ -68,6 +68,11 @@ func (s *Solver) GetBindings(br *BindingRegistry, dt DataType) []*InterfType {
 // ImplementsInterf tests if a given type implements the given interface. The
 // interface should NOT be a type interface.
 func (s *Solver) ImplementsInterf(dt DataType, it *InterfType) bool {
+	// Interfaces can never implement other interfaces
+	if _, ok := dt.(*InterfType); ok {
+		return false
+	}
+
 	if ContainsType(dt, it.Instances) {
 		return true
 	}
