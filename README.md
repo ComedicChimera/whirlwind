@@ -114,22 +114,26 @@ Linked List:
 
     type LLNode {
         value: int
-        next: own& LLNode
+        next: Option<own &LLNode>
     }
 
-    func ll_range(r: region, val: int) own& LLNode do
+    func ll_range(r: region, val: int) own &LLNode do
         if val == 0 do
-            return make in[r] LLNode{value=val}
+            return make in[r] LLNode{value=val, next=None}
 
-        return make in[r] LLNode{value=val, next=ll_range(val - 1)}
+        return make in[r] LLNode{value=val, next=Some(ll_range(val - 1))}
 
     func main do
         let ll = ll_range(ctx_region(), 10)
 
-        let p = ll
-        for _ in 0..10 do
-            println(p.value)
-            p = p.next
+        // no memory leak :)
+        while true do
+            println(ll.value)
+
+            if ll.next match Some(v) do
+                ll = v
+            else
+                break
 
 ## <a name="docs"/> Documentation
 
