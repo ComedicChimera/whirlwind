@@ -202,6 +202,9 @@ we choose to use the idea of region *consistency* rather than region *constancy*
 Note: All methods of an interface that return dynamic references must return said references in regions of
 equal rank (or rather an equal rank offset).
 
+Note: For situations where functions may need to return data structures of equal rank, make sure that region
+consistency works properly for algebraic types eg. our linked list examples.
+
 ## The Global Region
 
 There exists a region known as the global region that is allocated globally and 
