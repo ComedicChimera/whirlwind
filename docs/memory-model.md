@@ -318,4 +318,13 @@ related to `n` and thus the determined value of `m` is `n`.  Thus the relational
 Several other data types such as structs have similar relational properties to functions (their fields store references of 
 rank `n` where `n` is determined on a use by use basis).
 
+## Dealing with Heap Fragmentation
 
+The compiler should be conservative about creating regions (even if they semantically exist).  Eg. it is more efficient to
+allocate one region for a function that recurs 1000 times and only allocates one local int and have the region be deleted when
+the top/enclosing function exits, then it is to allocate a region (of min-size of a page) every single recursive call.  This is
+because a blank page is allocated for every region and then 99% of it is not used -- this is INCREDIBLY wasteful.  
+
+The compiler should be clever enough to determine when it actually should create a new region and when it should bend the rules a bit.
+
+Regions are first and foremost a SEMANTIC construct.
