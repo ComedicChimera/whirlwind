@@ -541,7 +541,7 @@ type InterfMethod struct {
 
 const (
 	MKVirtual   = iota // Method that is given a body in a parent interface
-	MKOveride          // Method that overrides a virtual method implementation in a derived interf
+	MKOverride         // Method that overrides a virtual method implementation in a derived interf
 	MKAbstract         // Method that is defined without a body in a parent interface (to be defined)
 	MKImplement        // Method that implements an abstract method
 	MKStandard         // Method that is defined on a type interface that is not an override or abstract implementation

@@ -109,6 +109,30 @@ outerloop:
 	return true
 }
 
+// Derive performs a formal implement (an `is` derivation) on a type interface.
+// This should be called after `ImplementsInterf` is called to check the
+// derivation.
+func (s *Solver) Derive(it, deriving *InterfType) {
+	for name, method := range deriving.Methods {
+		if imethod, ok := it.Methods[name]; ok {
+			// we can assume that if the `ImplementsInterf` check passed, then
+			// if two methods have the same name in the parent and child then
+			// they have the same signature
+			if method.Kind == MKAbstract {
+				imethod.Kind = MKImplement
+			} else {
+				// MKVirtual in parent, override in derived
+				imethod.Kind = MKOverride
+			}
+		} else if method.Kind == MKVirtual {
+			it.Methods[name] = method
+		}
+
+		// we can assume all abstract methods are implemented (for same reason
+		// as other assumption)
+	}
+}
+
 // containsMethod checks if a given type interface contains a method
 func containsMethod(binding *InterfType, methodName string, method *InterfMethod) bool {
 	if bmethod, ok := binding.Methods[methodName]; ok {
