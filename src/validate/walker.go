@@ -21,6 +21,10 @@ type Walker struct {
 
 	// Solver stores the type solver that is used for inference and type deduction
 	Solver *typing.Solver
+
+	// FatalDefError is a flag that is used to mark when an error that occurred in
+	// a definition is fatal (ie. not related to an unknown)
+	FatalDefError bool
 }
 
 // UnknownSymbol is a symbol awaiting resolution

@@ -67,7 +67,8 @@ func (pa *PAssembler) initialPass() {
 // resolution pass (walks a top_level `node`)
 func (pa *PAssembler) initialPassOverBlock(wfile *common.WhirlFile, block *syntax.ASTBranch) {
 	for _, topast := range block.Content {
-		branch := topast.(*syntax.ASTBranch)
+		// extract the first node from the `definition` node
+		branch := topast.(*syntax.ASTBranch).BranchAt(0)
 		hirn, unknowns, ok := pa.Walkers[wfile].WalkDef(branch)
 		if hirn == nil {
 			pa.DefQueue.Enqueue(&Definition{

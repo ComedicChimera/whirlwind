@@ -14,9 +14,29 @@ import (
 // node.  This function is mainly intended to work with the Resolver and
 // PackageAssembler.
 func (w *Walker) WalkDef(dast *syntax.ASTBranch) (common.HIRNode, map[string]*UnknownSymbol, bool) {
+	switch dast.Name {
+	case "type_def":
+		if node, ok := w.walkTypeDef(dast); ok {
+			return node, nil, true
+		}
+	}
+
+	if w.FatalDefError {
+		w.FatalDefError = false
+
+		return nil, nil, false
+	}
 
 	// collect and clear our unknowns after they have collected for the definition
 	unknowns := w.Unknowns
 	w.clearUnknowns()
+
 	return nil, unknowns, true
+}
+
+// walkTypeDef walks a `type_def` node and returns the appropriate HIRNode and a
+// boolean indicating if walking was successful.  It does not indicate if an
+// errors were fatal.  This should be checked using the `FatalDefError` flag.
+func (w *Walker) walkTypeDef(dast *syntax.ASTBranch) (common.HIRNode, bool) {
+	return nil, false
 }

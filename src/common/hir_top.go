@@ -89,8 +89,8 @@ type HIRArgData struct {
 
 // HIRVariantDef is used to represent a variant definition
 type HIRVariantDef struct {
-	// TODO: RootGeneric *typing.GenericType
-	TypeParams []typing.DataType
+	RootGeneric *typing.GenericType
+	TypeParams  []typing.DataType
 
 	Body HIRNode
 }
@@ -101,7 +101,7 @@ func (*HIRVariantDef) Kind() int {
 
 // HIRGeneric is an enclosing node wrapping any generic definition
 type HIRGeneric struct {
-	// TODO: Generic     *typing.GenericType
+	Generic     *typing.GenericType
 	GenericNode HIRNode
 }
 
@@ -129,7 +129,7 @@ type HIROperDecl struct {
 	OperKind int
 
 	// Signature is the function signature of the operator
-	// TODO: Signature *typing.FuncType
+	Signature *typing.FuncType
 
 	Annotations map[string]string
 	Body        HIRNode
