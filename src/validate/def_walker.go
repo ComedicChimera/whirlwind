@@ -38,5 +38,24 @@ func (w *Walker) WalkDef(dast *syntax.ASTBranch) (common.HIRNode, map[string]*Un
 // boolean indicating if walking was successful.  It does not indicate if an
 // errors were fatal.  This should be checked using the `FatalDefError` flag.
 func (w *Walker) walkTypeDef(dast *syntax.ASTBranch) (common.HIRNode, bool) {
+	closedType := false
+	var name string
+
+	for _, item := range dast.Content {
+		switch v := item.(type) {
+		case *syntax.ASTBranch:
+
+		case *syntax.ASTLeaf:
+			switch v.Kind {
+			case syntax.CLOSED:
+				closedType = true
+			case syntax.IDENTIFIER:
+				name = v.Value
+			}
+		}
+	}
+
+	_, _ = name, closedType
+
 	return nil, false
 }
