@@ -25,6 +25,12 @@ type Walker struct {
 	// FatalDefError is a flag that is used to mark when an error that occurred in
 	// a definition is fatal (ie. not related to an unknown)
 	FatalDefError bool
+
+	// GenericCtx stores a list of the generic wildcard types in use during
+	// declaration so a generic can be formed after.  This field is also used as
+	// a flag to indicate whether or not a generic is use (if it is not nil,
+	// there is a generic)
+	GenericCtx []*typing.WildcardType
 }
 
 // UnknownSymbol is a symbol awaiting resolution
