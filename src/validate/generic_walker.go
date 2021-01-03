@@ -12,6 +12,10 @@ import (
 // `true` if the parsing was successful.  This function does populate the
 // `Unknowns` field and sets `FatalDefError` appropriately.
 func (w *Walker) primeGenericContext(genericTag *syntax.ASTBranch) bool {
+	// TODO: handle generic self-references NOTE: it could simply be a
+	// combination of the existing self-reference model along with a genericCtx
+	// test (for `walkTypeLabel` to tell if the generic initializer is valid)
+
 	return false
 }
 
