@@ -57,12 +57,12 @@ func_body = ['const'] ( do_block | ? '=>' expr ? ) ;
 
 type_def = ['closed'] 'type' 'IDENTIFIER' [generic_tag] ( ? typeset ? | newtype ) ;
 typeset = '=' type {'|' type } ;
-newtype = ? enum_suffix ? | struct_suffix ;
-enum_suffix = enum_type_member {enum_type_member} ;
-enum_type_member = '|' 'IDENTIFIER' [tupled_suffix] ;
+newtype = ? alg_suffix ? | struct_suffix ;
+alg_suffix = alg_type_member {alg_type_member} ;
+alg_type_member = '|' 'IDENTIFIER' [tupled_suffix] ;
 tupled_suffix = '(' type {',' type} ')' ;
 struct_suffix = ['of' type] '{' struct_member { struct_member } '}' ;
-struct_member = ['CONST'] ['VOL'] identifier_list type_ext [initializer] 'NEWLINE' ;
+struct_member = ['const'] ['vol'] identifier_list type_ext [initializer] 'NEWLINE' ;
 
 (* expr can be a list of decorators *)
 decorator = '@' expr 'NEWLINE' func_def ;

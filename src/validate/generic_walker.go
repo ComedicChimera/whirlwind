@@ -20,18 +20,26 @@ func (w *Walker) primeGenericContext(genericTag *syntax.ASTBranch) bool {
 // returns the appropriately constructed `HIRGeneric` and clears the generic
 // context for the next definition.  If there is no context, it simply returns
 // the definition passed in.
-func (w *Walker) applyGenericContext(node common.HIRNode, gdt typing.DataType) common.HIRNode {
+func (w *Walker) applyGenericContext(node common.HIRNode, name string) common.HIRNode {
 	if w.genericCtx == nil {
 		return node
 	}
 
+	// find the symbol of the declared data type so it can be updated (should
+	// always succeed b/c this is called immediately after a definition)
+	symbol, _ := w.Lookup(name)
 	gen := &common.HIRGeneric{
 		Generic: &typing.GenericType{
 			TypeParams: w.genericCtx,
-			Template:   gdt,
+			Template:   symbol.Type,
 		},
 		GenericNode: node,
 	}
+
+	// override the symbol's type
+	symbol.Type = gen.Generic
+
+	// TODO: update algebraic instances of open generic algebraic types
 
 	w.genericCtx = nil
 	return gen

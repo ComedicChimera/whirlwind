@@ -454,7 +454,7 @@ type StructType struct {
 	SrcPackageID uint
 	Fields       map[string]*TypeValue
 	Packed       bool
-	Inherits     []*StructType
+	Inherit      *StructType
 }
 
 func (st *StructType) Repr() string {
@@ -476,17 +476,12 @@ func (st *StructType) copyTemplate() DataType {
 		newFields[name] = field.copyTemplate()
 	}
 
-	newInherits := make([]*StructType, len(st.Inherits))
-	for i, inherit := range st.Inherits {
-		newInherits[i] = inherit.copyTemplate().(*StructType)
-	}
-
 	return &StructType{
 		Name:         st.Name,
 		SrcPackageID: st.SrcPackageID,
 		Fields:       newFields,
 		Packed:       st.Packed,
-		Inherits:     newInherits,
+		Inherit:      st.Inherit.copyTemplate().(*StructType),
 	}
 }
 

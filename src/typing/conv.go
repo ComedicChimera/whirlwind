@@ -251,25 +251,9 @@ func (s *Solver) CastTo(src, dest DataType) bool {
 				}
 			}
 
-			// In order to have truly identical fields, their inherits must also match
-			if len(sv.Inherits) != len(dst.Inherits) {
-				return false
-			}
-
-			// the inherits don't need to be in the same order so we will need to do
-			// linear search on every inherit.  Luckily, most structs will only have
-			// one or two inherits so that search is fairly trivial.  Moreover, it
-			// is VERY space inefficient to try to store the inherits as map since
-			// it would have to ordered both by name and package ID.
-			for _, inherit := range sv.Inherits {
-				for _, dinherit := range dst.Inherits {
-					if !inherit.Equals(dinherit) {
-						return false
-					}
-				}
-			}
-
-			return true
+			// in order for two structs to have the same fields they must have
+			// the same inherit
+			return sv.Inherit.Equals(dst.Inherit)
 		}
 	case *InterfType:
 		// Interfaces can be cast to any type that implements them (naively)

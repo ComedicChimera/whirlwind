@@ -38,6 +38,12 @@ type Walker struct {
 
 	// annotations stores the active annotations on any definition
 	annotations map[string]string
+
+	// selfType stores a reference to the type currently being defined for self referencing
+	selfType typing.DataType
+
+	// selfTypeUsed indicates whether or not the self type reference was used
+	selfTypeUsed bool
 }
 
 // UnknownSymbol is a symbol awaiting resolution
