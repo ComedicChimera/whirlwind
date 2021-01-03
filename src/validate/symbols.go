@@ -31,8 +31,8 @@ func (w *Walker) Lookup(name string) (*common.Symbol, bool) {
 	if wsi, ok := w.SrcFile.LocalTable[name]; ok {
 		// if the symbol has no name, then it is undefined (accessed via import)
 		if wsi.SymbolRef.Name == "" {
-			if w.Unknowns != nil {
-				w.Unknowns[name] = &UnknownSymbol{
+			if w.unknowns != nil {
+				w.unknowns[name] = &UnknownSymbol{
 					Name:           name,
 					ForeignPackage: wsi.SrcPackage,
 				}
@@ -44,15 +44,15 @@ func (w *Walker) Lookup(name string) (*common.Symbol, bool) {
 		return wsi.SymbolRef, true
 	}
 
-	if w.Unknowns != nil {
-		w.Unknowns[name] = &UnknownSymbol{Name: name}
+	if w.unknowns != nil {
+		w.unknowns[name] = &UnknownSymbol{Name: name}
 	}
 
 	return nil, false
 }
 
 // define defines a new symbol in the global namespace of a package (returns false
-// if the symbol if already defined).
+// if the symbol if already defined).  It does not log an error.
 func (w *Walker) define(sym *common.Symbol) bool {
 	if _, ok := w.SrcPackage.GlobalTable[sym.Name]; ok {
 		return false
@@ -84,8 +84,8 @@ func (w *Walker) implicitImport(ipkg *common.WhirlPackage, name string) (*common
 	nsym, ok := ipkg.ImportFromNamespace(name)
 
 	// update the unknowns as necessary
-	if !ok && w.Unknowns != nil {
-		w.Unknowns[name] = &UnknownSymbol{
+	if !ok && w.unknowns != nil {
+		w.unknowns[name] = &UnknownSymbol{
 			Name:           name,
 			ForeignPackage: ipkg,
 			ImplicitImport: true,
@@ -100,5 +100,5 @@ func (w *Walker) implicitImport(ipkg *common.WhirlPackage, name string) (*common
 
 // clearUnknowns resets the map of unknowns before another definition is analyzed
 func (w *Walker) clearUnknowns() {
-	w.Unknowns = make(map[string]*UnknownSymbol)
+	w.unknowns = make(map[string]*UnknownSymbol)
 }

@@ -13,24 +13,31 @@ type Walker struct {
 	SrcFile    *common.WhirlFile
 	Context    *logging.LogContext
 
-	// Unknowns is a map of all of the unknown symbols for a given definition.
+	// DeclStatus is a field set by the resolver to indicate the decl status of
+	// all newly defined symbols.  It is set to `DSInternal` by default.
+	DeclStatus int
+
+	// unknowns is a map of all of the unknown symbols for a given definition.
 	// This is used by the PAssembler and Resolver during symbol resolution.
 	// If this field is set to `nil`, then resolution is finished and this field
 	// can be ignored.
-	Unknowns map[string]*UnknownSymbol
+	unknowns map[string]*UnknownSymbol
 
 	// Solver stores the type solver that is used for inference and type deduction
-	Solver *typing.Solver
+	solver *typing.Solver
 
 	// FatalDefError is a flag that is used to mark when an error that occurred in
 	// a definition is fatal (ie. not related to an unknown)
-	FatalDefError bool
+	fatalDefError bool
 
 	// GenericCtx stores a list of the generic wildcard types in use during
 	// declaration so a generic can be formed after.  This field is also used as
 	// a flag to indicate whether or not a generic is use (if it is not nil,
 	// there is a generic)
-	GenericCtx []*typing.WildcardType
+	genericCtx []*typing.WildcardType
+
+	// annotations stores the active annotations on any definition
+	annotations map[string]string
 }
 
 // UnknownSymbol is a symbol awaiting resolution
@@ -62,8 +69,9 @@ func NewWalker(pkg *common.WhirlPackage, file *common.WhirlFile, fpath string) *
 			PackageID: pkg.PackageID,
 			FilePath:  fpath,
 		},
-		Unknowns: make(map[string]*UnknownSymbol),
-		Solver: &typing.Solver{
+		DeclStatus: common.DSInternal,
+		unknowns:   make(map[string]*UnknownSymbol),
+		solver: &typing.Solver{
 			GlobalBindings: pkg.GlobalBindings,
 			LocalBindings:  file.LocalBindings,
 		},
@@ -72,5 +80,11 @@ func NewWalker(pkg *common.WhirlPackage, file *common.WhirlFile, fpath string) *
 
 // resolutionDone indicates to the walker that resolution has finished.
 func (w *Walker) resolutionDone() {
-	w.Unknowns = nil
+	w.unknowns = nil
+}
+
+// hasFlag checks if the given annotation is active (as a flag; eg. `#packed`)
+func (w *Walker) hasFlag(flag string) bool {
+	_, ok := w.annotations[flag]
+	return ok
 }

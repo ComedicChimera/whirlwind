@@ -1,10 +1,20 @@
 package validate
 
 import (
+	"fmt"
+
 	"github.com/ComedicChimera/whirlwind/src/common"
+	"github.com/ComedicChimera/whirlwind/src/logging"
 	"github.com/ComedicChimera/whirlwind/src/syntax"
 	"github.com/ComedicChimera/whirlwind/src/typing"
 )
+
+var validTypeSetIntrinsics = map[string]struct{}{
+	"Vector":         struct{}{},
+	"TypedVector":    struct{}{},
+	"IntegralVector": struct{}{},
+	"Tuple":          struct{}{},
+}
 
 // WalkDef walks the AST of any given definition and attempts to determine if it
 // can be defined.  If it can, it returns the produced HIR node and the value
@@ -24,17 +34,17 @@ func (w *Walker) WalkDef(dast *syntax.ASTBranch) (common.HIRNode, map[string]*Un
 	}
 
 	// clear the generic context
-	w.GenericCtx = nil
+	w.genericCtx = nil
 
 	// handle fatal definition errors
-	if w.FatalDefError {
-		w.FatalDefError = false
+	if w.fatalDefError {
+		w.fatalDefError = false
 
 		return nil, nil, false
 	}
 
 	// collect and clear our unknowns after they have collected for the definition
-	unknowns := w.Unknowns
+	unknowns := w.unknowns
 	w.clearUnknowns()
 
 	return nil, unknowns, true
@@ -62,22 +72,85 @@ func (w *Walker) walkDefRaw(dast *syntax.ASTBranch) (common.HIRNode, typing.Data
 func (w *Walker) walkTypeDef(dast *syntax.ASTBranch) (*common.HIRTypeDef, bool) {
 	closedType := false
 	var name string
+	var namePosition *logging.TextPosition
+	var dt typing.DataType
+	fieldInits := make(map[string]common.HIRNode)
 
 	for _, item := range dast.Content {
 		switch v := item.(type) {
 		case *syntax.ASTBranch:
+			switch v.Name {
+			case "generic_tag":
+				if !w.primeGenericContext(v) {
+					return nil, false
+				}
+			case "newtype":
+				if w.hasFlag("intrinsic") {
+					w.logInvalidIntrinsic(name, "defined type", namePosition)
+					return nil, false
+				}
 
+				// TODO: new type implementation
+			case "typeset":
+				if types, ok := w.walkOffsetTypeList(v, 1); ok {
+					intrinsic := w.hasFlag("intrinsic")
+
+					if intrinsic {
+						if _, ok := validTypeSetIntrinsics[name]; !ok {
+							w.logInvalidIntrinsic(name, "type set", namePosition)
+							return nil, false
+						}
+					}
+
+					dt = &typing.TypeSet{
+						Name:         name,
+						SrcPackageID: w.SrcPackage.PackageID,
+						Types:        types,
+						Intrinsic:    intrinsic,
+					}
+				} else {
+					w.fatalDefError = true
+					return nil, false
+				}
+			}
 		case *syntax.ASTLeaf:
 			switch v.Kind {
 			case syntax.CLOSED:
 				closedType = true
 			case syntax.IDENTIFIER:
 				name = v.Value
+				namePosition = v.Position()
 			}
 		}
 	}
 
-	_, _ = name, closedType
+	if _, ok := dt.(*typing.AlgebraicType); !ok && closedType {
+		logging.LogError(
+			w.Context,
+			fmt.Sprintf("`closed` property not applicable on type `%s`", dt.Repr()),
+			logging.LMKUsage,
+			dast.Content[0].Position(),
+		)
 
-	return nil, false
+		w.fatalDefError = true
+		return nil, false
+	}
+
+	symbol := &common.Symbol{
+		Name:       name,
+		Type:       dt,
+		DefKind:    common.DefKindTypeDef,
+		DeclStatus: w.DeclStatus,
+		Constant:   true,
+	}
+
+	if !w.define(symbol) {
+		w.logRepeatDef(name, namePosition, true)
+		return nil, false
+	}
+
+	return &common.HIRTypeDef{
+		Sym:        symbol,
+		FieldInits: fieldInits,
+	}, true
 }

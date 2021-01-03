@@ -50,7 +50,9 @@ func (pa *PAssembler) initialPass() {
 			itembranch := item.(*syntax.ASTBranch)
 
 			if itembranch.Name == "export_block" {
+				pa.Walkers[wfile].DeclStatus = common.DSExported
 				pa.initialPassOverBlock(wfile, itembranch.BranchAt(3))
+				pa.Walkers[wfile].DeclStatus = common.DSInternal
 			} else {
 				// we know this is the "top_level" node and we do not need to
 				// expect any other export blocks.

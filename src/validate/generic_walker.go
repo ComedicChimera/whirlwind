@@ -21,18 +21,18 @@ func (w *Walker) primeGenericContext(genericTag *syntax.ASTBranch) bool {
 // context for the next definition.  If there is no context, it simply returns
 // the definition passed in.
 func (w *Walker) applyGenericContext(node common.HIRNode, gdt typing.DataType) common.HIRNode {
-	if w.GenericCtx == nil {
+	if w.genericCtx == nil {
 		return node
 	}
 
 	gen := &common.HIRGeneric{
 		Generic: &typing.GenericType{
-			TypeParams: w.GenericCtx,
+			TypeParams: w.genericCtx,
 			Template:   gdt,
 		},
 		GenericNode: node,
 	}
 
-	w.GenericCtx = nil
+	w.genericCtx = nil
 	return gen
 }
