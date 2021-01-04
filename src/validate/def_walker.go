@@ -173,28 +173,22 @@ func (w *Walker) walkTypeDef(dast *syntax.ASTBranch) (*common.HIRTypeDef, bool) 
 				}
 
 				if !w.define(symbol) {
-					logging.LogError(
-						w.Context,
+					w.logFatalDefError(
 						fmt.Sprintf("Algebraic type `%s` must be marked `closed` as its member `%s` shares a name with an already-defined symbol", name, iname),
 						logging.LMKName,
 						namePosition,
 					)
-
-					w.fatalDefError = true
 					return nil, false
 				}
 			}
 		}
 	} else if closedType {
 		// you can't use `closed` on a type that isn't algebraic
-		logging.LogError(
-			w.Context,
+		w.logFatalDefError(
 			fmt.Sprintf("`closed` property not applicable on type `%s`", dt.Repr()),
 			logging.LMKUsage,
 			dast.Content[0].Position(),
 		)
-
-		w.fatalDefError = true
 		return nil, false
 	}
 
@@ -238,15 +232,11 @@ func (w *Walker) walkAlgebraicSuffix(suffix *syntax.ASTBranch, name string, name
 	// defined and has no alternate form that prevents such recursion (ie. no
 	// "base case") and so we must throw an error.
 	if w.selfTypeUsed && len(algType.Instances) == 1 {
-		logging.LogError(
-			w.Context,
+		w.logFatalDefError(
 			fmt.Sprintf("Algebraic type `%s` defined recursively with no base case", name),
 			logging.LMKUsage,
 			namePosition,
 		)
-
-		w.fatalDefError = true
-
 		return nil, false
 	}
 
@@ -269,16 +259,15 @@ func (w *Walker) walkStructSuffix(suffix *syntax.ASTBranch, name string, fieldIn
 		if branch, ok := item.(*syntax.ASTBranch); ok {
 			if branch.Name == "struct_member" {
 				if fnames, tv, init, ok := w.walkTypeValues(branch); ok {
+					// multiple fields can share the same type value and
+					// initializer (for efficiency)
 					for fname, pos := range fnames {
 						if _, ok := structType.Fields[fname]; ok {
-							logging.LogError(
-								w.Context,
+							w.logFatalDefError(
 								fmt.Sprintf("Field `%s` of struct `%s` defined multiple times", fname, name),
 								logging.LMKName,
 								pos,
 							)
-
-							w.fatalDefError = true
 							return nil, false
 						}
 
@@ -296,28 +285,22 @@ func (w *Walker) walkStructSuffix(suffix *syntax.ASTBranch, name string, fieldIn
 					if st, ok := dt.(*typing.StructType); ok {
 						// inherits cannot be self-referential
 						if st.Equals(structType) {
-							logging.LogError(
-								w.Context,
+							w.logFatalDefError(
 								fmt.Sprintf("Struct `%s` cannot inherit from itself", name),
 								logging.LMKUsage,
 								branch.Position(),
 							)
-
-							w.fatalDefError = true
 							return nil, false
 						}
 
 						structType.Inherit = st
 					} else {
 						// structs can only inherit from other structs
-						logging.LogError(
-							w.Context,
+						w.logFatalDefError(
 							fmt.Sprintf("Struct `%s` must inherit from another struct not `%s`", name, dt.Repr()),
 							logging.LMKUsage,
 							branch.Position(),
 						)
-
-						w.fatalDefError = true
 						return nil, false
 					}
 				} else {

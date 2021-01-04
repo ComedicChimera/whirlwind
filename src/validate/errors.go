@@ -34,14 +34,23 @@ func (w *Walker) logRepeatDef(name string, pos *logging.TextPosition, topDefErro
 	)
 }
 
-// LogInvalidIntrinsic marks that the given named type cannot be intrinsic.
+// logInvalidIntrinsic marks that the given named type cannot be intrinsic.
 // Sets `fatalDefError`.
 func (w *Walker) logInvalidIntrinsic(name, kind string, pos *logging.TextPosition) {
+	w.logFatalDefError(
+		fmt.Sprintf("No intrinsic %s by name `%s`", kind, name),
+		logging.LMKUsage,
+		pos,
+	)
+}
+
+// logFatalDefError logs a fatal definition error of any kind
+func (w *Walker) logFatalDefError(message string, kind int, pos *logging.TextPosition) {
 	w.fatalDefError = true
 
 	logging.LogError(
 		w.Context,
-		fmt.Sprintf("No intrinsic %s by name `%s`", kind, name),
+		message,
 		logging.LMKUsage,
 		pos,
 	)
