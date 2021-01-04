@@ -43,6 +43,11 @@ func (w *Walker) walkTypeList(ast *syntax.ASTBranch) ([]typing.DataType, bool) {
 	return types, true
 }
 
+// walkTypeExt walks a type extension and returns the label
+func (w *Walker) walkTypeExt(ext *syntax.ASTBranch) (typing.DataType, bool) {
+	return w.walkTypeLabel(ext.BranchAt(1))
+}
+
 // walkTypeLabel walks and attempts to extract a data type from a type label. If
 // this function fails, it will set `fatalDefError` appropriately.
 func (w *Walker) walkTypeLabel(label *syntax.ASTBranch) (typing.DataType, bool) {

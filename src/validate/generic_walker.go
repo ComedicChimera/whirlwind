@@ -48,3 +48,8 @@ func (w *Walker) applyGenericContext(node common.HIRNode, name string) common.HI
 	w.genericCtx = nil
 	return gen
 }
+
+// createGenericInstance creates a new instance of the given generic type
+func (w *Walker) createGenericInstance(generic *typing.GenericType, params []typing.DataType) (typing.DataType, bool) {
+	return nil, false
+}

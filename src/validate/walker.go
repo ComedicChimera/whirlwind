@@ -3,6 +3,7 @@ package validate
 import (
 	"github.com/ComedicChimera/whirlwind/src/common"
 	"github.com/ComedicChimera/whirlwind/src/logging"
+	"github.com/ComedicChimera/whirlwind/src/syntax"
 	"github.com/ComedicChimera/whirlwind/src/typing"
 )
 
@@ -93,4 +94,18 @@ func (w *Walker) resolutionDone() {
 func (w *Walker) hasFlag(flag string) bool {
 	_, ok := w.annotations[flag]
 	return ok
+}
+
+// walkIdList walks a list of identifiers and returns a map of names and
+// positions (for error handling)
+func (w *Walker) walkIdList(idList *syntax.ASTBranch) map[string]*logging.TextPosition {
+	names := make(map[string]*logging.TextPosition)
+
+	for i, item := range idList.Content {
+		if i%2 == 0 {
+			names[item.(*syntax.ASTLeaf).Value] = item.Position()
+		}
+	}
+
+	return names
 }

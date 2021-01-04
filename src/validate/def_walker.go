@@ -268,7 +268,29 @@ func (w *Walker) walkStructSuffix(suffix *syntax.ASTBranch, name string, fieldIn
 	for _, item := range suffix.Content {
 		if branch, ok := item.(*syntax.ASTBranch); ok {
 			if branch.Name == "struct_member" {
+				if fnames, tv, init, ok := w.walkTypeValues(branch); ok {
+					for fname, pos := range fnames {
+						if _, ok := structType.Fields[fname]; ok {
+							logging.LogError(
+								w.Context,
+								fmt.Sprintf("Field `%s` of struct `%s` defined multiple times", fname, name),
+								logging.LMKName,
+								pos,
+							)
 
+							w.fatalDefError = true
+							return nil, false
+						}
+
+						structType.Fields[fname] = tv
+
+						if init != nil {
+							fieldInits[fname] = init
+						}
+					}
+				} else {
+					return nil, false
+				}
 			} else /* inherit */ {
 				if dt, ok := w.walkTypeLabel(branch); ok {
 					if st, ok := dt.(*typing.StructType); ok {
@@ -306,4 +328,41 @@ func (w *Walker) walkStructSuffix(suffix *syntax.ASTBranch, name string, fieldIn
 	}
 
 	return structType, true
+}
+
+// walkTypeValues walks any node that is of the form of a type value (ie.
+// `identifier_list` followed by `type_ext`) and generates a single common type
+// value and a map of names and positions from it.  It also handles `vol` and
+// `const` modifiers and returns any initializers it finds.
+func (w *Walker) walkTypeValues(branch *syntax.ASTBranch) (map[string]*logging.TextPosition, *typing.TypeValue, common.HIRNode, bool) {
+	ctv := &typing.TypeValue{}
+	var names map[string]*logging.TextPosition
+	var initializer common.HIRNode
+
+	for _, item := range branch.Content {
+		switch v := item.(type) {
+		case *syntax.ASTBranch:
+			switch v.Name {
+			case "identifier_list":
+				names = w.walkIdList(v)
+			case "type_ext":
+				if dt, ok := w.walkTypeExt(v); ok {
+					ctv.Type = dt
+				} else {
+					return nil, nil, nil, false
+				}
+			case "initializer":
+				initializer = (*common.HIRIncomplete)(v.BranchAt(1))
+			}
+		case *syntax.ASTLeaf:
+			switch v.Kind {
+			case syntax.VOL:
+				ctv.Volatile = true
+			case syntax.CONST:
+				ctv.Constant = true
+			}
+		}
+	}
+
+	return names, ctv, initializer, false
 }
