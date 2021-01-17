@@ -36,22 +36,28 @@ A reference is like a pointer, but it cannot be treated as a numeric value.
       - However, an reference may not have a block reference as its stored type
       - Resized using the `resize` function -- works in-place
         - Eg. `resize(block, 10)` -- resizes a block to store 10 elements
-      - Block references are actually references to arrays (which contain their own references)
-        - This means that operations like `resize` don't cause null errors on duplicate
-        references since it mutates the internal reference -- not the reference all the block
-        refs share
-      - There is also a `copy` function to copy the data from one block reference to another
+      - Block references are actually references to arrays (which contain their
+        own references)
+        - This means that operations like `resize` don't cause null errors on
+          duplicate references since it mutates the internal reference -- not
+          the reference all the block refs share
+      - There is also a `copy` function to copy the data from one block
+        reference to another
         - Eg. `copy(src, dest)`
         - Equivalent to `*r = data` for normal references
         - Both references must be the same size
-      - Finally, there is a `move` function that copies the contents of one reference into another
-      and then deletes the contents of the previous reference.      
-        - This also adjusts the source block reference to point to the data in the destination reference
-          - This prevents null errors (again since the internal pointer is mutated/isolated)
+      - Finally, there is a `move` function that copies the contents of one
+        reference into another and then deletes the contents of the previous
+        reference.      
+        - This also adjusts the source block reference to point to the data in
+          the destination reference
+          - This prevents null errors (again since the internal pointer is
+            mutated/isolated)
         - Both references must be the same size
       - `&[]type` and `[&]type` are NOT the same
         - Block references are implicitly owned and point to the heap
-        - References to arrays are simply that: a reference to some array somewhere
+        - References to arrays are simply that: a reference to some array
+          somewhere
           - The array may or may not be on the heap
           - It cannot be resized
           - `&[]type` is considered a stack reference
@@ -62,179 +68,148 @@ A region is a large "block" of memory that holds the contents of a large number 
 
   - Regions are equivalent to scopes but for dynamic memory
     - Individual dynamic references CAN NOT BE DELETED
-      - Block references can be "resized" which does entail a reallocation,
-      but they are only "deleted" during the window in which they are being resized
-    - Regions are deleted as one discrete block -- they can NOT be explicitly deleted
-    - Regions can contain sub-regions (and sub-regions can contain sub-regions like scopes)
+      - Block references can be "resized" which does entail a reallocation, but
+        they are only "deleted" during the window in which they are being
+        resized
+    - Regions are deleted as one discrete block -- they can NOT be explicitly
+      deleted
+    - Regions can contain sub-regions (and sub-regions can contain sub-regions
+      like scopes)
       - A region can only be deleted once all of its sub-regions have been
-    - Each function in addition to defining a stack frame also defines a region
-      - Sub-regions expand out from the parent region of the main function
-      - When a function exits, its region is deleted/destroyed (assumes all sub-regions
-      have also been destroyed)
-      - A function can be made up of multiple regions of equal scope.
-        - There regions all have the same "rank" (that is they are all subregions of the same region)
-        - All such regions of equal rank are deleted when the function exits.
-      - If a function does not actually require its own region, then no region will be created
-    - Regions can also be defined explicitly using the `region of` syntax (defines a new block
-    and lexical scope)
-      - These regions are consider a sub-region of their enclosing function
-      - An explicitly defined region can NOT be created within another explicitly defined region
-        - Avoids unnecessary complication and prevents "unidiomatic" programming practices 
-  - A reference's region is not explicit in its type, but rather stored as a contextual tag
+  - Regions are always deleted at the end of the scope in which they are created
+    - This makes their behavior predictable both to the compiler and programmer
+    - The primary exception is global region which is discussed later
+  - Regions can be treated as literal values
+    - Passed to functions, stored in variables, etc.
+    - This is essential for facilitating a dynamic memory model (that can change
+      as the program flows different directions)
+      - used to allow allocation at an indefinite level
+  - Regions can be created implicitly or explicitly
+    - Using the `local` allocation specifier creates a region local to the
+      current function if a region has not already been created
+      - If a local region already exists, then no new region is created an
+        `local` simply points to that region
+      - This specifier is discussed in more detail in the *Allocation* section
+    - `region r local` creates a new local region that can be accessed and
+      referred to as `r`
+      - If a local region already exists, then this syntax simply exposes a
+        reference to it named `r`
+    - `region r of` specifies a new region that exists for the scope of the `of`
+      block
+      - Used to more tightly subdivide the memory of a function
+      - An explicitly defined region can NOT be created within another
+        explicitly defined region
+        - Avoids unnecessary complication and prevents "unidiomatic" programming
+          practices 
+      - It is referenced by the name `r`
+        - The `r` can be elided (as `local` points to it within the `of` block)
+  - All regions are considered to a have a "rank" which determines at what level
+    of the region hierarchy they exist
+    - Higher rank = further down
+  - A reference's region is not explicit in its type, but rather stored as a
+    contextual tag
 
 This method efficiently prevents memory leaks since the user can freely assign to reference
 variables and "lose" references to earlier data since it will all be cleaned up when the region
-is deleted.  No reference counting is necessary since as region locking is enforced (as discussed
-in the next section).  
+is deleted.  No reference counting is necessary due to nullability (discussed later).
 
 ## Allocation
 
 Dynamic references are allocated in an explicit region when they are created.  
 
-  - These references can be created using the `make` syntax which is structured as follows:
+  - These references can be created using the `make` syntax which is structured
+    as follows:
     - `make region-specifier allocation-parameter`
-  - The "region-specifier" defines in what region relative to the allocation the reference will
-  be created in.
+  - The "region-specifier" defines in what region relative to the allocation the
+    reference will be created in.
     - `local` specifies that the reference is created in the current region
-    - `nonlocal[func]` specifies that the reference is created in the region enclosing
-    its parent function
-      - The `[func]` can be elided whenever the context is unambiguous (ie. the allocation
-      is not occurring within an explicitly defined region)
-    - `nonlocal[region]` specifies that the reference is created in the region of its
-    parent function 
+      - this exists for additional concision (allocated in a local region is
+        common)
     - `in[r]` allows one to specify a region explicitly for allocation
       - `r` is an identifier with a type of `region`
-      - the current region can be accessed in "literal" form using the `ctx_region` function
-        - `ctx_region` can not be used in global namespace (unable to get a reference to the global region)
-      - used to allow allocation at an indefinite level
+      - It must be an explicit region reference
   - The "allocation-parameter" determines what dynamic reference is produced
     - When this is a type, an owned reference is produced
       - Eg. `make local int` produces an `own &int`
     - When this is a tuple of a type an a value, a block reference is produced
       - Eg. `make local (int, 10)` produces an `[&]int` of a 10 elements
-    - When this is a value (structured type), it will allocate enough memory
-      to store that value and then store it in that allocated memory
+    - When this is a value (structured type), it will allocate enough memory to
+      store that value and then store it in that allocated memory
       - Eg. `make local Struct{v=10}`
   - The compiler will enforce region locking to prevent null-dereferences
-    - A reference created in a specific region will not be allowed to "leave" that region
-      - Eg. you can't return a `local` or `nonlocal[region]` reference from a function
+    - A reference created in a specific region will not be allowed to "leave"
+      that region
+      - Eg. you can't return a `local` or `nonlocal[region]` reference from a
+        function
       - You can't put a standard reference in the global region
-      - You can't allocate a variable locally in an explicit region and store it in a variable
-      in a region higher up on the stack.
+      - You can't allocate a variable locally in an explicit region and store it
+        in a variable in a region higher up on the stack.
 
-# Region Consistency
+## Nullability and Static Rank Analysis
 
-Region consistency is an axiom of Whirlwind's memory model that states that along any given
-codepath, the region to which a reference belongs must be consistent.
+While regions effectively circumvent memory leaks, they do not solve the larger problem of
+null reference errors -- returning or accessing references that no longer exist.  While
+regions can help the compiler to analysis where a reference belongs in the hierarchy, 
+they are not deterministic since the control flow of the program shifts so regularly.
+Therefore, we have to implement a "coping mechanism" for when the compiler doesn't know
+what region a reference specifically belongs to -- this mechanism is nullability.
 
-This also implies that the compiler should be able to work out the regions each reference
-belongs to *statically*.
+It is worth noting that enforcing strict region consistency/region locking (eg. forcing all 
+references returned from a function to be of the same rank) is not feasible in the general case
+as many applications require complex control flow that can't be predicted accurately enough for
+such a system to work effectively.
 
-For example,
+Static rank analysis is the main tool the compiler has to detect where null reference errors are
+possible.  For each reference "position" (eg. in a return type, in struct field, etc), the
+compiler determines a set of possible relative ranks that reference can be.
 
-```
-func my_func do
-    let r: own &int
-
-    // ERROR: region of r is not consistent
-    if some_cond do
-        r = make local int
-    else
-        r = make nonlocal int
-
-    // in what region is `r` out here?
-```
-
-We can see that because `r` does not have consistent region, any error is thrown.
-
-> Additionally, you can't dereference an uninitialized reference so accessing `r` before
-> allocation or along a code-path in which is may not have been allocated results in an error.
-
-Function return types have the same property as variables.  This is essential because it
-allows us to determine the region of the return value of the reference allowing us to
-predict where a returned reference is accurately.
-
-However, data structures to do not have the same rules:
+Relative rank is a method for determining rank based on other given variables.  For example,
+say a function `fn` is defined as follows:
 
 ```
-type Store {
-    r: own &int
-}
+func fn(r: region) own &int do
+  if some_cond do
+    return fn(r)
 
-func f1 do
-    let s = Store{r = make local int}
-
-    // -- snip --
-
-func f2 do
-    let s = Store{r = make nonlocal int}
-
-    // -- snip --
+  return make in[r] int
 ```
 
-An owned reference field of a struct can house many different kinds of owned references.  However,
-region consistency MUST be observed across instances.
+The region `r` accepted by the function as an argument is said to have an arbitrary rank `n`.
+The base case of the function returns a reference allocated in `r` which implies that the
+returned reference has a rank of `n` as well.  The recursive case simply calls the function
+again with `r`.  Since we know that in the base case, the function maps a region of rank `n`
+to a reference of rank `n` (ie. the function is `n -> n`), we know that in this case, for 
+region of rank `n`, the returned value must also be `n` (the recursive case is not considered
+again).  Therefore, the function as a whole is `n -> n`.  The rank `n` is said to be a relative
+rank.
 
-Block references must also obey reference consistency.  Moreover, for both kinds of
-references, the compiler should use its knowledge of where a reference is allocated to
-prevent null dereferences (ie. you can't use a reference after its region has been deallocated).
-You also cannot resize a block reference to a reference outside of its original region.
-
-A final quirk of region consistency is that it does NOT necessarily have to observed linearly:
+In the case above, there is only relative rank in play: `n`.  This might not always
+be the case:
 
 ```
-func my_func own &int do
-    let r = make local int
+func fn2(r1, r2: region) own &int do
+  if some_cond2 do
+    return make in[r1] int
 
-    // -- snip --
-
-    r = make nonlocal int
-
-    // -- snip --
-
-    return r
+  return make in[r2] int
 ```
 
-The above code contains no errors because although the region of `r` changes, it changes deterministically
-meaning that along the code path above, `r` has a predictable and consistent region.  This is why
-we choose to use the idea of region *consistency* rather than region *constancy*.
+This function takes in two regions of relative rank `n` and `m` respectively and returns a reference
+that can either be `n` or `m`.  Therefore, the set of possible ranks of the return reference is
+`{ n, m }` and the function is said to be `(n, m) -> { n, m }`.  
 
-Note: All methods of an interface that return dynamic references must return said references in regions of
-equal rank (or rather an equal rank offset).
+If all possible ranks of a reference are exceeded (eg. ranks {n, n+1} and you are now in rank n-1), then
+all usage of that reference is forbidden as it will always be null.  However, if only some of the possible
+ranks are exceeded (eg ranks {n, n-2, n+3}, you are now in rank n-1), then the reference is considered nullable.
+Nullability must be marked as a part of the data type in all future/higher rank usages of it.  For example, if
+a function returns (or could return) a nullable reference, the type of that reference must be marked with a `?`
+at the end of its type so that the nullability is made obvious to the reader.  =
 
-Note: For situations where functions may need to return data structures of equal rank, make sure that region
-consistency works properly for algebraic types eg. our linked list examples.
-
-## The Global Region
-
-There exists a region known as the global region that is allocated globally and 
-is not affiliated with any particular Strand or scope.
-
-  - Memory can be allocated here using the region specifier `global`
-  - References allocated in the global region have a special type specifier: `global`.
-    - Both owned references and block references can be made global by putting this
-    specifier before their definition
-    - Eg. `global own& int` or `global [&]float`
-    - Free references cannot be marked as global
-  - You can NOT borrow a global reference
-    - This is to avoid null-reference errors
-  - Unlike references in all other regions, global references CAN be deleted and must
-  be managed explicitly
-    - It is impossible to determine a consistent lifetime for them statically
-    - They are deleted using the `delete` function which works for both global and
-    block references
-    - This is part of the reason why global references can not be borrowed and have
-    an explicit tag on them
-      - Prevents them from being confused with normal references and helps to minimize
-      null-reference errors
-  - They should only be used when necessary
-    - When data must be stored and managed globally
-    - When the references is being shared by multiple strands as the global region is
-    strand agnostic
+TODO: figure out a system for nullability that works for data structures.
 
 ## Nullable Operators
 
-Nullable operators can be used on all references to help prevent null-reference errors.
+Nullable operators must be used to access nullable references as a measure to check for null errors.
 
   - The null test operator is used like so: `ref?` where `ref` is some reference and
   accumulates that reference to `null` if it has already been deallocated/points to
@@ -250,6 +225,36 @@ Nullable operators can be used on all references to help prevent null-reference 
     produce a `None` value.  If it is safe for use, then it will be produce a `Some` value
       - Will not stop any non-memory-related panics (eg. index out of bounds)
 
+All references may use null operators as necessary, but do not have to unless they are nullable.
+
+## The Global Region
+
+There exists a region known as the global region that is allocated globally and 
+is not affiliated with any particular Strand or scope.
+
+  - Memory can be allocated here using the region specifier `global`
+  - References allocated in the global region have a special type specifier:
+    `global`.
+    - Both owned references and block references can be made global by putting
+      this specifier before their definition
+    - Eg. `global own& int` or `global [&]float`
+    - Free references cannot be marked as global
+  - You can NOT borrow a global reference
+    - This is to avoid null-reference errors
+  - Unlike references in all other regions, global references CAN be deleted and
+    must be managed explicitly
+    - It is impossible to determine a consistent lifetime for them statically
+    - They are deleted using the `delete` function which works for both global
+      and block references
+    - This is part of the reason why global references can not be borrowed and
+      have an explicit tag on them
+      - Prevents them from being confused with normal references and helps to
+        minimize null-reference errors
+  - They should only be used when necessary
+    - When data must be stored and managed globally
+    - When the references is being shared by multiple strands as the global
+      region is strand agnostic
+      
 ## Constancy
 
 Constancy is a property of a reference or variable that determines whether or not it
@@ -258,8 +263,8 @@ can be mutated.
   - only applies to references and variables (mutable, named values)
   - for variable declarators:
     - `const x ...`
-    - constancy will be applied as an optimization after semantic checking
-      where possible
+    - constancy will be applied as an optimization after semantic checking where
+      possible
   - same syntax for structs and function arguments
   - for references:
     - `&const x` (create a const reference to x)
@@ -286,45 +291,13 @@ referenced and what things can't be.
 These categories are generally simpler than those present in C++ (only two categories) as
 Whirlwind's data model is a lot simpler.
 
-## Region Static Rank Analysis
-
-While region analysis when the body of single function is fairly trival, when applied across multiple
-functions it can be very difficult.  Moreover, analysis across multiple functions can be quite complex
-and since functions are called in a variety of different contexts, it is profoundly inefficient to simply
-recompute the rank of the resulting region on every single call.  Thus, the return values of functions have
-a rank that is computed as a function of some inputs.  For example, for an input region of rank `n`, the function
-returns an owned reference of region `n`.  Or for an enclosing region of rank `n`, the function returns a reference
-of rank `n + 1`.  This does complicate the representation of regions the `rank` field stored in their data type.
-
-Additionally, it should be obvious that any recursion would cause issues for a naive analyzer.  Thus, another benefit
-of this functional representation is that parameters and return values can be variable.  In effect, we can say that
-the return value has a rank of `m` and determine the value of `m` over time by relating all uses of that value to `m`.
-Ironically, this call also help prevent infinite recursion since if `m` is completely indeterminant than no valid
-base case is ever reached and thus an error can be thrown.  Let us consider a simple example to show case what is
-meant by "variable rank"
-
-```
-func fn(r: region) own &int do
-  if some_cond do
-    return fn()
-
-  return make in[r] int
-```
-
-In the above code, `r` is said to have a rank `n` and `own &int` (the return) is said to have a rank of `m`.  In the
-first conditional branch, `m` is related to itself and thus no change occurs.  In the second branch, however, `m` is
-related to `n` and thus the determined value of `m` is `n`.  Thus the relational signature of our function is: `n -> n`.
-
-Several other data types such as structs have similar relational properties to functions (their fields store references of 
-rank `n` where `n` is determined on a use by use basis).
-
 ## Dealing with Heap Fragmentation
 
-The compiler should be conservative about creating regions (even if they semantically exist).  Eg. it is more efficient to
-allocate one region for a function that recurs 1000 times and only allocates one local int and have the region be deleted when
-the top/enclosing function exits, then it is to allocate a region (of min-size of a page) every single recursive call.  This is
-because a blank page is allocated for every region and then 99% of it is not used -- this is INCREDIBLY wasteful.  
+Regions have a minimum size of a single page (but can hold as many pages as is necessary).  This means that frivolously
+creating regions can lead to a good deal of heap fragmentation since large portions of regions may go unused.  This is
+why the compiler can not automatically create regions even in correspondence with other structures (such as lexical
+scopes, functions, etc.) as there is no way for it to effectively predict whether or not a whole region is necessary.
 
-The compiler should be clever enough to determine when it actually should create a new region and when it should bend the rules a bit.
-
-Regions are first and foremost a SEMANTIC construct.
+The programmer is responsible for creating and managing regions efficiently.  It is impossible/infeasible for the compiler 
+to accurately assess the flow of a complex program in the general case so we must pass this mental load onto the programmer.  
+It is still preferrable to manually managing individual references and is, in most cases, a fairly reasonable expectation.
