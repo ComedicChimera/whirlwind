@@ -116,8 +116,14 @@ func (w *Walker) walkNamedTypeCore(rootName, accessedName string, rootPos, acces
 
 			return symbol.Type, true
 		} else {
-			w.LogUndefined(rootName, rootPos)
-			w.fatalDefError = true
+			if w.resolving {
+				w.unknowns[rootName] = &UnknownSymbol{
+					Name:     rootName,
+					Position: rootPos,
+				}
+			} else {
+				w.LogUndefined(rootName, rootPos)
+			}
 
 			return nil, false
 		}
@@ -143,8 +149,16 @@ func (w *Walker) walkNamedTypeCore(rootName, accessedName string, rootPos, acces
 
 			return symbol.Type, true
 		} else {
-			w.LogNotVisibleInPackage(accessedName, rootName, accessedPos)
-			w.fatalDefError = true
+			if w.resolving {
+				w.unknowns[accessedName] = &UnknownSymbol{
+					Name:           accessedName,
+					Position:       accessedPos,
+					ForeignPackage: pkg,
+					ImplicitImport: true,
+				}
+			} else {
+				w.LogNotVisibleInPackage(accessedName, rootName, accessedPos)
+			}
 
 			return nil, false
 		}

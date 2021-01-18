@@ -18,6 +18,12 @@ type GenericType struct {
 	// instances of this generic type.  It contains empty WildcardTypes that are
 	// temporarily filled in and then copied.
 	Template DataType
+
+	// Instances stores a list of the generic instance of this generic type so
+	// that monomorphic expansion (ie. converting all the generates into
+	// separate definitions) can be performed efficiently and so that we can
+	// avoid repeatedly creating generates we already have (memoization).
+	Instances []*GenericInstanceType
 }
 
 func (gt *GenericType) Repr() string {
@@ -42,9 +48,9 @@ func (gt *GenericType) Repr() string {
 // inside data types (eg. methods) and thus it is only necessary to consider to
 // generic types as having the potential to be equal; viz. we are not comparing
 // generic to generic instances here.
-func (gt *GenericType) Equals(other DataType) bool {
+func (gt *GenericType) equals(other DataType) bool {
 	if ogt, ok := other.(*GenericType); ok {
-		if !gt.Template.Equals(ogt.Template) {
+		if !Equals(gt.Template, ogt.Template) {
 			return false
 		}
 
@@ -53,7 +59,7 @@ func (gt *GenericType) Equals(other DataType) bool {
 		}
 
 		for i, tp := range gt.TypeParams {
-			if !tp.Equals(ogt.TypeParams[i]) {
+			if !Equals(tp, ogt.TypeParams[i]) {
 				return false
 			}
 		}
@@ -103,6 +109,23 @@ func (s *Solver) CreateGenericInstance(gt *GenericType, typeValues []DataType) (
 		return nil, false
 	}
 
+	// if our type values match those of preexisting generate then we know that
+	// a) the type list is valid and b) we already have a generate for this set
+	// of type values so we can just return that.
+outerloop:
+	for _, instance := range gt.Instances {
+		// all instances have the same number of type values so we don't need to
+		// check lengths again on each instance
+		for i, dt := range typeValues {
+			if !Equals(instance.TypeParams[i], dt) {
+				continue outerloop
+			}
+		}
+
+		// if we reach here, then all type parameters matched
+		return instance, true
+	}
+
 	for i, wt := range gt.TypeParams {
 		if len(wt.Restrictors) > 0 {
 			matchedRestrictor := false
@@ -129,7 +152,15 @@ func (s *Solver) CreateGenericInstance(gt *GenericType, typeValues []DataType) (
 		wt.Value = nil
 	}
 
-	return copy, true
+	// now, create and memoize our instance, then return
+	gi := &GenericInstanceType{
+		Generic:          gt,
+		TypeParams:       typeValues,
+		MemoizedGenerate: copy,
+	}
+
+	gt.Instances = append(gt.Instances, gi)
+	return gi, true
 }
 
 // WildcardType is a psuedo-type that is used as a stand-in for type parameters
@@ -165,7 +196,7 @@ func (wt *WildcardType) Repr() string {
 	}
 }
 
-func (wt *WildcardType) Equals(other DataType) bool {
+func (wt *WildcardType) equals(other DataType) bool {
 	if wt.Value == nil {
 		if len(wt.Restrictors) > 0 && !ContainsType(other, wt.Restrictors) {
 			return false
@@ -178,7 +209,7 @@ func (wt *WildcardType) Equals(other DataType) bool {
 		return true
 	}
 
-	return wt.Value.Equals(other)
+	return Equals(wt.Value, other)
 }
 
 func (wt *WildcardType) copyTemplate() DataType {
@@ -196,5 +227,59 @@ func (wt *WildcardType) copyTemplate() DataType {
 		// copyTemplate should never be applied to a WildcardType that requires
 		// ImmediateBind (or if it is, then clearing ImmediateBind is
 		// appropriate/acceptable)
+	}
+}
+
+// GenericInstanceType is an abstraction that is created to enclose a generate
+// type whenever it is generated.  This type allows for more clear/informative
+// type error messages and more thorough analysis.
+type GenericInstanceType struct {
+	// Generic stores a reference to the generic that this generate spawns from
+	Generic *GenericType
+
+	// TypeParams is the slice of type parameters passed in to create this generate
+	TypeParams []DataType
+
+	// MemoizedGenerate stores the generate type that this generic instance
+	// corresponds to (after type parameter substitution).  It is generated once
+	// and is, in effect, the type that this generic instance refers to.
+	MemoizedGenerate DataType
+}
+
+// equals will always fail since if it is called directly, there is no inner
+// type (this method should never be called)
+func (gi *GenericInstanceType) equals(other DataType) bool {
+	return false
+}
+
+// Repr is the first primary reason this wrapper type exists: it indicates the
+// base generic as well as what type parameters were used to create the type.
+// This means that in error messages instead of simply seeing `Option`, you see
+// `Option<int>` which is much more informative.
+func (gi *GenericInstanceType) Repr() string {
+	sb := strings.Builder{}
+	sb.WriteString(gi.Generic.Template.Repr())
+
+	sb.WriteRune('<')
+	for i, tp := range gi.TypeParams {
+		sb.WriteString(tp.Repr())
+
+		if i < len(gi.TypeParams)-1 {
+			sb.WriteString(", ")
+		}
+	}
+	sb.WriteRune('>')
+
+	return sb.String()
+}
+
+// copyTemplate will copy both the memoized generate and the type parameters as
+// both can contain wildcard types.  However, the root generic should stay the
+// same (as it unaffected in this context).
+func (gi *GenericInstanceType) copyTemplate() DataType {
+	return &GenericInstanceType{
+		Generic:          gi.Generic,
+		MemoizedGenerate: gi.MemoizedGenerate.copyTemplate(),
+		TypeParams:       copyTemplateSlice(gi.TypeParams),
 	}
 }

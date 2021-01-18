@@ -7,7 +7,7 @@ import (
 	"github.com/ComedicChimera/whirlwind/src/logging"
 )
 
-// The Whirlwind Type System is represented in 9 fundamental types from which
+// The Whirlwind Type System is represented in 8 fundamental types from which
 // all others derive.  These types are follows:
 // 1. Primitives -- Single unit types, do not contain sub types
 // 2. Tuples -- A pairing of n-types defines an n-tuple
@@ -17,7 +17,6 @@ import (
 // 6. Interfaces -- A type that groups types based on shared behavior
 // 7. Algebraic Types - A type that contains a finite number of enumerated values
 // 8. Type Sets -- A set/union of multiple type values
-// 9. Regions -- The typing of a region literal
 // There are several other types such as AlgebraicInstances and WildcardTypes
 // that are not actually considered "fundamental types" but rather semantic
 // constructs to assist in compilation and type analysis.
@@ -27,11 +26,13 @@ type DataType interface {
 	// Repr returns the string representation of a type
 	Repr() string
 
-	// Equals tests if two data types are equivalent.  Unfortunately,
+	// equals tests if two data types are equivalent.  Unfortunately,
 	// reflect.DeepEqual can't fulfill this task since certain types have
 	// fields/values that do not effect their equivalency but that vary between
-	// different instances of the type.
-	Equals(dt DataType) bool
+	// different instances of the type.  It does not handle inner types -- it
+	// checks for strict/literal equality and should not be used as the primary
+	// equality method
+	equals(dt DataType) bool
 
 	// copyTemplate is used to create a generic instances by duplicate a type
 	// template so as to perserve the temporary values of various wildcard types
@@ -42,10 +43,10 @@ type DataType interface {
 }
 
 // ContainsType checks if a slice of data types contains a type equivalent to
-// the given data type (via. the Equals method)
+// the given data type (via. the equals method)
 func ContainsType(dt DataType, slice []DataType) bool {
 	for _, item := range slice {
-		if item.Equals(dt) {
+		if Equals(item, dt) {
 			return true
 		}
 	}
@@ -144,7 +145,7 @@ func (p *PrimitiveType) Repr() string {
 	return ""
 }
 
-func (pt *PrimitiveType) Equals(other DataType) bool {
+func (pt *PrimitiveType) equals(other DataType) bool {
 	if opt, ok := other.(*PrimitiveType); ok {
 		return pt.PrimKind == opt.PrimKind && pt.PrimSpec == opt.PrimSpec
 	}
@@ -183,11 +184,11 @@ func (tt TupleType) Repr() string {
 	return s.String()
 }
 
-func (tt TupleType) Equals(other DataType) bool {
+func (tt TupleType) equals(other DataType) bool {
 	// Imagine if Go had a map function... (writing before Go generics)
 	if ott, ok := other.(TupleType); ok {
 		for i, item := range tt {
-			if !item.Equals(ott[i]) {
+			if !Equals(item, ott[i]) {
 				return false
 			}
 		}
@@ -214,9 +215,9 @@ func (vt *VectorType) Repr() string {
 	return fmt.Sprintf("<%d>%s", vt.Size, vt.ElemType.Repr())
 }
 
-func (vt *VectorType) Equals(other DataType) bool {
+func (vt *VectorType) equals(other DataType) bool {
 	if ovt, ok := other.(*VectorType); ok {
-		return vt.ElemType.Equals(ovt.ElemType) && vt.Size == ovt.Size
+		return Equals(vt.ElemType, ovt.ElemType) && vt.Size == ovt.Size
 	}
 
 	return false
@@ -250,9 +251,9 @@ func (rt *RefType) Repr() string {
 	return sb.String()
 }
 
-func (rt *RefType) Equals(other DataType) bool {
+func (rt *RefType) equals(other DataType) bool {
 	if ort, ok := other.(*RefType); ok {
-		return rt.ElemType.Equals(ort.ElemType) && rt.Constant == ort.Constant
+		return Equals(rt.ElemType, ort.ElemType) && rt.Constant == ort.Constant
 	}
 
 	return false
@@ -318,7 +319,7 @@ func (ft *FuncType) Repr() string {
 	return sb.String()
 }
 
-func (ft *FuncType) Equals(other DataType) bool {
+func (ft *FuncType) equals(other DataType) bool {
 	if oft, ok := other.(*FuncType); ok {
 		if len(ft.Params) != len(oft.Params) {
 			return false
@@ -339,7 +340,7 @@ func (ft *FuncType) Equals(other DataType) bool {
 				// ignored doesn't cause any actual constancy violations since
 				// whatever is passed in will be copied and reference constancy
 				// holds.
-				if !(param.Val.Type.Equals(oparam.Val.Type) &&
+				if !(Equals(param.Val.Type, oparam.Val.Type) &&
 					param.Indefinite == oparam.Indefinite &&
 					param.Optional == oparam.Optional) {
 					return false
@@ -406,7 +407,7 @@ func (st *StructType) Repr() string {
 	return st.Name
 }
 
-func (st *StructType) Equals(other DataType) bool {
+func (st *StructType) equals(other DataType) bool {
 	if ost, ok := other.(*StructType); ok {
 		return st.Name == ost.Name && st.SrcPackageID == ost.SrcPackageID
 	}
@@ -437,7 +438,7 @@ type TypeValue struct {
 }
 
 func (tv *TypeValue) Equals(otv *TypeValue) bool {
-	return tv.Type.Equals(otv.Type) && tv.Constant == otv.Constant && tv.Volatile == otv.Volatile
+	return Equals(tv.Type, otv.Type) && tv.Constant == otv.Constant && tv.Volatile == otv.Volatile
 }
 
 func (tv *TypeValue) copyTemplate() *TypeValue {
@@ -495,7 +496,7 @@ func (it *InterfType) Repr() string {
 	return it.Name
 }
 
-func (it *InterfType) Equals(other DataType) bool {
+func (it *InterfType) equals(other DataType) bool {
 	if oit, ok := other.(*InterfType); ok {
 		return it.Name == oit.Name && it.SrcPackageID == oit.SrcPackageID
 	}
@@ -542,7 +543,7 @@ func (at *AlgebraicType) Repr() string {
 	return at.Name
 }
 
-func (at *AlgebraicType) Equals(other DataType) bool {
+func (at *AlgebraicType) equals(other DataType) bool {
 	if oat, ok := other.(*AlgebraicType); ok {
 		return at.Name == oat.Name && at.SrcPackageID == oat.SrcPackageID
 	}
@@ -601,9 +602,9 @@ func (ai *AlgebraicInstance) Repr() string {
 // Algebraic instances are equal if they have the same parent and name and
 // equivalent values in the same positions (since values are initialized
 // positionally).
-func (ai *AlgebraicInstance) Equals(other DataType) bool {
+func (ai *AlgebraicInstance) equals(other DataType) bool {
 	if oai, ok := other.(*AlgebraicInstance); ok {
-		if !ai.Parent.Equals(oai.Parent) {
+		if !Equals(ai.Parent, oai.Parent) {
 			return false
 		}
 
@@ -612,7 +613,7 @@ func (ai *AlgebraicInstance) Equals(other DataType) bool {
 		}
 
 		for i, value := range ai.Values {
-			if !value.Equals(oai.Values[i]) {
+			if !Equals(value, oai.Values[i]) {
 				return false
 			}
 		}
@@ -646,7 +647,7 @@ func (ts *TypeSet) Repr() string {
 	return ts.Name
 }
 
-func (ts *TypeSet) Equals(other DataType) bool {
+func (ts *TypeSet) equals(other DataType) bool {
 	if ots, ok := other.(*TypeSet); ok {
 		return ts.Name == ots.Name && ts.SrcPackageID == ots.SrcPackageID
 	}

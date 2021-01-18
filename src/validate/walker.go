@@ -27,7 +27,11 @@ type Walker struct {
 	// Solver stores the type solver that is used for inference and type deduction
 	solver *typing.Solver
 
-	// FatalDefError is a flag that is used to mark when an error that occurred in
+	// resolving indicates whether or not the package that contains the file
+	// the walker is analyzing has been fully resolved
+	resolving bool
+
+	// fatalDefError is a flag that is used to mark when an error that occurred in
 	// a definition is fatal (ie. not related to an unknown)
 	fatalDefError bool
 
@@ -82,12 +86,14 @@ func NewWalker(pkg *common.WhirlPackage, file *common.WhirlFile, fpath string) *
 			GlobalBindings: pkg.GlobalBindings,
 			LocalBindings:  file.LocalBindings,
 		},
+		resolving: true, // start in resolution by default
 	}
 }
 
 // resolutionDone indicates to the walker that resolution has finished.
 func (w *Walker) resolutionDone() {
 	w.unknowns = nil
+	w.resolving = false
 }
 
 // hasFlag checks if the given annotation is active (as a flag; eg. `#packed`)

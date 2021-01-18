@@ -18,7 +18,7 @@ package typing
 // CoerceTo implements coercion checking for the solver.  It checks if two
 // types are equal or can be made equal through implicit casting.
 func (s *Solver) CoerceTo(src, dest DataType) bool {
-	if src.Equals(dest) {
+	if Equals(src, dest) {
 		return true
 	}
 
@@ -90,7 +90,7 @@ func (s *Solver) CoerceTo(src, dest DataType) bool {
 		// Constancy coercion only applies to match regular constancy rules
 		// (where a variable can "coerce" to a constant).
 		if srt, ok := src.(*RefType); ok {
-			return dv.ElemType.Equals(srt.ElemType) && dv.Constant && !srt.Constant
+			return Equals(dv.ElemType, srt.ElemType) && dv.Constant && !srt.Constant
 		}
 	case *InterfType:
 		// Any type that implements (even implicitly) an interface can be
@@ -115,7 +115,7 @@ func (s *Solver) CoerceTo(src, dest DataType) bool {
 				// that the vectors element type is equal to that type parameter
 				// to test if the coercion succeeds.
 				if svt, ok := src.(*VectorType); ok {
-					return svt.ElemType.Equals(dv.Types[0])
+					return Equals(svt.ElemType, dv.Types[0])
 				}
 			case "IntegralVector":
 				if svt, ok := src.(*VectorType); ok {
@@ -249,7 +249,7 @@ func (s *Solver) CastTo(src, dest DataType) bool {
 
 			// in order for two structs to have the same fields they must have
 			// the same inherit
-			return sv.Inherit.Equals(dst.Inherit)
+			return Equals(sv.Inherit, dst.Inherit)
 		}
 	case *InterfType:
 		// Interfaces can be cast to any type that implements them (naively)
@@ -264,7 +264,7 @@ func (s *Solver) CastTo(src, dest DataType) bool {
 			}
 
 			for _, instance := range sv.Instances {
-				if dinstance, ok := dat.Instances[instance.Name]; !ok || !instance.Equals(dinstance) {
+				if dinstance, ok := dat.Instances[instance.Name]; !ok || !Equals(instance, dinstance) {
 					return false
 				}
 			}

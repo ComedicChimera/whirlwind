@@ -37,7 +37,7 @@ func (s *Solver) GetBindings(br *BindingRegistry, dt DataType) []*InterfType {
 	var matches []*InterfType
 
 	for _, binding := range br.Bindings {
-		if binding.MatchType.Equals(dt) {
+		if Equals(binding.MatchType, dt) {
 			switch v := binding.TypeInterf.(type) {
 			case *InterfType:
 				// no wildcards to clear here since this is not a generic binding
@@ -136,7 +136,7 @@ func (s *Solver) Derive(it, deriving *InterfType) {
 // containsMethod checks if a given type interface contains a method
 func containsMethod(binding *InterfType, methodName string, method *InterfMethod) bool {
 	if bmethod, ok := binding.Methods[methodName]; ok {
-		return bmethod.Signature.Equals(method.Signature)
+		return Equals(bmethod.Signature, method.Signature)
 	}
 
 	return false

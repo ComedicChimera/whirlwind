@@ -284,7 +284,7 @@ func (w *Walker) walkStructSuffix(suffix *syntax.ASTBranch, name string, fieldIn
 				if dt, ok := w.walkTypeLabel(branch); ok {
 					if st, ok := dt.(*typing.StructType); ok {
 						// inherits cannot be self-referential
-						if st.Equals(structType) {
+						if typing.Equals(st, structType) {
 							w.logFatalDefError(
 								fmt.Sprintf("Struct `%s` cannot inherit from itself", name),
 								logging.LMKUsage,
