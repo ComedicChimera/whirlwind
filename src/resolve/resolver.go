@@ -24,11 +24,13 @@ import (
 //       in which the first symbol is defined.
 //    c. If the top definitions depends on symbols that may be local or namespace imported
 //       rotate it to the back of queue.  Do not change the current queue.
-// 4. Consider all remaining symbols fatally unresolveable and log appropriate errors.
+// 4. If any definitions remain, perform single file cyclic resolution (as
+//    described in `cyclic.go`) on them.  This algorithm will log all unresolveable symbols
+//    appropriately so we have no need for any further processing.
 
 // Resolver is the main abstraction for package resolution. It is responsible
 // for resolving all of the symbols in a single package as well as those
-// shared/cross-reference by multiple packages.  The resolver operates in
+// shared/cross-referenced by multiple packages.  The resolver operates in
 // resolution units wherein each unit is composed of one or more packages that
 // are mutually dependent.  It facilitates the Resolution Algorithm.
 type Resolver struct {
@@ -65,15 +67,8 @@ func (r *Resolver) Resolve() bool {
 		return true
 	}
 
-	// step 4 -- log appropriate errors, know there are errors so assume failure
-	// status -- default return false.
-	for _, pa := range r.Assemblers {
-		if pa.DefQueue.Len() > 0 {
-			pa.logUnresolved()
-		}
-	}
-
-	return false
+	// step 4 -- perform cyclic resolution and log appropriate errors
+	return r.resolveCyclic()
 }
 
 // resolveKnownImports resolves all known imports.  It fails if an explicit import
