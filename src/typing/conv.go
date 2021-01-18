@@ -22,6 +22,8 @@ func (s *Solver) CoerceTo(src, dest DataType) bool {
 		return true
 	}
 
+	src, dest = InnerType(src), InnerType(dest)
+
 	// we need to check for coercions from Wildcard types since they aren't
 	// handled below
 	if swt, ok := src.(*WildcardType); ok {
@@ -172,6 +174,8 @@ func (s *Solver) CoerceTo(src, dest DataType) bool {
 // explicit casts.  Thus, to fulfill the full function of a type cast CoerceTo
 // should be called first (along with any necessary inferencing mechanisms).
 func (s *Solver) CastTo(src, dest DataType) bool {
+	src, dest = InnerType(src), InnerType(dest)
+
 	// we need to check for casts to WildcardTypes since such casts will not be
 	// properly handled below (same problem occurs at top of CoerceTo)
 	if dwt, ok := dest.(*WildcardType); ok {
