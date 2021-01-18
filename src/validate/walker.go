@@ -62,7 +62,7 @@ type UnknownSymbol struct {
 	ForeignPackage *common.WhirlPackage
 
 	// ImplicitImport is used to indicate whether or not a symbol is implicitly
-	// imported. This field is meaningless if the SrcPackage field is nil.
+	// imported. This field is meaningless if the ForeignPackage field is nil.
 	ImplicitImport bool
 }
 
