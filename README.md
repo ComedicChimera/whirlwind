@@ -37,7 +37,6 @@ language, I aimed for an "85% solution" which effectively means close enough but
 ## <a name="features"/> Notable Features
 
 - Versatile Type System
-- Intelligent Memory Model (no GC)
 - Baked-In Concurrency
 - Builtin Collections (arrays, lists, dictionaries)
 - Pattern Matching
@@ -91,7 +90,7 @@ Radix Sort:
         let mx = list.max()
 
         while let it = 0; 10 ~^ it < mx do
-            let buckets = [null as [int] for _ in 1..10]
+            let buckets = [new [int] for _ in 1..10]
 
             for item in list do
                 buckets[item ~/ (10 ~^ it) % 10].push(item)            
@@ -114,19 +113,18 @@ Linked List:
 
     type LLNode {
         value: int
-        next: Option<own &LLNode>
+        next: Option<&LLNode>
     }
 
-    func ll_range(r: region, val: int) own &LLNode do
+    func ll_range(val: int) &LLNode do
         if val == 0 do
-            return make in[r] LLNode{value=val, next=None}
+            return make LLNode{value=val, next=None}
 
-        return make in[r] LLNode{value=val, next=Some(ll_range(val - 1))}
+        return make LLNode{value=val, next=Some(ll_range(val - 1))}
 
     func main do
-        let ll = ll_range(ctx_region(), 10)
+        let ll = ll_range(10)
 
-        // no memory leak :)
         while true do
             println(ll.value)
 
@@ -162,6 +160,22 @@ I expect that as college apps start to fade out and my senior year starts to win
 to work.  Building a language can be very tiresome, and there are days on which I may have some free time but
 may simply be too tired or distracted to really sit down and work.  I hope this will be less of a problem as
 time goes on but that remains to be seen.
+
+Finally, as the note in header indicates, this language is subject to change.  I may spend weeks, months, or
+longer committed to an idea or a specific direction for the language only to decide later that the direction
+just doesn't align with what my vision for the language is.  You might notice that this language once had quite
+a sophisticated memory model and was originally intended to run without a garbage collector.  I continued on
+this trajectory for several *years* before realizing that such a memory model would never really align with my
+goals for the language.  I wanted to build a language that *I* would enjoy using and would be productive in,
+and I wanted to build a language to teach myself more about computer science.  Ultimately, I determined that
+a memory model that relied on manual memory management to any significant degree would be counterproductive
+to my first goal and non-essential to my second so I caved and decided to build a language with a GC.  I also
+felt that a lot of the language features worked more fluidly in the presence of a GC.  There have been several
+changes like this.  Language design is an iterative process, and this language is ever-evolving much as I, its
+creator, am an ever-changing, growing person.  I realize this may dissappoint some of you, but ultimately,
+I created this language for me and hoped that others might share my desires and point of view on what 
+a language should be or what type of language they needed at that time -- I realize that "others" doesn't include
+everyone.
 
 ## <a name="contributing"/> Contributing
 

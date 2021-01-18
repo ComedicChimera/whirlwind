@@ -233,34 +233,13 @@ func (vt *VectorType) copyTemplate() DataType {
 
 // RefType represents a reference type
 type RefType struct {
-	// Id is used to unique identify this reference during rank analysis. This
-	// field should be exchanged across coercions and other such operations as
-	// necessary.
-	Id int
-
-	ElemType        DataType
-	Block, Constant bool
-	Owned, Global   bool
-
-	// No rank or region information is included in the data type as such
-	// analysis takes place as part of the validator to facilitate more
-	// sophisticated logic.
+	ElemType DataType
+	Constant bool
 }
 
 func (rt *RefType) Repr() string {
 	sb := strings.Builder{}
-
-	if rt.Global {
-		sb.WriteString("global ")
-	}
-
-	if rt.Block {
-		sb.WriteString("[&]")
-	} else if rt.Owned {
-		sb.WriteString("own &")
-	} else {
-		sb.WriteRune('&')
-	}
+	sb.WriteRune('&')
 
 	if rt.Constant {
 		sb.WriteString("const ")
@@ -273,11 +252,7 @@ func (rt *RefType) Repr() string {
 
 func (rt *RefType) Equals(other DataType) bool {
 	if ort, ok := other.(*RefType); ok {
-		return (rt.ElemType.Equals(ort.ElemType) &&
-			rt.Constant == ort.Constant &&
-			rt.Owned == ort.Owned &&
-			rt.Block == ort.Block &&
-			rt.Global == ort.Global)
+		return rt.ElemType.Equals(ort.ElemType) && rt.Constant == ort.Constant
 	}
 
 	return false
@@ -286,39 +261,9 @@ func (rt *RefType) Equals(other DataType) bool {
 func (rt *RefType) copyTemplate() DataType {
 	// one of those situations where spread initialization would be nice...
 	return &RefType{
-		Id:       rt.Id,
 		Constant: rt.Constant,
-		Owned:    rt.Owned,
-		Block:    rt.Block,
-		Global:   rt.Global,
 		ElemType: rt.ElemType.copyTemplate(),
 	}
-}
-
-// -----------------------------------------------------
-
-// RegionType represents the typing of a region literal. It is simply an integer
-// that is the region's identifier. All rank analysis occurs as part of the
-// validator and is not stored here.
-type RegionType int
-
-func (rt RegionType) Repr() string {
-	return "region"
-}
-
-func (rt RegionType) Equals(other DataType) bool {
-	// `other is RegionType`... wouldn't that be nice?
-	if _, ok := other.(RegionType); ok {
-		// all region types are equivalent
-		return true
-	}
-
-	return false
-}
-
-func (rt RegionType) copyTemplate() DataType {
-	// again, can't contain WildcardTypes so no need for a full copy
-	return rt
 }
 
 // -----------------------------------------------------
