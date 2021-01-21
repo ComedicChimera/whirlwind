@@ -100,7 +100,7 @@ nobreak_clause = 'nobreak' (do_block | block) ;
 ctx_manager = 'with' ? full_ctx ? do_block [else_block] [ctx_else_clause] ;
 full_ctx = ctx_elem {semilinebr ctx_elem} ;
 ctx_elem = identifier_list '<-' expr ;
-ctx_else_clause = 'else' (block | do_block | 'match' val_match_block) ;
+ctx_else_clause = 'else' (block | do_block | 'match' (expr do_block | val_match_block)) ;
 
 (* simple statements do not contain a block - newline suffix is added in block *)
 simple_stmt = 
