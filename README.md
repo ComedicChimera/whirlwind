@@ -5,7 +5,7 @@ It is strongly-typed, versatile, expressive, concurrent, and relatively easy to 
 It boasts numerous new and old features and is designed to represent the needs of any software developer.
 
 
-***Language IP and Source Code Copyright &copy; Jordan Gaines 2018-2020***
+***Language IP and Source Code Copyright &copy; Jordan Gaines 2018-2021***
 
 *Note: All here is subject to change.*
 
