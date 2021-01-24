@@ -292,9 +292,9 @@ Constructs at the global level may contain global references or other references
 references are inherently nullable.  This practice is NOT recommended and should be avoided if
 possible.
 
-Global memory may not be stored in local variables or constructs.
+Global references may not be stored in local variables or constructs.
 
-Global memory should ONLY be used when absolutely necessary and when effective safety precautions
+Global references should ONLY be used when absolutely necessary and when effective safety precautions
 can be taken.
 
 ## Reference Operators
