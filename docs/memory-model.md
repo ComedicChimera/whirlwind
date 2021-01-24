@@ -345,3 +345,6 @@ not, in any way, accept region specifiers.
 
 TODO: explain more how closures manage their state memory
 
+## Strings
+
+TODO: explain how strings are managed
