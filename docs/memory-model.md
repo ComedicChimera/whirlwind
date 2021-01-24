@@ -188,13 +188,55 @@ Here are some sample allocations with this syntax:
     new local {x for x in 1..10} // => [&]int
     new in[r] Set{"abc", "def"}  // => Set<string>
 
-## Constancy
-
-TODO -- reference constancy, constant allocation
-
 ## Lifetimes
 
-TODO -- lifetime consistency
+All references have a predetermined **lifetime**.  This lifetime determines how long they will 
+continue to exist.  For example, a reference allocated in a region has a lifetime of that
+region.  A reference can never be used or placed outside of its lifetime.  For example, you can't
+return a reference allocated in a local region nor can you return a free reference.
+
+Lifetimes are calculated relative to the current location -- much like Rust's generic lifetimes.
+For example, in the function:
+
+    func update(r: &T) &T
+        return r
+
+The lifetime of `r` is not known in a concrete sense.  However, the compiler does know that the
+returned reference and `r` have the same lifetime and that the lifetime extends outside the
+current function.
+
+All references stored the same variable or returned from the same function must have the same
+lifetime.  This is called **lifetime consistency** and is what the compiler uses to determine
+whether or not a given return value is valid.  Note that is based on relative lifetime -- if
+a function accepts an arbitrary region and always returns a value allocated in that region,
+then lifetime consistency holds because the compiler can always determine relatively where
+that value was allocated.
+
+Data structures work similarly.  In any given instance of a data structure, the reference placed
+in any given field must have same lifetime.  However, this does NOT need to remain consistent
+across many different instances.  Eg.
+
+    type Test {
+        ref: own &int
+    }
+
+    func fn(r: region) do
+        let t1 = Test{}, t2 = Test{}
+
+        // both of these are ok
+        t1 = make in[r] int  
+        t2 = make local int
+
+        // this is not
+        t1 = make local int
+
+The compiler will use the lifetime of the field to determine whether or not the data structure can
+be safely returned.  In the above code (assuming the last, erroneous line is elided), only `t1`
+could be returned (were the function to return a `Test`).
+
+Block references and arrays also have a similar rule: all elements must have the same lifetime
+(if they are references).  Otherwise, the compiler can't ensure that the returned reference will
+be safe.
 
 ## Value Categories
 
@@ -205,6 +247,34 @@ can be taken of it.  It is almost exclusively used for free references.
 2. R-Value -- has a poorly-defined place in memory, a free reference can not point to it.
 
 These are used elsewhere for things like copy ellision but are ultimately not that common.
+
+## Constancy
+
+All references can be denoted as constant by placing a `const` right before the
+element type.  This means that the reference's value(s) cannot be mutated in 
+any way.  The reference value itself can still be mutated unless it is declared as
+a constant.  Block references with constant elements can still be resized.
+
+Here are some example constant reference type labels:
+
+    &const int
+    own& const Test
+    global [&]const bool
+
+A reference can be allocated as const by placing a `const` after the region
+specifier.  For example:
+
+    make in[r] const (int, 5)
+    new local const [1, 2, 3, 4]
+
+Reference constancy cannot be cast or coerced away.  Additionally, a free reference
+to a constant value must be constant.
+
+    const x = 0
+    let r = &x  // &const int
+
+You can also take a constant free reference to a mutable value using the constant
+reference operator `&const`.
 
 ## Global Memory
 
@@ -235,7 +305,18 @@ employ copy semantics.  The `.`, `[]` and `[:]` operators all have reference for
 
 ## Copy Semantics
 
-TODO -- `Copy<T>` and the `copy` method
+By default, references inside data types (such as block references) do not copy their contents
+on assignment.  This is usually the desired behavior but not always.  If we want to add value
+semantics to lists which are structs containing a block reference, we would need a way to force
+a copy.
+
+To do this in the general case, we implement the `Copyable<T>` interface which allows us to override
+the default copying behavior on a type.  Instead of performing a normal value copy on a type,
+the `copy` method will be called and whatever type is returned will be used as the copy.  Not
+only does this allow us to force copying but it also allows us to avoid copying entirely.  
+
+This method is called even the copy would normally be elided.  This can have a significant
+performance impact if used incorrectly.
 
 ## Nullability
 
@@ -261,4 +342,6 @@ operators will accumulate to a null value if the null-test fails.
 
 Closures have peculiar memory semantics that need special attention -- especially since they do
 not, in any way, accept region specifiers.
+
+TODO: explain more how closures manage their state memory
 
