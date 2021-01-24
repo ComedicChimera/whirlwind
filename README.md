@@ -123,7 +123,7 @@ Linked List:
         if val == 0 do
             return make in[r] LLNode{value=val, next=None}
 
-        return make in[r] LLNode{value=val, next=Some(ll_range(val - 1))}
+        return make in[r] LLNode{value=val, next=Some(ll_range(r, val - 1))}
 
     func main do
         region r local
