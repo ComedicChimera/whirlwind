@@ -87,7 +87,7 @@ func (s *Scanner) ReadToken() (*Token, error) {
 		malformed := false
 
 		switch s.curr {
-		//  ignore non-meaningful characters (eg. BOMs, form-feeds etc.)
+		//  ignore non-meaningful characters (eg. BOM, form-feeds etc.)
 		case '\r', '\f', '\v', 65279:
 			s.tokBuilder.Reset()
 			continue
@@ -322,6 +322,27 @@ func (s *Scanner) ReadToken() (*Token, error) {
 	return s.makeToken(DEDENT, string(s.indentLevel)), nil
 }
 
+// UnreadToken is used to undo the preprocessor read the occurs at the start of
+// every file.  This function should ONLY be called at the start of a file
+func (s *Scanner) UnreadToken(tok *Token) {
+	// if the lookahead is empty, we can just dump it in there to be read next
+	if s.lookahead == nil {
+		s.lookahead = tok
+	} else {
+		// we know that since this is called at the start of the file, the
+		// auxilliary lookahead should never populated.  So if there is an item
+		// in the lookahead, we can move it to the auxilliary lookahead and
+		// store our main token in the primary lookahead
+		s.auxLookahead = s.lookahead
+		s.lookahead = tok
+	}
+}
+
+// Context returns the scanner's log context
+func (s *Scanner) Context() *logging.LogContext {
+	return s.lctx
+}
+
 // create a token at the current position from the provided data
 func (s *Scanner) makeToken(kind int, value string) *Token {
 	tok := &Token{Kind: kind, Value: value, Line: s.line, Col: s.col}
@@ -385,18 +406,17 @@ func (s *Scanner) skipNext() bool {
 	return true
 }
 
-// peek a rune ahead on the scanner (used to test for malformed tokens) note
-// that this functions peeks a single byte ahead and converts to a rune so if a
-// more complex rune follows in the source text, the peek will not recognize it
-// and instead return a possibly invalid utf-8 bit pattern
+// peek a rune ahead on the scanner (used to test for malformed tokens)
 func (s *Scanner) peek() (rune, bool) {
-	bytes, err := s.file.Peek(1)
+	r, _, err := s.file.ReadRune()
 
 	if err != nil {
 		return 0, false
 	}
 
-	return rune(bytes[0]), true
+	s.file.UnreadRune()
+
+	return r, true
 }
 
 // reads an identifier or a keyword from the input stream determines based on
