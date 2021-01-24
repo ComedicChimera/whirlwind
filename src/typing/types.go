@@ -17,6 +17,7 @@ import (
 // 6. Interfaces -- A type that groups types based on shared behavior
 // 7. Algebraic Types - A type that contains a finite number of enumerated values
 // 8. Type Sets -- A set/union of multiple type values
+// 9. Regions -- A region literal (ref to region)
 // There are several other types such as AlgebraicInstances and WildcardTypes
 // that are not actually considered "fundamental types" but rather semantic
 // constructs to assist in compilation and type analysis.
@@ -234,13 +235,27 @@ func (vt *VectorType) copyTemplate() DataType {
 
 // RefType represents a reference type
 type RefType struct {
-	ElemType DataType
-	Constant bool
+	ElemType             DataType
+	Constant             bool
+	Owned, Block, Global bool
+
+	// TODO: lifetimes?
 }
 
 func (rt *RefType) Repr() string {
 	sb := strings.Builder{}
-	sb.WriteRune('&')
+
+	if rt.Global {
+		sb.WriteString("global ")
+	}
+
+	if rt.Block {
+		sb.WriteString("[&] ")
+	} else if rt.Owned {
+		sb.WriteString("own& ")
+	} else {
+		sb.WriteRune('&')
+	}
 
 	if rt.Constant {
 		sb.WriteString("const ")
@@ -253,7 +268,11 @@ func (rt *RefType) Repr() string {
 
 func (rt *RefType) equals(other DataType) bool {
 	if ort, ok := other.(*RefType); ok {
-		return Equals(rt.ElemType, ort.ElemType) && rt.Constant == ort.Constant
+		return (Equals(rt.ElemType, ort.ElemType) &&
+			rt.Constant == ort.Constant &&
+			rt.Owned == rt.Owned &&
+			rt.Global == rt.Global &&
+			rt.Block == rt.Block)
 	}
 
 	return false
@@ -264,6 +283,9 @@ func (rt *RefType) copyTemplate() DataType {
 	return &RefType{
 		Constant: rt.Constant,
 		ElemType: rt.ElemType.copyTemplate(),
+		Global:   rt.Global,
+		Owned:    rt.Owned,
+		Block:    rt.Block,
 	}
 }
 
@@ -662,4 +684,25 @@ func (ts *TypeSet) copyTemplate() DataType {
 		Types:        copyTemplateSlice(ts.Types),
 		Intrinsic:    ts.Intrinsic,
 	}
+}
+
+// -----------------------------------------------------
+
+// RegionType represents a region literal.  Its value is that region's unique ID
+// -- used for memory checking.
+type RegionType uint
+
+func (rt RegionType) Repr() string {
+	return "region"
+}
+
+func (rt RegionType) equals(other DataType) bool {
+	// all region types are equivalent for the purposes of type checking
+	_, ok := other.(RegionType)
+	return ok
+}
+
+func (rt RegionType) copyTemplate() DataType {
+	// regions contain no wildcard types so copyTemplate is just an identity
+	return rt
 }

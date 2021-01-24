@@ -39,11 +39,11 @@ const (
 	// memory management
 	VOL
 	LOCAL
-	NONLOCAL
 	GLOBAL
 	OWN
 	MAKE
 	REGION
+	NEW
 
 	// function definitions
 	FUNC
@@ -185,8 +185,8 @@ var keywordPatterns = map[string]int{
 	"yield":       YIELD,
 	"vol":         VOL,
 	"make":        MAKE,
+	"new":         NEW,
 	"local":       LOCAL,
-	"nonlocal":    NONLOCAL,
 	"global":      GLOBAL,
 	"own":         OWN,
 	"region":      REGION,

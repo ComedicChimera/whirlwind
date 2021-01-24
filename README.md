@@ -4,6 +4,7 @@ Whirlwind is a compiled, modern, and multipurpose language designed with intenti
 It is strongly-typed, versatile, expressive, concurrent, and relatively easy to learn.
 It boasts numerous new and old features and is designed to represent the needs of any software developer.
 
+
 ***Language IP and Source Code Copyright &copy; Jordan Gaines 2018-2020***
 
 *Note: All here is subject to change.*
@@ -36,6 +37,7 @@ language, I aimed for an "85% solution" which effectively means close enough but
 
 ## <a name="features"/> Notable Features
 
+- Intelligent Memory Model (no GC)
 - Versatile Type System
 - Baked-In Concurrency
 - Builtin Collections (arrays, lists, dictionaries)
@@ -87,21 +89,22 @@ Radix Sort:
     import println from io::std
 
     func radix_sort(list: [uint]) [uint] do
+        region r local
         let mx = list.max()
 
         while let it = 0; 10 ~^ it < mx do
-            let buckets = [new [int] for _ in 1..10]
+            let buckets = [new in[r] [int] for _ in 1..10]
 
             for item in list do
                 buckets[item ~/ (10 ~^ it) % 10].push(item)            
 
-            list = list.flatten().to_list()
+            list = buckets.flatten().to_list(r)
             it++
 
         return list
 
     func main do
-        let list = [9, 4, 7, 8, 2, 3, 9, 0, 0, 1]
+        let list = new local [9, 4, 7, 8, 2, 3, 9, 0, 0, 1]
 
         list = radix_sort(list)
 
@@ -113,17 +116,18 @@ Linked List:
 
     type LLNode {
         value: int
-        next: Option<&LLNode>
+        next: Option<own& LLNode>
     }
 
-    func ll_range(val: int) &LLNode do
+    func ll_range(r: region, val: int) own& LLNode do
         if val == 0 do
-            return make LLNode{value=val, next=None}
+            return make in[r] LLNode{value=val, next=None}
 
-        return make LLNode{value=val, next=Some(ll_range(val - 1))}
+        return make in[r] LLNode{value=val, next=Some(ll_range(val - 1))}
 
     func main do
-        let ll = ll_range(10)
+        region r local
+        let ll = ll_range(r, 10)
 
         while true do
             println(ll.value)
@@ -163,19 +167,11 @@ time goes on but that remains to be seen.
 
 Finally, as the note in header indicates, this language is subject to change.  I may spend weeks, months, or
 longer committed to an idea or a specific direction for the language only to decide later that the direction
-just doesn't align with what my vision for the language is.  You might notice that this language once had quite
-a sophisticated memory model and was originally intended to run without a garbage collector.  I continued on
-this trajectory for several *years* before realizing that such a memory model would never really align with my
-goals for the language.  I wanted to build a language that *I* would enjoy using and would be productive in,
-and I wanted to build a language to teach myself more about computer science.  Ultimately, I determined that
-a memory model that relied on manual memory management to any significant degree would be counterproductive
-to my first goal and non-essential to my second so I caved and decided to build a language with a GC.  I also
-felt that a lot of the language features worked more fluidly in the presence of a GC.  There have been several
-changes like this.  Language design is an iterative process, and this language is ever-evolving much as I, its
-creator, am an ever-changing, growing person.  I realize this may dissappoint some of you, but ultimately,
-I created this language for me and hoped that others might share my desires and point of view on what 
-a language should be or what type of language they needed at that time -- I realize that "others" doesn't include
-everyone.
+just doesn't align with what my vision for the language is. Language design is an iterative process, and this
+language is ever-evolving much as I, its creator, am an ever-changing, growing person.  I realize this may
+dissappoint some of you, but ultimately, I created this language for me and hoped that others might share my
+desires and point of view on what  a language should be or what type of language they needed at that time --
+I realize that "others" doesn't include everyone.
 
 ## <a name="contributing"/> Contributing
 

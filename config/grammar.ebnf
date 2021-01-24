@@ -80,7 +80,7 @@ block_content = simple_stmt 'NEWLINE' | complex_stmt | func_def ;
 
 (* complex statements contain a block (eg. an if statement) *)
 complex_stmt = if_chain | match_stmt | for_loop | while_loop 
-  | ctx_manager | async_for_loop ;
+  | ctx_manager | async_for_loop | region_decl ;
 
 if_chain = 'if' [variable_decl ';'] expr do_block {elif_block} [else_block] ;
 elif_block = 'elif' [variable_decl ';'] expr do_block ;
@@ -101,6 +101,8 @@ ctx_manager = 'with' ? full_ctx ? do_block [else_block] [ctx_else_clause] ;
 full_ctx = ctx_elem {semilinebr ctx_elem} ;
 ctx_elem = identifier_list '<-' expr ;
 ctx_else_clause = 'else' (block | do_block | 'match' (expr do_block | val_match_block)) ;
+
+region_decl = 'region' 'IDENTIFIER' ('of' block | 'local') ;
 
 (* simple statements do not contain a block - newline suffix is added in block *)
 simple_stmt = 
@@ -151,13 +153,15 @@ shift_expr = arith_expr {('>>' | '<<') arith_expr} ;
 arith_expr = term {('+' | '-') term} ;
 term = factor {('*' | '/' | '~/' | '%') factor} ;
 factor = [unary_op] power ;
-unary_op = '*' | '-' | '~' ;
+unary_op = '&' ['const'] | '*' | '-' | '~' ;
 power = atom_expr {'~^' atom_expr} ;
 
 atom_expr = atom {trailer} | make_expr | new_expr ;
-make_expr = 'make' ['const'] alloc_param ;
-new_expr = 'new' type ;
-alloc_param = type | '(' type ',' expr ')' | 'IDENTIFIER' '{' [init_list] '}';
+make_expr = 'make' region_spec ['const'] alloc_param ;
+new_expr = 'new' region_spec ['const'] col_alloc_param ;
+region_spec = 'in' '[' expr ']' | 'local' | 'global' ;
+alloc_param = type | '(' type ',' expr ')' | 'IDENTIFIER' {'::' 'IDENTIFIER'} '{' [init_list] '}';
+col_alloc_param = type [array_builder] | array_builder | list_builder | dict_builder ;
 
 trailer = '.' ( 'IDENTIFIER' | 'INTLIT' )
   | '?'
@@ -187,7 +191,8 @@ type_ext = ':' type ;
 type_pattern_list = type_pattern {',' type_pattern};
 type_pattern = ['IDENTIFIER' ':'] type ;
 
-type = value_type | named_type | ref_type ;
+type = value_type | named_type | ref_type | region_type ;
+
 named_type = 'IDENTIFIER' ['::' 'IDENTIFIER'] ['<' type_list '>'];
 
 value_type = prim_type | col_type | vec_type | func_type | tup_type ;
@@ -201,7 +206,12 @@ func_type_arg = ['~'] type ;
 func_type_var_arg = '...' type ;
 tup_type = '(' type ',' type {',' type} ')' ;
 
-ref_type = '&' ['const'] (value_type | named_type) ;
+ref_type = ['global'] (block_ref | owned_ref) | free_ref ; 
+owned_ref = 'own' free_ref ;
+block_ref = '[' '&' ']' ['const'] (named_type | value_type | ref_type) ;
+free_ref = '&' ['const'] (value_type | named_type) ;
+
+region_type = 'region';
 
 (* generic constructions *)
 generic_tag = '<' generic_param {',' generic_param} '>' ;
