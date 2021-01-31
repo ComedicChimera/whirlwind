@@ -25,7 +25,7 @@ type PAssembler struct {
 }
 
 // NewPackageAssembler creates a new PAssembler for the given package
-func NewPackageAssembler(pkg *common.WhirlPackage) *PAssembler {
+func NewPackageAssembler(pkg *common.WhirlPackage, sos *common.WhirlOpaqueSymbol) *PAssembler {
 	pa := &PAssembler{
 		PackageRef:                pkg,
 		DefQueue:                  &DefinitionQueue{},
@@ -37,7 +37,7 @@ func NewPackageAssembler(pkg *common.WhirlPackage) *PAssembler {
 	pkg.GlobalBindings = &typing.BindingRegistry{}
 
 	for fpath, wf := range pkg.Files {
-		pa.Walkers[wf] = validate.NewWalker(pkg, wf, fpath)
+		pa.Walkers[wf] = validate.NewWalker(pkg, wf, fpath, sos)
 	}
 
 	return pa

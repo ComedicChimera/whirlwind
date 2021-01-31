@@ -1,6 +1,10 @@
 package resolve
 
-import "github.com/ComedicChimera/whirlwind/src/syntax"
+import (
+	"github.com/ComedicChimera/whirlwind/src/common"
+	"github.com/ComedicChimera/whirlwind/src/syntax"
+	"github.com/ComedicChimera/whirlwind/src/typing"
+)
 
 // Cyclic Symbol Resolution Algorithm
 // ----------------------------------
@@ -77,7 +81,7 @@ resolveLoop:
 		}
 		queue.Dequeue()
 
-		r.createOpaqueType(operand)
+		r.createOpaqueType(operand, operandSrcPkgID)
 		if r.resolveUnknowns() {
 			if _, ok := r.resolveDef(operandSrcPkgID, operand); !ok {
 				// if we fail to resolve, we just log unresolved and exit
@@ -119,8 +123,77 @@ resolveLoop:
 
 // createOpaqueType takes a definition and creates and stores an appropriate
 // opaque type for it.  It stores it as the opaque type in all the walkers.
-func (r *Resolver) createOpaqueType(operand *Definition) {
+func (r *Resolver) createOpaqueType(operand *Definition, operandSrcPkgID uint) {
+	var name string
+	var generic, requiresRef bool
 
+	typeRequiresRef := func(suffix *syntax.ASTBranch) bool {
+		if suffix.Name == "newtype" {
+			subSuffix := suffix.BranchAt(0)
+			if subSuffix.Name == "struct_suffix" {
+				// structs always require a reference
+				return true
+			}
+
+			// algebraic types may require a reference if they only contain one
+			// value -- same logic as for type sets
+			return subSuffix.Len() > 1
+		}
+
+		// if the suffix is only length 2, then we have an alias not a type set
+		// which means that a reference may be required (if this stores a struct
+		// for example) and since we can't know until this type resolves, we
+		// have to assume one is necessary
+		return suffix.Len() == 2
+	}
+
+	switch operand.Branch.LeafAt(0).Kind {
+	case syntax.TYPE:
+		name = operand.Branch.LeafAt(1).Value
+		generic = operand.Branch.BranchAt(2).Name == "generic_tag"
+		requiresRef = typeRequiresRef(operand.Branch.Last().(*syntax.ASTBranch))
+	case syntax.INTERF:
+		name = operand.Branch.LeafAt(1).Value
+
+		if _, ok := operand.Branch.Content[2].(*syntax.ASTBranch); ok {
+			generic = ok
+		}
+
+		// interfaces never require a reference
+	case syntax.CLOSED:
+		name = operand.Branch.LeafAt(2).Value
+		generic = operand.Branch.BranchAt(3).Name == "generic_tag"
+		requiresRef = typeRequiresRef(operand.Branch.Last().(*syntax.ASTBranch))
+	}
+
+	dependsOn := make(map[string]uint)
+	for name, unknown := range operand.Unknowns {
+		if unknown.ForeignPackage == nil {
+			dependsOn[name] = operandSrcPkgID
+		} else {
+			dependsOn[name] = unknown.ForeignPackage.PackageID
+		}
+	}
+
+	var opaqueType typing.DataType
+	if generic {
+		opaqueType = &typing.OpaqueGenericType{
+			DependsOn:   dependsOn,
+			RequiresRef: requiresRef,
+		}
+	} else {
+		opaqueType = &typing.OpaqueType{
+			Name:        name,
+			DependsOn:   dependsOn,
+			RequiresRef: requiresRef,
+		}
+	}
+
+	*r.sharedOpaqueSymbol = common.WhirlOpaqueSymbol{
+		Name:         name,
+		Type:         opaqueType,
+		SrcPackageID: operandSrcPkgID,
+	}
 }
 
 // getNextOperand searches the table for the first valid operand and
@@ -131,28 +204,13 @@ func (r *Resolver) getNextOperand(table map[uint]map[string]*Definition) (*Defin
 	for currPkgTableID, pkgTable := range table {
 	pkgDefLoop:
 		for _, def := range pkgTable {
-		unknownLoop:
 			for _, unknown := range def.Unknowns {
-				// it is stored locally or brought in via a namespace import
+				// it is stored locally
 				if unknown.ForeignPackage == nil {
+					// if it does not exist in the current package table, we log
+					// it as unresolved
 					if _, ok := pkgTable[unknown.Name]; !ok {
-						// if it is not stored locally, then we check for a
-						// namespace import that is in one of our resolving
-						// tables.  If it isn't in any of those, we know it
-						// doesn't exist by the same logic as known imports
-						for wimportID, wimport := range r.Assemblers[currPkgTableID].PackageRef.ImportTable {
-							if wimport.NamespaceImport {
-								if foreignTable, ok := table[wimportID]; ok {
-									if _, ok := foreignTable[unknown.Name]; ok {
-										continue unknownLoop
-									} else {
-										r.logUnresolvedDef(currPkgTableID, def)
-										// TODO: remove from queue
-										continue pkgDefLoop
-									}
-								}
-							}
-						}
+						r.logUnresolvedDef(currPkgTableID, def)
 					}
 				} else if foreignTable, ok := table[unknown.ForeignPackage.PackageID]; ok {
 					// if our symbol is from a package being resolved, then we

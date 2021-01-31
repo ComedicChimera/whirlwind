@@ -16,8 +16,9 @@ type OpaqueType struct {
 
 	// DependsOn is a list of the names of symbol's that the definition this is
 	// standing in place of depends on.  It is used to check whether or not the
-	// accessing definition is a dependent type
-	DependsOn map[string]struct{}
+	// accessing definition is a dependent type.  The key is package ID that this
+	// dependency exists in.
+	DependsOn map[string]uint
 
 	// RequiresRef indicates whether dependent types should only use this type
 	// as a reference element type (to prevent unresolveable recursive
@@ -67,7 +68,7 @@ type OpaqueGenericType struct {
 	EvalType *GenericType
 
 	// These two fields act the exact same as they do in `OpaqueType`
-	DependsOn   map[string]struct{}
+	DependsOn   map[string]uint
 	RequiresRef bool
 
 	// Instances stores all of the generic instances that were created based on

@@ -8,22 +8,6 @@ import "github.com/ComedicChimera/whirlwind/src/common"
 // symbol will need to updated AFTER this function exits.  Externally visible
 // for use in symbol resolution.
 func (w *Walker) Lookup(name string) (*common.Symbol, bool) {
-	for nipkg, exported := range w.SrcFile.NamespaceImports {
-		if sym, ok := nipkg.ImportFromNamespace(name); ok {
-			// update the declaration status appropriately for the symbol
-			// without mutating the original symbol (two separate symbols)
-			var isym *common.Symbol
-			*isym = *sym
-			if exported {
-				isym.DeclStatus = common.DSShared
-			} else {
-				isym.DeclStatus = common.DSRemote
-			}
-
-			return isym, true
-		}
-	}
-
 	if sym, ok := w.SrcPackage.GlobalTable[name]; ok {
 		return sym, true
 	}
@@ -32,7 +16,7 @@ func (w *Walker) Lookup(name string) (*common.Symbol, bool) {
 		// if the symbol has no name, then it is undefined (accessed via import)
 		if wsi.SymbolRef.Name == "" {
 			if w.unknowns != nil {
-				w.unknowns[name] = &UnknownSymbol{
+				w.unknowns[name] = &common.UnknownSymbol{
 					Name:           name,
 					ForeignPackage: wsi.SrcPackage,
 				}
@@ -45,7 +29,7 @@ func (w *Walker) Lookup(name string) (*common.Symbol, bool) {
 	}
 
 	if w.unknowns != nil {
-		w.unknowns[name] = &UnknownSymbol{Name: name}
+		w.unknowns[name] = &common.UnknownSymbol{Name: name}
 	}
 
 	return nil, false
@@ -85,7 +69,7 @@ func (w *Walker) implicitImport(ipkg *common.WhirlPackage, name string) (*common
 
 	// update the unknowns as necessary
 	if !ok && w.unknowns != nil {
-		w.unknowns[name] = &UnknownSymbol{
+		w.unknowns[name] = &common.UnknownSymbol{
 			Name:           name,
 			ForeignPackage: ipkg,
 			ImplicitImport: true,
@@ -100,5 +84,5 @@ func (w *Walker) implicitImport(ipkg *common.WhirlPackage, name string) (*common
 
 // clearUnknowns resets the map of unknowns before another definition is analyzed
 func (w *Walker) clearUnknowns() {
-	w.unknowns = make(map[string]*UnknownSymbol)
+	w.unknowns = make(map[string]*common.UnknownSymbol)
 }

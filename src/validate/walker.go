@@ -22,7 +22,7 @@ type Walker struct {
 	// This is used by the PAssembler and Resolver during symbol resolution.
 	// If this field is set to `nil`, then resolution is finished and this field
 	// can be ignored.
-	unknowns map[string]*UnknownSymbol
+	unknowns map[string]*common.UnknownSymbol
 
 	// Solver stores the type solver that is used for inference and type deduction
 	solver *typing.Solver
@@ -49,25 +49,15 @@ type Walker struct {
 
 	// selfTypeUsed indicates whether or not the self type reference was used
 	selfTypeUsed bool
-}
 
-// UnknownSymbol is a symbol awaiting resolution
-type UnknownSymbol struct {
-	Name     string
-	Position *logging.TextPosition
-
-	// ForeignPackage is the location where this symbol is expected to be found
-	// (nil if it belongs to the current package or an unknown package --
-	// namespace import).
-	ForeignPackage *common.WhirlPackage
-
-	// ImplicitImport is used to indicate whether or not a symbol is implicitly
-	// imported. This field is meaningless if the ForeignPackage field is nil.
-	ImplicitImport bool
+	// sharedOpaqueSymbol stores a common opaque symbol reference to be given to
+	// all package assemblers and shared with all walkers.  It used during
+	// cyclic dependency resolution.
+	sharedOpaqueSymbol *common.WhirlOpaqueSymbol
 }
 
 // NewWalker creates a new walker for the given package and file
-func NewWalker(pkg *common.WhirlPackage, file *common.WhirlFile, fpath string) *Walker {
+func NewWalker(pkg *common.WhirlPackage, file *common.WhirlFile, fpath string, sos *common.WhirlOpaqueSymbol) *Walker {
 	// initialize the files local binding registry (may decide to remove this as
 	// a file field if it is not helpful/necessary and instead embed as a walker
 	// field)
@@ -81,12 +71,13 @@ func NewWalker(pkg *common.WhirlPackage, file *common.WhirlFile, fpath string) *
 			FilePath:  fpath,
 		},
 		DeclStatus: common.DSInternal,
-		unknowns:   make(map[string]*UnknownSymbol),
+		unknowns:   make(map[string]*common.UnknownSymbol),
 		solver: &typing.Solver{
 			GlobalBindings: pkg.GlobalBindings,
 			LocalBindings:  file.LocalBindings,
 		},
-		resolving: true, // start in resolution by default
+		resolving:          true, // start in resolution by default
+		sharedOpaqueSymbol: sos,
 	}
 }
 

@@ -106,9 +106,6 @@ func (c *Compiler) processImport(pkg *common.WhirlPackage, file *common.WhirlFil
 				// is the package rename (after AS)
 				rename = v.Value
 				namePosition = v.Position()
-			case syntax.ELLIPSIS:
-				// the `...` in importedSymbols represents a full-namespace import
-				importedSymbols["..."] = v.Position()
 			}
 		case *syntax.ASTBranch:
 			// only `identifier_list` is a list of imported symbols
@@ -242,14 +239,6 @@ func (c *Compiler) attachPackageToFile(fpkg *common.WhirlPackage, file *common.W
 	if wimport, ok := fpkg.ImportTable[apkg.PackageID]; ok {
 		if len(importedSymbols) > 0 {
 			for name, pos := range importedSymbols {
-				// `...` implies a full namespace import (stored in
-				// `importedSymbols`)
-				if name == "..." {
-					wimport.NamespaceImport = true
-					file.NamespaceImports[apkg] = exported
-					break
-				}
-
 				if _, ok := file.LocalTable[name]; ok {
 					logging.LogError(c.lctx, fmt.Sprintf("Symbol `%s` defined multiple times", name), logging.LMKName, pos)
 					return false
@@ -280,13 +269,6 @@ func (c *Compiler) attachPackageToFile(fpkg *common.WhirlPackage, file *common.W
 
 		if len(importedSymbols) > 0 {
 			for name, pos := range importedSymbols {
-				// as before, `...` implies a full namespace import
-				if name == "..." {
-					wimport.NamespaceImport = true
-					file.NamespaceImports[apkg] = exported
-					break
-				}
-
 				// create a blank shared symbol reference with the appropriate
 				// export/import status
 				sref := &common.Symbol{DeclStatus: ds}

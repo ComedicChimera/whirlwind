@@ -32,12 +32,6 @@ type WhirlFile struct {
 	// in the current file.  The key is the name by with the package is visible.
 	VisiblePackages map[string]*WhirlPackage
 
-	// NamespaceImports lists the packages whose exported namespaces are
-	// imported by the current file (this is factored into the package level
-	// WhirlImport as well).  The value indicates whether or not the namespace
-	// should be exported or not.
-	NamespaceImports map[*WhirlPackage]bool
-
 	// LocalBindings is a list of the bindings imported from other files that
 	// are only available/visible in the current file.
 	LocalBindings *typing.BindingRegistry
@@ -115,8 +109,21 @@ type WhirlImport struct {
 	// meaningless and therefore can be ignored during a namespace import.  The
 	// key is the name of the symbol (which may not be given in the SymbolRef).
 	ImportedSymbols map[string]*Symbol
+}
 
-	// NamespaceImport indicates whether the imported package's exported
-	// namespace is used in its entirety by a namespace import in this package.
-	NamespaceImport bool
+// WhirlOpaqueSymbol acts as a shared opaque symbol references during cyclic
+// resolution.  One of these references should be created and distributed to all
+// walkers in resolution unit.  Then, the contents of this reference should be
+// updated as the opaque reference changes.
+type WhirlOpaqueSymbol struct {
+	Name string
+
+	// This is used to determine whether or not this symbol should be visible in
+	// the current package as well as whether or not when a definition is
+	// complete if it should be updated by that finished definition (only if in
+	// same package).
+	SrcPackageID uint
+
+	// Type can be any one of the opaque types
+	Type typing.DataType
 }

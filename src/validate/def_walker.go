@@ -10,10 +10,10 @@ import (
 )
 
 var validTypeSetIntrinsics = map[string]struct{}{
-	"Vector":         struct{}{},
-	"TypedVector":    struct{}{},
-	"IntegralVector": struct{}{},
-	"Tuple":          struct{}{},
+	"Vector":         {},
+	"TypedVector":    {},
+	"IntegralVector": {},
+	"Tuple":          {},
 }
 
 // WalkDef walks the AST of any given definition and attempts to determine if it
@@ -24,7 +24,7 @@ var validTypeSetIntrinsics = map[string]struct{}{
 // nil. This is the main definition analysis function and accepts a `definition`
 // node.  This function is mainly intended to work with the Resolver and
 // PackageAssembler.
-func (w *Walker) WalkDef(dast *syntax.ASTBranch) (common.HIRNode, map[string]*UnknownSymbol, bool) {
+func (w *Walker) WalkDef(dast *syntax.ASTBranch) (common.HIRNode, map[string]*common.UnknownSymbol, bool) {
 	def, name, ok := w.walkDefRaw(dast)
 
 	if ok {

@@ -3,7 +3,6 @@ package resolve
 import (
 	"github.com/ComedicChimera/whirlwind/src/common"
 	"github.com/ComedicChimera/whirlwind/src/syntax"
-	"github.com/ComedicChimera/whirlwind/src/validate"
 )
 
 // Definition represents a definition that is still being resolved
@@ -13,7 +12,7 @@ type Definition struct {
 
 	// Unknowns is a list of the unknown symbols needed to produce the HIRNode
 	// for the given definition along with their first position in the Branch.
-	Unknowns map[string]*validate.UnknownSymbol
+	Unknowns map[string]*common.UnknownSymbol
 
 	// SrcFile is the file this definition occurs in.
 	SrcFile *common.WhirlFile

@@ -11,14 +11,6 @@ func (pkg *WhirlPackage) ImportFromNamespace(name string) (*Symbol, bool) {
 		if wsi, ok := wfile.LocalTable[name]; ok && wsi.SymbolRef.VisibleExternally() {
 			return wsi.SymbolRef, true
 		}
-
-		for pkg, exported := range wfile.NamespaceImports {
-			if exported {
-				if sym, ok := pkg.ImportFromNamespace(name); ok {
-					return sym, true
-				}
-			}
-		}
 	}
 
 	return nil, false

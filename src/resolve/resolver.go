@@ -2,7 +2,6 @@ package resolve
 
 import (
 	"github.com/ComedicChimera/whirlwind/src/common"
-	"github.com/ComedicChimera/whirlwind/src/validate"
 )
 
 // The Resolution Algorithm
@@ -22,7 +21,7 @@ import (
 //    b. If the top definition depends on symbols to be defined in another package, rotate
 //       it to the back of its package's queue and switch the queue to that of the package
 //       in which the first symbol is defined.
-//    c. If the top definitions depends on symbols that may be local or namespace imported
+//    c. If the top definitions depends on symbols that may be local
 //       rotate it to the back of queue.  Do not change the current queue.
 // 4. If any definitions remain, perform single file cyclic resolution (as
 //    described in `cyclic.go`) on them.  This algorithm will log all unresolveable symbols
@@ -35,6 +34,11 @@ import (
 // are mutually dependent.  It facilitates the Resolution Algorithm.
 type Resolver struct {
 	Assemblers map[uint]*PAssembler
+
+	// sharedOpaqueSymbol stores a common opaque symbol reference to be given to
+	// all package assemblers to share with all of their walkers.  It used
+	// during cyclic dependency resolution.
+	sharedOpaqueSymbol *common.WhirlOpaqueSymbol
 }
 
 // NewResolver creates a new resolver for the given group of packages
@@ -42,7 +46,7 @@ func NewResolver(pkgs []*common.WhirlPackage) *Resolver {
 	r := &Resolver{Assemblers: make(map[uint]*PAssembler)}
 
 	for _, pkg := range pkgs {
-		r.Assemblers[pkg.PackageID] = NewPackageAssembler(pkg)
+		r.Assemblers[pkg.PackageID] = NewPackageAssembler(pkg, r.sharedOpaqueSymbol)
 	}
 
 	return r
@@ -101,9 +105,9 @@ func (r *Resolver) resolveKnownImports() bool {
 	return allresolved
 }
 
-// resolveSymImport attempts to resolve an explicitly-imported or
-// namespace-imported symbol from another package with a given symbol reference.
-// This function does not log an error if the symbol does not resolve.
+// resolveSymImport attempts to resolve an explicitly-imported symbol from
+// another package with a given symbol reference. This function does not log an
+// error if the symbol does not resolve.
 func (r *Resolver) resolveSymImport(pkgid uint, name string, sref *common.Symbol) bool {
 	if sym, ok := r.Assemblers[pkgid].PackageRef.ImportFromNamespace(name); ok {
 		ds := sref.DeclStatus
@@ -223,13 +227,13 @@ func (r *Resolver) resolveUnknowns() bool {
 }
 
 // resolveDef attempts to resolve and finalize a definition
-func (r *Resolver) resolveDef(pkgid uint, def *Definition) (*validate.UnknownSymbol, bool) {
+func (r *Resolver) resolveDef(pkgid uint, def *Definition) (*common.UnknownSymbol, bool) {
 	w := r.Assemblers[pkgid].Walkers[def.SrcFile]
 
 	// go through and update the unknowns (remove those that have been accounted
 	// for) and determine which unknown should be returned (if any) -- stored in
 	// funknown
-	var funknown *validate.UnknownSymbol
+	var funknown *common.UnknownSymbol
 	for name, unknown := range def.Unknowns {
 		if _, ok := w.Lookup(name); ok {
 			delete(def.Unknowns, name)

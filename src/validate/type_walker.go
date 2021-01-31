@@ -117,7 +117,7 @@ func (w *Walker) walkNamedTypeCore(rootName, accessedName string, rootPos, acces
 			return symbol.Type, true
 		} else {
 			if w.resolving {
-				w.unknowns[rootName] = &UnknownSymbol{
+				w.unknowns[rootName] = &common.UnknownSymbol{
 					Name:     rootName,
 					Position: rootPos,
 				}
@@ -150,7 +150,7 @@ func (w *Walker) walkNamedTypeCore(rootName, accessedName string, rootPos, acces
 			return symbol.Type, true
 		} else {
 			if w.resolving {
-				w.unknowns[accessedName] = &UnknownSymbol{
+				w.unknowns[accessedName] = &common.UnknownSymbol{
 					Name:           accessedName,
 					Position:       accessedPos,
 					ForeignPackage: pkg,
