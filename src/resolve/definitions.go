@@ -7,6 +7,9 @@ import (
 
 // Definition represents a definition that is still being resolved
 type Definition struct {
+	// Name is the name of the symbol store by the definition
+	Name string
+
 	// Branch is the ASTBranch associated with the given definition
 	Branch *syntax.ASTBranch
 

@@ -1,6 +1,11 @@
 package typing
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/ComedicChimera/whirlwind/src/logging"
+)
 
 // OpaqueType is used to represent a type that has yet to be defined but is
 // needed to define other types.  It helps to facilitate mutual/cyclic
@@ -117,6 +122,38 @@ func (og *OpaqueGenericType) copyTemplate() DataType {
 	return copy
 }
 
+// Evaluate takes in a type to act as the evaluated generic, updates the opaque
+// type, checks all of the instances, and logs an appropriate error if something
+// goes wrong
+func (ogt *OpaqueGenericType) Evaluate(gt *GenericType, s *Solver, ctx *logging.LogContext) bool {
+	ogt.EvalType = gt
+
+	instancesMatched := true
+	for _, instance := range ogt.Instances {
+		if generate, ok := s.CreateGenericInstance(gt, instance.TypeParams); ok {
+			instance.MemoizedGenerate = generate
+		} else {
+			typeParamsText := TupleType(instance.TypeParams).Repr()
+
+			logging.LogError(
+				ctx,
+				fmt.Sprintf(
+					"Unable to create generic instance of `%s` with type parameters `<%s>`",
+					gt.Repr(),
+					typeParamsText[1:len(typeParamsText)-1],
+				),
+				logging.LMKTyping,
+				instance.CreatedPosition,
+			)
+
+			instancesMatched = false
+		}
+
+	}
+
+	return instancesMatched
+}
+
 // OpaqueGenericInstanceType is used as a temporary placeholder for a generate
 // that is created based off of a generic opaque type.  These types can linger
 // in the type system but are innately memoized to prevent generating
@@ -133,6 +170,10 @@ type OpaqueGenericInstanceType struct {
 	// corresponds to (after type parameter substitution).  It is generated once
 	// and is, in effect, the type that this generic instance refers to.
 	MemoizedGenerate DataType
+
+	// CreatedPosition stores the position that this instance was created at for
+	// late error-handling
+	CreatedPosition *logging.TextPosition
 }
 
 // equals will always return false since if this method is called directly:

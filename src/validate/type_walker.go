@@ -88,8 +88,18 @@ func (w *Walker) walkTypeLabel(label *syntax.ASTBranch) (typing.DataType, bool) 
 
 // walkNamedTypeCore walks and accesses the named data type at the core of the `named_type` node
 func (w *Walker) walkNamedTypeCore(rootName, accessedName string, rootPos, accessedPos *logging.TextPosition) (typing.DataType, bool) {
+	// NOTE: we don't consider algebraic instances here (statically accessed)
+	// because they cannot be used as types.  They are only values so despite
+	// using the `::` syntax, they are simply not usable here (and simply saying
+	// no package exists is good enough).  This is also why we don't need to
+	// consider opaque algebraic instances since such accessing should never
+	// occur.
+
 	if accessedName == "" {
-		if symbol, ok := w.Lookup(rootName); ok {
+		symbol, ok := w.Lookup(rootName)
+
+		// if the symbol exists in the regular local table
+		if ok {
 			if symbol.DefKind != common.DefKindTypeDef {
 				w.logFatalDefError(
 					fmt.Sprintf("Symbol `%s` is not a type", symbol.Name),
@@ -115,16 +125,22 @@ func (w *Walker) walkNamedTypeCore(rootName, accessedName string, rootPos, acces
 			}
 
 			return symbol.Type, true
-		} else {
-			if w.resolving {
+		} else if w.resolving {
+			// if we are resolving, then we need to check for opaque types
+			if w.sharedOpaqueSymbol.SrcPackageID == w.SrcPackage.PackageID && w.sharedOpaqueSymbol.Name == rootName {
+				return w.sharedOpaqueSymbol.Type, true
+			} else {
+				// otherwise, we mark it as unknown and return
 				w.unknowns[rootName] = &common.UnknownSymbol{
 					Name:     rootName,
 					Position: rootPos,
 				}
-			} else {
-				w.LogUndefined(rootName, rootPos)
-			}
 
+				return nil, false
+			}
+		} else {
+			// symbol is unknown, and we are not resolving
+			w.LogUndefined(rootName, rootPos)
 			return nil, false
 		}
 	} else if w.DeclStatus == common.DSExported {
@@ -148,18 +164,23 @@ func (w *Walker) walkNamedTypeCore(rootName, accessedName string, rootPos, acces
 			}
 
 			return symbol.Type, true
-		} else {
-			if w.resolving {
+		} else if w.resolving {
+			// opaque symbols may exist in the other package if we are still
+			// resolving (can be accessed via an implicit import)
+			if w.sharedOpaqueSymbol.SrcPackageID == pkg.PackageID && w.sharedOpaqueSymbol.Name == accessedName {
+				return w.sharedOpaqueSymbol.Type, true
+			} else {
+				// otherwise, it is just an unknown
 				w.unknowns[accessedName] = &common.UnknownSymbol{
 					Name:           accessedName,
 					Position:       accessedPos,
 					ForeignPackage: pkg,
 					ImplicitImport: true,
 				}
-			} else {
-				w.LogNotVisibleInPackage(accessedName, rootName, accessedPos)
 			}
-
+		} else {
+			// we are not resolving, so the error must be fatal
+			w.LogNotVisibleInPackage(accessedName, rootName, accessedPos)
 			return nil, false
 		}
 	}

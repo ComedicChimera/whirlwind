@@ -1,6 +1,8 @@
 package resolve
 
 import (
+	"math"
+
 	"github.com/ComedicChimera/whirlwind/src/common"
 	"github.com/ComedicChimera/whirlwind/src/syntax"
 	"github.com/ComedicChimera/whirlwind/src/typing"
@@ -13,7 +15,7 @@ import (
 //    (efficiently selecting the relevant dependency relationships).
 // 2. Iterate through all the definitions in the table and:
 //    a. If the definition depends on a symbol which is not listed in the
-//       table, log it as unresolved and remove it from the table and list
+//       table, log it as unresolved and remove it from the table and queue
 //       of definitions.
 //    b. If the definition only depends on symbols which are listed in the
 //       table, consider it our operand definition and proceed to step 3.
@@ -74,13 +76,6 @@ resolveLoop:
 			break
 		}
 
-		// remove the operand from the definition queue
-		queue := r.Assemblers[operandSrcPkgID].DefQueue
-		for queue.Peek() != operand {
-			queue.Rotate()
-		}
-		queue.Dequeue()
-
 		r.createOpaqueType(operand, operandSrcPkgID)
 		if r.resolveUnknowns() {
 			if _, ok := r.resolveDef(operandSrcPkgID, operand); !ok {
@@ -96,6 +91,7 @@ resolveLoop:
 			if _, ok := r.resolveDef(operandSrcPkgID, operand); !ok {
 				// if the operand still fails to resolve, we add it back to the
 				// queue at the back
+				queue := r.Assemblers[operandSrcPkgID].DefQueue
 				queue.Enqueue(operand)
 				queue.Rotate()
 
@@ -116,6 +112,13 @@ resolveLoop:
 				pa.DefQueue.Dequeue()
 			}
 		}
+	} else {
+		// if resolution was successful, we need to make sure to clear the
+		// shared opaque symbol before proceeding (we just set the SrcPackageID
+		// to be -1 (max uint value) and the name to be "" to ensure it never
+		// matches) -- this is not actually "necessary"; more of a failsafe
+		// against my own "scatter-brainedness"
+		*r.sharedOpaqueSymbol = common.WhirlOpaqueSymbol{Name: "", SrcPackageID: math.MaxUint32}
 	}
 
 	return resolveSuccessful
@@ -124,7 +127,6 @@ resolveLoop:
 // createOpaqueType takes a definition and creates and stores an appropriate
 // opaque type for it.  It stores it as the opaque type in all the walkers.
 func (r *Resolver) createOpaqueType(operand *Definition, operandSrcPkgID uint) {
-	var name string
 	var generic, requiresRef bool
 
 	typeRequiresRef := func(suffix *syntax.ASTBranch) bool {
@@ -149,19 +151,15 @@ func (r *Resolver) createOpaqueType(operand *Definition, operandSrcPkgID uint) {
 
 	switch operand.Branch.LeafAt(0).Kind {
 	case syntax.TYPE:
-		name = operand.Branch.LeafAt(1).Value
 		generic = operand.Branch.BranchAt(2).Name == "generic_tag"
 		requiresRef = typeRequiresRef(operand.Branch.Last().(*syntax.ASTBranch))
 	case syntax.INTERF:
-		name = operand.Branch.LeafAt(1).Value
-
 		if _, ok := operand.Branch.Content[2].(*syntax.ASTBranch); ok {
 			generic = ok
 		}
 
 		// interfaces never require a reference
 	case syntax.CLOSED:
-		name = operand.Branch.LeafAt(2).Value
 		generic = operand.Branch.BranchAt(3).Name == "generic_tag"
 		requiresRef = typeRequiresRef(operand.Branch.Last().(*syntax.ASTBranch))
 	}
@@ -183,34 +181,77 @@ func (r *Resolver) createOpaqueType(operand *Definition, operandSrcPkgID uint) {
 		}
 	} else {
 		opaqueType = &typing.OpaqueType{
-			Name:        name,
+			Name:        operand.Name,
 			DependsOn:   dependsOn,
 			RequiresRef: requiresRef,
 		}
 	}
 
 	*r.sharedOpaqueSymbol = common.WhirlOpaqueSymbol{
-		Name:         name,
+		Name:         operand.Name,
 		Type:         opaqueType,
 		SrcPackageID: operandSrcPkgID,
 	}
 }
 
 // getNextOperand searches the table for the first valid operand and
-// appropriately logs all symbols as unresolved as necessary
+// appropriately logs all symbols as unresolved as necessary.  If it finds an
+// operand, it removes it from the queue and returns it.
 func (r *Resolver) getNextOperand(table map[uint]map[string]*Definition) (*Definition, uint, bool) {
 	encounteredUnresolved := false
 
 	for currPkgTableID, pkgTable := range table {
+		// fetch the queue that we are going to process (we need to use the
+		// queue so that we can remove definitions as we look for the operand)
+		pkgQueue := r.Assemblers[currPkgTableID].DefQueue
+
+		// `mark` is the definition at the top of the queue, we know to exit the
+		// loop when we hit this definition again
+		mark := pkgQueue.Peek()
+
+		// rotate the mark out of the front of the queue
+		pkgQueue.Rotate()
+
+		// begin iterating through the queue; skipping any non-type definitions
+		// and pruning out all definition we encounter that won't ever be
+		// resolveable until we encounter a valid operand
+		var def *Definition
 	pkgDefLoop:
-		for _, def := range pkgTable {
+		for def != mark {
+			def = pkgQueue.Peek()
+
+			// if it is not in our pkgTable then it is not a definition we need
+			// to consider here so we can skip it
+			if _, ok := pkgTable[def.Name]; !ok {
+				pkgQueue.Rotate()
+				continue
+			}
+
+			// processUnresolved processes an unresolved or unresolveable
+			// definition and remove it from all the necessary resolution
+			// queues.  This assumes that the current `def` is its argument
+			processUnresolved := func() {
+				// log it as unresolved
+				r.logUnresolvedDef(currPkgTableID, def)
+
+				// remove it from the queue and the resolution table (it
+				// cannot be depended on or resolved from)
+				pkgQueue.Dequeue()
+				delete(pkgTable, def.Name)
+
+				// the `Dequeue` call facilitates rotation so there is no need
+				// to call rotate here -- we can just call this function and
+				// progress to the next cycle of the loop
+			}
+
 			for _, unknown := range def.Unknowns {
 				// it is stored locally
 				if unknown.ForeignPackage == nil {
-					// if it does not exist in the current package table, we log
-					// it as unresolved
+					// if it does not exist in the current package table, then
+					// it can never be resolved
 					if _, ok := pkgTable[unknown.Name]; !ok {
-						r.logUnresolvedDef(currPkgTableID, def)
+						processUnresolved()
+						continue pkgDefLoop
 					}
 				} else if foreignTable, ok := table[unknown.ForeignPackage.PackageID]; ok {
 					// if our symbol is from a package being resolved, then we
@@ -218,20 +259,21 @@ func (r *Resolver) getNextOperand(table map[uint]map[string]*Definition) (*Defin
 					// -- it can be resolved.  If it is not, then it won't ever
 					// be resolved and we can consider it unresolveable.
 					if _, ok := foreignTable[unknown.Name]; !ok {
-						r.logUnresolvedDef(currPkgTableID, def)
-						// TODO: remove from queue
+						processUnresolved()
 						continue pkgDefLoop
 					}
 				} else {
 					// if we reach here, we know it is in an already resolved
 					// package which implies that if it was not found, it won't
 					// ever be and is resolvable
-					r.logUnresolvedDef(currPkgTableID, def)
-					// TODO: remove from queue
+					processUnresolved()
 					continue pkgDefLoop
 				}
 			}
 
+			// if we reach here, then we know the definition can be an operand
+			// so we remove it from the queue and return it to be processed
+			pkgQueue.Dequeue()
 			return def, currPkgTableID, encounteredUnresolved
 		}
 	}

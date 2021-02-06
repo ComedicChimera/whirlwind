@@ -23,14 +23,33 @@ var validTypeSetIntrinsics = map[string]struct{}{
 // Otherwise, it returns `false`. All unmentioned values for each case will be
 // nil. This is the main definition analysis function and accepts a `definition`
 // node.  This function is mainly intended to work with the Resolver and
-// PackageAssembler.
-func (w *Walker) WalkDef(dast *syntax.ASTBranch) (common.HIRNode, map[string]*common.UnknownSymbol, bool) {
-	def, name, ok := w.walkDefRaw(dast)
+// PackageAssembler.  It also always returns the name of the definition is
+// possible.
+func (w *Walker) WalkDef(dast *syntax.ASTBranch) (common.HIRNode, string, map[string]*common.UnknownSymbol, bool) {
+	def, dt, name, ok := w.walkDefRaw(dast)
 
 	if ok {
 		// apply generic context before returning definition; we can assume that
 		// if we reached this point, there are no unknowns to account for
-		return w.applyGenericContext(def, name), nil, true
+		def, dt = w.applyGenericContext(def, name, dt)
+
+		// update the shared opaque symbol with the contents of this definition
+		// as necessary (not always resolving since we could be dealing with
+		// local functions).  Generic and non-generic should always match up
+		// because the opaque type is generated based on the definition
+		if w.resolving && w.sharedOpaqueSymbol.SrcPackageID == w.SrcPackage.PackageID && w.sharedOpaqueSymbol.Name == name {
+			if ot, ok := w.sharedOpaqueSymbol.Type.(*typing.OpaqueType); ok {
+
+				ot.EvalType = dt
+			} else if ogt, ok := w.sharedOpaqueSymbol.Type.(*typing.OpaqueGenericType); ok {
+				// none of the errors caused by this should effect the
+				// generation of this definition -- don't cause unnecessary
+				// errors (even in recursive case error is already logged)
+				ogt.Evaluate(dt.(*typing.GenericType), w.solver, w.Context)
+			}
+		}
+
+		return def, name, nil, true
 	}
 
 	// clear the generic context
@@ -40,14 +59,14 @@ func (w *Walker) WalkDef(dast *syntax.ASTBranch) (common.HIRNode, map[string]*co
 	if w.fatalDefError {
 		w.fatalDefError = false
 
-		return nil, nil, false
+		return nil, "", nil, false
 	}
 
 	// collect and clear our unknowns after they have collected for the definition
 	unknowns := w.unknowns
 	w.clearUnknowns()
 
-	return nil, unknowns, true
+	return nil, name, unknowns, true
 }
 
 // walkDefRaw walks a definition without handling any generics or any of the
@@ -55,15 +74,15 @@ func (w *Walker) WalkDef(dast *syntax.ASTBranch) (common.HIRNode, map[string]*co
 // internal "type" of the node for use in generics as necessary.  It effectively
 // acts a wrapper to all of the individual `walk` functions for the various
 // kinds of definitions.
-func (w *Walker) walkDefRaw(dast *syntax.ASTBranch) (common.HIRNode, string, bool) {
+func (w *Walker) walkDefRaw(dast *syntax.ASTBranch) (common.HIRNode, typing.DataType, string, bool) {
 	switch dast.Name {
 	case "type_def":
 		if tdnode, ok := w.walkTypeDef(dast); ok {
-			return tdnode, tdnode.Sym.Name, true
+			return tdnode, tdnode.Sym.Type, tdnode.Sym.Name, true
 		}
 	}
 
-	return nil, "", false
+	return nil, nil, "", false
 }
 
 // walkTypeDef walks a `type_def` node and returns the appropriate HIRNode and a

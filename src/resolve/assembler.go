@@ -76,9 +76,10 @@ func (pa *PAssembler) initialPassOverBlock(wfile *common.WhirlFile, block *synta
 	for _, topast := range block.Content {
 		// extract the first node from the `definition` node
 		branch := topast.(*syntax.ASTBranch).BranchAt(0)
-		hirn, unknowns, ok := pa.Walkers[wfile].WalkDef(branch)
+		hirn, name, unknowns, ok := pa.Walkers[wfile].WalkDef(branch)
 		if hirn == nil {
 			pa.DefQueue.Enqueue(&Definition{
+				Name:     name,
 				Branch:   branch,
 				Unknowns: unknowns,
 				SrcFile:  wfile,

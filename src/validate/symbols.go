@@ -28,10 +28,6 @@ func (w *Walker) Lookup(name string) (*common.Symbol, bool) {
 		return wsi.SymbolRef, true
 	}
 
-	if w.unknowns != nil {
-		w.unknowns[name] = &common.UnknownSymbol{Name: name}
-	}
-
 	return nil, false
 }
 

@@ -247,7 +247,7 @@ func (r *Resolver) resolveDef(pkgid uint, def *Definition) (*common.UnknownSymbo
 	if funknown == nil {
 		// this should always succeed if it was not eliminated in the initial
 		// pass -- all unknowns are defined; definition should be well-formed
-		hirn, _, _ := w.WalkDef(def.Branch)
+		hirn, _, _, _ := w.WalkDef(def.Branch)
 		def.SrcFile.AddNode(hirn)
 		return nil, true
 	}
