@@ -134,9 +134,6 @@ const (
 	// name access (::)
 	GETNAME
 
-	// null testing/null coalescion (?)
-	NULLTEST
-
 	// punctuation
 	DECORAT
 	ANNOTHASH
@@ -252,7 +249,6 @@ var symbolPatterns = map[string]int{
 	">>":  RSHIFT,
 	"~":   COMPL,
 	"=":   ASSIGN,
-	"?":   NULLTEST,
 	".":   DOT,
 	"..":  RANGETO,
 	"...": ELLIPSIS,

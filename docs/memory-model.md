@@ -284,13 +284,11 @@ are prefixed by the keyword `global` and use a special allocation parameter also
 with the keyword `global`.
 
 Global references are inherently unsafe and can be explicitly deleted using the `delete` function.
-These references are always nullable and must check for nullable should they be used.  Global
-references are also used for concurrency but should NEVER be accessed without a guard or lock
+Global references are also used for concurrency but should NEVER be accessed without a guard or lock
 in concurrent situations.
 
-Constructs at the global level may contain global references or other references: however, those
-references are inherently nullable.  This practice is NOT recommended and should be avoided if
-possible.
+Constructs at the global level may contain global references or other references.  This practice is
+NOT recommended and should be avoided if possible.
 
 Global references may not be stored in local variables or constructs.
 
@@ -318,26 +316,6 @@ only does this allow us to force copying but it also allows us to avoid copying 
 This method is called even the copy would normally be elided.  This can have a significant
 performance impact if used incorrectly.
 
-## Nullability
-
-A reference can, like a value, be **nullable**.  Nullable references may or may not exist.  They
-are uncommon and should be avoided.  The three cases for a nullable reference are: uninitialized
-local references, global references, and local references stored globally. 
-
-**Nullable operators** can be used on all references but are only required on global references.
-Specifically, the **null-test operator** will accumulate a reference to its null value if it
-does not exist.  It is denoted with a `?` placed after the reference.  This allows for tests such as:
-
-    if ref? != null do
-        ...
-
-In that block (in the absence of a race condition/concurrency shenangans), `ref` is known to be
-non-null.  In such blocks, global references can be accessed directly without nullable operators.
-
-The null-test operator can be combined with any one of the reference operators to faciliate a
-**nullable access operator** which will first perform a null-test before operating.  These
-operators will accumulate to a null value if the null-test fails.
-
 ## Closures
 
 Closures have peculiar memory semantics that need special attention -- especially since they do
@@ -348,3 +326,11 @@ TODO: explain more how closures manage their state memory
 ## Strings
 
 TODO: explain how strings are managed
+
+## Nullable References
+
+Whirlwind does not provide any nullable operators or direct method of null testing.  The reason for
+this is that in all the cases where nullability would be useful (global memory, concurrent memory, 
+and shared memory), it is simply not feasible.  In the end, Whirlwind provides so many other ways
+of managing references that may or may not exist (eg. the `Option` type) that nullability really
+just becomes a crutch for poorly written code.

@@ -164,7 +164,6 @@ alloc_param = type | '(' type ',' expr ')' | 'IDENTIFIER' {'::' 'IDENTIFIER'} '{
 col_alloc_param = type [array_builder] | array_builder | list_builder | dict_builder ;
 
 trailer = '.' ( 'IDENTIFIER' | 'INTLIT' )
-  | '?'
   | '[' expr [slice_suffix] ']'
   | '{' [init_list] '}' 
   | '(' [args_list] ')'
