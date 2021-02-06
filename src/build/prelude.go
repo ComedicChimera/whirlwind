@@ -12,6 +12,8 @@ import (
 var preludeImports = make(map[string]*common.WhirlPackage)
 
 // preludeImportPatterns enumerates all of the prelude modules and the symbols they expose
+// TODO: fix this syntax to provide an actual list of the symbols we import (or
+// have the compiler walk through all of the exported symbols)
 var preludeImportPatterns = map[string][]string{
 	"core":         {"..."},
 	"core/runtime": {"Strand"}, // TODO: figure out remaining prelude import patterns

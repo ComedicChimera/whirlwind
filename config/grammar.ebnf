@@ -167,7 +167,7 @@ trailer = '.' ( 'IDENTIFIER' | 'INTLIT' )
   | '[' expr [slice_suffix] ']'
   | '{' [init_list] '}' 
   | '(' [args_list] ')'
-  | '::' 'IDENTIFIER' ;
+  | '::' ('IDENTIFIER' | '<' type_list '>') ;
 slice_suffix = ':' expr [':' expr] ;
 init_list = '...' expr {',' init_member_expr} | init_member_expr {',' init_member_expr} ;
 init_member_expr = 'IDENTIFIER' '=' expr;
