@@ -39,3 +39,4 @@ following methods:
   chained value returned.  This method is abstract.
   - `exit`  This is called whenever the chain ends -- success or fail.  This
   method is virtual (defined empty in the parent)
+- Context managers can chain together multiple different monadic types

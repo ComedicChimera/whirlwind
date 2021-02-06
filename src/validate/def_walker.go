@@ -39,7 +39,6 @@ func (w *Walker) WalkDef(dast *syntax.ASTBranch) (common.HIRNode, string, map[st
 		// because the opaque type is generated based on the definition
 		if w.resolving && w.sharedOpaqueSymbol.SrcPackageID == w.SrcPackage.PackageID && w.sharedOpaqueSymbol.Name == name {
 			if ot, ok := w.sharedOpaqueSymbol.Type.(*typing.OpaqueType); ok {
-
 				ot.EvalType = dt
 			} else if ogt, ok := w.sharedOpaqueSymbol.Type.(*typing.OpaqueGenericType); ok {
 				// none of the errors caused by this should effect the
