@@ -25,7 +25,7 @@ type PAssembler struct {
 }
 
 // NewPackageAssembler creates a new PAssembler for the given package
-func NewPackageAssembler(pkg *common.WhirlPackage, sos *common.WhirlOpaqueSymbol) *PAssembler {
+func NewPackageAssembler(pkg *common.WhirlPackage, sos *common.OpaqueSymbol) *PAssembler {
 	pa := &PAssembler{
 		PackageRef:                pkg,
 		DefQueue:                  &DefinitionQueue{},

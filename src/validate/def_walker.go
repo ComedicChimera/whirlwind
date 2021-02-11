@@ -26,18 +26,29 @@ var validTypeSetIntrinsics = map[string]struct{}{
 // PackageAssembler.  It also always returns the name of the definition is
 // possible.
 func (w *Walker) WalkDef(dast *syntax.ASTBranch) (common.HIRNode, string, map[string]*common.UnknownSymbol, bool) {
-	def, dt, name, ok := w.walkDefRaw(dast)
+	def, dt, ok := w.walkDefRaw(dast)
+
+	// make sure w.currentDefName is always cleared (for contexts where there is
+	// no name to override it -- eg. interface binding)
+	defer (func() {
+		w.currentDefName = ""
+
+		// clear self-type data last so that generics can still recognize it
+		w.selfType = nil
+		w.selfTypeUsed = false
+		w.selfTypeRequiresRef = false
+	})()
 
 	if ok {
 		// apply generic context before returning definition; we can assume that
 		// if we reached this point, there are no unknowns to account for
-		def, dt = w.applyGenericContext(def, name, dt)
+		def, dt = w.applyGenericContext(def, dt)
 
 		// update the shared opaque symbol with the contents of this definition
 		// as necessary (not always resolving since we could be dealing with
 		// local functions).  Generic and non-generic should always match up
 		// because the opaque type is generated based on the definition
-		if w.resolving && w.sharedOpaqueSymbol.SrcPackageID == w.SrcPackage.PackageID && w.sharedOpaqueSymbol.Name == name {
+		if w.resolving && w.sharedOpaqueSymbol.SrcPackageID == w.SrcPackage.PackageID && w.sharedOpaqueSymbol.Name == w.currentDefName {
 			if ot, ok := w.sharedOpaqueSymbol.Type.(*typing.OpaqueType); ok {
 				ot.EvalType = dt
 			} else if ogt, ok := w.sharedOpaqueSymbol.Type.(*typing.OpaqueGenericType); ok {
@@ -48,7 +59,7 @@ func (w *Walker) WalkDef(dast *syntax.ASTBranch) (common.HIRNode, string, map[st
 			}
 		}
 
-		return def, name, nil, true
+		return def, w.currentDefName, nil, true
 	}
 
 	// clear the generic context
@@ -65,7 +76,7 @@ func (w *Walker) WalkDef(dast *syntax.ASTBranch) (common.HIRNode, string, map[st
 	unknowns := w.unknowns
 	w.clearUnknowns()
 
-	return nil, name, unknowns, true
+	return nil, w.currentDefName, unknowns, true
 }
 
 // walkDefRaw walks a definition without handling any generics or any of the
@@ -73,15 +84,15 @@ func (w *Walker) WalkDef(dast *syntax.ASTBranch) (common.HIRNode, string, map[st
 // internal "type" of the node for use in generics as necessary.  It effectively
 // acts a wrapper to all of the individual `walk` functions for the various
 // kinds of definitions.
-func (w *Walker) walkDefRaw(dast *syntax.ASTBranch) (common.HIRNode, typing.DataType, string, bool) {
+func (w *Walker) walkDefRaw(dast *syntax.ASTBranch) (common.HIRNode, typing.DataType, bool) {
 	switch dast.Name {
 	case "type_def":
 		if tdnode, ok := w.walkTypeDef(dast); ok {
-			return tdnode, tdnode.Sym.Type, tdnode.Sym.Name, true
+			return tdnode, tdnode.Sym.Type, true
 		}
 	}
 
-	return nil, nil, "", false
+	return nil, nil, false
 }
 
 // walkTypeDef walks a `type_def` node and returns the appropriate HIRNode and a
@@ -108,12 +119,6 @@ func (w *Walker) walkTypeDef(dast *syntax.ASTBranch) (*common.HIRTypeDef, bool) 
 					return nil, false
 				}
 
-				// set up the mechanism to clear the self type data
-				defer (func() {
-					w.selfType = nil
-					w.selfTypeUsed = false
-				})()
-
 				// indents and dedents are removed by parser so suffix will
 				// always be first element
 				suffixNode := v.BranchAt(0)
@@ -132,6 +137,9 @@ func (w *Walker) walkTypeDef(dast *syntax.ASTBranch) (*common.HIRTypeDef, bool) 
 				}
 
 			case "typeset":
+				// NOTE: typesets don't define a self-type since such a
+				// definition would have literally no meaning (especially if it
+				// only contained one type -- itself)
 				if types, ok := w.walkOffsetTypeList(v, 1, 0); ok {
 					intrinsic := w.hasFlag("intrinsic")
 
@@ -158,6 +166,7 @@ func (w *Walker) walkTypeDef(dast *syntax.ASTBranch) (*common.HIRTypeDef, bool) 
 				closedType = true
 			case syntax.IDENTIFIER:
 				name = v.Value
+				w.currentDefName = name
 				namePosition = v.Position()
 			}
 		}
@@ -225,7 +234,7 @@ func (w *Walker) walkAlgebraicSuffix(suffix *syntax.ASTBranch, name string, name
 	}
 
 	// set the selfType field
-	w.selfType = algType
+	w.setSelfType(algType)
 
 	for _, item := range suffix.Content {
 		algInstBranch := item.(*syntax.ASTBranch)
@@ -270,8 +279,9 @@ func (w *Walker) walkStructSuffix(suffix *syntax.ASTBranch, name string, fieldIn
 		Fields:       make(map[string]*typing.TypeValue),
 	}
 
-	// set the selfType field
-	w.selfType = structType
+	// set the selfType field and appropriate flag
+	w.setSelfType(structType)
+	w.selfTypeRequiresRef = true
 
 	for _, item := range suffix.Content {
 		if branch, ok := item.(*syntax.ASTBranch); ok {

@@ -18,17 +18,6 @@ type OpaqueType struct {
 	// this opaque type in much the same way that a WildcardType stores in an
 	// internal type to be evaluated later
 	EvalType DataType
-
-	// DependsOn is a list of the names of symbol's that the definition this is
-	// standing in place of depends on.  It is used to check whether or not the
-	// accessing definition is a dependent type.  The key is package ID that this
-	// dependency exists in.
-	DependsOn map[string]uint
-
-	// RequiresRef indicates whether dependent types should only use this type
-	// as a reference element type (to prevent unresolveable recursive
-	// definitions)
-	RequiresRef bool
 }
 
 // All of OpaqueType's methods treat it as if it is it's evaluated type if such
@@ -72,10 +61,6 @@ type OpaqueGenericType struct {
 	// explicitly generic
 	EvalType *GenericType
 
-	// These two fields act the exact same as they do in `OpaqueType`
-	DependsOn   map[string]uint
-	RequiresRef bool
-
 	// Instances stores all of the generic instances that were created based on
 	// this opaque type
 	Instances []*OpaqueGenericInstanceType
@@ -103,10 +88,7 @@ func (og *OpaqueGenericType) Repr() string {
 // OpaqueGeneric references overwritten to point to the copy.  DependsOn and
 // RequiresRef are not.  NOTE: I have no clue when this method would be used.
 func (og *OpaqueGenericType) copyTemplate() DataType {
-	copy := &OpaqueGenericType{
-		DependsOn:   og.DependsOn,
-		RequiresRef: og.RequiresRef,
-	}
+	copy := &OpaqueGenericType{}
 
 	if og.EvalType != nil {
 		copy.EvalType = og.EvalType.copyTemplate().(*GenericType)

@@ -58,36 +58,55 @@ func (w *Walker) walkTypeLabel(label *syntax.ASTBranch) (typing.DataType, bool) 
 	typeCat := label.BranchAt(0)
 	switch typeCat.Name {
 	case "named_type":
-		var rootName, accessedName string
-		var rootPos, accessedPos *logging.TextPosition
+		dt, requiresRef, ok := w.walkNamedType(typeCat)
 
-		for _, item := range typeCat.Content {
-			switch v := item.(type) {
-			case *syntax.ASTLeaf:
-				if v.Kind == syntax.IDENTIFIER {
-					if rootName == "" {
-						rootName = v.Value
-						rootPos = v.Position()
-					} else {
-						accessedName = v.Value
-						accessedPos = v.Position()
-					}
-				}
-			case *syntax.ASTBranch:
-				if v.Name == "type_list" {
-
-				}
-			}
+		// we know that since we are the exterior of walk type label, we will never have the
+		// enclosing reference type required as so we can simply return false.
+		if requiresRef {
+			logging.LogError(
+				w.Context,
+				fmt.Sprintf("The type `%s` can only be stored by reference here", dt.Repr()),
+				logging.LMKTyping,
+				typeCat.Position(),
+			)
 		}
 
-		return w.walkNamedTypeCore(rootName, accessedName, rootPos, accessedPos)
+		return dt, ok
 	}
 
 	return nil, false
 }
 
-// walkNamedTypeCore walks and accesses the named data type at the core of the `named_type` node
-func (w *Walker) walkNamedTypeCore(rootName, accessedName string, rootPos, accessedPos *logging.TextPosition) (typing.DataType, bool) {
+// walkNamedType walks a `named_type` node fully.  It returns the type it
+// extracts (or nil if no type can be determined), a flag indicating whether or
+// not this named type may only be accessed by reference (eg. for self-types),
+// and a flag indicating whether or not the type was able to determined/created.
+func (w *Walker) walkNamedType(namedTypeLabel *syntax.ASTBranch) (typing.DataType, bool, bool) {
+	// walk the ast and extract relevant data
+	var rootName, accessedName string
+	var rootPos, accessedPos *logging.TextPosition
+
+	for _, item := range namedTypeLabel.Content {
+		switch v := item.(type) {
+		case *syntax.ASTLeaf:
+			if v.Kind == syntax.IDENTIFIER {
+				if rootName == "" {
+					rootName = v.Value
+					rootPos = v.Position()
+				} else {
+					accessedName = v.Value
+					accessedPos = v.Position()
+				}
+			}
+		case *syntax.ASTBranch:
+			if v.Name == "type_list" {
+
+			}
+		}
+	}
+
+	// convert that data into a typing.DataType
+
 	// NOTE: we don't consider algebraic instances here (statically accessed)
 	// because they cannot be used as types.  They are only values so despite
 	// using the `::` syntax, they are simply not usable here (and simply saying
@@ -95,6 +114,7 @@ func (w *Walker) walkNamedTypeCore(rootName, accessedName string, rootPos, acces
 	// consider opaque algebraic instances since such accessing should never
 	// occur.
 
+	// if there is no accessed name, than this just a standard symbol access
 	if accessedName == "" {
 		symbol, ok := w.Lookup(rootName)
 
@@ -107,12 +127,12 @@ func (w *Walker) walkNamedTypeCore(rootName, accessedName string, rootPos, acces
 					rootPos,
 				)
 
-				return nil, false
+				return nil, false, false
 			}
 
 			if w.DeclStatus == common.DSExported {
 				if symbol.VisibleExternally() {
-					return symbol.Type, true
+					return symbol.Type, false, true
 				}
 
 				w.logFatalDefError(
@@ -121,14 +141,18 @@ func (w *Walker) walkNamedTypeCore(rootName, accessedName string, rootPos, acces
 					rootPos,
 				)
 
-				return nil, false
+				return nil, false, false
 			}
 
-			return symbol.Type, true
+			return symbol.Type, false, true
 		} else if w.resolving {
-			// if we are resolving, then we need to check for opaque types
+			// if we are resolving, then we need to check for opaque types and
+			// self types (checked in two separate if blocks)
 			if w.sharedOpaqueSymbol.SrcPackageID == w.SrcPackage.PackageID && w.sharedOpaqueSymbol.Name == rootName {
-				return w.sharedOpaqueSymbol.Type, true
+				return w.sharedOpaqueSymbol.Type, w.opaqueSymbolRequiresRef(), true
+			} else if w.selfType != nil && rootName == w.currentDefName {
+				w.selfTypeUsed = true
+				return w.selfType, w.selfTypeRequiresRef, true
 			} else {
 				// otherwise, we mark it as unknown and return
 				w.unknowns[rootName] = &common.UnknownSymbol{
@@ -136,12 +160,12 @@ func (w *Walker) walkNamedTypeCore(rootName, accessedName string, rootPos, acces
 					Position: rootPos,
 				}
 
-				return nil, false
+				return nil, false, false
 			}
 		} else {
 			// symbol is unknown, and we are not resolving
 			w.LogUndefined(rootName, rootPos)
-			return nil, false
+			return nil, false, false
 		}
 	} else if w.DeclStatus == common.DSExported {
 		w.logFatalDefError(
@@ -160,15 +184,15 @@ func (w *Walker) walkNamedTypeCore(rootName, accessedName string, rootPos, acces
 					accessedPos,
 				)
 
-				return nil, false
+				return nil, false, false
 			}
 
-			return symbol.Type, true
+			return symbol.Type, false, true
 		} else if w.resolving {
 			// opaque symbols may exist in the other package if we are still
 			// resolving (can be accessed via an implicit import)
 			if w.sharedOpaqueSymbol.SrcPackageID == pkg.PackageID && w.sharedOpaqueSymbol.Name == accessedName {
-				return w.sharedOpaqueSymbol.Type, true
+				return w.sharedOpaqueSymbol.Type, w.opaqueSymbolRequiresRef(), true
 			} else {
 				// otherwise, it is just an unknown
 				w.unknowns[accessedName] = &common.UnknownSymbol{
@@ -181,7 +205,7 @@ func (w *Walker) walkNamedTypeCore(rootName, accessedName string, rootPos, acces
 		} else {
 			// we are not resolving, so the error must be fatal
 			w.LogNotVisibleInPackage(accessedName, rootName, accessedPos)
-			return nil, false
+			return nil, false, false
 		}
 	}
 
@@ -190,5 +214,22 @@ func (w *Walker) walkNamedTypeCore(rootName, accessedName string, rootPos, acces
 		logging.LMKName,
 		rootPos,
 	)
-	return nil, false
+	return nil, false, false
+}
+
+// opaqueSymbolRequiresRef checks within the given context whether or not the
+// shared opaque symbol must be accessed by reference.  This function assumes
+// that the opaque symbol can be used
+func (w *Walker) opaqueSymbolRequiresRef() bool {
+	if w.sharedOpaqueSymbol.RequiresRef {
+		if pkgIDs, ok := w.sharedOpaqueSymbol.DependsOn[w.currentDefName]; ok {
+			for _, pkgID := range pkgIDs {
+				if pkgID == w.SrcPackage.PackageID {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
 }

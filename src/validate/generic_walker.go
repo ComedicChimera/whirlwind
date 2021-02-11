@@ -24,24 +24,35 @@ func (w *Walker) primeGenericContext(genericTag *syntax.ASTBranch) bool {
 // returns the appropriately constructed `HIRGeneric` and clears the generic
 // context for the next definition.  If there is no context, it simply returns
 // the definition passed in.
-func (w *Walker) applyGenericContext(node common.HIRNode, name string, dt typing.DataType) (common.HIRNode, typing.DataType) {
+func (w *Walker) applyGenericContext(node common.HIRNode, dt typing.DataType) (common.HIRNode, typing.DataType) {
 	if w.genericCtx == nil {
 		return node, dt
 	}
 
-	// find the symbol of the declared data type so it can be updated (should
-	// always succeed b/c this is called immediately after a definition)
-	symbol, _ := w.Lookup(name)
-	gen := &common.HIRGeneric{
-		Generic: &typing.GenericType{
+	// if there is a selfType, then we know that selfType stores a pre-built
+	// GenericType type used for selfType referencing (so we don't need to
+	// create a new one at all)
+	var gt *typing.GenericType
+	if w.selfType != nil {
+		gt = w.selfType.(*typing.GenericType)
+	} else {
+		gt = &typing.GenericType{
 			TypeParams: w.genericCtx,
 			Template:   dt,
-		},
+		}
+	}
+
+	// wrap our generic into a HIRGeneric
+	gen := &common.HIRGeneric{
+		Generic:     gt,
 		GenericNode: node,
 	}
 
-	// override the symbol's type
-	symbol.Type = gen.Generic
+	// find the symbol of the declared data type so its type can be overwritten
+	// with the generic type (should always succeed b/c this is called
+	// immediately after a definition)
+	symbol, _ := w.Lookup(w.currentDefName)
+	symbol.Type = gt
 
 	// TODO: update algebraic instances of open generic algebraic types
 
@@ -52,4 +63,18 @@ func (w *Walker) applyGenericContext(node common.HIRNode, name string, dt typing
 // createGenericInstance creates a new instance of the given generic type
 func (w *Walker) createGenericInstance(generic *typing.GenericType, params []typing.DataType) (typing.DataType, bool) {
 	return nil, false
+}
+
+// setSelfType sets the selfType field accounting for generic context
+func (w *Walker) setSelfType(st typing.DataType) {
+	// if there is no generic context, then we can just assign as is
+	if w.genericCtx == nil {
+		w.selfType = st
+	}
+
+	// otherwise, we need to wrap it in a generic to be used later
+	w.selfType = &typing.GenericType{
+		TypeParams: w.genericCtx,
+		Template:   st,
+	}
 }

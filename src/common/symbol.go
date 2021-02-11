@@ -60,3 +60,33 @@ type UnknownSymbol struct {
 	// imported. This field is meaningless if the ForeignPackage field is nil.
 	ImplicitImport bool
 }
+
+// OpaqueSymbol acts as a shared opaque symbol references during cyclic
+// resolution.  One of these references should be created and distributed to all
+// walkers in resolution unit.  Then, the contents of this reference should be
+// updated as the opaque reference changes.
+type OpaqueSymbol struct {
+	Name string
+
+	// This is used to determine whether or not this symbol should be visible in
+	// the current package as well as whether or not when a definition is
+	// complete if it should be updated by that finished definition (only if in
+	// same package).
+	SrcPackageID uint
+
+	// Type can be any one of the opaque types
+	Type typing.DataType
+
+	// DependsOn is a list of the names of symbol's that the definition this is
+	// standing in place of depends on.  It is used to check whether or not the
+	// accessing definition is a dependent type.  The key is the name of the
+	// symbol and the value is the list of packages that this symbol is defined
+	// in (eg. if a data type uses two symbols by the same name defined in
+	// different packages, you would have two package IDs)
+	DependsOn map[string][]uint
+
+	// RequiresRef indicates whether dependent types should only use this type
+	// as a reference element type (to prevent unresolveable recursive
+	// definitions)
+	RequiresRef bool
+}

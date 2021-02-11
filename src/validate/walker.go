@@ -44,20 +44,29 @@ type Walker struct {
 	// annotations stores the active annotations on any definition
 	annotations map[string]string
 
-	// selfType stores a reference to the type currently being defined for self referencing
+	// selfType stores a reference to the type currently being defined for self
+	// referencing
 	selfType typing.DataType
 
 	// selfTypeUsed indicates whether or not the self type reference was used
 	selfTypeUsed bool
 
+	// selfTypeRequiresRef stores a flag indicating whether or not the self type
+	// must be accessed via a reference (eg. for structs)
+	selfTypeRequiresRef bool
+
 	// sharedOpaqueSymbol stores a common opaque symbol reference to be given to
 	// all package assemblers and shared with all walkers.  It used during
 	// cyclic dependency resolution.
-	sharedOpaqueSymbol *common.WhirlOpaqueSymbol
+	sharedOpaqueSymbol *common.OpaqueSymbol
+
+	// currentDefName stores the symbol name of the current definition being
+	// processed
+	currentDefName string
 }
 
 // NewWalker creates a new walker for the given package and file
-func NewWalker(pkg *common.WhirlPackage, file *common.WhirlFile, fpath string, sos *common.WhirlOpaqueSymbol) *Walker {
+func NewWalker(pkg *common.WhirlPackage, file *common.WhirlFile, fpath string, sos *common.OpaqueSymbol) *Walker {
 	// initialize the files local binding registry (may decide to remove this as
 	// a file field if it is not helpful/necessary and instead embed as a walker
 	// field)

@@ -38,7 +38,7 @@ type Resolver struct {
 	// sharedOpaqueSymbol stores a common opaque symbol reference to be given to
 	// all package assemblers to share with all of their walkers.  It used
 	// during cyclic dependency resolution.
-	sharedOpaqueSymbol *common.WhirlOpaqueSymbol
+	sharedOpaqueSymbol *common.OpaqueSymbol
 }
 
 // NewResolver creates a new resolver for the given group of packages

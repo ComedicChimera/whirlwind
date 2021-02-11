@@ -118,7 +118,7 @@ resolveLoop:
 		// to be -1 (max uint value) and the name to be "" to ensure it never
 		// matches) -- this is not actually "necessary"; more of a failsafe
 		// against my own "scatter-brainedness"
-		*r.sharedOpaqueSymbol = common.WhirlOpaqueSymbol{Name: "", SrcPackageID: math.MaxUint32}
+		*r.sharedOpaqueSymbol = common.OpaqueSymbol{Name: "", SrcPackageID: math.MaxUint32}
 	}
 
 	return resolveSuccessful
@@ -164,33 +164,35 @@ func (r *Resolver) createOpaqueType(operand *Definition, operandSrcPkgID uint) {
 		requiresRef = typeRequiresRef(operand.Branch.Last().(*syntax.ASTBranch))
 	}
 
-	dependsOn := make(map[string]uint)
+	dependsOn := make(map[string][]uint)
 	for name, unknown := range operand.Unknowns {
+		var currPkgID uint
 		if unknown.ForeignPackage == nil {
-			dependsOn[name] = operandSrcPkgID
+			currPkgID = operandSrcPkgID
 		} else {
-			dependsOn[name] = unknown.ForeignPackage.PackageID
+			currPkgID = unknown.ForeignPackage.PackageID
+		}
+
+		if pkgIDs, ok := dependsOn[name]; ok {
+			dependsOn[name] = append(pkgIDs, currPkgID)
+		} else {
+			dependsOn[name] = []uint{currPkgID}
 		}
 	}
 
 	var opaqueType typing.DataType
 	if generic {
-		opaqueType = &typing.OpaqueGenericType{
-			DependsOn:   dependsOn,
-			RequiresRef: requiresRef,
-		}
+		opaqueType = &typing.OpaqueGenericType{}
 	} else {
-		opaqueType = &typing.OpaqueType{
-			Name:        operand.Name,
-			DependsOn:   dependsOn,
-			RequiresRef: requiresRef,
-		}
+		opaqueType = &typing.OpaqueType{Name: operand.Name}
 	}
 
-	*r.sharedOpaqueSymbol = common.WhirlOpaqueSymbol{
+	*r.sharedOpaqueSymbol = common.OpaqueSymbol{
 		Name:         operand.Name,
 		Type:         opaqueType,
 		SrcPackageID: operandSrcPkgID,
+		DependsOn:    dependsOn,
+		RequiresRef:  requiresRef,
 	}
 }
 

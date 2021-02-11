@@ -110,20 +110,3 @@ type WhirlImport struct {
 	// key is the name of the symbol (which may not be given in the SymbolRef).
 	ImportedSymbols map[string]*Symbol
 }
-
-// WhirlOpaqueSymbol acts as a shared opaque symbol references during cyclic
-// resolution.  One of these references should be created and distributed to all
-// walkers in resolution unit.  Then, the contents of this reference should be
-// updated as the opaque reference changes.
-type WhirlOpaqueSymbol struct {
-	Name string
-
-	// This is used to determine whether or not this symbol should be visible in
-	// the current package as well as whether or not when a definition is
-	// complete if it should be updated by that finished definition (only if in
-	// same package).
-	SrcPackageID uint
-
-	// Type can be any one of the opaque types
-	Type typing.DataType
-}
