@@ -1,7 +1,10 @@
 package validate
 
 import (
+	"fmt"
+
 	"github.com/ComedicChimera/whirlwind/src/common"
+	"github.com/ComedicChimera/whirlwind/src/logging"
 	"github.com/ComedicChimera/whirlwind/src/syntax"
 	"github.com/ComedicChimera/whirlwind/src/typing"
 )
@@ -60,8 +63,43 @@ func (w *Walker) applyGenericContext(node common.HIRNode, dt typing.DataType) (c
 	return gen, symbol.Type
 }
 
-// createGenericInstance creates a new instance of the given generic type
-func (w *Walker) createGenericInstance(generic *typing.GenericType, params []typing.DataType) (typing.DataType, bool) {
+// createGenericInstance creates a new instance of the given generic type or
+// generic opaque type.  It will log an error if the type passed in is not
+// generic.
+func (w *Walker) createGenericInstance(generic typing.DataType, genericPos *logging.TextPosition, paramsBranch *syntax.ASTBranch) (typing.DataType, bool) {
+	params, ok := w.walkTypeList(paramsBranch)
+
+	if !ok {
+		return nil, false
+	}
+
+	switch v := generic.(type) {
+	case *typing.GenericType:
+		return w.solver.CreateGenericInstance(v, params, paramsBranch)
+	case *typing.OpaqueGenericType:
+		if v.EvalType == nil {
+			ogi := &typing.OpaqueGenericInstanceType{
+				OpaqueGeneric:    v,
+				TypeParams:       params,
+				TypeParamsBranch: paramsBranch,
+			}
+
+			v.Instances = append(v.Instances, ogi)
+
+			return ogi, true
+		}
+
+		return w.solver.CreateGenericInstance(v.EvalType, params, paramsBranch)
+	}
+
+	// not a generic type -- error
+	logging.LogError(
+		w.Context,
+		fmt.Sprintf("Unable to pass type parameters to non-generic type `%s`", generic.Repr()),
+		logging.LMKTyping,
+		genericPos,
+	)
+
 	return nil, false
 }
 

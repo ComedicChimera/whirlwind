@@ -55,7 +55,7 @@ func (w *Walker) WalkDef(dast *syntax.ASTBranch) (common.HIRNode, string, map[st
 				// none of the errors caused by this should effect the
 				// generation of this definition -- don't cause unnecessary
 				// errors (even in recursive case error is already logged)
-				ogt.Evaluate(dt.(*typing.GenericType), w.solver, w.Context)
+				ogt.Evaluate(dt.(*typing.GenericType), w.solver)
 			}
 		}
 

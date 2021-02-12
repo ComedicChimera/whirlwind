@@ -1,10 +1,9 @@
 package typing
 
 import (
-	"fmt"
 	"strings"
 
-	"github.com/ComedicChimera/whirlwind/src/logging"
+	"github.com/ComedicChimera/whirlwind/src/syntax"
 )
 
 // OpaqueType is used to represent a type that has yet to be defined but is
@@ -107,27 +106,14 @@ func (og *OpaqueGenericType) copyTemplate() DataType {
 // Evaluate takes in a type to act as the evaluated generic, updates the opaque
 // type, checks all of the instances, and logs an appropriate error if something
 // goes wrong
-func (ogt *OpaqueGenericType) Evaluate(gt *GenericType, s *Solver, ctx *logging.LogContext) bool {
+func (ogt *OpaqueGenericType) Evaluate(gt *GenericType, s *Solver) bool {
 	ogt.EvalType = gt
 
 	instancesMatched := true
 	for _, instance := range ogt.Instances {
-		if generate, ok := s.CreateGenericInstance(gt, instance.TypeParams); ok {
+		if generate, ok := s.CreateGenericInstance(gt, instance.TypeParams, instance.TypeParamsBranch); ok {
 			instance.MemoizedGenerate = generate
 		} else {
-			typeParamsText := TupleType(instance.TypeParams).Repr()
-
-			logging.LogError(
-				ctx,
-				fmt.Sprintf(
-					"Unable to create generic instance of `%s` with type parameters `<%s>`",
-					gt.Repr(),
-					typeParamsText[1:len(typeParamsText)-1],
-				),
-				logging.LMKTyping,
-				instance.CreatedPosition,
-			)
-
 			instancesMatched = false
 		}
 
@@ -153,9 +139,9 @@ type OpaqueGenericInstanceType struct {
 	// and is, in effect, the type that this generic instance refers to.
 	MemoizedGenerate DataType
 
-	// CreatedPosition stores the position that this instance was created at for
-	// late error-handling
-	CreatedPosition *logging.TextPosition
+	// TypeParamsBranch stores the `type_list` branch that holds all of the type
+	// parameter values used for this instance.  It is used in error handling.
+	TypeParamsBranch *syntax.ASTBranch
 }
 
 // equals will always return false since if this method is called directly:
@@ -197,6 +183,7 @@ func (ogi *OpaqueGenericInstanceType) copyTemplate() DataType {
 		OpaqueGeneric:    ogi.OpaqueGeneric,
 		TypeParams:       copyTemplateSlice(ogi.TypeParams),
 		MemoizedGenerate: ogi.MemoizedGenerate, // this field may be `nil`
+		TypeParamsBranch: ogi.TypeParamsBranch,
 	}
 
 	ogi.OpaqueGeneric.Instances = append(ogi.OpaqueGeneric.Instances, copy)

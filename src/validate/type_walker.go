@@ -85,6 +85,7 @@ func (w *Walker) walkNamedType(namedTypeLabel *syntax.ASTBranch) (typing.DataTyp
 	// walk the ast and extract relevant data
 	var rootName, accessedName string
 	var rootPos, accessedPos *logging.TextPosition
+	var typeParams *syntax.ASTBranch
 
 	for _, item := range namedTypeLabel.Content {
 		switch v := item.(type) {
@@ -100,13 +101,40 @@ func (w *Walker) walkNamedType(namedTypeLabel *syntax.ASTBranch) (typing.DataTyp
 			}
 		case *syntax.ASTBranch:
 			if v.Name == "type_list" {
-
+				typeParams = v
 			}
 		}
 	}
 
-	// convert that data into a typing.DataType
+	// look-up the core named type based on that data
+	namedType, requiresRef, ok := w.lookupNamedType(rootName, accessedName, rootPos, accessedPos)
 
+	if !ok {
+		return nil, false, false
+	}
+
+	// handle generics
+	if typeParams != nil {
+		genericPos := rootPos
+		if accessedPos != nil {
+			genericPos = accessedPos
+		}
+
+		if gi, ok := w.createGenericInstance(namedType, genericPos, typeParams); ok {
+			namedType = gi
+		} else {
+			return nil, false, false
+		}
+	}
+
+	return namedType, requiresRef, true
+}
+
+// lookupNamedType performs the full look-up of a named type based on the values
+// that are extracted during the execution of walkNamedType.  It handles opaque
+// types and self-types.  Generics are processed by walkNamedType.  It returns
+// the same parameters as walkNamedType.
+func (w *Walker) lookupNamedType(rootName, accessedName string, rootPos, accessedPos *logging.TextPosition) (typing.DataType, bool, bool) {
 	// NOTE: we don't consider algebraic instances here (statically accessed)
 	// because they cannot be used as types.  They are only values so despite
 	// using the `::` syntax, they are simply not usable here (and simply saying

@@ -1,8 +1,13 @@
 package typing
 
+import "github.com/ComedicChimera/whirlwind/src/logging"
+
 // Solver is the abstraction responsible for inferring the types of an given
 // block or context.  It is also referred to as the inferencer.
 type Solver struct {
+	// Context is the log context for this solver
+	Context *logging.LogContext
+
 	// Equations is a list of the active/unsolved type equations
 	Equations []*TypeEquation
 

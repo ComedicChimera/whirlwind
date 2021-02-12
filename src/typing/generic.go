@@ -1,6 +1,12 @@
 package typing
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/ComedicChimera/whirlwind/src/logging"
+	"github.com/ComedicChimera/whirlwind/src/syntax"
+)
 
 // GenericType represents a generic definition.  Semantically, generics are not
 // really considered types; however, it is implemented as one since many of our
@@ -100,12 +106,21 @@ func (gt *GenericType) copyTemplate() DataType {
 	}
 }
 
-// CreateInstance is used to create a new generic instance based on the given type
-// parameters.  It returns false as the second return if either the number of type
-// values provided doesn't match up with the number of type parameters or some of
-// the type values don't satisfy the restrictors on their corresponding parameters.
-func (s *Solver) CreateGenericInstance(gt *GenericType, typeValues []DataType) (DataType, bool) {
-	if len(gt.TypeParams) != len(typeValues) {
+// CreateInstance is used to create a new generic instance based on the given
+// type parameters.  It returns false as the second return if either the number
+// of type values provided doesn't match up with the number of type parameters
+// or some of the type values don't satisfy the restrictors on their
+// corresponding parameters. This function will log an appropriate error should
+// a generic be unable to be generated.
+func (s *Solver) CreateGenericInstance(gt *GenericType, typeParams []DataType, typeParamsBranch *syntax.ASTBranch) (DataType, bool) {
+	if len(gt.TypeParams) != len(typeParams) {
+		logging.LogError(
+			s.Context,
+			fmt.Sprintf("Generic `%s` expects `%d` type parameters; received `%d`", gt.Repr(), len(gt.TypeParams), len(typeParams)),
+			logging.LMKTyping,
+			typeParamsBranch.Position(),
+		)
+
 		return nil, false
 	}
 
@@ -116,7 +131,7 @@ outerloop:
 	for _, instance := range gt.Instances {
 		// all instances have the same number of type values so we don't need to
 		// check lengths again on each instance
-		for i, dt := range typeValues {
+		for i, dt := range typeParams {
 			if !Equals(instance.TypeParams[i], dt) {
 				continue outerloop
 			}
@@ -131,18 +146,24 @@ outerloop:
 			matchedRestrictor := false
 
 			for _, r := range wt.Restrictors {
-				if s.CoerceTo(typeValues[i], r) {
+				if s.CoerceTo(typeParams[i], r) {
 					matchedRestrictor = true
 					break
 				}
 			}
 
 			if !matchedRestrictor {
+				logging.LogError(
+					s.Context,
+					fmt.Sprintf("Type `%s` does not satisfy restrictor of type parameter `%s` of generic `%s`", typeParams[i].Repr(), wt.Name, gt.Repr()),
+					logging.LMKTyping,
+					typeParamsBranch.Content[i*2].Position(),
+				)
 				return nil, false
 			}
 		}
 
-		wt.Value = typeValues[i]
+		wt.Value = typeParams[i]
 	}
 
 	copy := gt.Template.copyTemplate()
@@ -155,7 +176,7 @@ outerloop:
 	// now, create and memoize our instance, then return
 	gi := &GenericInstanceType{
 		Generic:          gt,
-		TypeParams:       typeValues,
+		TypeParams:       typeParams,
 		MemoizedGenerate: copy,
 	}
 
