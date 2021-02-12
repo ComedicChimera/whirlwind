@@ -4,12 +4,9 @@ Whirlwind is a compiled, modern, and multipurpose language designed with intenti
 It is strongly-typed, versatile, expressive, concurrent, and relatively easy to learn.
 It boasts numerous new and old features and is designed to represent the needs of any software developer.
 
-
 ***Language IP and Source Code Copyright &copy; Jordan Gaines 2018-2021***
 
-*Note: All here is subject to change.*
-
-***NOTE: This language is still in development!***
+***NOTE: This language is still in development! This is the third version of the compiler and language.***
 
 ## Table of Contents
 
@@ -159,7 +156,7 @@ in my life has taken precedence.  It is also worth noting that although there ma
 repository, there may still be development going on.  Designing a language takes a lot more than just brute
 coding -- I spend a lot of time just toying with different ideas and thinking about design approaches.
 
-When I have more time I may create a formal Trello to place here so you can see what I am currently working on.
+When I have more time, I may create a formal Trello to place here so you can see what I am currently working on.
 I expect that as college apps start to fade out and my senior year starts to wind down, I will have more time
 to work.  Building a language can be very tiresome, and there are days on which I may have some free time but
 may simply be too tired or distracted to really sit down and work.  I hope this will be less of a problem as

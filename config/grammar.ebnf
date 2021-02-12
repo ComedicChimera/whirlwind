@@ -33,14 +33,16 @@ export_block = 'export' 'of' 'INDENT' top_level 'DEDENT' ;
 
 top_level = definition { definition } ;
 definition = interf_def | interf_bind | operator_def | func_def | type_def 
-  | decorator | annotated_def | variable_decl | variant_def ;
+  | decorator | annotated_def | variable_decl | special_def ;
 
 interf_def = 'interf' 'IDENTIFIER' [generic_tag] 'of' interf_body ;
 interf_bind = 'interf' [generic_tag] 'for' type [ 'is' type {',' type}] interf_body ;
 interf_body = 'INDENT' interf_member { interf_member } 'DEDENT' ;
-interf_member = func_def | variant_def | method_variant | annotated_method ;
-method_variant = 'variant' [generic_tag] 'when' method_variant_cond {',' method_variant_cond} 'NEWLINE' func_def ;
-method_variant_cond = 'IDENTIFIER' 'is' type ;
+interf_member = func_def | special_def | method_special | annotated_method ;
+
+(* generic method specialization *)
+method_special = 'special' [generic_tag] 'when' method_special_cond {',' method_special_cond} 'NEWLINE' func_def ;
+method_special_cond = 'IDENTIFIER' 'is' type ;
 
 operator_def = 'operator' '(' operator_value ')' [generic_tag] signature func_body ;
 operator_value = '+' | '-' | '*' | '/' | '~/' | '~*' 
@@ -58,8 +60,8 @@ func_body = ['const'] ( do_block | ? '=>' expr ? ) ;
 type_def = ['closed'] 'type' 'IDENTIFIER' [generic_tag] ( ? typeset ? | newtype ) ;
 typeset = '=' type {'|' type } ;
 newtype = ? alg_suffix ? | struct_suffix ;
-alg_suffix = alg_type_member {alg_type_member} ;
-alg_type_member = '|' 'IDENTIFIER' [tupled_suffix] ;
+alg_suffix = alg_variant {alg_variant} ;
+alg_variant = '|' 'IDENTIFIER' [tupled_suffix] ;
 tupled_suffix = '(' type {',' type} ')' ;
 struct_suffix = ['of' type] '{' struct_member { struct_member } '}' ;
 struct_member = ['const'] ['vol'] identifier_list type_ext [initializer] 'NEWLINE' ;
@@ -71,7 +73,8 @@ annotated_def = annotation { annotation } (type_def | func_def | interf_def | in
 annotated_method = annotation { annotation } func_def ;
 annotation = '#' 'IDENTIFIER' [ 'STRINGLIT' ] 'NEWLINE' ;
 
-variant_def = 'variant' '<' type_list '>' 'IDENTIFIER' func_body ;
+(* generic function specialization *)
+special_def = 'special' '<' type_list '>' 'IDENTIFIER' func_body ;
 
 (* ellipsis is used to designate a block that hasn't been filled in yet *)
 do_block = 'do' block ;

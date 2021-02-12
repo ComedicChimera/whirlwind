@@ -18,7 +18,7 @@ import (
 // 7. Algebraic Types - A type that contains a finite number of enumerated values
 // 8. Type Sets -- A set/union of multiple type values
 // 9. Regions -- A region literal (ref to region)
-// There are several other types such as AlgebraicInstances and WildcardTypes
+// There are several other types such as AlgebraicVariants and WildcardTypes
 // that are not actually considered "fundamental types" but rather semantic
 // constructs to assist in compilation and type analysis.
 
@@ -558,7 +558,10 @@ type AlgebraicType struct {
 	Name         string
 	SrcPackageID uint
 
-	Instances map[string]*AlgebraicInstance
+	Variants map[string]*AlgebraicVariant
+
+	// Closed indicates whether or not this type is closed or open
+	Closed bool
 }
 
 func (at *AlgebraicType) Repr() string {
@@ -577,13 +580,14 @@ func (at *AlgebraicType) copyTemplate() DataType {
 	newAt := &AlgebraicType{
 		Name:         at.Name,
 		SrcPackageID: at.SrcPackageID,
+		Closed:       at.Closed,
 	}
 
-	newAt.Instances = make(map[string]*AlgebraicInstance)
-	for i, inst := range at.Instances {
-		newAt.Instances[i] = &AlgebraicInstance{
-			Name:   inst.Name,
-			Values: copyTemplateSlice(inst.Values),
+	newAt.Variants = make(map[string]*AlgebraicVariant)
+	for i, vari := range at.Variants {
+		newAt.Variants[i] = &AlgebraicVariant{
+			Name:   vari.Name,
+			Values: copyTemplateSlice(vari.Values),
 			Parent: newAt,
 		}
 	}
@@ -591,27 +595,33 @@ func (at *AlgebraicType) copyTemplate() DataType {
 	return newAt
 }
 
-// AlgebraicInstance is a type that is an instance of a larger algebraic type
-type AlgebraicInstance struct {
-	Parent *AlgebraicType
+// AlgebraicVariant is a type that denotes a specific variant of a larger
+// algebraic type for use as a value (eg. so we can store it in symbols)
+type AlgebraicVariant struct {
+	// Parent is always an algebraic type even in the context of generics since
+	// AlgebraicVariants aren't used as an actual "type" in the language -- they
+	// are replaced with their generic instance parent as soon as they are
+	// created
+	Parent DataType
+
 	Name   string
 	Values []DataType
 }
 
-func (ai *AlgebraicInstance) Repr() string {
-	baseName := fmt.Sprintf("%s::%s", ai.Parent.Repr(), ai.Name)
+func (av *AlgebraicVariant) Repr() string {
+	baseName := fmt.Sprintf("%s::%s", av.Parent.Repr(), av.Name)
 
-	if len(ai.Values) == 0 {
+	if len(av.Values) == 0 {
 		return baseName
 	} else {
 		sb := strings.Builder{}
 		sb.WriteString(baseName)
 
 		sb.WriteRune('(')
-		for i, val := range ai.Values {
+		for i, val := range av.Values {
 			sb.WriteString(val.Repr())
 
-			if i < len(ai.Values)-1 {
+			if i < len(av.Values)-1 {
 				sb.WriteString(", ")
 			}
 		}
@@ -624,33 +634,33 @@ func (ai *AlgebraicInstance) Repr() string {
 // Algebraic instances are equal if they have the same parent and name and
 // equivalent values in the same positions (since values are initialized
 // positionally).
-func (ai *AlgebraicInstance) equals(other DataType) bool {
-	if oai, ok := other.(*AlgebraicInstance); ok {
-		if !Equals(ai.Parent, oai.Parent) {
+func (av *AlgebraicVariant) equals(other DataType) bool {
+	if oav, ok := other.(*AlgebraicVariant); ok {
+		if !Equals(av.Parent, oav.Parent) {
 			return false
 		}
 
-		if len(ai.Values) != len(oai.Values) {
+		if len(av.Values) != len(oav.Values) {
 			return false
 		}
 
-		for i, value := range ai.Values {
-			if !Equals(value, oai.Values[i]) {
+		for i, value := range av.Values {
+			if !Equals(value, oav.Values[i]) {
 				return false
 			}
 		}
 
-		return ai.Name == oai.Name
+		return av.Name == oav.Name
 	}
 
 	return false
 }
 
-// AlgebraicInstances should NEVER be directly in templates (because they need
+// AlgebraicVariants should NEVER be directly in templates (because they need
 // to maintain a consistent parent and should never appear in a generic
 // template)
-func (ai *AlgebraicInstance) copyTemplate() DataType {
-	logging.LogFatal("`copyTemplate` applied to `AlgebraicInstance`")
+func (av *AlgebraicVariant) copyTemplate() DataType {
+	logging.LogFatal("`copyTemplate` applied to `AlgebraicVariant`")
 	return nil
 }
 

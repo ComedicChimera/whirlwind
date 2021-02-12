@@ -57,7 +57,20 @@ func (w *Walker) applyGenericContext(node common.HIRNode, dt typing.DataType) (c
 	symbol, _ := w.Lookup(w.currentDefName)
 	symbol.Type = gt
 
-	// TODO: update algebraic instances of open generic algebraic types
+	// update algebraic variants of open generic algebraic types
+	if at, ok := dt.(*typing.AlgebraicType); ok {
+		if !at.Closed {
+			for variName := range at.Variants {
+				// we know the variant exists -- we can just look it up
+				vs, _ := w.Lookup(variName)
+
+				vs.Type = &typing.GenericAlgebraicVariantType{
+					GenericParent: gt,
+					VariantName:   variName,
+				}
+			}
+		}
+	}
 
 	w.genericCtx = nil
 	return gen, symbol.Type

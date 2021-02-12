@@ -49,7 +49,7 @@ const (
 	FUNC
 	ASYNC
 	OPERATOR
-	VARIANT
+	SPECIAL
 
 	// type definitions
 	TYPE
@@ -189,7 +189,7 @@ var keywordPatterns = map[string]int{
 	"region":      REGION,
 	"func":        FUNC,
 	"async":       ASYNC,
-	"variant":     VARIANT,
+	"special":     SPECIAL,
 	"operator":    OPERATOR,
 	"type":        TYPE,
 	"closed":      CLOSED,

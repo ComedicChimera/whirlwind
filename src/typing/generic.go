@@ -304,3 +304,59 @@ func (gi *GenericInstanceType) copyTemplate() DataType {
 		TypeParams:       copyTemplateSlice(gi.TypeParams),
 	}
 }
+
+// GenericAlgebraicVariantType is used to handle the variants of generic
+// algebraic types -- specifically those that are declared globally as a result
+// of the algebraic type being open.  That make sure that an appropriate generic
+// algebraic is created to correspond with their usage.
+type GenericAlgebraicVariantType struct {
+	// GenericParent refers to the parent of this algebraic variant (its generic
+	// form -- not the inner template).  This can either be a GenericType or an
+	// OpaqueGenericType -- it doesn't matter.
+	GenericParent DataType
+
+	// VariantName is the name of this variant inside that generic parent.  This
+	// is used to access the desired AlgebraicVariant once the algebraic generic has
+	// been created
+	VariantName string
+}
+
+func (gavt *GenericAlgebraicVariantType) equals(other DataType) bool {
+	if ogavt, ok := other.(*GenericAlgebraicVariantType); ok {
+		return gavt.GenericParent.equals(ogavt.GenericParent) && gavt.VariantName == ogavt.VariantName
+	}
+
+	return false
+}
+
+func (gavt *GenericAlgebraicVariantType) Repr() string {
+	getGenericRepr := func(gt *GenericType) string {
+		// the algebraic variants inside the template refer to their parent
+		// directly, not as an algebraic instance and so we have to "insert" the
+		// generic text before
+
+		sb := strings.Builder{}
+		sb.WriteString(gt.Repr())
+		sb.WriteString("::")
+
+		fullAlgVariName := gt.Template.(*AlgebraicType).Variants[gavt.VariantName].Repr()
+		sb.WriteString(strings.Split(fullAlgVariName, "::")[1])
+
+		return sb.String()
+	}
+
+	if gt, ok := gavt.GenericParent.(*GenericType); ok {
+		return getGenericRepr(gt)
+	} else if ogt, ok := gavt.GenericParent.(*OpaqueGenericType); ok && ogt.EvalType != nil {
+		return getGenericRepr(ogt.EvalType)
+	}
+
+	return fmt.Sprintf("<opaque generic>::%s(...)", gavt.VariantName)
+}
+
+func (gavt *GenericAlgebraicVariantType) copyTemplate() DataType {
+	return &GenericAlgebraicVariantType{
+		GenericParent: gavt.GenericParent.copyTemplate().(*GenericType),
+		VariantName:   gavt.VariantName,
+	}
+}

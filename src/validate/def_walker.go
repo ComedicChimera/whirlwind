@@ -185,15 +185,17 @@ func (w *Walker) walkTypeDef(dast *syntax.ASTBranch) (*common.HIRTypeDef, bool) 
 		return nil, false
 	}
 
-	// only declare algebraic instances if the definition of the core algebraic
+	// only declare algebraic variants if the definition of the core algebraic
 	// type succeeded (that way we don't have random definitions floating around
 	// without a parent)
 	if at, ok := dt.(*typing.AlgebraicType); ok {
+		at.Closed = closedType
+
 		if !closedType {
-			for iname, inst := range at.Instances {
+			for iname, vari := range at.Variants {
 				symbol := &common.Symbol{
 					Name:       iname,
-					Type:       inst,
+					Type:       vari,
 					Constant:   true,
 					DefKind:    common.DefKindTypeDef,
 					DeclStatus: w.DeclStatus,
@@ -201,7 +203,7 @@ func (w *Walker) walkTypeDef(dast *syntax.ASTBranch) (*common.HIRTypeDef, bool) 
 
 				if !w.define(symbol) {
 					w.logFatalDefError(
-						fmt.Sprintf("Algebraic type `%s` must be marked `closed` as its member `%s` shares a name with an already-defined symbol", name, iname),
+						fmt.Sprintf("Algebraic type `%s` must be marked `closed` as its variant `%s` shares a name with an already-defined symbol", name, iname),
 						logging.LMKName,
 						namePosition,
 					)
@@ -230,35 +232,35 @@ func (w *Walker) walkAlgebraicSuffix(suffix *syntax.ASTBranch, name string, name
 	algType := &typing.AlgebraicType{
 		Name:         name,
 		SrcPackageID: w.SrcPackage.PackageID,
-		Instances:    make(map[string]*typing.AlgebraicInstance),
+		Variants:     make(map[string]*typing.AlgebraicVariant),
 	}
 
 	// set the selfType field
 	w.setSelfType(algType)
 
 	for _, item := range suffix.Content {
-		algInstBranch := item.(*syntax.ASTBranch)
+		algVariBranch := item.(*syntax.ASTBranch)
 
-		algInst := &typing.AlgebraicInstance{
+		algVariant := &typing.AlgebraicVariant{
 			Parent: algType,
-			Name:   algInstBranch.LeafAt(1).Value,
+			Name:   algVariBranch.LeafAt(1).Value,
 		}
 
-		if algInstBranch.Len() == 3 {
-			if values, ok := w.walkOffsetTypeList(algInstBranch.BranchAt(2), 1, 1); ok {
-				algInst.Values = values
+		if algVariBranch.Len() == 3 {
+			if values, ok := w.walkOffsetTypeList(algVariBranch.BranchAt(2), 1, 1); ok {
+				algVariant.Values = values
 			} else {
 				return nil, false
 			}
 		}
 
-		algType.Instances[algInst.Name] = algInst
+		algType.Variants[algVariant.Name] = algVariant
 	}
 
-	// if the selfType is used in the only instance then the type is recursively
+	// if the selfType is used in the only variant then the type is recursively
 	// defined and has no alternate form that prevents such recursion (ie. no
 	// "base case") and so we must throw an error.
-	if w.selfTypeUsed && len(algType.Instances) == 1 {
+	if w.selfTypeUsed && len(algType.Variants) == 1 {
 		w.logFatalDefError(
 			fmt.Sprintf("Algebraic type `%s` defined recursively with no base case", name),
 			logging.LMKUsage,

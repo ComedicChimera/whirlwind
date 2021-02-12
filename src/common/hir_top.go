@@ -31,7 +31,7 @@ const (
 	NKFuncDef
 	NKVarDecl
 	NKGeneric
-	NKVariantDef
+	NKSpecialDef
 	NKOperDecl // operator overload
 	NKBlockStmt
 	NKSimpleStmt
@@ -87,16 +87,16 @@ type HIRArgData struct {
 	Initializer HIRNode // can be `nil`
 }
 
-// HIRVariantDef is used to represent a variant definition
-type HIRVariantDef struct {
+// HIRSpecialDef is used to represent a generic function specialization
+type HIRSpecialDef struct {
 	RootGeneric *typing.GenericType
 	TypeParams  []typing.DataType
 
 	Body HIRNode
 }
 
-func (*HIRVariantDef) Kind() int {
-	return NKVariantDef
+func (*HIRSpecialDef) Kind() int {
+	return NKSpecialDef
 }
 
 // HIRGeneric is an enclosing node wrapping any generic definition

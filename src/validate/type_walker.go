@@ -135,11 +135,11 @@ func (w *Walker) walkNamedType(namedTypeLabel *syntax.ASTBranch) (typing.DataTyp
 // types and self-types.  Generics are processed by walkNamedType.  It returns
 // the same parameters as walkNamedType.
 func (w *Walker) lookupNamedType(rootName, accessedName string, rootPos, accessedPos *logging.TextPosition) (typing.DataType, bool, bool) {
-	// NOTE: we don't consider algebraic instances here (statically accessed)
+	// NOTE: we don't consider algebraic variants here (statically accessed)
 	// because they cannot be used as types.  They are only values so despite
 	// using the `::` syntax, they are simply not usable here (and simply saying
 	// no package exists is good enough).  This is also why we don't need to
-	// consider opaque algebraic instances since such accessing should never
+	// consider opaque algebraic variants since such accessing should never
 	// occur.
 
 	// if there is no accessed name, than this just a standard symbol access

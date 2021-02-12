@@ -260,20 +260,20 @@ func (s *Solver) CastTo(src, dest DataType) bool {
 		return s.ImplementsInterf(dest, sv)
 	case *AlgebraicType:
 		// Algebraic types can be cast following the same logic as structs: if
-		// they have the same instances, they can be "reinterpreted" to
+		// they have the same variants, they can be "reinterpreted" to
 		// equivalent
 		if dat, ok := dest.(*AlgebraicType); ok {
-			if len(sv.Instances) != len(dat.Instances) {
+			if len(sv.Variants) != len(dat.Variants) {
 				return false
 			}
 
-			for _, instance := range sv.Instances {
-				if dinstance, ok := dat.Instances[instance.Name]; !ok || !Equals(instance, dinstance) {
+			for _, variant := range sv.Variants {
+				if dvariant, ok := dat.Variants[variant.Name]; !ok || !Equals(variant, dvariant) {
 					return false
 				}
 			}
 
-			return true
+			return sv.Closed == dat.Closed
 		}
 	case *TypeSet:
 		// Type sets can be cast to anything that could be one of their
