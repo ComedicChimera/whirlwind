@@ -18,12 +18,12 @@ later filled in later with the actual type once the cycle has been resolved.
 
 For example, consider the following cycle:
 
-    type A struct {
+    type A {
         field0: B
         field1: string
     }
 
-    type B struct {
+    type B {
         field2: C
         field3: int
     }
