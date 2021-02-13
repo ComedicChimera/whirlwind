@@ -63,8 +63,7 @@ func (w *Walker) walkTypeLabel(label *syntax.ASTBranch) (typing.DataType, bool) 
 		// we know that since we are the exterior of walk type label, we will never have the
 		// enclosing reference type required as so we can simply return false.
 		if requiresRef {
-			logging.LogError(
-				w.Context,
+			w.logFatalDefError(
 				fmt.Sprintf("The type `%s` can only be stored by reference here", dt.Repr()),
 				logging.LMKTyping,
 				typeCat.Position(),

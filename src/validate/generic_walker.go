@@ -15,11 +15,39 @@ import (
 // `true` if the parsing was successful.  This function does populate the
 // `Unknowns` field and sets `FatalDefError` appropriately.
 func (w *Walker) primeGenericContext(genericTag *syntax.ASTBranch) bool {
-	// TODO: handle generic self-references NOTE: it could simply be a
-	// combination of the existing self-reference model along with a genericCtx
-	// test (for `walkTypeLabel` to tell if the generic initializer is valid)
+	wc := make([]*typing.WildcardType, genericTag.Len()-2)
+	names := make(map[string]struct{})
 
-	return false
+	for i, item := range genericTag.Content[1 : genericTag.Len()-1] {
+		param := item.(*syntax.ASTBranch)
+
+		name := param.LeafAt(0).Value
+		if _, ok := names[name]; ok {
+			names[name] = struct{}{}
+		} else {
+			w.logFatalDefError(
+				fmt.Sprintf("Multiple type parameters declared with name `%s`", name),
+				logging.LMKName,
+				param.Content[0].Position(),
+			)
+
+			return false
+		}
+
+		if param.Len() == 1 {
+			wc[i%2] = &typing.WildcardType{Name: name}
+		} else if typeList, ok := w.walkOffsetTypeList(param, 2, 0); ok {
+			wc[i%2] = &typing.WildcardType{
+				Name:        name,
+				Restrictors: typeList,
+			}
+		} else {
+			return false
+		}
+	}
+
+	w.genericCtx = wc
+	return true
 }
 
 // applyGenericContext should be called at the end of every definition.  This
@@ -88,7 +116,12 @@ func (w *Walker) createGenericInstance(generic typing.DataType, genericPos *logg
 
 	switch v := generic.(type) {
 	case *typing.GenericType:
-		return w.solver.CreateGenericInstance(v, params, paramsBranch)
+		if gi, ok := w.solver.CreateGenericInstance(v, params, paramsBranch); ok {
+			return gi, ok
+		} else {
+			w.fatalDefError = true
+			return nil, ok
+		}
 	case *typing.OpaqueGenericType:
 		if v.EvalType == nil {
 			ogi := &typing.OpaqueGenericInstanceType{
@@ -102,12 +135,17 @@ func (w *Walker) createGenericInstance(generic typing.DataType, genericPos *logg
 			return ogi, true
 		}
 
-		return w.solver.CreateGenericInstance(v.EvalType, params, paramsBranch)
+		if gi, ok := w.solver.CreateGenericInstance(v.EvalType, params, paramsBranch); ok {
+			return gi, ok
+		} else {
+			w.fatalDefError = true
+			return nil, ok
+		}
+
 	}
 
 	// not a generic type -- error
-	logging.LogError(
-		w.Context,
+	w.logFatalDefError(
 		fmt.Sprintf("Unable to pass type parameters to non-generic type `%s`", generic.Repr()),
 		logging.LMKTyping,
 		genericPos,
