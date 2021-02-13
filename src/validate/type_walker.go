@@ -52,11 +52,36 @@ func (w *Walker) walkTypeExt(ext *syntax.ASTBranch) (typing.DataType, bool) {
 	return w.walkTypeLabel(ext.BranchAt(1))
 }
 
+// primitiveTypeTable matches primitive types named by tokens to *typing.PrimType
+var primitiveTypeTable = map[int]*typing.PrimitiveType{
+	syntax.RUNE:    {PrimKind: typing.PrimKindText, PrimSpec: 0},
+	syntax.STRING:  {PrimKind: typing.PrimKindText, PrimSpec: 1},
+	syntax.FLOAT:   {PrimKind: typing.PrimKindFloating, PrimSpec: 0},
+	syntax.DOUBLE:  {PrimKind: typing.PrimKindFloating, PrimSpec: 1},
+	syntax.NOTHING: {PrimKind: typing.PrimKindUnit, PrimSpec: 0},
+	syntax.ANY:     {PrimKind: typing.PrimKindUnit, PrimSpec: 1},
+	syntax.BOOL:    {PrimKind: typing.PrimKindBoolean, PrimSpec: 0},
+	syntax.BYTE:    {PrimKind: typing.PrimKindIntegral, PrimSpec: typing.PrimIntByte},
+	syntax.SBYTE:   {PrimKind: typing.PrimKindIntegral, PrimSpec: typing.PrimIntSbyte},
+	syntax.SHORT:   {PrimKind: typing.PrimKindIntegral, PrimSpec: typing.PrimIntShort},
+	syntax.USHORT:  {PrimKind: typing.PrimKindIntegral, PrimSpec: typing.PrimIntUshort},
+	syntax.INT:     {PrimKind: typing.PrimKindIntegral, PrimSpec: typing.PrimIntInt},
+	syntax.UINT:    {PrimKind: typing.PrimKindIntegral, PrimSpec: typing.PrimIntUint},
+	syntax.LONG:    {PrimKind: typing.PrimKindIntegral, PrimSpec: typing.PrimIntLong},
+	syntax.ULONG:   {PrimKind: typing.PrimKindIntegral, PrimSpec: typing.PrimIntUlong},
+}
+
 // walkTypeLabel walks and attempts to extract a data type from a type label. If
 // this function fails, it will set `fatalDefError` appropriately.
 func (w *Walker) walkTypeLabel(label *syntax.ASTBranch) (typing.DataType, bool) {
 	typeCat := label.BranchAt(0)
 	switch typeCat.Name {
+	case "value_type":
+		valueTypeCore := typeCat.BranchAt(0)
+		switch valueTypeCore.Name {
+		case "prim_type":
+			return primitiveTypeTable[valueTypeCore.LeafAt(0).Kind], true
+		}
 	case "named_type":
 		dt, requiresRef, ok := w.walkNamedType(typeCat)
 

@@ -2,3 +2,4 @@ vendor/
 bin/
 *.ptable
 .vscode/
+tests/*/test_*
