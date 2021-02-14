@@ -1,3 +1,5 @@
+!! nocompile
+
 import __get_kind_of, __pointer_size from core::runtime
 
 export of

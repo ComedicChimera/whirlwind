@@ -1,3 +1,5 @@
+!! nocompile
+
 export of
     func panic(s: Showable) do
         fatalpanic(s.show())

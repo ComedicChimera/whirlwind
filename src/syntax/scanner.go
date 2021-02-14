@@ -18,7 +18,7 @@ func NewScanner(fpath string, lctx *logging.LogContext) (*Scanner, error) {
 		return nil, err
 	}
 
-	s := &Scanner{file: bufio.NewReader(f), fpath: fpath, line: 1}
+	s := &Scanner{file: bufio.NewReader(f), fpath: fpath, line: 1, lctx: lctx}
 	return s, nil
 }
 

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"runtime"
 
 	"github.com/ComedicChimera/whirlwind/src/build"
@@ -88,6 +89,10 @@ func Build(wp string) error {
 	// get the debug flag
 	debugFlag := buildCommand.Lookup("d").Value.String() == "true"
 
+	// should never fail if the path exists relative to the working directory;
+	// build directory needs to be an absolute path for imports to 100% work
+	buildDir, _ = filepath.Abs(buildDir)
+
 	// try to create a compiler with that information
 	compiler, err := build.NewCompiler(buildCommand.Lookup("os").Value.String(),
 		buildCommand.Lookup("a").Value.String(),
@@ -128,7 +133,7 @@ func Build(wp string) error {
 	}
 
 	// setup the global Logger (based on log level)
-	logging.Initialize(buildCommand.Lookup("loglevel").Value.String())
+	logging.Initialize(buildDir, buildCommand.Lookup("loglevel").Value.String())
 
 	// run the main compilation algorithm
 	compiler.Compile(buildCommand.Lookup("forcegrebuild").Value.String() == "true")

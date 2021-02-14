@@ -4,7 +4,6 @@ import (
 	"errors"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
 
 	"github.com/ComedicChimera/whirlwind/src/common"
@@ -135,10 +134,6 @@ func NewCompiler(o string, a string, op string, bd string, debugT bool, whirlpat
 		return nil, errors.New("Invalid or nonexistent build directory")
 	}
 
-	// should never fail if the path exists relative to the working directory;
-	// build directory needs to be an absolute path for imports to 100% work
-	bd, _ = filepath.Abs(bd)
-
 	return &Compiler{targetos: o, targetarch: a, outputPath: op,
 		buildDirectory: bd, debugTarget: debugT, whirlpath: whirlpath}, nil
 }
@@ -160,6 +155,9 @@ func (c *Compiler) setPointerSize() {
 func (c *Compiler) Compile(forceGrammarRebuild bool) {
 	// initialize any necessary globals
 	c.setPointerSize()
+
+	// initialize our log context
+	c.lctx = &logging.LogContext{}
 
 	// create and setup the parser
 	parser, err := syntax.NewParser(path.Join(c.whirlpath, "/config/grammar.ebnf"), forceGrammarRebuild)

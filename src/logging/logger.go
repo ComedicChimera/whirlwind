@@ -9,6 +9,9 @@ type Logger struct {
 	Warnings   []*LogMessage
 	LogLevel   int
 
+	// buildPath is used to shorten display paths in errors
+	buildPath string
+
 	// prevUpdate is used to hold the last time when the state updated
 	prevUpdate time.Time
 }

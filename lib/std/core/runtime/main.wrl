@@ -1,3 +1,5 @@
+!! nocompile
+
 import OS__exit from core::sys
 
 // `__user_main` represents the full form of the user's main function.  It is

@@ -1,3 +1,5 @@
+!! nocompile
+
 import core::unsafe
 
 export of

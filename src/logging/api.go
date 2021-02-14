@@ -10,8 +10,8 @@ import (
 var logger Logger
 
 // Initialize initializes the global logger with the provided log level
-func Initialize(loglevelname string) {
-	logger = Logger{}
+func Initialize(buildPath string, loglevelname string) {
+	logger = Logger{buildPath: buildPath}
 
 	switch loglevelname {
 	case "silent":
@@ -35,7 +35,7 @@ func LogError(lctx *LogContext, message string, kind int, pos *TextPosition) {
 	logger.ErrorCount++
 
 	if logger.LogLevel > LogLevelSilent {
-		displayLogMessage(&LogMessage{Context: lctx, Message: message, Kind: kind, Position: pos}, true)
+		displayLogMessage(logger.buildPath, &LogMessage{Context: lctx, Message: message, Kind: kind, Position: pos}, true)
 	}
 }
 
@@ -47,7 +47,7 @@ func LogStdError(err error) {
 	if logger.LogLevel > LogLevelSilent {
 		if lm, ok := err.(*LogMessage); ok {
 			logger.ErrorCount++
-			displayLogMessage(lm, true)
+			displayLogMessage(logger.buildPath, lm, true)
 		} else {
 			displayStdError(err)
 		}
@@ -95,7 +95,7 @@ func LogStateChange(newstate string) {
 func LogFinished() {
 	if logger.LogLevel > LogLevelError {
 		for _, warning := range logger.Warnings {
-			displayLogMessage(warning, false)
+			displayLogMessage(logger.buildPath, warning, false)
 		}
 	}
 

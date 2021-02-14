@@ -55,7 +55,9 @@ type IndentFrame struct {
 	EntryLevel int
 }
 
-// NewParser creates a new parser from the scanner and the given grammar
+// NewParser creates a new parser from the scanner and the given grammar. Note:
+// We don't need to provide the parser with a log context as it retrieves it
+// from the Scanner when its `Parse` method is called
 func NewParser(grammarPath string, forceGBuild bool) (*Parser, error) {
 	var parsingTable *ParsingTable
 
@@ -105,7 +107,7 @@ func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 	p.semanticStack = nil // clear semantic stack
 
 	// parser starts with one indentation-aware indent frame that will never close
-	p.indentFrames = []IndentFrame{IndentFrame{Mode: -1, EntryLevel: -1}}
+	p.indentFrames = []IndentFrame{{Mode: -1, EntryLevel: -1}}
 
 	// initialize the lookahead
 	if err := p.consume(); err != nil {

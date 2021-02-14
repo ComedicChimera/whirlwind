@@ -1,3 +1,5 @@
+!! nocompile
+
 import __sizeof, __get_kind_of from core::runtime
 
 export of

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"hash/fnv"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -24,7 +23,7 @@ const SrcFileExtension = ".wrl"
 // Note: User should check LogModule after this is called as file level errors
 // are not returned!  `abspath` should be the absolute path to the package.
 func (c *Compiler) initPackage(abspath string) (*common.WhirlPackage, error) {
-	pkgName := path.Base(abspath)
+	pkgName := filepath.Base(abspath)
 
 	if !isValidPkgName(pkgName) {
 		return nil, fmt.Errorf("Invalid package name: `%s`", pkgName)

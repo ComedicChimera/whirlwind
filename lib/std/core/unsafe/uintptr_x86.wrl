@@ -1,4 +1,4 @@
-#arch "x86"
+!! arch="x86"
 
 export of
     // `uintptr` represents a pointer that is represented by an integer value. It
