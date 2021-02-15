@@ -2,14 +2,14 @@ export of
     // `Showable` is an interface representing any type that can be "shown" (ie.
     // converted to a string or given a string representation)
     interf Showable of
-        func show string
+        func show() string
 
     // Provide several basic implementations for builtin types
     interf for string is Showable of
-        func show string => this
+        func show() string => this
 
     interf for char is Showable of
-        func show string => this as string
+        func show() string => this as string
 
     // No other implementations since those will be given in `stringutil`
     // using more efficient `itoa` and `ftoa` (enhanced with StringBuilder)

@@ -56,9 +56,9 @@ operator_value = '+' | '-' | '*' | '/' | '~/' | '~*'
   | '==' | '!' | '!=' | '&' | '&&' | '|' | '||' | '^' 
   | '~' | '[' [':'] ']' ;
 
-func_def = ('func' | 'async') 'IDENTIFIER' [generic_tag] [signature] (func_body | 'NEWLINE') ;
-signature = args_decl type | type ;
-args_decl = '(' (arg_decl next_arg_decl | var_arg_decl ) ')' ;
+func_def = ('func' | 'async') 'IDENTIFIER' [generic_tag] signature (func_body | 'NEWLINE') ;
+signature = args_decl [type] ;
+args_decl = '(' [arg_decl next_arg_decl | var_arg_decl] ')' ;
 next_arg_decl = ',' (arg_decl next_arg_decl | var_arg_decl) | '' ;
 arg_decl = ['const'] ['vol'] identifier_list type_ext [initializer] ;
 var_arg_decl = '...' 'IDENTIFIER' type_ext ;

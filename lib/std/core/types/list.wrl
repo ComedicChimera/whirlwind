@@ -26,7 +26,7 @@ export of
     // The implementation of `__stdlist`
     interf<T> for __stdlist<T> is Iterable<T>, Sequence<T> of
         // `iter` just returns a `__stdlist_iterator`
-        func iter Iterator<T>
+        func iter() Iterator<T>
             => __stdlist_iterator{
                 list: &this,
                 ndx: 0
@@ -37,11 +37,11 @@ export of
             => this[ndx] // we just use the operator overload here
 
         // `len` gives the length of the list
-        func len uint
+        func len() uint
             => this.length
 
         // `cap` gives the current capacity of the list
-        func cap uint
+        func cap() uint
             => this.arr.len()
 
         // `grow` increases the capacity of the list to hold the given length
@@ -60,7 +60,7 @@ export of
 
         // `shrink_to_fit` reduces the capacity of the list to be the minimum
         // that can hold the list's current length
-        func shrink_to_fit do
+        func shrink_to_fit() do
             let curr_cap = 0
             while let next_cap = this.cap(); next_cap > this.length do
                 curr_cap = next_cap
@@ -82,7 +82,7 @@ export of
             this.arr[this.length-1] = elem
 
         // `pop` removes the last element from a list and returns it
-        func pop T do
+        func pop() T do
             let elem = this[-1]
             this.length--
             return elem
@@ -94,7 +94,7 @@ export of
             this.arr[0] = elem
 
         // `shift` removes the first element of the list and returns it
-        func shift T do
+        func shift() T do
             let elem = this[0]
             this.length--
             copy_to(this.arr[1:], this.arr[:this.length])
@@ -121,7 +121,7 @@ export of
     // A list iterator just goes through the elements of the list C-style
     interf<T> for __stdlist_iterator<T> is Iterator<T> of
         #introspect
-        func next Option<T> do
+        func next() Option<T> do
             if this.ndx < this.list.len() do
                 yield Some(this.list.arr[this.ndx])
                 this.ndx++

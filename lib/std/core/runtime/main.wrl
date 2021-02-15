@@ -10,7 +10,7 @@ func __user_main(args: []string)
 
 // The true main function for all applications (used to call `user_main` as
 // necessary)
-func main do
+func main() do
     match init_runtime() to
         case Ok(_) do
             let rt_code = exec_user_main(__user_main, get_app_cmdl_args())

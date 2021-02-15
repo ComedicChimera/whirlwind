@@ -61,7 +61,7 @@ Fibonacci:
 
     import println from io::std
 
-    func fib func()(int) do
+    func fib() func()(int) do
         let a = 0, b = 1
 
         func f int do
@@ -71,7 +71,7 @@ Fibonacci:
 
         return f
 
-    func main do
+    func main() do
         let f = fib()
 
         // prints first 10 fibonacci numbers
@@ -100,7 +100,7 @@ Radix Sort:
 
         return list
 
-    func main do
+    func main() do
         let list = new local [9, 4, 7, 8, 2, 3, 9, 0, 0, 1]
 
         list = radix_sort(list)
@@ -122,7 +122,7 @@ Linked List:
 
         return make in[r] LLNode{value=val, next=Some(ll_range(r, val - 1))}
 
-    func main do
+    func main() do
         region r local
         let ll = ll_range(r, 10)
 

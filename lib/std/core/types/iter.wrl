@@ -4,12 +4,12 @@ export of
     // a time until no elements remain.  It is the basis of Whirlwind's iterator
     // protocol.
     interf Iterator<T> of
-        func next Option<T>
+        func next() Option<T>
 
     // `Iterable` is something over which an `Iterator` can be created.  It
     // could be a sequence of elements, a stream or something else entirely.
     interf Iterable<T> of
-        func iter Iterator<T>
+        func iter() Iterator<T>
 
         // NOTE: Most iterable (transformative) functions are lazy.  This means
         // that they don't actually apply any kind of transformation until they
@@ -33,7 +33,7 @@ export of
     // As mentioned above, since `IterableMask` is already an `Iterator`,
     // `iter` simply acts to perform a type cast back to an `Iterator`.
     interf<T> for IterableMask<T> is Iterable<T> of
-        func iter Iterator<T> => this as Iterator<T>
+        func iter() Iterator<T> => this as Iterator<T>
 
 // `MapIterator` applies a function to the outputs of another iterator. In
 // effect, it binds itself on top of the iterator.  Many other Iterators work
@@ -47,7 +47,7 @@ type MapIterator<T, R> {
 // function (in this context).  You will see this type of pattern occurring
 // repeatedly as well.
 interf<T, R> for MapIterator<T, R> is Iterator<R> of
-    func next Option<R>
+    func next() Option<R>
         => this.base.next().apply(this.fn)
 
 // `FilterIterator` applies a filter function to the outputs of another iterator
@@ -58,7 +58,7 @@ type FilterIterator<T> {
 }
 
 interf<T> for FilterIterator<T> is Iterator<T> of
-    func next Option<T> do
+    func next() Option<T> do
         for item in this.base do
             if this.fn(item) do
                 return Some(item)

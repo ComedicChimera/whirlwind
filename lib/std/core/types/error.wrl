@@ -2,10 +2,10 @@ export of
     // Error is a general purpose interface that acts similarly to `Showable`.
     // It is used to store basic error information (NOT stack traces, etc.).  
     interf Error of
-        func message string
+        func message() string
 
         // All `Error` instances are showable (implicitly)
-        func show string
+        func show() string
             => this.message()
 
     // StdError is an algebraic type that contains several common error types
@@ -21,7 +21,7 @@ export of
 
     // Provide the `StdError` implementation of `Error`
     interf for StdError is Error do
-        func message string
+        func message() string
             => match this to
                 BoundsError(n) => itoa(n)
                 ValueError(s) => s.show()

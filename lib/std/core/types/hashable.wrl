@@ -9,9 +9,9 @@ export of
         // type should be distinct (or as distinct as possible) to minimize
         // collisions in dictionaries.  This function will be called a lot in
         // certain conditions so performance is of the essence.
-        func hash ulong
+        func hash() ulong
 
     // All integral types simply `hash` to themselves (since they are all
     // already numerically distinct and reasonably castable to a ulong).
     interf<T: Integral> for T is Hashable of
-        func hash ulong => this as ulong
+        func hash() ulong => this as ulong

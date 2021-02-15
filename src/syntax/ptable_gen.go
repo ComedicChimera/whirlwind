@@ -76,17 +76,17 @@ func (ptb *PTableBuilder) build() bool {
 	// convert all of the LR(0) item sets to LR(1) item sets
 	ptb.createLR1Items(startSet)
 
-	for i, set := range ptb.ItemSets {
-		for item := range set.Items {
-			name := ptb.BNFRules.RulesByIndex[item.Rule].ProdName
+	// for i, set := range ptb.ItemSets {
+	// 	for item := range set.Items {
+	// 		name := ptb.BNFRules.RulesByIndex[item.Rule].ProdName
 
-			if name == "arg_decl" {
-				fmt.Printf("State %d: ", i)
-				ptb.printSet(set)
-				break
-			}
-		}
-	}
+	// 		if name == "arg_decl" {
+	// 			fmt.Printf("State %d: ", i)
+	// 			ptb.printSet(set)
+	// 			break
+	// 		}
+	// 	}
+	// }
 
 	// for i, set := range ptb.ItemSets {
 	// 	fmt.Printf("State %d: ", i)
