@@ -26,7 +26,7 @@ type Symbol struct {
 
 // VisibleExternally determines if remote packages can access this symbol
 func (s *Symbol) VisibleExternally() bool {
-	return s.DeclStatus == DSExported || s.DeclStatus == DSShared
+	return s.DeclStatus == DSExported
 }
 
 // Declaration Statuses
@@ -35,7 +35,6 @@ const (
 	DSInternal
 	DSExported
 	DSRemote // declared in another package, internal to this package
-	DSShared // declared in another package, exported by this package
 )
 
 // Definition Kinds

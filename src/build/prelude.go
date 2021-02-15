@@ -60,8 +60,8 @@ func (c *Compiler) attachPrelude(pkg *common.WhirlPackage, file *common.WhirlFil
 	for stdpkgname, piPkg := range preludeImports {
 		if pkg.PackageID != piPkg.PackageID {
 			// `core` is the name of the prelude utils directory and so we skip
-			// this import if the specific file requests it (via. `#no_util`)
-			if _, ok := file.Annotations["no_util"]; ok && stdpkgname == "core" {
+			// this import if the specific file requests it (via. `!! no_util`)
+			if _, ok := file.MetadataTags["no_util"]; ok && stdpkgname == "core" {
 				continue
 			}
 
@@ -76,7 +76,7 @@ func (c *Compiler) attachPrelude(pkg *common.WhirlPackage, file *common.WhirlFil
 
 			// prelude packages are never imported by name so we can leave the
 			// fields that relate to names and renames blank
-			c.attachPackageToFile(pkg, file, piPkg, importedSymbols, "", nil, false)
+			c.attachPackageToFile(pkg, file, piPkg, importedSymbols, "", nil)
 		}
 	}
 }

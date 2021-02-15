@@ -288,6 +288,11 @@ func (gl *gramLoader) readTerminal() (int, error) {
 		// the ending `'` is skipped implicitly (never included in token,
 		// dropped in next loop cycle)
 		if gl.curr == '\'' {
+			// if the terminal is blank, then we have an epsilon
+			if terminalBuilder.Len() == 0 {
+				return -1, nil
+			}
+
 			terminal := terminalBuilder.String()
 
 			// match terminal to a keyword or symbol pattern if possible.

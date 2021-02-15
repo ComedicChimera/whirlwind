@@ -61,28 +61,20 @@ func (c *Compiler) initDependencies(pkg *common.WhirlPackage) bool {
 	for fpath, file := range pkg.Files {
 		c.lctx.FilePath = fpath
 
-	fileastloop:
 		for i, item := range file.AST.Content {
 			// attach the prelude for a file as necessary
 			c.attachPrelude(pkg, file)
 
-			if tbranch, ok := item.(*syntax.ASTBranch); ok {
-				switch tbranch.Name {
-				case "import_stmt":
-					if !c.processImport(pkg, file, tbranch, false) {
-						return false
-					}
-				case "export_stmt":
-					if !c.processImport(pkg, file, tbranch, true) {
-						return false
-					}
-				default:
-					// trim off all the already processed content (shouldn't need
-					// to refer to it again)
-					file.AST.Content = file.AST.Content[i+1:]
-
-					break fileastloop
+			if tbranch, ok := item.(*syntax.ASTBranch); ok && tbranch.Name == "import_stmt" {
+				if !c.processImport(pkg, file, tbranch) {
+					return false
 				}
+			} else {
+				// trim off all the already processed content (shouldn't need to
+				// refer to it again)
+				file.AST.Content = file.AST.Content[i+1:]
+
+				break
 			}
 		}
 	}
@@ -91,7 +83,7 @@ func (c *Compiler) initDependencies(pkg *common.WhirlPackage) bool {
 }
 
 // processImport walks and evaluates a given import for the current package
-func (c *Compiler) processImport(pkg *common.WhirlPackage, file *common.WhirlFile, ibranch *syntax.ASTBranch, exported bool) bool {
+func (c *Compiler) processImport(pkg *common.WhirlPackage, file *common.WhirlFile, ibranch *syntax.ASTBranch) bool {
 	var relPath, rename string
 	var pathPosition, namePosition *logging.TextPosition
 	var importedSymbols map[string]*logging.TextPosition
@@ -102,8 +94,8 @@ func (c *Compiler) processImport(pkg *common.WhirlPackage, file *common.WhirlFil
 		case *syntax.ASTLeaf:
 			switch v.Kind {
 			case syntax.IDENTIFIER:
-				// only raw IDENTIFIER token present in `import_stmt` and `export_stmt`
-				// is the package rename (after AS)
+				// only raw IDENTIFIER token present in `import_stmt` is the
+				// package rename (after AS)
 				rename = v.Value
 				namePosition = v.Position()
 			}
@@ -174,7 +166,7 @@ func (c *Compiler) processImport(pkg *common.WhirlPackage, file *common.WhirlFil
 	}
 
 	// now that we have processed the import, we can attach the package to a file
-	return c.attachPackageToFile(pkg, file, newpkg, importedSymbols, rename, namePosition, exported)
+	return c.attachPackageToFile(pkg, file, newpkg, importedSymbols, rename, namePosition)
 }
 
 // getPackagePath determines, from a relative path, the absolute path to a
@@ -227,13 +219,7 @@ func (c *Compiler) getPackagePath(relpath string) string {
 // `namePosition` should point whatever token or branch is used name of the
 // package is derived from (not just rename).
 func (c *Compiler) attachPackageToFile(fpkg *common.WhirlPackage, file *common.WhirlFile,
-	apkg *common.WhirlPackage, importedSymbols map[string]*logging.TextPosition, rename string, namePosition *logging.TextPosition, exported bool) bool {
-
-	// get the appropriate declaration status for all symbols
-	ds := common.DSRemote
-	if exported {
-		ds = common.DSShared
-	}
+	apkg *common.WhirlPackage, importedSymbols map[string]*logging.TextPosition, rename string, namePosition *logging.TextPosition) bool {
 
 	// update the current package's imports
 	if wimport, ok := fpkg.ImportTable[apkg.PackageID]; ok {
@@ -252,7 +238,7 @@ func (c *Compiler) attachPackageToFile(fpkg *common.WhirlPackage, file *common.W
 					}
 				} else {
 					// create a blank shared symbol reference
-					sref := &common.Symbol{DeclStatus: ds}
+					sref := &common.Symbol{DeclStatus: common.DSRemote}
 
 					// add to the import and the file's local table
 					wimport.ImportedSymbols[name] = sref
@@ -271,7 +257,7 @@ func (c *Compiler) attachPackageToFile(fpkg *common.WhirlPackage, file *common.W
 			for name, pos := range importedSymbols {
 				// create a blank shared symbol reference with the appropriate
 				// export/import status
-				sref := &common.Symbol{DeclStatus: ds}
+				sref := &common.Symbol{DeclStatus: common.DSRemote}
 
 				// add to the import and the file's local table
 				wimport.ImportedSymbols[name] = sref
@@ -311,11 +297,7 @@ func (c *Compiler) attachPackageToFile(fpkg *common.WhirlPackage, file *common.W
 	}
 
 	// import/move over all of the bindings as necessary
-	if exported {
-		typing.MigrateBindings(apkg.GlobalBindings, fpkg.GlobalBindings, true)
-	} else {
-		typing.MigrateBindings(apkg.GlobalBindings, file.LocalBindings, false)
-	}
+	typing.MigrateBindings(apkg.GlobalBindings, file.LocalBindings)
 
 	// we need to recursively initialize dependencies
 	return c.initDependencies(apkg)

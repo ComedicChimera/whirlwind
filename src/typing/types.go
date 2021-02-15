@@ -296,7 +296,6 @@ type FuncType struct {
 	Params         []*FuncParam
 	ReturnType     DataType
 	Boxed, Boxable bool
-	Constant       bool
 	Async          bool
 }
 
@@ -403,7 +402,6 @@ func (ft *FuncType) copyTemplate() DataType {
 		ReturnType: ft.ReturnType.copyTemplate(),
 		Async:      ft.Async,
 		Boxable:    ft.Boxable,
-		Constant:   ft.Constant,
 		Boxed:      ft.Boxed,
 	}
 }

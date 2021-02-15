@@ -11,9 +11,9 @@ type WhirlFile struct {
 	// Stores the root AST for the file (`file`)
 	AST *syntax.ASTBranch
 
-	// Stores all file-level annotations for the file (value is empty if the
-	// annotation is just a flag)
-	Annotations map[string]string
+	// Stores all metadata tags for the file -- if there is no value, then the
+	// tag is simply a flag
+	MetadataTags map[string]string
 
 	// Root stores the HIR root of the file
 	Root *HIRRoot

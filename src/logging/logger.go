@@ -40,14 +40,16 @@ func (lm *LogMessage) Error() string {
 
 // Enumeration of the different kinds of a log messages
 const (
-	LMKToken  = iota // Error generating a token
-	LMKSyntax        // Error parsing file
-	LMKImport        // Error importing/lift-exporting package
-	LMKTyping        // Error in type checking
-	LMKMemory        // Error in memory analysis
-	LMKImmut         // Error mutating an immutable value
-	LMKName          // Error occurring due a misused/undefined name
-	LMKUsage         // Error ocurring generally (due to some other rule)
+	LMKToken    = iota // Error generating a token
+	LMKSyntax          // Error parsing file
+	LMKImport          // Error importing/lift-exporting package
+	LMKTyping          // Error in type checking
+	LMKMemory          // Error in memory analysis
+	LMKImmut           // Error mutating an immutable value
+	LMKName            // Error occurring due a misused/undefined name
+	LMKMetadata        // Error occuring in metadata
+	LMKUsage           // Error ocurring generally (due to some other rule)
+	LMKUser            // Error caused by the user (through `!! warn`)
 	// TODO: add more as needed
 )
 

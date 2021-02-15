@@ -27,28 +27,7 @@ func (ptb *PTableBuilder) printSet(set *LRItemSet) {
 
 func (ptb *PTableBuilder) printItems(items map[LRItem]map[int]struct{}) {
 	for item, lookaheads := range items {
-		rule := ptb.BNFRules.RulesByIndex[item.Rule]
-
-		fmt.Printf("%s -> ", rule.ProdName)
-
-		for i, ruleItem := range rule.Contents {
-			if i == item.DotPos {
-				fmt.Print(".")
-			}
-
-			switch v := ruleItem.(type) {
-			case BNFTerminal:
-				fmt.Printf("%d ", v)
-			case BNFNonterminal:
-				fmt.Printf("%s ", v)
-			case BNFEpsilon:
-				fmt.Printf("'' ")
-			}
-		}
-
-		if item.DotPos == len(rule.Contents) {
-			fmt.Print(".")
-		}
+		ptb.printLR0Item(item)
 
 		fmt.Print(", ")
 
@@ -60,31 +39,27 @@ func (ptb *PTableBuilder) printItems(items map[LRItem]map[int]struct{}) {
 	}
 }
 
-func (ptb *PTableBuilder) printLR0Items(items map[LRItem]struct{}) {
-	for item := range items {
-		rule := ptb.BNFRules.RulesByIndex[item.Rule]
+func (ptb *PTableBuilder) printLR0Item(item LRItem) {
+	rule := ptb.BNFRules.RulesByIndex[item.Rule]
 
-		fmt.Printf("%s -> ", rule.ProdName)
+	fmt.Printf("%s -> ", rule.ProdName)
 
-		for i, ruleItem := range rule.Contents {
-			if i == item.DotPos {
-				fmt.Print(".")
-			}
-
-			switch v := ruleItem.(type) {
-			case BNFTerminal:
-				fmt.Printf("%d ", v)
-			case BNFNonterminal:
-				fmt.Printf("%s ", v)
-			case BNFEpsilon:
-				fmt.Printf("'' ")
-			}
+	for i, ruleItem := range rule.Contents {
+		if i == item.DotPos {
+			fmt.Print(".")
 		}
 
-		if item.DotPos == len(rule.Contents) {
-			fmt.Print(". ")
+		switch v := ruleItem.(type) {
+		case BNFTerminal:
+			fmt.Printf("%d ", v)
+		case BNFNonterminal:
+			fmt.Printf("%s ", v)
+		case BNFEpsilon:
+			fmt.Printf("'' ")
 		}
+	}
 
-		fmt.Print("; ")
+	if item.DotPos == len(rule.Contents) {
+		fmt.Print(". ")
 	}
 }

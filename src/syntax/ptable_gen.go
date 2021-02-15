@@ -64,7 +64,7 @@ func (ptb *PTableBuilder) build() bool {
 
 	// create the starting LR(1) kernel
 	startSet := &LRItemSet{Items: map[LRItem]map[int]struct{}{
-		LRItem{Rule: augRuleNdx, DotPos: 0}: map[int]struct{}{EOF: struct{}{}},
+		{Rule: augRuleNdx, DotPos: 0}: {EOF: struct{}{}},
 	}}
 
 	// create an initial LR(0) item with an LR(1) kernel for the start set
@@ -76,17 +76,17 @@ func (ptb *PTableBuilder) build() bool {
 	// convert all of the LR(0) item sets to LR(1) item sets
 	ptb.createLR1Items(startSet)
 
-	// for i, set := range ptb.ItemSets {
-	// 	for item := range set.Items {
-	// 		name := ptb.BNFRules.RulesByIndex[item.Rule].ProdName
+	for i, set := range ptb.ItemSets {
+		for item := range set.Items {
+			name := ptb.BNFRules.RulesByIndex[item.Rule].ProdName
 
-	// 		if strings.Contains(name, "named_arg") {
-	// 			fmt.Printf("State %d: ", i)
-	// 			ptb.printSet(set)
-	// 			break
-	// 		}
-	// 	}
-	// }
+			if name == "arg_decl" {
+				fmt.Printf("State %d: ", i)
+				ptb.printSet(set)
+				break
+			}
+		}
+	}
 
 	// for i, set := range ptb.ItemSets {
 	// 	fmt.Printf("State %d: ", i)
@@ -498,7 +498,9 @@ func (ptb *PTableBuilder) buildTableFromSets() bool {
 						// the table construction was unsuccessful.
 						if action.Kind == AKShift {
 							// find a better way to indicate the token value
-							// fmt.Printf("Shift/Reduce Conflict Resolved Between `%s` and `%d`\n", bnfRule.ProdName, lookahead)
+							fmt.Printf("Shift/Reduce Conflict Resolved Between `%s` and `%d`.  Original State Shift Is:\n", bnfRule.ProdName, lookahead)
+							ptb.printItems(ptb.ItemSets[action.Operand].Items)
+							fmt.Print("\n\n")
 						} else if action.Kind == AKReduce {
 							oldRule, newRule := ptb.Table.Rules[action.Operand], ptb.Table.Rules[reduceRule]
 

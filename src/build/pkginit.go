@@ -5,7 +5,6 @@ import (
 	"hash/fnv"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/ComedicChimera/whirlwind/src/common"
 	"github.com/ComedicChimera/whirlwind/src/logging"
@@ -55,7 +54,7 @@ func (c *Compiler) initPackage(abspath string) (*common.WhirlPackage, error) {
 				return nil
 			}
 
-			shouldCompile, err := c.preprocessFile(sc)
+			shouldCompile, tags, err := c.preprocessFile(sc)
 			if err != nil {
 				logging.LogStdError(err)
 				return nil
@@ -73,7 +72,7 @@ func (c *Compiler) initPackage(abspath string) (*common.WhirlPackage, error) {
 			}
 
 			abranch := ast.(*syntax.ASTBranch)
-			pkg.Files[fpath] = &common.WhirlFile{AST: abranch, Annotations: c.collectAnnotations(abranch)}
+			pkg.Files[fpath] = &common.WhirlFile{AST: abranch, MetadataTags: tags}
 		}
 
 		return nil
@@ -113,31 +112,4 @@ func getPackageID(abspath string) uint {
 	h := fnv.New32a()
 	h.Write([]byte(abspath))
 	return uint(h.Sum32())
-}
-
-// collectAnnotations checks for and walks annotations at the top of an already
-// parsed file.  It returns a map of the annotations it collects as well as a
-// boolean indicating whether or not the current build configuration indicates
-// that the file should be compiled (ie. accounts for annotations like `#arch`)
-func (c *Compiler) collectAnnotations(fileAST *syntax.ASTBranch) map[string]string {
-	annotations := make(map[string]string)
-
-loop:
-	for _, node := range fileAST.Content {
-		branch := node.(*syntax.ASTBranch)
-
-		switch branch.Name {
-		case "annotation":
-			if len(branch.Content) == 2 {
-				annotations[branch.Content[1].(*syntax.ASTLeaf).Value] = ""
-			} else {
-				annotations[branch.Content[1].(*syntax.ASTLeaf).Value] =
-					strings.Trim(branch.Content[2].(*syntax.ASTLeaf).Value, "\"")
-			}
-		case "exported_import", "import_stmt", "top_level":
-			break loop
-		}
-	}
-
-	return annotations
 }

@@ -131,7 +131,12 @@ func (e *Expander) expandGroup(group []GrammaticalElement) []BNFElement {
 	for i, item := range group {
 		switch item.Kind() {
 		case GKindTerminal:
-			ruleContents[i] = BNFTerminal(item.(Terminal))
+			// the terminal kind -1 denotes an epsilon
+			if item.(Terminal) == -1 {
+				ruleContents[i] = BNFEpsilon{}
+			} else {
+				ruleContents[i] = BNFTerminal(item.(Terminal))
+			}
 		case GKindNonterminal:
 			ruleContents[i] = BNFNonterminal(item.(Nonterminal))
 		// group just creates a new anonymous production for the group unless

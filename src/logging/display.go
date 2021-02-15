@@ -13,14 +13,16 @@ import (
 // errorKindStringTable stores a table of all the error type strings organized
 // by log message kind (eg. convert `LMKName` into "Name")
 var errorKindStringTable = map[int]string{
-	LMKImmut:  "Mutability",
-	LMKImport: "Import",
-	LMKMemory: "Memory",
-	LMKName:   "Name",
-	LMKSyntax: "Syntax",
-	LMKToken:  "Token",
-	LMKTyping: "Type",
-	LMKUsage:  "Usage",
+	LMKImmut:    "Mutability",
+	LMKImport:   "Import",
+	LMKMemory:   "Memory",
+	LMKName:     "Name",
+	LMKSyntax:   "Syntax",
+	LMKToken:    "Token",
+	LMKTyping:   "Type",
+	LMKUsage:    "Usage",
+	LMKMetadata: "Metadata",
+	LMKUser:     "User",
 }
 
 // displayLogMessage displays a LogMessage.  isError is used to determine the
