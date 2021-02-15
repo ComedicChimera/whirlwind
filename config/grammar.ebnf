@@ -26,7 +26,7 @@ The Formal Whirlwind Language Grammar
 - There are a number of places in this grammar where constructs like optional
   blocks are avoided because they introduce unresolveable shift-reduce conflicts
   (trying to reduce an epsilon rule).  These places are: ref_type (the global
-  tag), signature (args_decl), 
+  tag), ...
 *)
 
 (* file is our goal symbol *)
@@ -209,7 +209,7 @@ value_type = prim_type | col_type | vec_type | func_type | tup_type ;
 prim_type = 'int' | 'uint' | 'ushort' | 'short' | 'ulong' | 'long' | 'nothing'
   | 'sbyte' | 'sbyte' | 'string' | 'rune' | 'float' | 'double' | 'bool' | 'any' ;
 col_type = '[' type [':' type] ']' | '[' ']' type ;
-vec_type = prim_type '<' 'INTLIT' '>' ;
+vec_type = '<' 'INTLIT' '>' ( prim_type | 'IDENTIFIER' ) ;
 
 func_type = ('func' | 'async') '(' [func_type_args] ')' '(' [type_list] ')' ;
 func_type_args = (func_type_arg next_func_type_arg | func_type_var_arg) ;
