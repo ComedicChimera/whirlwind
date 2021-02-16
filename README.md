@@ -10,8 +10,8 @@ It boasts numerous new and old features and is designed to represent the needs o
 
 ### Related Repositories:
 
-- [Whirlwind Docs Site](https://github.com/ComedicChimera/whirlwind-lang.dev/
-- [Whirlwind Packages Site](https://github.com/ComedicChimera/packages.whirlwind-lang.dev/
+- [Whirlwind Docs Site](https://github.com/ComedicChimera/whirlwind-lang.dev/)
+- [Whirlwind Packages Site](https://github.com/ComedicChimera/packages.whirlwind-lang.dev/)
 
 ## Table of Contents
 
