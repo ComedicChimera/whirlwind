@@ -8,6 +8,11 @@ It boasts numerous new and old features and is designed to represent the needs o
 
 ***NOTE: This language is still in development! This is the third version of the compiler and language.***
 
+### Related Repositories:
+
+- [Whirlwind Docs Site](https://github.com/ComedicChimera/whirlwind-lang.dev/
+- [Whirlwind Packages Site](https://github.com/ComedicChimera/packages.whirlwind-lang.dev/
+
 ## Table of Contents
 
 - [Goals](#goals)
