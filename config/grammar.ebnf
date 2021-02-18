@@ -42,7 +42,7 @@ definition = interf_def | interf_bind | operator_def | func_def | type_def
   | decorator | annotated_def | variable_decl | special_def ;
 
 interf_def = 'interf' 'IDENTIFIER' [generic_tag] 'of' interf_body ;
-interf_bind = 'interf' [generic_tag] 'for' type [ 'is' type {',' type}] interf_body ;
+interf_bind = 'interf' [generic_tag] 'for' type ['is' type {',' type}] 'of' interf_body ;
 interf_body = 'INDENT' interf_member { interf_member } 'DEDENT' ;
 interf_member = func_def | special_def | method_special | annotated_method ;
 
@@ -50,19 +50,19 @@ interf_member = func_def | special_def | method_special | annotated_method ;
 method_special = 'special' [generic_tag] 'when' method_special_cond {',' method_special_cond} 'NEWLINE' func_def ;
 method_special_cond = 'IDENTIFIER' 'is' type ;
 
-operator_def = 'operator' '(' operator_value ')' [generic_tag] signature (func_body | 'NEWLINE') ;
+operator_def = 'operator' '(' operator_value ')' [generic_tag] signature decl_func_body ;
 operator_value = '+' | '-' | '*' | '/' | '~/' | '~*' 
   | '~^' | '%' | '>' | '>>' | '<' | '<<' | '<=' | '>=' 
   | '==' | '!' | '!=' | '&' | '&&' | '|' | '||' | '^' 
   | '~' | '[' [':'] ']' ;
 
-func_def = ('func' | 'async') 'IDENTIFIER' [generic_tag] signature (func_body | 'NEWLINE') ;
+func_def = ('func' | 'async') 'IDENTIFIER' [generic_tag] signature decl_func_body ;
 signature = args_decl [type] ;
 args_decl = '(' [arg_decl next_arg_decl | var_arg_decl] ')' ;
 next_arg_decl = ',' (arg_decl next_arg_decl | var_arg_decl) | '' ;
 arg_decl = ['const'] ['vol'] identifier_list type_ext [initializer] ;
 var_arg_decl = '...' 'IDENTIFIER' type_ext ;
-func_body = do_block | ? '=>' expr 'NEWLINE' ? ;
+decl_func_body = do_block | 'NEWLINE' ['INDENT' '=>' expr 'DEDENT'] | '=>' expr 'NEWLINE' ;
 
 type_def = ['closed'] 'type' 'IDENTIFIER' [generic_tag] ( ? typeset ? | newtype ) ;
 typeset = '=' type {'|' type } ;
@@ -81,7 +81,8 @@ annotated_method = annotation { annotation } func_def ;
 annotation = '#' 'IDENTIFIER' [ 'STRINGLIT' ] 'NEWLINE' ;
 
 (* generic function specialization *)
-special_def = 'special' '<' type_list '>' 'IDENTIFIER' func_body ;
+special_def = 'special' '<' type_list '>' 'IDENTIFIER' special_func_body ;
+special_func_body = do_block | 'INDENT' '=>' expr 'DEDENT' | '=>' expr 'NEWLINE' ;
 
 (* ellipsis is used to designate a block that hasn't been filled in yet *)
 do_block = 'do' block ;
@@ -137,8 +138,9 @@ mut_atom = 'IDENTIFIER' | '(' expr ')' ;
 assign_op = ['+' | '-' | '*' | '/' | '%' | '~/' | '~^' | '>>' | '<<' | '&' | '|' | '^'] '=' ;
 
 expr = (match_expr ['if' match_expr 'else' expr ] | closure | with_expr) ;
-closure = ['async'] ('||' | '|' [closure_arg {',' closure_arg}] '|' func_body) ;
+closure = ['async'] ('||' | '|' [closure_arg {',' closure_arg}] '|' closure_body) ;
 closure_arg = ['const'] 'IDENTIFIER' [type_ext] ;
+closure_body = do_block | '=>' expr ;
 
 match_expr = core_expr ['match' core_expr ] | 'match' core_expr inline_match_suffix ;
 inline_match_suffix = 'to' inline_match_expr_block | 'type' 'to' inline_match_type_block ;
@@ -185,18 +187,18 @@ init_member_expr = 'IDENTIFIER' '=' expr;
 args_list = arg {',' arg} ;
 arg = expr ['=' expr] ;
 
-atom = 'INTLIT' | 'STRINGLIT' | 'FLOATLIT' | 'BOOLLIT' | 'RUNELIT' | array_builder 
-  | list_builder | dict_builder | vector_builder | tupled_expr | 'IDENTIFIER' | 'null' ;
+atom = 'INTLIT' | 'STRINGLIT' | 'FLOATLIT' | 'BOOLLIT' | 'RUNELIT' 
+  | vector_builder | tupled_expr | 'IDENTIFIER' | 'null' ;
 
 array_builder = '{' seq_contents '}' ;
 list_builder = '[' seq_contents ']' ;
 seq_contents = expr ({',' expr} | [comp_suffix]) ;
 dict_builder = '{' expr ':' expr ({',' expr ':' expr} | [comp_suffix]) '}' ;
-vector_builder = '<' ( expr [':' 'INTLIT'] | '{' expr_list '}' ) '>' ;
+vector_builder = '<' ( expr ':' 'INTLIT' | '{' expr_list '}' ) '>' ;
 tupled_expr = '(' expr {',' expr} ')' ;
 
 (* type constructions *)
-type_list = type (',' type ) ;
+type_list = type {',' type} ;
 type_ext = ':' type ;
 type_pattern_list = type_pattern {',' type_pattern};
 type_pattern = 'IDENTIFIER' ':' type | type ;

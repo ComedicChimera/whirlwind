@@ -18,11 +18,11 @@ export of
         // creating a new iterable with that application performed.
 
         // `map` applies a function to every element of an Iterable
-        func map<R>(fn: func(T)(R)) Iterable<R> const
+        func map<R>(fn: func(T)(R)) Iterable<R>
             => MapIterator{base=&this.iter(), fn=fn} as IterableMask<R> 
 
         // `filter` applies a filter function to every element of an Iterable
-        func filter(fn: func(T)(bool)) Iterable<T> const
+        func filter(fn: func(T)(bool)) Iterable<T>
             => FilterIterator{base=&this.iter(), fn=fn} as IterableMask<T>
 
     // `IterableMask` is a type used to treat an Iterator as an Iterable by

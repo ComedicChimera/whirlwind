@@ -70,16 +70,9 @@ type Scanner struct {
 // ReadToken reads a single token from the stream, error can indicate malformed
 // token or end of token stream
 func (s *Scanner) ReadToken() (*Token, error) {
-	if s.lookahead != nil {
-		lhTok := s.lookahead
-
-		// move the auxilliary lookahead into the current lookahead
-		s.lookahead = s.auxLookahead
-
-		// clear the auxilliary lookahead
-		s.auxLookahead = nil
-
-		return lhTok, nil
+	// check the lookahead before yielding a token
+	if next := s.readLookahead(); next != nil {
+		return next, nil
 	}
 
 	for s.readNext() {
@@ -165,9 +158,15 @@ func (s *Scanner) ReadToken() (*Token, error) {
 					} else if levelDiff > 0 {
 						// if it is positive, indent level increased
 						tok = s.makeToken(INDENT, string(levelDiff))
+					} else if next := s.readLookahead(); next != nil {
+						// if there was no change, we need to check to see if
+						// the lookahead is populated, if it is, we should
+						// return it here (so it is not skipped)
+						return next, nil
 					} else {
-						// if there was no change, we can simply continue as
-						// normal
+						// otherwise, the scanner should continue reading (this
+						// indentation did not change the level and so no token
+						// should be produced).
 						continue
 					}
 				}
@@ -220,8 +219,15 @@ func (s *Scanner) ReadToken() (*Token, error) {
 					tok = s.makeToken(DEDENT, string(-levelDiff))
 				} else if levelDiff > 0 {
 					tok = s.makeToken(INDENT, string(levelDiff))
+				} else if next := s.readLookahead(); next != nil {
+					// if there was no change, we need to check to see if the
+					// lookahead is populated, if it is, we should return it
+					// here (so it is not skipped)
+					return next, nil
 				} else {
-					// if there was no change, we can simply continue as normal
+					// otherwise, the scanner should continue reading (this
+					// indentation did not change the level and so no token
+					// should be produced).
 					continue
 				}
 
@@ -946,4 +952,25 @@ func (s *Scanner) applyBlankLineRule() (*Token, error) {
 	// be in the context of a blank line which has already been handled.
 	s.lookahead = tok
 	return nil, nil
+}
+
+// readLookahead checks to see if the scanner has a lookahead that it should
+// return before processing more tokens.  If it does, it updates the lookahead
+// and the auxilliary lookahead and returns the lookahead token.  If it does
+// not, this function does nothing and returns `nil`.  This should ONLY be
+// called if the scanner is intending to yield the lookahead token.
+func (s *Scanner) readLookahead() *Token {
+	if s.lookahead != nil {
+		lhTok := s.lookahead
+
+		// move the auxilliary lookahead into the current lookahead
+		s.lookahead = s.auxLookahead
+
+		// clear the auxilliary lookahead
+		s.auxLookahead = nil
+
+		return lhTok
+	}
+
+	return nil
 }

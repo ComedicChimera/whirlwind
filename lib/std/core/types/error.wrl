@@ -20,7 +20,7 @@ export of
         // TODO: add more errors
 
     // Provide the `StdError` implementation of `Error`
-    interf for StdError is Error do
+    interf for StdError is Error of
         func message() string
             => match this to
                 BoundsError(n) => itoa(n)
@@ -28,7 +28,4 @@ export of
                 LogicError(m) => m
                 StackOverflowError => "Stack overflow"
                 HeapOverflowError => "Heap overflow"
-                NullPointerError(addr) => "Null pointer derefenced at " + itoa_hex(addr)
-
-        
-    
+                NullPointerError(addr) => "Null pointer derefenced at " + itoa_hex(addr)   

@@ -239,6 +239,9 @@ func (p *Parser) shift(state int) error {
 // OF WHAT IS IN THE LOOKAHEAD (not whitespace aware - should be used as such)
 func (p *Parser) consume() error {
 	tok, err := p.sc.ReadToken()
+	// if strings.HasSuffix(p.sc.fpath, "error.wrl") {
+	// 	fmt.Println(tok.Kind)
+	// }
 
 	if err == nil {
 		p.lookahead = tok
