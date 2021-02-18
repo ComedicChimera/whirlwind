@@ -45,5 +45,11 @@ required to render any of the above code semantically viable anyway.
 
 An identical problem exists with `new` (collection initialization) as well.
 
+## Type-Test Result Naming
 
+The syntax `x is y: T` can cause a conflict with the slice expression: `[x is y: T]` -- is
+`T` the upper bound of a slice or the name to store the result type into.  The compiler chooses
+the favor the latter. 
 
+This should never a problem since a) when would you use a boolean as a slice index and b)
+type-test result names would almost never be logically allowed in that context.

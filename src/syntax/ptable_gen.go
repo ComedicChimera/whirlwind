@@ -497,10 +497,16 @@ func (ptb *PTableBuilder) buildTableFromSets() bool {
 						// action, we print out the error and return that
 						// the table construction was unsuccessful.
 						if action.Kind == AKShift {
-							// find a better way to indicate the token value
-							fmt.Printf("Shift/Reduce Conflict Resolved Between `%s` and `%d`.  Original State Shift Is:\n", bnfRule.ProdName, lookahead)
-							ptb.printItems(ptb.ItemSets[action.Operand].Items)
-							fmt.Print("\n\n")
+							// if !strings.HasSuffix(bnfRule.ProdName, "named_type") {
+							// 	fmt.Printf("Shift/Reduce Conflict Resolved Between `%s` and `%d`. \nRule: ", bnfRule.ProdName, lookahead)
+							// 	ptb.printLR0Item(item)
+							// 	fmt.Println("Original State Shift Is:")
+							// 	ptb.printItems(ptb.ItemSets[action.Operand].Items)
+
+							// 	fmt.Print("\n\n")
+							// }
+
+							// Shift-Reduce Conflict -- all accounted for
 						} else if action.Kind == AKReduce {
 							oldRule, newRule := ptb.Table.Rules[action.Operand], ptb.Table.Rules[reduceRule]
 

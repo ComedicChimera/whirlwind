@@ -107,7 +107,7 @@ async_for_loop = 'async' 'for' iterator do_block [nobreak_clause] ;
 while_loop = 'while' [variable_decl ';'] expr do_block [nobreak_clause] ;
 nobreak_clause = 'nobreak' (do_block | block) ;
 
-ctx_manager = 'with' ? full_ctx ? do_block [else_block] [ctx_else_clause] ;
+ctx_manager = 'with' ? full_ctx ? do_block [ctx_else_clause] ;
 full_ctx = ctx_elem {semilinebr ctx_elem} ;
 ctx_elem = identifier_list '<-' expr ;
 ctx_else_clause = 'else' (block | do_block | 'match' (expr do_block | val_match_block)) ;
@@ -157,7 +157,7 @@ core_expr_suffix = '..' func_op
 func_op = or_expr {'~*' or_expr} ;
 or_expr = xor_expr {('||' | '|') xor_expr} ;
 xor_expr = and_expr {'^' and_expr} ;
-and_expr = comp_expr {('&&' | '&') and_expr} ;
+and_expr = comp_expr {('&&' | '&') comp_expr} ;
 comp_expr = shift_expr {comp_op shift_expr} ;
 comp_op = '<' | '>' | '>=' | '<=' | '==' | '!=' ;
 shift_expr = arith_expr {('>>' | '<<') arith_expr} ;
@@ -171,8 +171,8 @@ atom_expr = atom {trailer} | make_expr | new_expr ;
 make_expr = 'make' region_spec ['const'] alloc_param ;
 new_expr = 'new' region_spec ['const'] col_alloc_param ;
 region_spec = 'in' '[' expr ']' | 'local' | 'global' ;
-alloc_param = type | '(' type ',' expr ')' | 'IDENTIFIER' {'::' 'IDENTIFIER'} '{' [init_list] '}';
-col_alloc_param = type [array_builder] | array_builder | list_builder | dict_builder ;
+alloc_param = type | '(' type '*' expr ')' | 'IDENTIFIER' {'::' 'IDENTIFIER'} '{' [init_list] '}';
+col_alloc_param = named_type [array_builder] | array_builder | list_builder | dict_builder ;
 
 trailer = '.' ( 'IDENTIFIER' | 'INTLIT' )
   | '[' expr [slice_suffix] ']'
@@ -183,7 +183,7 @@ slice_suffix = ':' expr [':' expr] ;
 init_list = '...' expr {',' init_member_expr} | init_member_expr {',' init_member_expr} ;
 init_member_expr = 'IDENTIFIER' '=' expr;
 args_list = arg {',' arg} ;
-arg = expr ['=' expr];
+arg = expr ['=' expr] ;
 
 atom = 'INTLIT' | 'STRINGLIT' | 'FLOATLIT' | 'BOOLLIT' | 'RUNELIT' | array_builder 
   | list_builder | dict_builder | vector_builder | tupled_expr | 'IDENTIFIER' | 'null' ;
@@ -192,14 +192,14 @@ array_builder = '{' seq_contents '}' ;
 list_builder = '[' seq_contents ']' ;
 seq_contents = expr ({',' expr} | [comp_suffix]) ;
 dict_builder = '{' expr ':' expr ({',' expr ':' expr} | [comp_suffix]) '}' ;
-vector_builder = '<' expr [':' expr] '>' ; (* expr can be an array for vector array initializers *)
+vector_builder = '<' ( expr [':' 'INTLIT'] | '{' expr_list '}' ) '>' ;
 tupled_expr = '(' expr {',' expr} ')' ;
 
 (* type constructions *)
 type_list = type (',' type ) ;
 type_ext = ':' type ;
 type_pattern_list = type_pattern {',' type_pattern};
-type_pattern = ['IDENTIFIER' ':'] type ;
+type_pattern = 'IDENTIFIER' ':' type | type ;
 
 type = value_type | named_type | ref_type | region_type ;
 
