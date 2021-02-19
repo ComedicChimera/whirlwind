@@ -379,3 +379,86 @@ func (w *Walker) walkTypeValues(branch *syntax.ASTBranch) (map[string]*logging.T
 
 	return names, ctv, initializer, true
 }
+
+// walkFuncDef walks a function or method definition
+func (w *Walker) walkFuncDef(branch *syntax.ASTBranch) (*common.HIRFuncDef, bool) {
+	var name string
+	var namePosition *logging.TextPosition
+	funcType := &typing.FuncType{Boxable: !w.hasFlag("intrinsic")}
+	var argData map[string]*common.HIRArgData
+	var body common.HIRNode
+
+	for _, item := range branch.Content {
+		switch v := item.(type) {
+		case *syntax.ASTBranch:
+			switch v.Name {
+			case "generic_tag":
+				if !w.primeGenericContext(v) {
+					return nil, false
+				}
+			case "signature":
+				if args, adata, rtType, ok := w.walkSignature(v); ok {
+					funcType.Params = args
+					argData = adata
+					funcType.ReturnType = rtType
+				} else {
+					return nil, false
+				}
+			case "decl_func_body":
+				body = w.extractFuncBody(v)
+			}
+		case *syntax.ASTLeaf:
+			switch v.Kind {
+			case syntax.ASYNC:
+				funcType.Async = true
+			case syntax.IDENTIFIER:
+				name = v.Value
+				namePosition = v.Position()
+			}
+		}
+	}
+
+	// TODO: check for annotations if function has no body
+
+	sym := &common.Symbol{
+		Name:       name,
+		Type:       funcType,
+		DeclStatus: w.DeclStatus,
+		DefKind:    common.DefKindFuncDef,
+		Constant:   true,
+	}
+
+	if !w.define(sym) {
+		w.logRepeatDef(name, namePosition, true)
+		return nil, false
+	}
+
+	return &common.HIRFuncDef{
+		Sym:         sym,
+		Annotations: w.annotations,
+		ArgData:     argData,
+		Body:        body,
+	}, true
+}
+
+// walkSignature walks a `signature` node (used for functions, operator
+// definitions, etc.)
+func (w *Walker) walkSignature(branch *syntax.ASTBranch) ([]*typing.FuncParam,
+	map[string]*common.HIRArgData, typing.DataType, bool) {
+
+	return nil, nil, nil, false
+}
+
+// extractFuncBody extracts the evaluable node (`do_block`, `expr`) of any kind
+// of function body if one exists (inc. closure bodies, etc)
+func (w *Walker) extractFuncBody(branch *syntax.ASTBranch) common.HIRNode {
+	for _, item := range branch.Content {
+		if abranch, ok := item.(*syntax.ASTBranch); ok {
+			// abranch is always either `expr` or `do_block` => evaluable node
+			return (*common.HIRIncomplete)(abranch)
+		}
+	}
+
+	// no evaluable node (definition with no body)
+	return nil
+}
