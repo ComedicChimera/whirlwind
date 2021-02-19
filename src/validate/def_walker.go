@@ -377,5 +377,5 @@ func (w *Walker) walkTypeValues(branch *syntax.ASTBranch) (map[string]*logging.T
 		}
 	}
 
-	return names, ctv, initializer, false
+	return names, ctv, initializer, true
 }

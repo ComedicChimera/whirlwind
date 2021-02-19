@@ -15,7 +15,7 @@ import (
 // `true` if the parsing was successful.  This function does populate the
 // `Unknowns` field and sets `FatalDefError` appropriately.
 func (w *Walker) primeGenericContext(genericTag *syntax.ASTBranch) bool {
-	wc := make([]*typing.WildcardType, genericTag.Len()-2)
+	wc := make([]*typing.WildcardType, genericTag.Len()/2)
 	names := make(map[string]struct{})
 
 	for i, item := range genericTag.Content[1 : genericTag.Len()-1] {
@@ -39,9 +39,9 @@ func (w *Walker) primeGenericContext(genericTag *syntax.ASTBranch) bool {
 		}
 
 		if param.Len() == 1 {
-			wc[i%2] = &typing.WildcardType{Name: name}
+			wc[i/2] = &typing.WildcardType{Name: name}
 		} else if typeList, ok := w.walkOffsetTypeList(param, 2, 0); ok {
-			wc[i%2] = &typing.WildcardType{
+			wc[i/2] = &typing.WildcardType{
 				Name:        name,
 				Restrictors: typeList,
 			}

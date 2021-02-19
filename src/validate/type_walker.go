@@ -74,31 +74,51 @@ var primitiveTypeTable = map[int]*typing.PrimitiveType{
 // walkTypeLabel walks and attempts to extract a data type from a type label. If
 // this function fails, it will set `fatalDefError` appropriately.
 func (w *Walker) walkTypeLabel(label *syntax.ASTBranch) (typing.DataType, bool) {
-	typeCat := label.BranchAt(0)
-	switch typeCat.Name {
-	case "value_type":
-		valueTypeCore := typeCat.BranchAt(0)
-		switch valueTypeCore.Name {
-		case "prim_type":
-			return primitiveTypeTable[valueTypeCore.LeafAt(0).Kind], true
-		}
-	case "named_type":
-		dt, requiresRef, ok := w.walkNamedType(typeCat)
-
-		// we know that since we are the exterior of walk type label, we will never have the
-		// enclosing reference type required as so we can simply return false.
+	if dt, requiresRef, ok := w.walkTypeLabelCore(label.BranchAt(0)); ok {
+		// we know that since we are the exterior of walk type label, we will
+		// never have the enclosing reference type required as so we can simply
+		// return false.
 		if requiresRef {
 			w.logFatalDefError(
 				fmt.Sprintf("The type `%s` can only be stored by reference here", dt.Repr()),
 				logging.LMKTyping,
-				typeCat.Position(),
+				label.Position(),
 			)
+
+			return nil, false
 		}
 
-		return dt, ok
+		return dt, true
 	}
 
 	return nil, false
+}
+
+// walkTypeLabelCore walks the inner type of the `type` node -- the type core It
+// returns a boolean indicating whether or not the inner type requires a
+// reference and a boolean indicating if the type was valid.
+func (w *Walker) walkTypeLabelCore(typeCore *syntax.ASTBranch) (typing.DataType, bool, bool) {
+	var dt typing.DataType
+
+	switch typeCore.Name {
+	case "value_type":
+		valueTypeCore := typeCore.BranchAt(0)
+		switch valueTypeCore.Name {
+		case "prim_type":
+			dt = primitiveTypeTable[valueTypeCore.LeafAt(0).Kind]
+		}
+	case "named_type":
+		return w.walkNamedType(typeCore)
+	case "ref_type":
+		if rt, ok := w.walkRefType(typeCore); ok {
+			dt = rt
+		} else {
+			return nil, false, false
+		}
+
+	}
+
+	return dt, false, true
 }
 
 // walkNamedType walks a `named_type` node fully.  It returns the type it
@@ -297,4 +317,71 @@ func (w *Walker) opaqueSymbolRequiresRef() bool {
 	}
 
 	return false
+}
+
+// walkRefType walks a `ref_type` node and attempts to produce a reference type
+func (w *Walker) walkRefType(branch *syntax.ASTBranch) (typing.DataType, bool) {
+	var refBranch *syntax.ASTBranch
+	global := false
+
+	// only branch of length 2 starts with 'global'
+	if branch.Len() == 2 {
+		global = true
+		refBranch = branch.BranchAt(1)
+	} else {
+		refBranch = branch.BranchAt(0)
+	}
+
+	refType := &typing.RefType{
+		Global: global,
+	}
+
+	switch refBranch.Name {
+	case "owned_ref":
+		refType.Owned = true
+
+		// extract the inner free ref
+		refBranch = refBranch.BranchAt(1)
+		fallthrough
+	case "free_ref":
+		// len 3 => `const` after the `&` => constant ref
+		if refBranch.Len() == 3 {
+			refType.Constant = true
+		}
+	case "block_ref":
+		refType.Block = true
+
+		// len 5 => `const` after `[&]` => constant ref
+		if refBranch.Len() == 5 {
+			refType.Constant = true
+		}
+
+		refBranch = refBranch.Last().(*syntax.ASTBranch)
+	}
+
+	if elemType, _, ok := w.walkTypeLabelCore(refBranch.Last().(*syntax.ASTBranch)); ok {
+		innerElemType := typing.InnerType(elemType)
+		if _, ok = innerElemType.(typing.RegionType); ok {
+			w.logFatalDefError(
+				"Element type of a reference cannot be a region",
+				logging.LMKTyping,
+				refBranch.Last().Position(),
+			)
+
+			return nil, false
+		} else if _, ok := innerElemType.(*typing.RefType); ok && !refType.Block {
+			w.logFatalDefError(
+				"Element type of a non-block reference cannot be a reference",
+				logging.LMKTyping,
+				refBranch.Last().Position(),
+			)
+
+			return nil, false
+		}
+
+		refType.ElemType = elemType
+		return refType, true
+	}
+
+	return nil, false
 }
