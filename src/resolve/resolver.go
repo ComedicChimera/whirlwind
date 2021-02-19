@@ -43,7 +43,10 @@ type Resolver struct {
 
 // NewResolver creates a new resolver for the given group of packages
 func NewResolver(pkgs []*common.WhirlPackage) *Resolver {
-	r := &Resolver{Assemblers: make(map[uint]*PAssembler)}
+	r := &Resolver{
+		Assemblers:         make(map[uint]*PAssembler),
+		sharedOpaqueSymbol: &common.OpaqueSymbol{},
+	}
 
 	for _, pkg := range pkgs {
 		r.Assemblers[pkg.PackageID] = NewPackageAssembler(pkg, r.sharedOpaqueSymbol)

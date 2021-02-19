@@ -49,15 +49,11 @@ resolveLoop:
 			break
 		} else if len(table) == 1 {
 			// if there is only one package left and only one element left in
-			// that package, we know we can't resolve it and so we log
-			// unresolved and exit resolution
-			for pkgID, pkgTable := range table {
+			// that package, we know we can't resolve it.  It will be logged
+			// later (at the end) -- so we can just set the `resolveSuccessful`
+			// flag to false and break the resolution loop
+			for _, pkgTable := range table {
 				if len(pkgTable) == 1 {
-					// why do I have to loop to get the first element...
-					for _, def := range pkgTable {
-						r.logUnresolvedDef(pkgID, def)
-					}
-
 					resolveSuccessful = false
 					break resolveLoop
 				}

@@ -19,10 +19,14 @@ func (w *Walker) primeGenericContext(genericTag *syntax.ASTBranch) bool {
 	names := make(map[string]struct{})
 
 	for i, item := range genericTag.Content[1 : genericTag.Len()-1] {
+		if i%2 == 1 {
+			continue
+		}
+
 		param := item.(*syntax.ASTBranch)
 
 		name := param.LeafAt(0).Value
-		if _, ok := names[name]; ok {
+		if _, ok := names[name]; !ok {
 			names[name] = struct{}{}
 		} else {
 			w.logFatalDefError(

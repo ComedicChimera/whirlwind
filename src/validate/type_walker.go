@@ -16,7 +16,7 @@ import (
 func (w *Walker) walkOffsetTypeList(ast *syntax.ASTBranch, startOffset, endOffset int) ([]typing.DataType, bool) {
 	types := make([]typing.DataType, (ast.Len()-startOffset-endOffset)/2+1)
 
-	for i, item := range ast.Content[startOffset:endOffset] {
+	for i, item := range ast.Content[startOffset : ast.Len()-endOffset] {
 		if i%2 == 0 {
 			if dt, ok := w.walkTypeLabel(item.(*syntax.ASTBranch)); ok {
 				types[i/2] = dt
@@ -170,8 +170,18 @@ func (w *Walker) lookupNamedType(rootName, accessedName string, rootPos, accesse
 	if accessedName == "" {
 		symbol, ok := w.Lookup(rootName)
 
-		// if the symbol exists in the regular local table
-		if ok {
+		// check for generic type parameters (in the generic ctx)
+		if !ok {
+			// there will almost never be more than one type parameter so we
+			// don't really need to use a map here and keeping it as a list
+			// makes converting the `genericCtx` into a generic easier
+			for _, typeParam := range w.genericCtx {
+				if typeParam.Name == rootName {
+					return typeParam, false, true
+				}
+			}
+		} else {
+			// the symbol exists in the regular local table
 			if symbol.DefKind != common.DefKindTypeDef {
 				w.logFatalDefError(
 					fmt.Sprintf("Symbol `%s` is not a type", symbol.Name),
@@ -197,7 +207,10 @@ func (w *Walker) lookupNamedType(rootName, accessedName string, rootPos, accesse
 			}
 
 			return symbol.Type, false, true
-		} else if w.resolving {
+		}
+
+		// only reach here if were unable to resolve at all
+		if w.resolving {
 			// if we are resolving, then we need to check for opaque types and
 			// self types (checked in two separate if blocks)
 			if w.sharedOpaqueSymbol.SrcPackageID == w.SrcPackage.PackageID && w.sharedOpaqueSymbol.Name == rootName {

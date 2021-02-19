@@ -3,7 +3,7 @@ package build
 import (
 	"fmt"
 	"hash/fnv"
-	"os"
+	"io/ioutil"
 	"path/filepath"
 
 	"github.com/ComedicChimera/whirlwind/src/common"
@@ -42,40 +42,42 @@ func (c *Compiler) initPackage(abspath string) (*common.WhirlPackage, error, boo
 		GlobalBindings:    &typing.BindingRegistry{},
 	}
 
-	// all file level errors are logged with the log module for display
-	// later
-	err := filepath.Walk(abspath, func(fpath string, info os.FileInfo, ferr error) error {
-		if ferr != nil {
-			logging.LogStdError(ferr)
-		} else if info.IsDir() {
-			return nil
-		}
+	// try to open the package directory
+	files, err := ioutil.ReadDir(abspath)
+	if err != nil {
+		logging.LogStdError(err)
+	}
 
-		if filepath.Ext(fpath) == SrcFileExtension {
+	// walk each file in the directory.  all file level errors (eg. syntax
+	// errors) are logged with the log module for display later -- this is
+	// to ensure that every file is walked at least once
+	for _, fInfo := range files {
+		if !fInfo.IsDir() && filepath.Ext(fInfo.Name()) == SrcFileExtension {
+			fpath := filepath.Join(abspath, fInfo.Name())
 			c.lctx.FilePath = fpath
 
 			sc, err := syntax.NewScanner(fpath, c.lctx)
 
 			if err != nil {
 				logging.LogStdError(err)
-				return nil
+				continue
 			}
 
 			shouldCompile, tags, err := c.preprocessFile(sc)
 			if err != nil {
 				logging.LogStdError(err)
-				return nil
+				continue
 			}
 
 			if !shouldCompile {
-				return nil
+				continue
 			}
 
 			ast, err := c.parser.Parse(sc)
 
 			if err != nil {
 				logging.LogStdError(err)
-				return nil
+				continue
 			}
 
 			abranch := ast.(*syntax.ASTBranch)
@@ -88,9 +90,7 @@ func (c *Compiler) initPackage(abspath string) (*common.WhirlPackage, error, boo
 				LocalBindings:          &typing.BindingRegistry{},
 			}
 		}
-
-		return nil
-	})
+	}
 
 	if err != nil {
 		return nil, err, false

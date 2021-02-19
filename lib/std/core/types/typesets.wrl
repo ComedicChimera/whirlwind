@@ -11,7 +11,7 @@ export of
 
     type Numeric = int | uint | short | ushort | long | ulong | float | double
 
-    type Stringlike = string | char
+    type Stringlike = string | rune
 
     type Bytelike = byte | sbyte
 
