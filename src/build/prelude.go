@@ -21,9 +21,12 @@ var preludeImportPatterns = map[string][]string{
 	"core/types":   {"Iterator"},
 }
 
-// initPrelude loads in the preludeImports before we access them
-func (c *Compiler) initPrelude() {
-	// prepare each prelude import
+// buildPrelude sets up and fully builds the packages that are part of the core
+// library thereby adding them to the dependency graph and making them available
+// to all other packages being builded
+func (c *Compiler) buildPrelude() bool {
+	// initialize each prelude package so that they are present in the
+	// dependency graph
 	for stdpkgname := range preludeImportPatterns {
 		preludePath := filepath.Join(c.whirlpath, "lib/std", stdpkgname)
 
@@ -45,13 +48,13 @@ func (c *Compiler) initPrelude() {
 				logging.LogFatal(fmt.Sprintf("Unable to load necessary prelude package: `%s`", stdpkgname))
 			}
 
-			if c.initDependencies(npkg) {
-				preludeImports[stdpkgname] = npkg
-			} else {
-				logging.LogFatal(fmt.Sprintf("Unable to load necessary prelude package: `%s`", stdpkgname))
-			}
+			preludeImports[stdpkgname] = npkg
 		}
 	}
+
+	// TODO: build the prelude packages after they are initialized
+
+	return logging.ShouldProceed()
 }
 
 // attachPrelude adds in all additional prelude imports (determined based on a

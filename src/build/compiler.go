@@ -180,10 +180,7 @@ func (c *Compiler) Compile(forceGrammarRebuild bool) {
 	// load the prelude before we begin the building process (this only proceeds
 	// through stage 1 of the import algorithm: it will be finished off during
 	// the main building algorithm)
-	c.initPrelude()
-
-	// if there were any errors building the prelude, handle them
-	if !logging.ShouldProceed() {
+	if !c.buildPrelude() {
 		logging.LogFatal("Failed to build prelude")
 	}
 
