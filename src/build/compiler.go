@@ -180,19 +180,21 @@ func (c *Compiler) Compile(forceGrammarRebuild bool) {
 	// load the prelude before we begin the building process (this only proceeds
 	// through stage 1 of the import algorithm: it will be finished off during
 	// the main building algorithm)
-	if !c.buildPrelude() {
-		logging.LogFatal("Failed to build prelude")
+	if !c.initPrelude() {
+		logging.LogFatal("Failed to initialize prelude")
 	}
 
-	// now that we are setup and ready to go, we can begin building the main package
-	c.buildPackage(c.buildDirectory)
+	// now that we are setup and ready to go, we can run the main package
+	// building algorithm
+	c.buildMainPackage()
 }
 
-// buildPackage is the main compilation function: it takes a package path and fully
-// builds into LLVM modules that can be linked together to form the final program
-func (c *Compiler) buildPackage(path string) bool {
+// buildPackage is the main compilation function: it takes the main package path
+// and fully builds it and all of its dependencies into LLVM modules that can be
+// linked together to form the final program
+func (c *Compiler) buildMainPackage() bool {
 	// start by initializing the package (indexing the directory, parsing the files)
-	pkg, err, initOk := c.initPackage(path)
+	pkg, err, initOk := c.initPackage(c.buildDirectory)
 	if !initOk {
 		// an error is only returned if it hasn't already been logged
 		if err != nil {

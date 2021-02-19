@@ -52,11 +52,19 @@ IMPORT ALGORITHM
 // initDependencies extracts, parses, and evaluates all the imports of an
 // already initialized package (performing step 1 of the Import Algorithm)
 func (c *Compiler) initDependencies(pkg *common.WhirlPackage) bool {
+	// avoid initializing the dependencies of a package multiple times
+	if pkg.Initialized {
+		return true
+	}
+
 	c.lctx.PackageID = pkg.PackageID
 	defer (func() {
 		// ensure current package context is restored when this function returns
 		c.lctx.PackageID = pkg.PackageID
 	})()
+
+	// set our initialization flag before we start recurring
+	pkg.Initialized = true
 
 	for fpath, file := range pkg.Files {
 		c.lctx.FilePath = fpath
@@ -72,7 +80,7 @@ func (c *Compiler) initDependencies(pkg *common.WhirlPackage) bool {
 			} else {
 				// trim off all the already processed content (shouldn't need to
 				// refer to it again)
-				file.AST.Content = file.AST.Content[i+1:]
+				file.AST.Content = file.AST.Content[i:]
 
 				break
 			}

@@ -21,10 +21,9 @@ var preludeImportPatterns = map[string][]string{
 	"core/types":   {"Iterator"},
 }
 
-// buildPrelude sets up and fully builds the packages that are part of the core
-// library thereby adding them to the dependency graph and making them available
-// to all other packages being builded
-func (c *Compiler) buildPrelude() bool {
+// initPrelude initializes the prelude packages thereby adding them to the
+// dependency graph and making them available to all other packages being built
+func (c *Compiler) initPrelude() bool {
 	// initialize each prelude package so that they are present in the
 	// dependency graph
 	for stdpkgname := range preludeImportPatterns {
@@ -52,7 +51,11 @@ func (c *Compiler) buildPrelude() bool {
 		}
 	}
 
-	// TODO: build the prelude packages after they are initialized
+	// initialize the `core` prelude package dependencies which implicitly
+	// initializes all the others dependencies
+	if !c.initDependencies(preludeImports["core"]) {
+		return false
+	}
 
 	return logging.ShouldProceed()
 }

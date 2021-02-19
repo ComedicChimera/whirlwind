@@ -87,6 +87,11 @@ type WhirlPackage struct {
 	// GlobalBindings stores all the interface bindings declared a global level
 	// in the current package
 	GlobalBindings *typing.BindingRegistry
+
+	// Initialized indicates that this package and its dependencies either have
+	// already been initialized or are being initialized.  This prevents
+	// unnecessary recursion and repeat initialization
+	Initialized bool
 }
 
 // WhirlOperatorOverload represents an operator overload definition

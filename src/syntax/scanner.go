@@ -183,7 +183,9 @@ func (s *Scanner) ReadToken() (*Token, error) {
 			if s.updateIndentLevel && s.indentMode < 1 {
 				s.updateIndentLevel = false
 
-				for s.readNext() && s.curr == '\t' {
+				// greedily read all the tabs we can
+				for ahead, more := s.peek(); more && ahead == '\t'; ahead, more = s.peek() {
+					s.readNext()
 				}
 
 				// determine the level and clear the tokBuilder before applying
@@ -913,7 +915,7 @@ func (s *Scanner) processNewline() error {
 			} else if s.indentMode == -1 && ahead != '\t' {
 				// if we are in TAB mode, check for tabs (above)
 				emitDedent()
-			} else if ahead != ' ' {
+			} else if s.indentMode > 0 && ahead != ' ' {
 				// we are in some SPACE mode, check for spaces (above)
 				emitDedent()
 			}
