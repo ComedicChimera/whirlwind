@@ -148,9 +148,12 @@ func (c *Compiler) processImport(pkg *common.WhirlPackage, file *common.WhirlFil
 	newpkg, ok := c.depGraph[getPackageID(abspath)]
 	if !ok {
 		var err error
-		newpkg, err = c.initPackage(abspath)
+		var initOk bool
+		newpkg, err, initOk = c.initPackage(abspath)
 		if err != nil {
 			logging.LogStdError(err)
+			return false
+		} else if !initOk {
 			return false
 		}
 	}
@@ -251,7 +254,7 @@ func (c *Compiler) attachPackageToFile(fpkg *common.WhirlPackage, file *common.W
 			}
 		}
 	} else /* add a new import entry for the current package */ {
-		wimport = &common.WhirlImport{PackageRef: apkg}
+		wimport = &common.WhirlImport{PackageRef: apkg, ImportedSymbols: make(map[string]*common.Symbol)}
 
 		if len(importedSymbols) > 0 {
 			for name, pos := range importedSymbols {

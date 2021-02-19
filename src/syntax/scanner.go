@@ -252,6 +252,8 @@ func (s *Scanner) ReadToken() (*Token, error) {
 			if !more {
 				tok = s.getToken(FDIVIDE)
 			} else if ahead == '/' {
+				s.tokBuilder.Reset() // get rid of lingering `/`
+
 				// handle any errors that occur from applying the blank line
 				// rule (don't need to discard tokBuilder in the event of an
 				// error since errors stop parsing for this file)
@@ -259,14 +261,12 @@ func (s *Scanner) ReadToken() (*Token, error) {
 					return nil, err
 				}
 
-				s.tokBuilder.Reset() // get rid of lingering `/`
-
 				// return a newline so that the indentation is measured
 				// correctly by the parser (position is still accurate)
 				return &Token{Kind: NEWLINE, Value: "\n", Line: s.line, Col: s.col}, nil
 			} else if ahead == '*' {
-				s.skipBlockComment()
 				s.tokBuilder.Reset() // get rid of lingering `/`
+				s.skipBlockComment()
 				continue
 			} else {
 				tok = s.getToken(FDIVIDE)
@@ -318,7 +318,7 @@ func (s *Scanner) ReadToken() (*Token, error) {
 
 				// keep reading as long as our lookahead is valid: avoids
 				// reading extra tokens (ie. in place of readNext)
-				for ahead, more := s.peek(); more; {
+				for ahead, more := s.peek(); more; ahead, more = s.peek() {
 					if skind, ok := symbolPatterns[s.tokBuilder.String()+string(ahead)]; ok {
 						kind = skind
 						s.readNext()
@@ -418,7 +418,16 @@ func (s *Scanner) readNext() bool {
 
 	s.tokBuilder.WriteRune(r)
 	s.curr = r
-	s.col++
+
+	if r == '\t' {
+		// Whirlwind makes the executive decision to count tabs as four spaces
+		// (this is only really meaningful for display purposes -- Whirlwind
+		// highlights the error)
+		s.col += 4
+	} else {
+		s.col++
+	}
+
 	return true
 }
 
@@ -862,6 +871,10 @@ func (s *Scanner) processNewline() error {
 	var err error = nil
 
 	emitDedent := func() {
+		// if strings.HasSuffix(s.fpath, "iter.wrl") {
+		// 	fmt.Println("Encountered first DEDENT")
+		// }
+
 		next, berr := s.applyBlankLineRule()
 
 		if berr != nil {

@@ -21,7 +21,7 @@ var preludeImportPatterns = map[string][]string{
 	"core/types":   {"Iterator"},
 }
 
-// initPrelude loads in the preludeImprots before we access them
+// initPrelude loads in the preludeImports before we access them
 func (c *Compiler) initPrelude() {
 	// prepare each prelude import
 	for stdpkgname := range preludeImportPatterns {
@@ -36,9 +36,12 @@ func (c *Compiler) initPrelude() {
 		} else {
 			// if anything happens during initialization of this packages, we
 			// throw a fatal compiler error: they are NECESSARY for compilation
-			npkg, err := c.initPackage(preludePath)
-			if err != nil {
-				logging.LogStdError(err)
+			npkg, err, initOk := c.initPackage(preludePath)
+			if !initOk {
+				if err != nil {
+					logging.LogStdError(err)
+				}
+
 				logging.LogFatal(fmt.Sprintf("Unable to load necessary prelude package: `%s`", stdpkgname))
 			}
 

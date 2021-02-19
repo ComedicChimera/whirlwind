@@ -63,7 +63,9 @@ func displayCodeSelection(sc *bufio.Scanner, pos *TextPosition) {
 
 	for line := pos.StartLn; line <= pos.EndLn; line++ {
 		fmt.Printf(lnNumberFmtStr, line)
-		fmt.Println(sc.Text())
+
+		// convert all tabs to four spaces (for consistency)
+		fmt.Println(strings.ReplaceAll(sc.Text(), "\t", "    "))
 
 		fmt.Print(strings.Repeat(" ", minLnNumberLen+3))
 
@@ -134,7 +136,7 @@ Sorry again :(`
 
 // displayFatalMessage displays a fatal error message (DOES NOT EXIT)
 func displayFatalMessage(message string) {
-	fmt.Printf("Unexpected Fatal Error: %s\n\n", message)
+	fmt.Printf("\n\nUnexpected Fatal Error: %s\n", message)
 	fmt.Println(fatalErrorMessage)
 }
 

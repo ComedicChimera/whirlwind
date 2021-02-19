@@ -103,3 +103,10 @@ func LogFinished() {
 		displayFinalMessage(logger.ErrorCount, len(logger.Warnings))
 	}
 }
+
+// ShouldProceed checks if there are any errors in the logger that should block
+// compilation from proceeding -- should be called at the end of each stage of
+// compilation and after any call to `compiler.initPackage`
+func ShouldProceed() bool {
+	return logger.ErrorCount == 0
+}

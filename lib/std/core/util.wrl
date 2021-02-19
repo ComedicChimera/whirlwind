@@ -4,11 +4,11 @@
 export of
     // `iota` creates an array of `n` integers starting at `start` with a
     // spacing of `spacing`.  Useful for creating a complex range quickly.
-    func iota(n, start, spacing: int) []int do
+    func iota(n, start, spacing: int, r: region) []int do
         if spacing < 1 || n < 1 do
             return null as []int
 
-        return {item * spacing for item in start..start+n}
+        return new in[r] {item * spacing for item in start..start+n}
 
     // `floor` performs a mathematical floor operation (lowest integer).
     func floor<N: Floating, R: Integral>(n: N) R
@@ -24,11 +24,11 @@ export of
 
     // `filled` creates a new array with a given length filled with the given
     // value.  It returns an empty array if the given length is less than one.
-    func filled<T>(v: T, length: int) []T do
+    func filled<T>(v: T, length: int, r: region) []T do
         if length < 1 do
             return null as []T
 
-        return {v for _ in 1..length}
+        return new in[r] {v for _ in 1..length}
 
     // `clamp` constains a number to be within an upper and lower bound such
     // that if the number's value cannot exceed those bounds (eg. with the
@@ -46,7 +46,7 @@ export of
         elif n > u do
             return u
 
-        return  n
+        return n
 
     // `normalize` normalizes a number with a given minimum and maximum value.
     func normalize<T: Numeric>(n, min, max: T) float
@@ -76,7 +76,7 @@ export of
     func round<T: Floating, R: Integral>(n: T) R do
         let nmod = n % 1
 
-        if nmod < 0.5
+        if nmod < 0.5 do
             return n - nmod
         else
             return n - nmod + 1

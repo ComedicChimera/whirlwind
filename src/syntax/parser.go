@@ -28,7 +28,7 @@ type Parser struct {
 	// starts with a frame on top of the stack to represent the frame of the
 	// whole program.  This frame is indentation aware with an entry level of -1
 	// (meaning it will never close => total enclosing frame).
-	indentFrames []IndentFrame
+	indentFrames []*IndentFrame
 }
 
 // IndentFrame represents an indentation context frame.  An indentation context
@@ -107,7 +107,7 @@ func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 	p.semanticStack = nil // clear semantic stack
 
 	// parser starts with one indentation-aware indent frame that will never close
-	p.indentFrames = []IndentFrame{{Mode: -1, EntryLevel: -1}}
+	p.indentFrames = []*IndentFrame{{Mode: -1, EntryLevel: -1}}
 
 	// initialize the lookahead
 	if err := p.consume(); err != nil {
@@ -147,6 +147,21 @@ func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 					// is actually an unexpected EOF not an unexpected
 					// indentation change (caused by closing DEDENT)
 					if tok, err := p.sc.ReadToken(); err == io.EOF || (err == nil && tok.Kind == EOF) {
+						// if an EOF would be acceptable at this point instead
+						// of an indentation, then we can simply ignore the
+						// indentation and end the file (probably just
+						// whitespace floating around at the end)
+						if _, ok := state.Actions[EOF]; ok {
+							p.lookahead = &Token{
+								Kind:  EOF,
+								Value: "",
+								Line:  p.sc.line,
+								Col:   p.sc.col,
+							}
+
+							continue
+						}
+
 						return nil, p.lctx.CreateMessage(
 							"Unexpected End of File",
 							logging.LMKSyntax,
@@ -239,7 +254,7 @@ func (p *Parser) shift(state int) error {
 // OF WHAT IS IN THE LOOKAHEAD (not whitespace aware - should be used as such)
 func (p *Parser) consume() error {
 	tok, err := p.sc.ReadToken()
-	// if strings.HasSuffix(p.sc.fpath, "error.wrl") {
+	// if strings.HasSuffix(p.sc.fpath, "iter.wrl") {
 	// 	fmt.Println(tok.Kind)
 	// }
 
@@ -338,13 +353,13 @@ func (p *Parser) reduce(ruleRef int) {
 
 // topIndentFrame gets the indent frame at the top of the frame stack (ie. the
 // current indent frame)
-func (p *Parser) topIndentFrame() IndentFrame {
+func (p *Parser) topIndentFrame() *IndentFrame {
 	return p.indentFrames[len(p.indentFrames)-1]
 }
 
 // pushIndentFrame pushes an indent frame onto the frame stack
 func (p *Parser) pushIndentFrame(mode, level int) {
-	p.indentFrames = append(p.indentFrames, IndentFrame{Mode: mode, EntryLevel: level})
+	p.indentFrames = append(p.indentFrames, &IndentFrame{Mode: mode, EntryLevel: level})
 }
 
 // popIndentFrame removes an indent frame from the top of the frame stack

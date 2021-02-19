@@ -6,7 +6,7 @@ export of
 
         func apply<N>(f: func(V)(N)) M<N>
 
-	    func after(f: func(V)())
+        func after(f: func(V)())
 
     type Option<T>
         | Some(T)
@@ -40,7 +40,7 @@ export of
                 Ok(v) => f(v)
                 Err(e) => Err(e)
         
-        func then<N>(next: func()(Result<N>) Result<N>
+        func then<N>(next: func()(Result<N>)) Result<N>
             => match this to
                 Ok(_) => next()
                 Err(_) => this

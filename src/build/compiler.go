@@ -182,32 +182,42 @@ func (c *Compiler) Compile(forceGrammarRebuild bool) {
 	// the main building algorithm)
 	c.initPrelude()
 
-	// now that we are setup and ready to go, we can begin building
-	c.buildMainPackage()
+	// if there were any errors building the prelude, handle them
+	if !logging.ShouldProceed() {
+		logging.LogFatal("Failed to build prelude")
+	}
 
+	// now that we are setup and ready to go, we can begin building the main package
+	c.buildPackage(c.buildDirectory)
 }
 
-// buildMainPackage is the main compilation function: it goes through and builds the
-// main package as well as its dependencies (from start to finish).
-func (c *Compiler) buildMainPackage() bool {
-	// start by initializing the root package
-	rootPkg, err := c.initPackage(c.buildDirectory)
-	if err != nil {
-		logging.LogStdError(err)
+// buildPackage is the main compilation function: it takes a package path and fully
+// builds into LLVM modules that can be linked together to form the final program
+func (c *Compiler) buildPackage(path string) bool {
+	// start by initializing the package (indexing the directory, parsing the files)
+	pkg, err, initOk := c.initPackage(path)
+	if !initOk {
+		// an error is only returned if it hasn't already been logged
+		if err != nil {
+			logging.LogStdError(err)
+		}
+
 		return false
 	}
 
 	// then, initialize all of its dependencies (recursively)
-	if !c.initDependencies(rootPkg) {
+	if !c.initDependencies(pkg) {
 		return false
 	}
 
 	// once the dependency graph has been created, group and resolve all
 	// dependencies (using the Grouper)
-	g := resolve.NewGrouper(rootPkg, c.depGraph)
+	g := resolve.NewGrouper(pkg, c.depGraph)
 	if !g.ResolveAll() {
 		return false
 	}
 
-	return true
+	// TODO: rest of compilation
+
+	return logging.ShouldProceed()
 }

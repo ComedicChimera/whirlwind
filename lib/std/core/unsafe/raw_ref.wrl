@@ -13,8 +13,8 @@ export of
     func as_block<T>(r: &T, len: uint) []T do
         // It just inserts the reference into the array struct
         return __stdarray{
-            ref: r,
-            len: len
+            ref=r,
+            len=len
         }
 
     // `access_offset` allows one to perform simple pointer arithmetic by

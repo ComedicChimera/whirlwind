@@ -209,7 +209,7 @@ named_type = 'IDENTIFIER' ['::' 'IDENTIFIER'] ['<' type_list '>'];
 
 value_type = prim_type | col_type | vec_type | func_type | tup_type ;
 prim_type = 'int' | 'uint' | 'ushort' | 'short' | 'ulong' | 'long' | 'nothing'
-  | 'sbyte' | 'sbyte' | 'string' | 'rune' | 'float' | 'double' | 'bool' | 'any' ;
+  | 'sbyte' | 'byte' | 'string' | 'rune' | 'float' | 'double' | 'bool' | 'any' ;
 col_type = '[' type [':' type] ']' | '[' ']' type ;
 vec_type = '<' 'INTLIT' '>' ( prim_type | 'IDENTIFIER' ) ;
 
