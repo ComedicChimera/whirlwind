@@ -293,14 +293,14 @@ func (rt *RefType) copyTemplate() DataType {
 
 // FuncType represents a function
 type FuncType struct {
-	Params         []*FuncParam
+	Args           []*FuncArg
 	ReturnType     DataType
 	Boxed, Boxable bool
 	Async          bool
 }
 
-// FuncParam represents a function parameter
-type FuncParam struct {
+// FuncArg represents a function parameter
+type FuncArg struct {
 	Name                 string
 	Val                  *TypeValue
 	Optional, Indefinite bool
@@ -317,7 +317,7 @@ func (ft *FuncType) Repr() string {
 
 	sb.WriteRune('(')
 	n := 0
-	for _, param := range ft.Params {
+	for _, param := range ft.Args {
 		if param.Indefinite {
 			sb.WriteString("...")
 		} else if param.Optional {
@@ -326,7 +326,7 @@ func (ft *FuncType) Repr() string {
 
 		sb.WriteString(param.Val.Type.Repr())
 
-		if n < len(ft.Params)-1 {
+		if n < len(ft.Args)-1 {
 			sb.WriteString(", ")
 		}
 
@@ -342,18 +342,18 @@ func (ft *FuncType) Repr() string {
 
 func (ft *FuncType) equals(other DataType) bool {
 	if oft, ok := other.(*FuncType); ok {
-		if len(ft.Params) != len(oft.Params) {
+		if len(ft.Args) != len(oft.Args) {
 			return false
 		}
 
 		// Function parameters must be in the same order
-		for i, param := range ft.Params {
-			oparam := oft.Params[i]
+		for i, arg := range ft.Args {
+			oarg := oft.Args[i]
 
 			// Two parameters must either have the same name or have no name and
 			// be in the correct position (as is the case for arguments in the
 			// function data type)
-			if param.Name == oparam.Name || param.Name == "" || oparam.Name == "" {
+			if arg.Name == oarg.Name || arg.Name == "" || oarg.Name == "" {
 				// We don't care about volatility and *value* constancy when
 				// comparing function signatures since both values don't
 				// actually effect what can be passed in and what will be
@@ -361,9 +361,9 @@ func (ft *FuncType) equals(other DataType) bool {
 				// ignored doesn't cause any actual constancy violations since
 				// whatever is passed in will be copied and reference constancy
 				// holds.
-				if !(Equals(param.Val.Type, oparam.Val.Type) &&
-					param.Indefinite == oparam.Indefinite &&
-					param.Optional == oparam.Optional) {
+				if !(Equals(arg.Val.Type, oarg.Val.Type) &&
+					arg.Indefinite == oarg.Indefinite &&
+					arg.Optional == oarg.Optional) {
 					return false
 				}
 			} else {
@@ -386,19 +386,19 @@ func (ft *FuncType) equals(other DataType) bool {
 }
 
 func (ft *FuncType) copyTemplate() DataType {
-	newParams := make([]*FuncParam, len(ft.Params))
+	newArgs := make([]*FuncArg, len(ft.Args))
 
-	for i, param := range ft.Params {
-		newParams[i] = &FuncParam{
-			Val:        param.Val.copyTemplate(),
-			Name:       param.Name,
-			Indefinite: param.Indefinite,
-			Optional:   param.Optional,
+	for i, arg := range ft.Args {
+		newArgs[i] = &FuncArg{
+			Val:        arg.Val.copyTemplate(),
+			Name:       arg.Name,
+			Indefinite: arg.Indefinite,
+			Optional:   arg.Optional,
 		}
 	}
 
 	return &FuncType{
-		Params:     newParams,
+		Args:       newArgs,
 		ReturnType: ft.ReturnType.copyTemplate(),
 		Async:      ft.Async,
 		Boxable:    ft.Boxable,

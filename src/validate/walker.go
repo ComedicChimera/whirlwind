@@ -1,6 +1,8 @@
 package validate
 
 import (
+	"fmt"
+
 	"github.com/ComedicChimera/whirlwind/src/common"
 	"github.com/ComedicChimera/whirlwind/src/logging"
 	"github.com/ComedicChimera/whirlwind/src/syntax"
@@ -103,15 +105,42 @@ func (w *Walker) hasFlag(flag string) bool {
 }
 
 // walkIdList walks a list of identifiers and returns a map of names and
-// positions (for error handling)
-func (w *Walker) walkIdList(idList *syntax.ASTBranch) map[string]*logging.TextPosition {
+// positions (for error handling).  It returns a boolean indicating whether or
+// not the list contains duplicate elements and takes a `nameKind` indicating
+// what kind of identifiers are being walked (eg. fields, arguments, etc.)
+func (w *Walker) walkIdList(idList *syntax.ASTBranch, nameKind string) (map[string]*logging.TextPosition, bool) {
 	names := make(map[string]*logging.TextPosition)
 
 	for i, item := range idList.Content {
 		if i%2 == 0 {
+			name := item.(*syntax.ASTLeaf).Value
+
+			if _, ok := names[name]; ok {
+				w.logFatalDefError(
+					fmt.Sprintf("Multiple %s named `%s`", nameKind, name),
+					logging.LMKName,
+					item.Position(),
+				)
+
+				return nil, false
+			}
+
 			names[item.(*syntax.ASTLeaf).Value] = item.Position()
 		}
 	}
 
-	return names
+	return names, true
+}
+
+// walkRecursiveRepeat walks a repetition that occurs through manual recursion
+// (eg. args_decl).  This function assumes that two nodes => last is recursive
+// and one node => base case.  It also assumes all nodes are branches
+func (w *Walker) walkRecursiveRepeat(nodes []syntax.ASTNode, walkFn func(*syntax.ASTBranch) bool) bool {
+	result := walkFn(nodes[0].(*syntax.ASTBranch))
+
+	if len(nodes) == 2 {
+		return result && w.walkRecursiveRepeat(nodes[1].(*syntax.ASTBranch).Content, walkFn)
+	}
+
+	return result
 }

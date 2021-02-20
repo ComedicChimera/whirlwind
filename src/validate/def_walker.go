@@ -288,19 +288,11 @@ func (w *Walker) walkStructSuffix(suffix *syntax.ASTBranch, name string, fieldIn
 	for _, item := range suffix.Content {
 		if branch, ok := item.(*syntax.ASTBranch); ok {
 			if branch.Name == "struct_member" {
-				if fnames, tv, init, ok := w.walkTypeValues(branch); ok {
+				if fnames, tv, init, ok := w.walkTypeValues(branch, "fields"); ok {
 					// multiple fields can share the same type value and
 					// initializer (for efficiency)
-					for fname, pos := range fnames {
-						if _, ok := structType.Fields[fname]; ok {
-							w.logFatalDefError(
-								fmt.Sprintf("Field `%s` of struct `%s` defined multiple times", fname, name),
-								logging.LMKName,
-								pos,
-							)
-							return nil, false
-						}
-
+					for fname := range fnames {
+						// duplicates names already checked in `w.walkTypeValues`
 						structType.Fields[fname] = tv
 
 						if init != nil {
@@ -346,8 +338,10 @@ func (w *Walker) walkStructSuffix(suffix *syntax.ASTBranch, name string, fieldIn
 // walkTypeValues walks any node that is of the form of a type value (ie.
 // `identifier_list` followed by `type_ext`) and generates a single common type
 // value and a map of names and positions from it.  It also handles `vol` and
-// `const` modifiers and returns any initializers it finds.
-func (w *Walker) walkTypeValues(branch *syntax.ASTBranch) (map[string]*logging.TextPosition, *typing.TypeValue, common.HIRNode, bool) {
+// `const` modifiers and returns any initializers it finds.  The `nameKind`
+// parameter is the type of thing that the names in the type value are (eg.
+// `field` or `argument`) -- this function does check for duplicate identifiers.
+func (w *Walker) walkTypeValues(branch *syntax.ASTBranch, nameKind string) (map[string]*logging.TextPosition, *typing.TypeValue, common.HIRNode, bool) {
 	ctv := &typing.TypeValue{}
 	var names map[string]*logging.TextPosition
 	var initializer common.HIRNode
@@ -357,7 +351,11 @@ func (w *Walker) walkTypeValues(branch *syntax.ASTBranch) (map[string]*logging.T
 		case *syntax.ASTBranch:
 			switch v.Name {
 			case "identifier_list":
-				names = w.walkIdList(v)
+				if _names, ok := w.walkIdList(v, nameKind); ok {
+					names = _names
+				} else {
+					return nil, nil, nil, false
+				}
 			case "type_ext":
 				if dt, ok := w.walkTypeExt(v); ok {
 					ctv.Type = dt
@@ -385,7 +383,7 @@ func (w *Walker) walkFuncDef(branch *syntax.ASTBranch) (*common.HIRFuncDef, bool
 	var name string
 	var namePosition *logging.TextPosition
 	funcType := &typing.FuncType{Boxable: !w.hasFlag("intrinsic")}
-	var argData map[string]*common.HIRArgData
+	var initializers map[string]common.HIRNode
 	var body common.HIRNode
 
 	for _, item := range branch.Content {
@@ -398,8 +396,8 @@ func (w *Walker) walkFuncDef(branch *syntax.ASTBranch) (*common.HIRFuncDef, bool
 				}
 			case "signature":
 				if args, adata, rtType, ok := w.walkSignature(v); ok {
-					funcType.Params = args
-					argData = adata
+					funcType.Args = args
+					initializers = adata
 					funcType.ReturnType = rtType
 				} else {
 					return nil, false
@@ -418,7 +416,20 @@ func (w *Walker) walkFuncDef(branch *syntax.ASTBranch) (*common.HIRFuncDef, bool
 		}
 	}
 
-	// TODO: check for annotations if function has no body
+	if body == nil {
+		if !(w.hasFlag("intrinsic") ||
+			w.hasFlag("external") ||
+			w.hasFlag("dllimport")) {
+
+			w.logFatalDefError(
+				fmt.Sprintf("Function `%s` must have a body", name),
+				logging.LMKUsage,
+				namePosition,
+			)
+
+			return nil, false
+		}
+	}
 
 	sym := &common.Symbol{
 		Name:       name,
@@ -434,19 +445,90 @@ func (w *Walker) walkFuncDef(branch *syntax.ASTBranch) (*common.HIRFuncDef, bool
 	}
 
 	return &common.HIRFuncDef{
-		Sym:         sym,
-		Annotations: w.annotations,
-		ArgData:     argData,
-		Body:        body,
+		Sym:          sym,
+		Annotations:  w.annotations,
+		Initializers: initializers,
+		Body:         body,
 	}, true
 }
 
 // walkSignature walks a `signature` node (used for functions, operator
 // definitions, etc.)
-func (w *Walker) walkSignature(branch *syntax.ASTBranch) ([]*typing.FuncParam,
-	map[string]*common.HIRArgData, typing.DataType, bool) {
+func (w *Walker) walkSignature(branch *syntax.ASTBranch) ([]*typing.FuncArg,
+	map[string]common.HIRNode, typing.DataType, bool) {
 
-	return nil, nil, nil, false
+	var args []*typing.FuncArg
+	initializers := make(map[string]common.HIRNode)
+
+	argsDecl := branch.BranchAt(0)
+	if argsDecl.Len() > 2 {
+		if !w.walkRecursiveRepeat(argsDecl.Content[1:argsDecl.Len()-1], func(argBranch *syntax.ASTBranch) bool {
+			if argBranch.Name == "var_arg_decl" {
+				name := argBranch.LeafAt(1).Value
+				if _, ok := initializers[name]; ok {
+					w.logFatalDefError(
+						fmt.Sprintf("Multiple arguments named `%s`", name),
+						logging.LMKName,
+						argBranch.Content[1].Position(),
+					)
+
+					return false
+				} else {
+					initializers[name] = nil
+				}
+
+				if rt, ok := w.walkTypeExt(argBranch.BranchAt(2)); ok {
+					args = append(args, &typing.FuncArg{
+						Name: name,
+						Val: &typing.TypeValue{
+							Type: rt,
+						},
+						Indefinite: true,
+					})
+
+					return true
+				}
+			} else {
+				// argument duplication checked in `walkTypeValues`
+				if argNames, tv, initializer, ok := w.walkTypeValues(argBranch, "arguments"); ok {
+					if initializer != nil {
+						for name := range argNames {
+							args = append(args, &typing.FuncArg{
+								Name:     name,
+								Optional: true,
+								Val:      tv,
+							})
+
+							initializers[name] = initializer
+						}
+					} else {
+						for name := range argNames {
+							args = append(args, &typing.FuncArg{
+								Name: name,
+								Val:  tv,
+							})
+						}
+					}
+
+					return true
+				}
+			}
+
+			return false
+		}) {
+			return nil, nil, nil, false
+		}
+	}
+
+	if branch.Len() == 2 {
+		if rtType, ok := w.walkTypeLabel(branch.BranchAt(1)); ok {
+			return args, initializers, rtType, true
+		} else {
+			return nil, nil, nil, false
+		}
+	}
+
+	return args, initializers, nil, false
 }
 
 // extractFuncBody extracts the evaluable node (`do_block`, `expr`) of any kind

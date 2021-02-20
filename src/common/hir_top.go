@@ -72,19 +72,13 @@ type HIRFuncDef struct {
 	// Body can be `nil` if there is no function body
 	Body HIRNode
 
-	// ArgData contains all of the special modifiers to the arguments
+	// Initializers contains all of the special modifiers to the arguments
 	// of the function (ie. volatility, initializers)
-	ArgData map[string]*HIRArgData
+	Initializers map[string]HIRNode
 }
 
 func (*HIRFuncDef) Kind() int {
 	return NKFuncDef
-}
-
-// HIRArgData is an auxilliary type used to store special argument information
-type HIRArgData struct {
-	Volatile    bool
-	Initializer HIRNode // can be `nil`
 }
 
 // HIRSpecialDef is used to represent a generic function specialization
@@ -134,7 +128,7 @@ type HIROperDecl struct {
 	Annotations map[string]string
 	Body        HIRNode
 
-	ArgData map[string]*HIRArgData
+	Initializers map[string]HIRNode
 }
 
 func (*HIROperDecl) Kind() int {
