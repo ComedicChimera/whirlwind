@@ -23,6 +23,7 @@ var errorKindStringTable = map[int]string{
 	LMKUsage:    "Usage",
 	LMKMetadata: "Metadata",
 	LMKUser:     "User",
+	LMKInterf:   "Interface",
 }
 
 // displayLogMessage displays a LogMessage.  isError is used to determine the

@@ -50,6 +50,7 @@ const (
 	LMKMetadata        // Error occuring in metadata
 	LMKUsage           // Error ocurring generally (due to some other rule)
 	LMKUser            // Error caused by the user (through `!! warn`)
+	LMKInterf          // Error related some specific interface behavior
 	// TODO: add more as needed
 )
 

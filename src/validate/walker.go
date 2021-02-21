@@ -37,11 +37,20 @@ type Walker struct {
 	// a definition is fatal (ie. not related to an unknown)
 	fatalDefError bool
 
-	// GenericCtx stores a list of the generic wildcard types in use during
+	// genericCtx stores a list of the generic wildcard types in use during
 	// declaration so a generic can be formed after.  This field is also used as
 	// a flag to indicate whether or not a generic is use (if it is not nil,
 	// there is a generic)
 	genericCtx []*typing.WildcardType
+
+	// interfGenericCtx stores a list of the generic wildcard types in use
+	// during an interface declaration, specifically at the top of level of the
+	// declaration. This field is distinct from genericCtx to avoid confusion
+	// between generic methods and generic interfaces.  Note that the compiler
+	// will not check here for `applyGenericContext` meaning that this context
+	// should be moved into regular generic ctx before the the main interface
+	// walking function returns
+	interfGenericCtx []*typing.WildcardType
 
 	// annotations stores the active annotations on any definition
 	annotations map[string]string

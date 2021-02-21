@@ -14,7 +14,7 @@ import (
 // the `TypeParams` slice with all of the encounter type parameters.  It returns
 // `true` if the parsing was successful.  This function does populate the
 // `Unknowns` field and sets `FatalDefError` appropriately.
-func (w *Walker) primeGenericContext(genericTag *syntax.ASTBranch) bool {
+func (w *Walker) primeGenericContext(genericTag *syntax.ASTBranch, isInterf bool) bool {
 	wc := make([]*typing.WildcardType, genericTag.Len()/2)
 	names := make(map[string]struct{})
 
@@ -50,7 +50,12 @@ func (w *Walker) primeGenericContext(genericTag *syntax.ASTBranch) bool {
 		}
 	}
 
-	w.genericCtx = wc
+	if isInterf {
+		w.interfGenericCtx = wc
+	} else {
+		w.genericCtx = wc
+	}
+
 	return true
 }
 

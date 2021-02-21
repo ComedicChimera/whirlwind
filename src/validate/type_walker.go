@@ -200,6 +200,14 @@ func (w *Walker) lookupNamedType(rootName, accessedName string, rootPos, accesse
 					return typeParam, false, true
 				}
 			}
+
+			// also make sure to check `interfGenericCtx` (by same logic as
+			// regular `genericCtx`)
+			for _, typeParam := range w.interfGenericCtx {
+				if typeParam.Name == rootName {
+					return typeParam, false, true
+				}
+			}
 		} else {
 			// the symbol exists in the regular local table
 			if symbol.DefKind != common.DefKindTypeDef {

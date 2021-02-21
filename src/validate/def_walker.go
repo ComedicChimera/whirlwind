@@ -90,6 +90,14 @@ func (w *Walker) walkDefRaw(dast *syntax.ASTBranch) (common.HIRNode, typing.Data
 		if tdnode, ok := w.walkTypeDef(dast); ok {
 			return tdnode, tdnode.Sym.Type, true
 		}
+	case "func_def":
+		if fnnode, ok := w.walkFuncDef(dast, false); ok {
+			return fnnode, fnnode.Sym.Type, true
+		}
+	case "interf_def":
+		if itnode, ok := w.walkInterfDef(dast); ok {
+			return itnode, itnode.Sym.Type, true
+		}
 	}
 
 	return nil, nil, false
@@ -110,7 +118,7 @@ func (w *Walker) walkTypeDef(dast *syntax.ASTBranch) (*common.HIRTypeDef, bool) 
 		case *syntax.ASTBranch:
 			switch v.Name {
 			case "generic_tag":
-				if !w.primeGenericContext(v) {
+				if !w.primeGenericContext(v, false) {
 					return nil, false
 				}
 			case "newtype":
@@ -378,7 +386,7 @@ func (w *Walker) walkTypeValues(branch *syntax.ASTBranch, nameKind string) (map[
 }
 
 // walkFuncDef walks a function or method definition
-func (w *Walker) walkFuncDef(branch *syntax.ASTBranch) (*common.HIRFuncDef, bool) {
+func (w *Walker) walkFuncDef(branch *syntax.ASTBranch, isMethod bool) (*common.HIRFuncDef, bool) {
 	var name string
 	var namePosition *logging.TextPosition
 	funcType := &typing.FuncType{Boxable: !w.hasFlag("intrinsic")}
@@ -390,7 +398,7 @@ func (w *Walker) walkFuncDef(branch *syntax.ASTBranch) (*common.HIRFuncDef, bool
 		case *syntax.ASTBranch:
 			switch v.Name {
 			case "generic_tag":
-				if !w.primeGenericContext(v) {
+				if !w.primeGenericContext(v, false) {
 					return nil, false
 				}
 			case "signature":
@@ -415,7 +423,7 @@ func (w *Walker) walkFuncDef(branch *syntax.ASTBranch) (*common.HIRFuncDef, bool
 		}
 	}
 
-	if body == nil {
+	if !isMethod && body == nil {
 		if !(w.hasFlag("intrinsic") ||
 			w.hasFlag("external") ||
 			w.hasFlag("dllimport")) {
@@ -438,7 +446,7 @@ func (w *Walker) walkFuncDef(branch *syntax.ASTBranch) (*common.HIRFuncDef, bool
 		Constant:   true,
 	}
 
-	if !w.define(sym) {
+	if !isMethod && !w.define(sym) {
 		w.logRepeatDef(name, namePosition, true)
 		return nil, false
 	}
@@ -542,4 +550,136 @@ func (w *Walker) extractFuncBody(branch *syntax.ASTBranch) common.HIRNode {
 
 	// no evaluable node (definition with no body)
 	return nil
+}
+
+// walkInterfDef walks a conceptual interface definition
+func (w *Walker) walkInterfDef(branch *syntax.ASTBranch) (*common.HIRInterfDef, bool) {
+	it := &typing.InterfType{
+		Name:         branch.LeafAt(1).Value,
+		SrcPackageID: w.Context.PackageID,
+		Methods:      make(map[string]*typing.InterfMethod),
+	}
+
+	// only way the third item is an AST branch is if it is a generic tag
+	if genericTag, ok := branch.Content[2].(*syntax.ASTBranch); ok {
+		if !w.primeGenericContext(genericTag, true) {
+			return nil, false
+		}
+	}
+
+	methodNodes, ok := w.walkInterfBody(branch.Last().(*syntax.ASTBranch), it, true)
+	if !ok {
+		return nil, false
+	}
+
+	// interfaces are, for the purposes of definition checking, type definitions
+	sym := &common.Symbol{
+		Name:       it.Name,
+		Type:       it,
+		DefKind:    common.DefKindTypeDef,
+		DeclStatus: w.DeclStatus,
+		Constant:   true,
+	}
+
+	if !w.define(sym) {
+		w.logRepeatDef(sym.Name, branch.Content[1].Position(), true)
+		return nil, false
+	}
+
+	// move the interface generic context into the regular generic context so
+	// that generic interfaces can be properly handled
+	w.genericCtx = w.interfGenericCtx
+	w.interfGenericCtx = nil
+
+	return &common.HIRInterfDef{
+		Sym:     sym,
+		Methods: methodNodes,
+	}, true
+}
+
+// walkInterfBody is used to walk the bodies of both kinds of interfaces (the `interf_body` node)
+func (w *Walker) walkInterfBody(body *syntax.ASTBranch, it *typing.InterfType, conceptual bool) ([]common.HIRNode, bool) {
+	var methodNodes []common.HIRNode
+
+	for _, item := range body.Content {
+		// only node is `interfMember` (methods)
+		if interfMember, ok := item.(*syntax.ASTBranch); ok {
+			var name string
+			var namePosition *logging.TextPosition
+			var node common.HIRNode
+			var dt typing.DataType
+			var methodKind int
+
+			methodBranch := interfMember.BranchAt(0)
+			switch methodBranch.Name {
+			case "func_def":
+				if fnnode, ok := w.walkFuncDef(methodBranch, true); ok {
+					name = fnnode.Sym.Name
+					dt = fnnode.Sym.Type
+					node = fnnode
+
+					// the name of a function is always the second node
+					namePosition = methodBranch.Content[1].Position()
+
+					if conceptual {
+						if fnnode.Body == nil {
+							methodKind = typing.MKAbstract
+						} else {
+							methodKind = typing.MKVirtual
+						}
+					} else if fnnode.Body == nil {
+						w.logFatalDefError(
+							"Type interface may not contain abstract methods",
+							logging.LMKInterf,
+							namePosition,
+						)
+
+						return nil, false
+					}
+
+					methodKind = typing.MKStandard
+				}
+				// TODO: other method types (specializations, etc.)
+			}
+
+			// apply the generic context of any methods should such context
+			// exist (basically a reimplementation of `applyGenericContext` for
+			// methods of an interface; working without a symbol)
+			if w.genericCtx != nil {
+				var gt *typing.GenericType
+				if w.selfType != nil {
+					gt = w.selfType.(*typing.GenericType)
+				} else {
+					gt = &typing.GenericType{
+						TypeParams: w.genericCtx,
+						Template:   dt,
+					}
+				}
+
+				dt = gt
+
+				node = &common.HIRGeneric{
+					Generic:     gt,
+					GenericNode: node,
+				}
+
+				w.genericCtx = nil
+			}
+
+			// methods cannot be duplicated (just create a name error)
+			if _, ok := it.Methods[name]; ok {
+				w.logRepeatDef(name, namePosition, true)
+				return nil, false
+			}
+
+			it.Methods[name] = &typing.InterfMethod{
+				Signature: dt,
+				Kind:      methodKind,
+			}
+
+			methodNodes = append(methodNodes, node)
+		}
+	}
+
+	return methodNodes, true
 }
