@@ -267,8 +267,8 @@ func (s *Solver) CastTo(src, dest DataType) bool {
 				return false
 			}
 
-			for _, variant := range sv.Variants {
-				if dvariant, ok := dat.Variants[variant.Name]; !ok || !Equals(variant, dvariant) {
+			for i, variant := range sv.Variants {
+				if !Equals(variant, dat.Variants[i]) {
 					return false
 				}
 			}

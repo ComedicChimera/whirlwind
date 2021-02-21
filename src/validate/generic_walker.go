@@ -92,13 +92,13 @@ func (w *Walker) applyGenericContext(node common.HIRNode, dt typing.DataType) (c
 	// update algebraic variants of open generic algebraic types
 	if at, ok := dt.(*typing.AlgebraicType); ok {
 		if !at.Closed {
-			for variName := range at.Variants {
+			for i, vari := range at.Variants {
 				// we know the variant exists -- we can just look it up
-				vs, _ := w.Lookup(variName)
+				vs, _ := w.Lookup(vari.Name)
 
 				vs.Type = &typing.GenericAlgebraicVariantType{
 					GenericParent: gt,
-					VariantName:   variName,
+					VariantPos:    i,
 				}
 			}
 		}

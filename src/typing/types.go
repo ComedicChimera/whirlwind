@@ -556,7 +556,7 @@ type AlgebraicType struct {
 	Name         string
 	SrcPackageID uint
 
-	Variants map[string]*AlgebraicVariant
+	Variants []*AlgebraicVariant
 
 	// Closed indicates whether or not this type is closed or open
 	Closed bool
@@ -581,7 +581,7 @@ func (at *AlgebraicType) copyTemplate() DataType {
 		Closed:       at.Closed,
 	}
 
-	newAt.Variants = make(map[string]*AlgebraicVariant)
+	newAt.Variants = make([]*AlgebraicVariant, len(at.Variants))
 	for i, vari := range at.Variants {
 		newAt.Variants[i] = &AlgebraicVariant{
 			Name:   vari.Name,

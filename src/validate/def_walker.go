@@ -192,9 +192,9 @@ func (w *Walker) walkTypeDef(dast *syntax.ASTBranch) (*common.HIRTypeDef, bool) 
 		at.Closed = closedType
 
 		if !closedType {
-			for iname, vari := range at.Variants {
+			for _, vari := range at.Variants {
 				symbol := &common.Symbol{
-					Name:       iname,
+					Name:       vari.Name,
 					Type:       vari,
 					Constant:   true,
 					DefKind:    common.DefKindTypeDef,
@@ -203,7 +203,7 @@ func (w *Walker) walkTypeDef(dast *syntax.ASTBranch) (*common.HIRTypeDef, bool) 
 
 				if !w.define(symbol) {
 					w.logFatalDefError(
-						fmt.Sprintf("Algebraic type `%s` must be marked `closed` as its variant `%s` shares a name with an already-defined symbol", name, iname),
+						fmt.Sprintf("Algebraic type `%s` must be marked `closed` as its variant `%s` shares a name with an already-defined symbol", name, vari.Name),
 						logging.LMKName,
 						namePosition,
 					)
@@ -232,7 +232,6 @@ func (w *Walker) walkAlgebraicSuffix(suffix *syntax.ASTBranch, name string, name
 	algType := &typing.AlgebraicType{
 		Name:         name,
 		SrcPackageID: w.SrcPackage.PackageID,
-		Variants:     make(map[string]*typing.AlgebraicVariant),
 	}
 
 	// set the selfType field
@@ -254,7 +253,7 @@ func (w *Walker) walkAlgebraicSuffix(suffix *syntax.ASTBranch, name string, name
 			}
 		}
 
-		algType.Variants[algVariant.Name] = algVariant
+		algType.Variants = append(algType.Variants, algVariant)
 	}
 
 	// if the selfType is used in the only variant then the type is recursively

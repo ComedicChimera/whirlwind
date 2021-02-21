@@ -315,15 +315,15 @@ type GenericAlgebraicVariantType struct {
 	// OpaqueGenericType -- it doesn't matter.
 	GenericParent DataType
 
-	// VariantName is the name of this variant inside that generic parent.  This
+	// VariantPos is the position of this variant inside that generic parent.  This
 	// is used to access the desired AlgebraicVariant once the algebraic generic has
 	// been created
-	VariantName string
+	VariantPos int
 }
 
 func (gavt *GenericAlgebraicVariantType) equals(other DataType) bool {
 	if ogavt, ok := other.(*GenericAlgebraicVariantType); ok {
-		return gavt.GenericParent.equals(ogavt.GenericParent) && gavt.VariantName == ogavt.VariantName
+		return gavt.GenericParent.equals(ogavt.GenericParent) && gavt.VariantPos == ogavt.VariantPos
 	}
 
 	return false
@@ -339,7 +339,7 @@ func (gavt *GenericAlgebraicVariantType) Repr() string {
 		sb.WriteString(gt.Repr())
 		sb.WriteString("::")
 
-		fullAlgVariName := gt.Template.(*AlgebraicType).Variants[gavt.VariantName].Repr()
+		fullAlgVariName := gt.Template.(*AlgebraicType).Variants[gavt.VariantPos].Repr()
 		sb.WriteString(strings.Split(fullAlgVariName, "::")[1])
 
 		return sb.String()
@@ -351,12 +351,12 @@ func (gavt *GenericAlgebraicVariantType) Repr() string {
 		return getGenericRepr(ogt.EvalType)
 	}
 
-	return fmt.Sprintf("<opaque generic>::%s(...)", gavt.VariantName)
+	return "<opaque generic algebraic variant>"
 }
 
 func (gavt *GenericAlgebraicVariantType) copyTemplate() DataType {
 	return &GenericAlgebraicVariantType{
 		GenericParent: gavt.GenericParent.copyTemplate().(*GenericType),
-		VariantName:   gavt.VariantName,
+		VariantPos:    gavt.VariantPos,
 	}
 }
