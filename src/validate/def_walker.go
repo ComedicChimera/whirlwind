@@ -98,6 +98,14 @@ func (w *Walker) walkDefRaw(dast *syntax.ASTBranch) (common.HIRNode, typing.Data
 		if itnode, ok := w.walkInterfDef(dast); ok {
 			return itnode, itnode.Sym.Type, true
 		}
+	case "interf_bind":
+		if itbind, ok := w.walkInterfBind(dast); ok {
+			// our interf binds are never generic types (in the sense that they
+			// never use `w.applyGenericContext` or have a generic ctx) so we
+			// can just return nil as our data type.  It will also never
+			// correspond to a share opaque symbol => no need for data type
+			return itbind, nil, true
+		}
 	}
 
 	return nil, nil, false
@@ -682,4 +690,106 @@ func (w *Walker) walkInterfBody(body *syntax.ASTBranch, it *typing.InterfType, c
 	}
 
 	return methodNodes, true
+}
+
+// walkInterfBind walks a normal or generic interface binding
+func (w *Walker) walkInterfBind(branch *syntax.ASTBranch) (common.HIRNode, bool) {
+	var it *typing.InterfType
+	var bindDt typing.DataType
+	var methodNodes []common.HIRNode
+
+	implInterfs := make(map[*typing.InterfType]*logging.TextPosition)
+
+	for _, item := range branch.Content {
+		if itembranch, ok := item.(*syntax.ASTBranch); ok {
+			switch itembranch.Name {
+			case "generic_tag":
+				if !w.primeGenericContext(itembranch, true) {
+					return nil, false
+				}
+			case "type":
+				if dt, ok := w.walkTypeLabel(itembranch); ok {
+					// once bindDt is set, all other types must be types to
+					// derive => add them to implInterfs
+					if bindDt == nil {
+						bindDt = dt
+					} else if implIt, ok := typing.InnerType(dt).(*typing.InterfType); ok {
+						implInterfs[implIt] = itembranch.Position()
+					} else {
+						w.logFatalDefError(
+							fmt.Sprintf("Binding may only derive interfaces not `%s`", dt.Repr()),
+							logging.LMKInterf,
+							itembranch.Position(),
+						)
+
+						return nil, false
+					}
+				}
+			case "interf_body":
+				if mnodes, ok := w.walkInterfBody(itembranch, it, false); ok {
+					methodNodes = mnodes
+				} else {
+					return nil, false
+				}
+			}
+		}
+	}
+
+	// typeInterf is the final data type created (once generics are applied)
+	var typeInterf typing.DataType
+
+	// node is our final HIRNode (`HIRInterfBind` or `HIRGenericBind`)
+	var node common.HIRNode
+
+	// create a generic interface for our type interface if necessary
+	if w.interfGenericCtx != nil {
+		// there is no prebuilt generic in our self-type so we can just create a
+		// new generic for the type interface
+		typeInterf = &typing.GenericType{
+			Template:   it,
+			TypeParams: w.interfGenericCtx,
+		}
+	} else {
+		typeInterf = it
+	}
+
+	// create the HIRNode (same for generic and non-generic types)
+	node = &common.HIRInterfBind{
+		Interf: &common.Symbol{
+			Type:       typeInterf,
+			DefKind:    common.DefKindBinding,
+			DeclStatus: w.DeclStatus,
+			Constant:   true,
+		},
+		BoundType: bindDt,
+		Methods:   methodNodes,
+	}
+
+	// create and add the binding
+	binding := &typing.Binding{
+		MatchType:  bindDt,
+		Wildcards:  w.interfGenericCtx,
+		TypeInterf: typeInterf,
+		Exported:   w.DeclStatus == common.DSExported,
+	}
+
+	w.SrcPackage.GlobalBindings.Bindings = append(w.SrcPackage.GlobalBindings.Bindings, binding)
+
+	// clear our interface generic context
+	w.interfGenericCtx = nil
+
+	// check and apply any of our explicit implementations
+	for implInterf, pos := range implInterfs {
+		if w.solver.ImplementsInterf(bindDt, implInterf) {
+			w.solver.Derive(it, implInterf)
+		} else {
+			w.logFatalDefError(
+				fmt.Sprintf("Type interface for `%s` does not fully implement interface `%s`", bindDt.Repr(), implInterf.Repr()),
+				logging.LMKInterf,
+				pos,
+			)
+		}
+	}
+
+	return node, true
 }
