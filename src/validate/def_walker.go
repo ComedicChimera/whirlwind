@@ -704,7 +704,13 @@ func (w *Walker) walkInterfBind(branch *syntax.ASTBranch) (common.HIRNode, bool)
 		if itembranch, ok := item.(*syntax.ASTBranch); ok {
 			switch itembranch.Name {
 			case "generic_tag":
-				if !w.primeGenericContext(itembranch, true) {
+				if w.primeGenericContext(itembranch, true) {
+					// set the wildcard types to immediate bind (for generic
+					// bindings -- during matching)
+					for _, wc := range w.interfGenericCtx {
+						wc.ImmediateBind = true
+					}
+				} else {
 					return nil, false
 				}
 			case "type":
@@ -744,10 +750,22 @@ func (w *Walker) walkInterfBind(branch *syntax.ASTBranch) (common.HIRNode, bool)
 	// create a generic interface for our type interface if necessary
 	if w.interfGenericCtx != nil {
 		// there is no prebuilt generic in our self-type so we can just create a
-		// new generic for the type interface
+		// new generic for the type interface; however, we need to create a copy
+		// of the wildcard types that are not set to immediate bind (otherwise,
+		// our generics will not behave as expected)
+		typeParams := make([]*typing.WildcardType, len(w.interfGenericCtx))
+		for i, wc := range w.interfGenericCtx {
+			typeParams[i] = &typing.WildcardType{
+				Name:          wc.Name,
+				Restrictors:   wc.Restrictors,
+				ImmediateBind: false,
+				// we can ignore the `Value` field here
+			}
+		}
+
 		typeInterf = &typing.GenericType{
 			Template:   it,
-			TypeParams: w.interfGenericCtx,
+			TypeParams: typeParams,
 		}
 	} else {
 		typeInterf = it
