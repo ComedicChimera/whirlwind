@@ -81,7 +81,7 @@ annotated_method = annotation { annotation } func_def ;
 annotation = '#' 'IDENTIFIER' [ 'STRINGLIT' ] 'NEWLINE' ;
 
 (* generic function specialization *)
-special_def = 'special' '<' type_list '>' 'IDENTIFIER' special_func_body ;
+special_def = 'special' [generic_tag] 'IDENTIFIER' '<' type_list '>' special_func_body ;
 special_func_body = do_block | 'INDENT' '=>' expr 'DEDENT' | '=>' expr 'NEWLINE' ;
 
 (* ellipsis is used to designate a block that hasn't been filled in yet *)
