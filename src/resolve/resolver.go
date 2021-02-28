@@ -238,7 +238,7 @@ func (r *Resolver) resolveDef(pkgid uint, def *Definition) (*common.UnknownSymbo
 	// funknown
 	var funknown *common.UnknownSymbol
 	for name, unknown := range def.Unknowns {
-		if _, ok := w.Lookup(name); ok {
+		if _, _, ok := w.Lookup(name); ok {
 			delete(def.Unknowns, name)
 		} else if funknown == nil {
 			funknown = unknown

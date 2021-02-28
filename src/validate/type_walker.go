@@ -188,7 +188,7 @@ func (w *Walker) lookupNamedType(rootName, accessedName string, rootPos, accesse
 
 	// if there is no accessed name, than this just a standard symbol access
 	if accessedName == "" {
-		symbol, ok := w.Lookup(rootName)
+		symbol, fpkg, ok := w.Lookup(rootName)
 
 		// check for generic type parameters (in the generic ctx)
 		if !ok {
@@ -249,8 +249,9 @@ func (w *Walker) lookupNamedType(rootName, accessedName string, rootPos, accesse
 			} else {
 				// otherwise, we mark it as unknown and return
 				w.unknowns[rootName] = &common.UnknownSymbol{
-					Name:     rootName,
-					Position: rootPos,
+					Name:           rootName,
+					Position:       rootPos,
+					ForeignPackage: fpkg,
 				}
 
 				return nil, false, false

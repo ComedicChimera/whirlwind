@@ -106,6 +106,12 @@ func (w *Walker) walkDefRaw(dast *syntax.ASTBranch) (common.HIRNode, typing.Data
 			// correspond to a share opaque symbol => no need for data type
 			return itbind, nil, true
 		}
+	case "special_def":
+		if specNode, ok := w.walkTopLevelFuncSpecial(dast); ok {
+			// special definitions are also never generic types so
+			// `w.applyGenericContext` is never involved
+			return specNode, nil, true
+		}
 	}
 
 	return nil, nil, false
@@ -231,7 +237,7 @@ func (w *Walker) walkTypeDef(dast *syntax.ASTBranch) (*common.HIRTypeDef, bool) 
 		// you can't use `closed` on a type that isn't algebraic
 		w.logFatalDefError(
 			fmt.Sprintf("`closed` property not applicable on type `%s`", dt.Repr()),
-			logging.LMKUsage,
+			logging.LMKDef,
 			dast.Content[0].Position(),
 		)
 		return nil, false
@@ -278,7 +284,7 @@ func (w *Walker) walkAlgebraicSuffix(suffix *syntax.ASTBranch, name string, name
 	if w.selfTypeUsed && len(algType.Variants) == 1 {
 		w.logFatalDefError(
 			fmt.Sprintf("Algebraic type `%s` defined recursively with no base case", name),
-			logging.LMKUsage,
+			logging.LMKDef,
 			namePosition,
 		)
 		return nil, false
@@ -324,7 +330,7 @@ func (w *Walker) walkStructSuffix(suffix *syntax.ASTBranch, name string, fieldIn
 						if typing.Equals(st, structType) {
 							w.logFatalDefError(
 								fmt.Sprintf("Struct `%s` cannot inherit from itself", name),
-								logging.LMKUsage,
+								logging.LMKDef,
 								branch.Position(),
 							)
 							return nil, false
@@ -335,7 +341,7 @@ func (w *Walker) walkStructSuffix(suffix *syntax.ASTBranch, name string, fieldIn
 						// structs can only inherit from other structs
 						w.logFatalDefError(
 							fmt.Sprintf("Struct `%s` must inherit from another struct not `%s`", name, dt.Repr()),
-							logging.LMKUsage,
+							logging.LMKDef,
 							branch.Position(),
 						)
 						return nil, false
@@ -426,6 +432,7 @@ func (w *Walker) walkFuncDef(branch *syntax.ASTBranch, isMethod bool) (*common.H
 				funcType.Async = true
 			case syntax.IDENTIFIER:
 				name = v.Value
+				w.currentDefName = name
 				namePosition = v.Position()
 			}
 		}
@@ -438,7 +445,7 @@ func (w *Walker) walkFuncDef(branch *syntax.ASTBranch, isMethod bool) (*common.H
 
 			w.logFatalDefError(
 				fmt.Sprintf("Function `%s` must have a body", name),
-				logging.LMKUsage,
+				logging.LMKDef,
 				namePosition,
 			)
 
@@ -568,6 +575,9 @@ func (w *Walker) walkInterfDef(branch *syntax.ASTBranch) (*common.HIRInterfDef, 
 		Methods:      make(map[string]*typing.InterfMethod),
 	}
 
+	w.currentDefName = it.Name
+	w.setSelfType(it)
+
 	// only way the third item is an AST branch is if it is a generic tag
 	if genericTag, ok := branch.Content[2].(*syntax.ASTBranch); ok {
 		if !w.primeGenericContext(genericTag, true) {
@@ -646,6 +656,27 @@ func (w *Walker) walkInterfBody(body *syntax.ASTBranch, it *typing.InterfType, c
 					}
 
 					methodKind = typing.MKStandard
+				}
+			case "special_def":
+				if specNode, ok := w.walkFuncSpecial(methodBranch, func(name string, pos *logging.TextPosition) (typing.DataType, bool) {
+					if method, ok := it.Methods[name]; ok {
+						if method.Kind == typing.MKAbstract {
+							w.logFatalDefError(
+								"Unable to define specialization for abstract method",
+								logging.LMKGeneric,
+								pos,
+							)
+							return nil, false
+						}
+
+						return method.Signature, true
+					}
+
+					w.LogUndefined(name, pos)
+					return nil, false
+				}); ok {
+					methodNodes = append(methodNodes, specNode)
+					continue
 				}
 				// TODO: other method types (specializations, etc.)
 			}
@@ -812,13 +843,56 @@ func (w *Walker) walkInterfBind(branch *syntax.ASTBranch) (common.HIRNode, bool)
 	return node, true
 }
 
+// walkTopLevelFuncSpecial walks a function specialization not contained within
+// an interface -- that is one at the top level of the program
+func (w *Walker) walkTopLevelFuncSpecial(branch *syntax.ASTBranch) (common.HIRNode, bool) {
+	return w.walkFuncSpecial(branch, func(name string, pos *logging.TextPosition) (typing.DataType, bool) {
+		sym, fpkg, ok := w.Lookup(name)
+
+		if ok {
+			if sym.DefKind != common.DefKindFuncDef {
+				w.logFatalDefError(
+					"Function specialization may only be applied to generic functions",
+					logging.LMKGeneric,
+					pos,
+				)
+
+				return nil, false
+			}
+		} else {
+			if w.resolving {
+				if w.sharedOpaqueSymbol.SrcPackageID == w.SrcPackage.PackageID && w.sharedOpaqueSymbol.Name == name {
+					// shared opaque symbol can only share things that aren't functions => specialization is invalid
+					w.logFatalDefError(
+						"Function specialization may only be applied to generic functions",
+						logging.LMKGeneric,
+						pos,
+					)
+				} else {
+					w.unknowns[name] = &common.UnknownSymbol{
+						Name:           name,
+						Position:       pos,
+						ForeignPackage: fpkg,
+					}
+				}
+			} else {
+				w.LogUndefined(name, pos)
+			}
+
+			return nil, false
+		}
+
+		return sym.Type, true
+	})
+}
+
 // walkFuncSpecial walks a function specialization and returns the generated
 // node and *typing.GenericSpecialization.  This function can be used for
 // function specializations of both methods and functions.  To this end, it
 // takes a lookup function as an argument that should return the first data type
 // that matches the given name and a flag boolena
 func (w *Walker) walkFuncSpecial(branch *syntax.ASTBranch,
-	lookup func(string) (typing.DataType, bool)) (common.HIRNode, *typing.GenericSpecialization, bool) {
+	lookup func(string, *logging.TextPosition) (typing.DataType, bool)) (common.HIRNode, bool) {
 
 	var gt *typing.GenericType
 	genericSpecial := &typing.GenericSpecialization{}
@@ -834,21 +908,21 @@ func (w *Walker) walkFuncSpecial(branch *syntax.ASTBranch,
 				// parametric specialization parameters and indicate whether or
 				// not this specialization is parametric
 				if !w.primeGenericContext(v, false) {
-					return nil, nil, false
+					return nil, false
 				}
 			case "type_list":
 				if typeList, ok := w.walkTypeList(v); ok {
 					typeListBranch = v
 					genericSpecial.MatchingTypes = typeList
 				} else {
-					return nil, nil, false
+					return nil, false
 				}
 			case "special_func_body":
 				body = (*common.HIRIncomplete)(v)
 			}
 		case *syntax.ASTLeaf:
 			if v.Kind == syntax.IDENTIFIER {
-				if dt, ok := lookup(v.Value); ok {
+				if dt, ok := lookup(v.Value, v.Position()); ok {
 					// only types that are valid here are generic types (no
 					// opaque generic types)
 					if gt, ok = dt.(*typing.GenericType); ok {
@@ -862,19 +936,19 @@ func (w *Walker) walkFuncSpecial(branch *syntax.ASTBranch,
 						// well
 						if _, ok = w.solver.CreateGenericInstance(gt, genericSpecial.MatchingTypes, typeListBranch); !ok {
 							w.fatalDefError = true
-							return nil, nil, false
+							return nil, false
 						}
 
 						gt.Specializations = append(gt.Specializations, genericSpecial)
 					} else {
 						w.logFatalDefError(
 							"Function specialization is only valid on generic functions",
-							logging.LMKUsage,
+							logging.LMKGeneric,
 							v.Position(),
 						)
 					}
 				} else {
-					return nil, nil, false
+					return nil, false
 				}
 			}
 		}
@@ -885,7 +959,7 @@ func (w *Walker) walkFuncSpecial(branch *syntax.ASTBranch,
 			RootGeneric: gt,
 			TypeParams:  genericSpecial.MatchingTypes,
 			Body:        body,
-		}, genericSpecial, true
+		}, true
 	} else {
 		// clear the generic context since we no longer need it as a flag
 		w.genericCtx = nil
@@ -901,6 +975,6 @@ func (w *Walker) walkFuncSpecial(branch *syntax.ASTBranch,
 			TypeParams:          genericSpecial.MatchingTypes,
 			ParametricInstances: &parametricInstanceSlice,
 			Body:                body,
-		}, genericSpecial, true
+		}, true
 	}
 }

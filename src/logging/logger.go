@@ -51,6 +51,8 @@ const (
 	LMKUsage           // Error ocurring generally (due to some other rule)
 	LMKUser            // Error caused by the user (through `!! warn`)
 	LMKInterf          // Error related some specific interface behavior
+	LMKGeneric         // Error related to a generic or generic instance
+	LMKDef             // Error related to a definition in general
 	// TODO: add more as needed
 )
 

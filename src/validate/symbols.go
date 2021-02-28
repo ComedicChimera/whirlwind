@@ -5,30 +5,26 @@ import "github.com/ComedicChimera/whirlwind/src/common"
 // Lookup attempts to find a symbol in the current package or global symbol
 // table. If it succeeds, it returns the symbol it finds.  If it fails, it
 // returns false, and marks it as unknown as necessary.  The position of the
-// symbol will need to updated AFTER this function exits.  Externally visible
-// for use in symbol resolution.
-func (w *Walker) Lookup(name string) (*common.Symbol, bool) {
+// symbol will need to updated AFTER this function exits.  It also returns the
+// the foreign package the symbol was located in (if it was imported via a named
+// symbol import) so that it can be properly reported as unknown.  This return
+// value will be `nil` if it is local to the current package or if the symbol
+// resolved successfully.  Externally visible for use in symbol resolution.
+func (w *Walker) Lookup(name string) (*common.Symbol, *common.WhirlPackage, bool) {
 	if sym, ok := w.SrcPackage.GlobalTable[name]; ok {
-		return sym, true
+		return sym, nil, true
 	}
 
 	if wsi, ok := w.SrcFile.LocalTable[name]; ok {
 		// if the symbol has no name, then it is undefined (accessed via import)
 		if wsi.SymbolRef.Name == "" {
-			if w.unknowns != nil {
-				w.unknowns[name] = &common.UnknownSymbol{
-					Name:           name,
-					ForeignPackage: wsi.SrcPackage,
-				}
-			}
-
-			return nil, false
+			return nil, wsi.SrcPackage, false
 		}
 
-		return wsi.SymbolRef, true
+		return wsi.SymbolRef, nil, true
 	}
 
-	return nil, false
+	return nil, nil, false
 }
 
 // define defines a new symbol in the global namespace of a package (returns false
