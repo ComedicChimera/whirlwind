@@ -30,6 +30,11 @@ type GenericType struct {
 	// separate definitions) can be performed efficiently and so that we can
 	// avoid repeatedly creating generates we already have (memoization).
 	Instances []*GenericInstanceType
+
+	// Specializations stores the specializations for this generic type.  If the
+	// `Template` is a function, then these are function specializations.  If the
+	// function is interface, then these are method specializations.
+	Specializations []*GenericSpecialization
 }
 
 func (gt *GenericType) Repr() string {
@@ -103,6 +108,13 @@ func (gt *GenericType) copyTemplate() DataType {
 	return &GenericType{
 		TypeParams: newTypeParams,
 		Template:   gt.Template.copyTemplate(),
+		// Since a direct copy template on a generic can only occur inside of an
+		// interface, there is no need to copy a new set of instances since all
+		// old instances will recreated when the new generic bodies are
+		// evaluated and the new instances will be created after this call has
+		// already happened. Similarly, specializations do not need to be copied
+		// since they will be regenerated when the generic interface is
+		// evaluated
 	}
 }
 
@@ -359,4 +371,21 @@ func (gavt *GenericAlgebraicVariantType) copyTemplate() DataType {
 		GenericParent: gavt.GenericParent.copyTemplate().(*GenericType),
 		VariantPos:    gavt.VariantPos,
 	}
+}
+
+// GenericSpecialization represents a generic function or method specialization.
+// It is not a data type, rather it is an entry to be stored in a `GenericType`
+// or `OpaqueGenericType`.
+type GenericSpecialization struct {
+	// MatchingTypes stores a list of the type parameters that this
+	// specialization matches.  These can be wildcard types if this
+	// is a parametric specialization
+	MatchingTypes []DataType
+
+	// ParametricInstances is a reference to a shared slice that contains all of
+	// the generic type parameters that this specialization matched so that the
+	// specializations can generic correctly.  This should be updated during
+	// generic evaluation.  If this is not a parametric specialization, then
+	// this field is nil
+	ParametricInstances *[][]DataType
 }

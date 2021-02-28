@@ -3,6 +3,7 @@ package typing
 import (
 	"strings"
 
+	"github.com/ComedicChimera/whirlwind/src/logging"
 	"github.com/ComedicChimera/whirlwind/src/syntax"
 )
 
@@ -82,25 +83,31 @@ func (og *OpaqueGenericType) Repr() string {
 	return og.EvalType.Repr()
 }
 
-// copyTemplate attempts to copy the inner generic if it exists; otherwise, it
-// simply inserts a nil.  All the instances are also copied *and* their
-// OpaqueGeneric references overwritten to point to the copy.  DependsOn and
-// RequiresRef are not.  NOTE: I have no clue when this method would be used.
+// This method should never be used since the only time generics are copied
+// directly is in interfaces (as method) which do not experience opaque symbol
+// resolution.  If this method is called, a fatal error will occur.
 func (og *OpaqueGenericType) copyTemplate() DataType {
-	copy := &OpaqueGenericType{}
+	// COMMENT FOR PREVIOUS IMPL:
+	// copyTemplate attempts to copy the inner generic if it exists; otherwise,
+	// it simply inserts a nil.  All the instances are also copied *and* their
+	// OpaqueGeneric references overwritten to point to the copy.  DependsOn and
+	// RequiresRef are not.  NOTE: I have no clue when this method would be
+	// used. copy := &OpaqueGenericType{}
 
-	if og.EvalType != nil {
-		copy.EvalType = og.EvalType.copyTemplate().(*GenericType)
-	}
+	// if og.EvalType != nil {
+	// 	copy.EvalType = og.EvalType.copyTemplate().(*GenericType)
+	// }
 
-	copy.Instances = make([]*OpaqueGenericInstanceType, len(og.Instances))
-	for i, inst := range og.Instances {
-		instCopy := inst.copyTemplate().(*OpaqueGenericInstanceType)
-		instCopy.OpaqueGeneric = copy
-		copy.Instances[i] = instCopy
-	}
+	// copy.Instances = make([]*OpaqueGenericInstanceType, len(og.Instances))
+	// for i, inst := range og.Instances {
+	// 	instCopy := inst.copyTemplate().(*OpaqueGenericInstanceType)
+	// 	instCopy.OpaqueGeneric = copy
+	// 	copy.Instances[i] = instCopy
+	// }
 
-	return copy
+	// return copy
+	logging.LogFatal("`copyTemplate` called on `OpaqueGeneric`")
+	return nil
 }
 
 // Evaluate takes in a type to act as the evaluated generic, updates the opaque

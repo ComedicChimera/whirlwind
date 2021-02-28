@@ -658,7 +658,7 @@ func (av *AlgebraicVariant) equals(other DataType) bool {
 // to maintain a consistent parent and should never appear in a generic
 // template)
 func (av *AlgebraicVariant) copyTemplate() DataType {
-	logging.LogFatal("`copyTemplate` applied to `AlgebraicVariant`")
+	logging.LogFatal("`copyTemplate` called on `AlgebraicVariant`")
 	return nil
 }
 

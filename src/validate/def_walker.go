@@ -811,3 +811,96 @@ func (w *Walker) walkInterfBind(branch *syntax.ASTBranch) (common.HIRNode, bool)
 
 	return node, true
 }
+
+// walkFuncSpecial walks a function specialization and returns the generated
+// node and *typing.GenericSpecialization.  This function can be used for
+// function specializations of both methods and functions.  To this end, it
+// takes a lookup function as an argument that should return the first data type
+// that matches the given name and a flag boolena
+func (w *Walker) walkFuncSpecial(branch *syntax.ASTBranch,
+	lookup func(string) (typing.DataType, bool)) (common.HIRNode, *typing.GenericSpecialization, bool) {
+
+	var gt *typing.GenericType
+	genericSpecial := &typing.GenericSpecialization{}
+	var typeListBranch *syntax.ASTBranch
+	var body common.HIRNode
+
+	for _, item := range branch.Content {
+		switch v := item.(type) {
+		case *syntax.ASTBranch:
+			switch v.Name {
+			case "generic_tag":
+				// we can just use generic context is a place to store our
+				// parametric specialization parameters and indicate whether or
+				// not this specialization is parametric
+				if !w.primeGenericContext(v, false) {
+					return nil, nil, false
+				}
+			case "type_list":
+				if typeList, ok := w.walkTypeList(v); ok {
+					typeListBranch = v
+					genericSpecial.MatchingTypes = typeList
+				} else {
+					return nil, nil, false
+				}
+			case "special_func_body":
+				body = (*common.HIRIncomplete)(v)
+			}
+		case *syntax.ASTLeaf:
+			if v.Kind == syntax.IDENTIFIER {
+				if dt, ok := lookup(v.Value); ok {
+					// only types that are valid here are generic types (no
+					// opaque generic types)
+					if gt, ok = dt.(*typing.GenericType); ok {
+						// just use the builtin create generic instance method
+						// to check the specialization parameters. We can
+						// actually just leave the instance as pregenerated
+						// since it will be skipped during generic evaluation
+						// (since a specialization exists) and since we know
+						// there is a valid specialization, we know all
+						// instances matching the specialization are valid as
+						// well
+						if _, ok = w.solver.CreateGenericInstance(gt, genericSpecial.MatchingTypes, typeListBranch); !ok {
+							w.fatalDefError = true
+							return nil, nil, false
+						}
+
+						gt.Specializations = append(gt.Specializations, genericSpecial)
+					} else {
+						w.logFatalDefError(
+							"Function specialization is only valid on generic functions",
+							logging.LMKUsage,
+							v.Position(),
+						)
+					}
+				} else {
+					return nil, nil, false
+				}
+			}
+		}
+	}
+
+	if w.genericCtx == nil {
+		return &common.HIRSpecialDef{
+			RootGeneric: gt,
+			TypeParams:  genericSpecial.MatchingTypes,
+			Body:        body,
+		}, genericSpecial, true
+	} else {
+		// clear the generic context since we no longer need it as a flag
+		w.genericCtx = nil
+
+		// set up the shared slice that both the typing.GenericSpecialization
+		// and the common.HIRParametricSpecialDef will share.  It can just
+		// be `nil` for now.
+		var parametricInstanceSlice [][]typing.DataType
+
+		genericSpecial.ParametricInstances = &parametricInstanceSlice
+		return &common.HIRParametricSpecialDef{
+			RootGeneric:         gt,
+			TypeParams:          genericSpecial.MatchingTypes,
+			ParametricInstances: &parametricInstanceSlice,
+			Body:                body,
+		}, genericSpecial, true
+	}
+}

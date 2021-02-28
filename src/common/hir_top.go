@@ -32,6 +32,7 @@ const (
 	NKVarDecl
 	NKGeneric
 	NKSpecialDef
+	NKParametricSpecialDef
 	NKOperDecl // operator overload
 	NKBlockStmt
 	NKSimpleStmt
@@ -81,18 +82,6 @@ func (*HIRFuncDef) Kind() int {
 	return NKFuncDef
 }
 
-// HIRSpecialDef is used to represent a generic function specialization
-type HIRSpecialDef struct {
-	RootGeneric *typing.GenericType
-	TypeParams  []typing.DataType
-
-	Body HIRNode
-}
-
-func (*HIRSpecialDef) Kind() int {
-	return NKSpecialDef
-}
-
 // HIRGeneric is an enclosing node wrapping any generic definition
 type HIRGeneric struct {
 	Generic     *typing.GenericType
@@ -101,6 +90,40 @@ type HIRGeneric struct {
 
 func (*HIRGeneric) Kind() int {
 	return NKGeneric
+}
+
+// HIRSpecialDef is used to represent a generic specialization
+type HIRSpecialDef struct {
+	// RootGeneric can either be a function or interface depending on if this is
+	// a function or method specialization
+	RootGeneric *typing.GenericType
+
+	TypeParams []typing.DataType
+	Body       HIRNode
+}
+
+func (*HIRSpecialDef) Kind() int {
+	return NKSpecialDef
+}
+
+// HIRParametricSpecialDef represents a parametric generic specialization
+type HIRParametricSpecialDef struct {
+	// RootGeneric can either be a function or interface depending on if this is
+	// a function or method specialization
+	RootGeneric *typing.GenericType
+
+	TypeParams []typing.DataType
+	Body       HIRNode
+
+	// ParametricInstances is a shared slice of all the type parameters that
+	// matched this specialization so that all necessary instances can be
+	// generated.  The corresponding `typing.GenericSpecialization` has the
+	// other reference
+	ParametricInstances *[][]typing.DataType
+}
+
+func (*HIRParametricSpecialDef) Kind() int {
+	return NKParametricSpecialDef
 }
 
 // HIRInterfBind represents an interface binding (generic bindings are

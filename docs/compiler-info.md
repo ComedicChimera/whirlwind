@@ -44,6 +44,27 @@ performed at this stage.  The output from this stage should be a fully,
 semantically-valid HIR of the source.  The majority of analysis takes place in
 this stage.
 
+Validation is itself broken into three stages:
+
+#### 1 - Standard Validation
+
+The predicates and blocks of all non-generic definitions are validated based on
+all non-memory related metrics (type checking, symbol lookups, etc.)
+
+#### 2 - Generic Evaluation
+
+The predicates and blocks of all generic definitions pass through standard
+validation once for every instance generated -- this ensures complete type
+correctness. All specializations are also evaluated but only after their
+generics have been generated. This process is repeated until all instances have
+been resolved.
+#### 3 - Memory Analysis
+
+All predicates and blocks of non-generic definitions and all instances and
+specializations of generics are put through memory analysis.  This occurs after
+generic evaluation so that all blocks have already been generated.  Note that
+the previous stages should include relevant positional data for this stage.
+
 ### Stage 4 - Optimization
 
 The HIR is transformed using a number of standard transformations to produce a
@@ -75,7 +96,7 @@ This section describes the layout of packages (ie. where to find what)
 | resolve | Responsible for symbol resolution and package assembly (stage #2) |
 | syntax | Scans and parses files to produce syntactically valid ASTs (stage #1) |
 | typing | Defines the type system and facilitates type checking (stage #3) |
-| walk | Converts an AST into a semantically-valid, unoptimized HIR tree  (stage #3) |
+| validate | Converts an AST into a semantically-valid, unoptimized HIR tree  (stage #3) |
 
 ## <a name="hir-optim"> HIR Optimizations
 
