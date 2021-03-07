@@ -432,8 +432,13 @@ func (w *Walker) walkFuncDef(branch *syntax.ASTBranch, isMethod bool) (*common.H
 				funcType.Async = true
 			case syntax.IDENTIFIER:
 				name = v.Value
-				w.currentDefName = name
 				namePosition = v.Position()
+
+				// only set current def name if we are not in a method;
+				// otherwise, we will override the interface definition
+				if !isMethod {
+					w.currentDefName = name
+				}
 			}
 		}
 	}
@@ -653,9 +658,9 @@ func (w *Walker) walkInterfBody(body *syntax.ASTBranch, it *typing.InterfType, c
 						)
 
 						return nil, false
+					} else {
+						methodKind = typing.MKStandard
 					}
-
-					methodKind = typing.MKStandard
 				}
 			case "special_def":
 				if specNode, ok := w.walkSpecial(methodBranch, func(name string, pos *logging.TextPosition) (typing.DataType, bool) {
@@ -725,7 +730,11 @@ func (w *Walker) walkInterfBody(body *syntax.ASTBranch, it *typing.InterfType, c
 
 // walkInterfBind walks a normal or generic interface binding
 func (w *Walker) walkInterfBind(branch *syntax.ASTBranch) (common.HIRNode, bool) {
-	var it *typing.InterfType
+	it := &typing.InterfType{
+		// Bindings have no name
+		Methods:      make(map[string]*typing.InterfMethod),
+		SrcPackageID: w.SrcPackage.PackageID,
+	}
 	var bindDt typing.DataType
 	var methodNodes []common.HIRNode
 

@@ -106,6 +106,12 @@ func (w *Walker) walkTypeLabelCore(typeCore *syntax.ASTBranch) (typing.DataType,
 		switch valueTypeCore.Name {
 		case "prim_type":
 			dt = primitiveTypeTable[valueTypeCore.LeafAt(0).Kind]
+		case "func_type":
+			if ft, ok := w.walkFuncType(valueTypeCore); ok {
+				dt = ft
+			} else {
+				return nil, false, false
+			}
 		}
 	case "named_type":
 		return w.walkNamedType(typeCore)
@@ -115,7 +121,6 @@ func (w *Walker) walkTypeLabelCore(typeCore *syntax.ASTBranch) (typing.DataType,
 		} else {
 			return nil, false, false
 		}
-
 	}
 
 	return dt, false, true
@@ -393,4 +398,53 @@ func (w *Walker) walkRefType(branch *syntax.ASTBranch) (typing.DataType, bool) {
 	}
 
 	return nil, false
+}
+
+// walkFuncType walks a function type label
+func (w *Walker) walkFuncType(branch *syntax.ASTBranch) (typing.DataType, bool) {
+	ft := &typing.FuncType{
+		Async:   branch.LeafAt(0).Kind == syntax.ASYNC,
+		Boxable: true,
+		Boxed:   true,
+	}
+
+	for _, item := range branch.Content {
+		if itembranch, ok := item.(*syntax.ASTBranch); ok {
+			// only two options are `func_type_args` and `type_list`
+			if itembranch.Name == "func_type_args" {
+				if !w.walkRecursiveRepeat(itembranch.Content, func(argbranch *syntax.ASTBranch) bool {
+					// both branches can be walked the same way
+					if adt, ok := w.walkTypeLabel(argbranch.Last().(*syntax.ASTBranch)); ok {
+						ft.Args = append(ft.Args, &typing.FuncArg{
+							Val: &typing.TypeValue{
+								Type: adt,
+							},
+							// has to be a regular arg to be optional and have a
+							// length of 2 (b/c `~type` is for optional, `type`
+							// is for regular)
+							Optional:   argbranch.Name == "func_type_arg" && argbranch.Len() == 2,
+							Indefinite: argbranch.Name == "func_type_var_arg",
+						})
+
+						return true
+					}
+
+					return false
+				}) {
+					return nil, false
+				}
+			} else if typeList, ok := w.walkTypeList(itembranch); ok {
+				// just a single return value
+				if len(typeList) == 1 {
+					ft.ReturnType = typeList[0]
+				} else /* tuple of return values */ {
+					ft.ReturnType = (typing.TupleType)(typeList)
+				}
+			} else {
+				return nil, false
+			}
+		}
+	}
+
+	return ft, true
 }

@@ -148,7 +148,7 @@ func (w *Walker) walkRecursiveRepeat(nodes []syntax.ASTNode, walkFn func(*syntax
 	result := walkFn(nodes[0].(*syntax.ASTBranch))
 
 	if len(nodes) == 2 {
-		return result && w.walkRecursiveRepeat(nodes[1].(*syntax.ASTBranch).Content, walkFn)
+		return result && w.walkRecursiveRepeat(nodes[1].(*syntax.ASTBranch).BranchAt(1).Content, walkFn)
 	}
 
 	return result
