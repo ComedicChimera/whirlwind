@@ -939,6 +939,18 @@ func (w *Walker) walkFuncSpecial(branch *syntax.ASTBranch,
 							return nil, false
 						}
 
+						for _, spec := range gt.Specializations {
+							if spec.Match(genericSpecial) {
+								// duplicate/conflicting specialization
+								w.logFatalDefError(
+									"Unable to define multiple specializations with for same type parameters",
+									logging.LMKGeneric,
+									typeListBranch.Position(),
+								)
+								return nil, false
+							}
+						}
+
 						gt.Specializations = append(gt.Specializations, genericSpecial)
 					} else {
 						w.logFatalDefError(

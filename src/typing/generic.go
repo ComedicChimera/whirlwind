@@ -389,3 +389,15 @@ type GenericSpecialization struct {
 	// this field is nil
 	ParametricInstances *[][]DataType
 }
+
+// Match checks if two specializations have the same or equivalent matching
+// parameters (to detect conflicts)
+func (gs *GenericSpecialization) Match(ogs *GenericSpecialization) bool {
+	for i, mt := range gs.MatchingTypes {
+		if !Equals(ogs.MatchingTypes[i], mt) {
+			return false
+		}
+	}
+
+	return true
+}

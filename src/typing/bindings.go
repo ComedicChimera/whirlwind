@@ -124,6 +124,19 @@ func (s *Solver) Derive(it, deriving *InterfType) {
 				// MKVirtual in parent, override in derived
 				imethod.Kind = MKOverride
 			}
+
+			// migrate/derive specializations
+			if igt, ok := imethod.Signature.(*GenericType); ok {
+				gt := method.Signature.(*GenericType)
+
+				for _, spec := range gt.Specializations {
+					for _, ispec := range igt.Specializations {
+						if !spec.Match(ispec) {
+							igt.Specializations = append(igt.Specializations, ispec)
+						}
+					}
+				}
+			}
 		} else if method.Kind == MKVirtual {
 			it.Methods[name] = method
 		}

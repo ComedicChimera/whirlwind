@@ -174,7 +174,7 @@ make_expr = 'make' region_spec ['const'] alloc_param ;
 new_expr = 'new' region_spec ['const'] col_alloc_param ;
 region_spec = 'in' '[' expr ']' | 'local' | 'global' ;
 alloc_param = type | '(' type '*' expr ')' | 'IDENTIFIER' {'::' 'IDENTIFIER'} '{' [init_list] '}';
-col_alloc_param = named_type [array_builder] | array_builder | list_builder | dict_builder ;
+col_alloc_param = named_type [block_builder] | block_builder | list_builder | dict_builder ;
 
 trailer = '.' ( 'IDENTIFIER' | 'INTLIT' )
   | '[' expr [slice_suffix] ']'
@@ -188,13 +188,14 @@ args_list = arg {',' arg} ;
 arg = expr ['=' expr] ;
 
 atom = 'INTLIT' | 'STRINGLIT' | 'FLOATLIT' | 'BOOLLIT' | 'RUNELIT' 
-  | vector_builder | tupled_expr | 'IDENTIFIER' | 'null' ;
+  | vector_builder | tupled_expr | array_builder | 'IDENTIFIER' | 'null' ;
 
-array_builder = '{' seq_contents '}' ;
+array_builder = '{' expr_list '}' ;
+block_builder = '{' seq_contents '}' ;
 list_builder = '[' seq_contents ']' ;
 seq_contents = expr ({',' expr} | [comp_suffix]) ;
 dict_builder = '{' expr ':' expr ({',' expr ':' expr} | [comp_suffix]) '}' ;
-vector_builder = '<' ( expr ':' 'INTLIT' | '{' expr_list '}' ) '>' ;
+vector_builder = '<' expr [':' 'INTLIT'] '>' ;
 tupled_expr = '(' expr {',' expr} ')' ;
 
 (* type constructions *)
