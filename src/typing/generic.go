@@ -31,9 +31,7 @@ type GenericType struct {
 	// avoid repeatedly creating generates we already have (memoization).
 	Instances []*GenericInstanceType
 
-	// Specializations stores the specializations for this generic type.  If the
-	// `Template` is a function, then these are function specializations.  If the
-	// function is interface, then these are method specializations.
+	// Specializations stores the specializations for this generic type
 	Specializations []*GenericSpecialization
 }
 

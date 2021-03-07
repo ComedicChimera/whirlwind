@@ -94,12 +94,9 @@ func (*HIRGeneric) Kind() int {
 
 // HIRSpecialDef is used to represent a generic specialization
 type HIRSpecialDef struct {
-	// RootGeneric can either be a function or interface depending on if this is
-	// a function or method specialization
 	RootGeneric *typing.GenericType
-
-	TypeParams []typing.DataType
-	Body       HIRNode
+	TypeParams  []typing.DataType
+	Body        HIRNode
 }
 
 func (*HIRSpecialDef) Kind() int {
@@ -108,12 +105,9 @@ func (*HIRSpecialDef) Kind() int {
 
 // HIRParametricSpecialDef represents a parametric generic specialization
 type HIRParametricSpecialDef struct {
-	// RootGeneric can either be a function or interface depending on if this is
-	// a function or method specialization
 	RootGeneric *typing.GenericType
-
-	TypeParams []typing.DataType
-	Body       HIRNode
+	TypeParams  []typing.DataType
+	Body        HIRNode
 
 	// ParametricInstances is a shared slice of all the type parameters that
 	// matched this specialization so that all necessary instances can be

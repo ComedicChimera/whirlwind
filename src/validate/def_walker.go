@@ -107,7 +107,7 @@ func (w *Walker) walkDefRaw(dast *syntax.ASTBranch) (common.HIRNode, typing.Data
 			return itbind, nil, true
 		}
 	case "special_def":
-		if specNode, ok := w.walkTopLevelFuncSpecial(dast); ok {
+		if specNode, ok := w.walkTopLevelSpecial(dast); ok {
 			// special definitions are also never generic types so
 			// `w.applyGenericContext` is never involved
 			return specNode, nil, true
@@ -658,7 +658,7 @@ func (w *Walker) walkInterfBody(body *syntax.ASTBranch, it *typing.InterfType, c
 					methodKind = typing.MKStandard
 				}
 			case "special_def":
-				if specNode, ok := w.walkFuncSpecial(methodBranch, func(name string, pos *logging.TextPosition) (typing.DataType, bool) {
+				if specNode, ok := w.walkSpecial(methodBranch, func(name string, pos *logging.TextPosition) (typing.DataType, bool) {
 					if method, ok := it.Methods[name]; ok {
 						if method.Kind == typing.MKAbstract {
 							w.logFatalDefError(
@@ -843,10 +843,10 @@ func (w *Walker) walkInterfBind(branch *syntax.ASTBranch) (common.HIRNode, bool)
 	return node, true
 }
 
-// walkTopLevelFuncSpecial walks a function specialization not contained within
+// walkTopLevelSpecial walks a specialization not contained within
 // an interface -- that is one at the top level of the program
-func (w *Walker) walkTopLevelFuncSpecial(branch *syntax.ASTBranch) (common.HIRNode, bool) {
-	return w.walkFuncSpecial(branch, func(name string, pos *logging.TextPosition) (typing.DataType, bool) {
+func (w *Walker) walkTopLevelSpecial(branch *syntax.ASTBranch) (common.HIRNode, bool) {
+	return w.walkSpecial(branch, func(name string, pos *logging.TextPosition) (typing.DataType, bool) {
 		sym, fpkg, ok := w.Lookup(name)
 
 		if ok {
@@ -886,12 +886,11 @@ func (w *Walker) walkTopLevelFuncSpecial(branch *syntax.ASTBranch) (common.HIRNo
 	})
 }
 
-// walkFuncSpecial walks a function specialization and returns the generated
-// node and *typing.GenericSpecialization.  This function can be used for
-// function specializations of both methods and functions.  To this end, it
-// takes a lookup function as an argument that should return the first data type
-// that matches the given name and a flag boolena
-func (w *Walker) walkFuncSpecial(branch *syntax.ASTBranch,
+// walkSpecial walks a function or method specialization and returns the
+// generated node and *typing.GenericSpecialization.  To this end, it takes a
+// lookup function as an argument that should return the first data type that
+// matches the given name and a flag boolean
+func (w *Walker) walkSpecial(branch *syntax.ASTBranch,
 	lookup func(string, *logging.TextPosition) (typing.DataType, bool)) (common.HIRNode, bool) {
 
 	var gt *typing.GenericType
