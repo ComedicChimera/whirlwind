@@ -57,7 +57,7 @@ func (s *Solver) GetBindings(br *BindingRegistry, dt DataType) []*InterfType {
 
 				// should always succeed if the binding was created properly
 				gi, _ := s.CreateGenericInstance(v, typeValues, nil)
-				matches = append(matches, gi.(*InterfType))
+				matches = append(matches, gi.(*GenericInstanceType).MemoizedGenerate.(*InterfType))
 			}
 		}
 	}

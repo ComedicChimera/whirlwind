@@ -442,12 +442,17 @@ func (st *StructType) copyTemplate() DataType {
 		newFields[name] = field.copyTemplate()
 	}
 
+	var newInherit *StructType
+	if st.Inherit != nil {
+		newInherit = st.Inherit.copyTemplate().(*StructType)
+	}
+
 	return &StructType{
 		Name:         st.Name,
 		SrcPackageID: st.SrcPackageID,
 		Fields:       newFields,
 		Packed:       st.Packed,
-		Inherit:      st.Inherit.copyTemplate().(*StructType),
+		Inherit:      newInherit,
 	}
 }
 

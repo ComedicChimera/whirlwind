@@ -553,9 +553,10 @@ func (w *Walker) walkSignature(branch *syntax.ASTBranch) ([]*typing.FuncArg,
 		} else {
 			return nil, nil, nil, false
 		}
+	} else /* branch.Len() == 1 */ {
+		// no arg errors and no return value => rt value of `nothing`
+		return args, initializers, &typing.PrimitiveType{PrimKind: typing.PrimKindUnit, PrimSpec: 0}, true
 	}
-
-	return args, initializers, nil, false
 }
 
 // extractFuncBody extracts the evaluable node (`do_block`, `expr`) of any kind
@@ -581,7 +582,6 @@ func (w *Walker) walkInterfDef(branch *syntax.ASTBranch) (*common.HIRInterfDef, 
 	}
 
 	w.currentDefName = it.Name
-	w.setSelfType(it)
 
 	// only way the third item is an AST branch is if it is a generic tag
 	if genericTag, ok := branch.Content[2].(*syntax.ASTBranch); ok {
@@ -589,6 +589,8 @@ func (w *Walker) walkInterfDef(branch *syntax.ASTBranch) (*common.HIRInterfDef, 
 			return nil, false
 		}
 	}
+
+	w.setSelfType(it)
 
 	methodNodes, ok := w.walkInterfBody(branch.Last().(*syntax.ASTBranch), it, true)
 	if !ok {
@@ -618,114 +620,6 @@ func (w *Walker) walkInterfDef(branch *syntax.ASTBranch) (*common.HIRInterfDef, 
 		Sym:     sym,
 		Methods: methodNodes,
 	}, true
-}
-
-// walkInterfBody is used to walk the bodies of both kinds of interfaces (the `interf_body` node)
-func (w *Walker) walkInterfBody(body *syntax.ASTBranch, it *typing.InterfType, conceptual bool) ([]common.HIRNode, bool) {
-	var methodNodes []common.HIRNode
-
-	for _, item := range body.Content {
-		// only node is `interfMember` (methods)
-		if interfMember, ok := item.(*syntax.ASTBranch); ok {
-			var name string
-			var namePosition *logging.TextPosition
-			var node common.HIRNode
-			var dt typing.DataType
-			var methodKind int
-
-			methodBranch := interfMember.BranchAt(0)
-			switch methodBranch.Name {
-			case "func_def":
-				if fnnode, ok := w.walkFuncDef(methodBranch, true); ok {
-					name = fnnode.Sym.Name
-					dt = fnnode.Sym.Type
-					node = fnnode
-
-					// the name of a function is always the second node
-					namePosition = methodBranch.Content[1].Position()
-
-					if conceptual {
-						if fnnode.Body == nil {
-							methodKind = typing.MKAbstract
-						} else {
-							methodKind = typing.MKVirtual
-						}
-					} else if fnnode.Body == nil {
-						w.logFatalDefError(
-							"Type interface may not contain abstract methods",
-							logging.LMKInterf,
-							namePosition,
-						)
-
-						return nil, false
-					} else {
-						methodKind = typing.MKStandard
-					}
-				}
-			case "special_def":
-				if specNode, ok := w.walkSpecial(methodBranch, func(name string, pos *logging.TextPosition) (typing.DataType, bool) {
-					if method, ok := it.Methods[name]; ok {
-						if method.Kind == typing.MKAbstract {
-							w.logFatalDefError(
-								"Unable to define specialization for abstract method",
-								logging.LMKGeneric,
-								pos,
-							)
-							return nil, false
-						}
-
-						return method.Signature, true
-					}
-
-					w.LogUndefined(name, pos)
-					return nil, false
-				}); ok {
-					methodNodes = append(methodNodes, specNode)
-					continue
-				}
-				// TODO: other method types (specializations, etc.)
-			}
-
-			// apply the generic context of any methods should such context
-			// exist (basically a reimplementation of `applyGenericContext` for
-			// methods of an interface; working without a symbol)
-			if w.genericCtx != nil {
-				var gt *typing.GenericType
-				if w.selfType != nil {
-					gt = w.selfType.(*typing.GenericType)
-				} else {
-					gt = &typing.GenericType{
-						TypeParams: w.genericCtx,
-						Template:   dt,
-					}
-				}
-
-				dt = gt
-
-				node = &common.HIRGeneric{
-					Generic:     gt,
-					GenericNode: node,
-				}
-
-				w.genericCtx = nil
-			}
-
-			// methods cannot be duplicated (just create a name error)
-			if _, ok := it.Methods[name]; ok {
-				w.logRepeatDef(name, namePosition, true)
-				return nil, false
-			}
-
-			it.Methods[name] = &typing.InterfMethod{
-				Signature: dt,
-				Kind:      methodKind,
-			}
-
-			methodNodes = append(methodNodes, node)
-		}
-	}
-
-	return methodNodes, true
 }
 
 // walkInterfBind walks a normal or generic interface binding
@@ -770,6 +664,8 @@ func (w *Walker) walkInterfBind(branch *syntax.ASTBranch) (common.HIRNode, bool)
 
 						return nil, false
 					}
+				} else {
+					return nil, false
 				}
 			case "interf_body":
 				if mnodes, ok := w.walkInterfBody(itembranch, it, false); ok {
@@ -850,6 +746,114 @@ func (w *Walker) walkInterfBind(branch *syntax.ASTBranch) (common.HIRNode, bool)
 	}
 
 	return node, true
+}
+
+// walkInterfBody is used to walk the bodies of both kinds of interfaces (the `interf_body` node)
+func (w *Walker) walkInterfBody(body *syntax.ASTBranch, it *typing.InterfType, conceptual bool) ([]common.HIRNode, bool) {
+	var methodNodes []common.HIRNode
+
+	for _, item := range body.Content {
+		// only node is `interfMember` (methods)
+		if interfMember, ok := item.(*syntax.ASTBranch); ok {
+			var name string
+			var namePosition *logging.TextPosition
+			var node common.HIRNode
+			var dt typing.DataType
+			var methodKind int
+
+			methodBranch := interfMember.BranchAt(0)
+			switch methodBranch.Name {
+			case "func_def":
+				if fnnode, ok := w.walkFuncDef(methodBranch, true); ok {
+					name = fnnode.Sym.Name
+					dt = fnnode.Sym.Type
+					node = fnnode
+
+					// the name of a function is always the second node
+					namePosition = methodBranch.Content[1].Position()
+
+					if conceptual {
+						if fnnode.Body == nil {
+							methodKind = typing.MKAbstract
+						} else {
+							methodKind = typing.MKVirtual
+						}
+					} else if fnnode.Body == nil {
+						w.logFatalDefError(
+							"Type interface may not contain abstract methods",
+							logging.LMKInterf,
+							namePosition,
+						)
+
+						return nil, false
+					} else {
+						methodKind = typing.MKStandard
+					}
+				} else {
+					return nil, false
+				}
+			case "special_def":
+				if specNode, ok := w.walkSpecial(methodBranch, func(name string, pos *logging.TextPosition) (typing.DataType, bool) {
+					if method, ok := it.Methods[name]; ok {
+						if method.Kind == typing.MKAbstract {
+							w.logFatalDefError(
+								"Unable to define specialization for abstract method",
+								logging.LMKGeneric,
+								pos,
+							)
+							return nil, false
+						}
+
+						return method.Signature, true
+					}
+
+					w.LogUndefined(name, pos)
+					return nil, false
+				}); ok {
+					methodNodes = append(methodNodes, specNode)
+					continue
+				} else {
+					return nil, false
+				}
+				// TODO: other method types (specializations, etc.)
+			}
+
+			// apply the generic context of any methods should such context
+			// exist (basically a reimplementation of `applyGenericContext` for
+			// methods of an interface; working without a symbol)
+			if w.genericCtx != nil {
+				// selfType is never valid a generic here
+				gt := &typing.GenericType{
+					TypeParams: w.genericCtx,
+					Template:   dt,
+				}
+
+				dt = gt
+
+				node = &common.HIRGeneric{
+					Generic:     gt,
+					GenericNode: node,
+				}
+
+				w.genericCtx = nil
+			}
+
+			// methods cannot be duplicated (just create a name error)
+			if _, ok := it.Methods[name]; ok {
+				w.logRepeatDef(name, namePosition, true)
+				return nil, false
+			}
+
+			it.Methods[name] = &typing.InterfMethod{
+				Signature: dt,
+				Kind:      methodKind,
+			}
+
+			methodNodes = append(methodNodes, node)
+		}
+	}
+
+	return methodNodes, true
 }
 
 // walkTopLevelSpecial walks a specialization not contained within

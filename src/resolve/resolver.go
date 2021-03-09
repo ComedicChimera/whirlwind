@@ -35,6 +35,10 @@ import (
 type Resolver struct {
 	Assemblers map[uint]*PAssembler
 
+	// depGraph stores the dependency graph for the resolver so that it can
+	// lookup known symbols
+	depGraph map[uint]*common.WhirlPackage
+
 	// sharedOpaqueSymbol stores a common opaque symbol reference to be given to
 	// all package assemblers to share with all of their walkers.  It used
 	// during cyclic dependency resolution.
@@ -42,9 +46,10 @@ type Resolver struct {
 }
 
 // NewResolver creates a new resolver for the given group of packages
-func NewResolver(pkgs []*common.WhirlPackage) *Resolver {
+func NewResolver(pkgs []*common.WhirlPackage, depG map[uint]*common.WhirlPackage) *Resolver {
 	r := &Resolver{
 		Assemblers:         make(map[uint]*PAssembler),
+		depGraph:           depG,
 		sharedOpaqueSymbol: &common.OpaqueSymbol{},
 	}
 
@@ -90,7 +95,7 @@ func (r *Resolver) resolveKnownImports() bool {
 			// we don't consider an import known if it is in our resolution unit
 			if _, ok := r.Assemblers[pkgid]; !ok {
 				for name, sref := range wimport.ImportedSymbols {
-					if !r.resolveSymImport(pkgid, name, sref) {
+					if !r.resolveKnownSymImport(pkgid, name, sref) {
 						// log errors on all attempts to import this symbol explicitly
 						for _, wfile := range pa.PackageRef.Files {
 							if wsi, ok := wfile.LocalTable[name]; ok && wsi.SrcPackage.PackageID == pkgid {
@@ -108,11 +113,14 @@ func (r *Resolver) resolveKnownImports() bool {
 	return allresolved
 }
 
-// resolveSymImport attempts to resolve an explicitly-imported symbol from
-// another package with a given symbol reference. This function does not log an
-// error if the symbol does not resolve.
-func (r *Resolver) resolveSymImport(pkgid uint, name string, sref *common.Symbol) bool {
-	if sym, ok := r.Assemblers[pkgid].PackageRef.ImportFromNamespace(name); ok {
+// resolveKnownSymImport attempts to resolve an explicitly-imported symbol from
+// another package not in the current resolution unit with a given symbol
+// reference. This function does not log an error if the symbol does not
+// resolve.
+func (r *Resolver) resolveKnownSymImport(pkgid uint, name string, sref *common.Symbol) bool {
+	// import from the depGraph since any packages that is not in the current
+	// resolution unit will be here (already processed)
+	if sym, ok := r.depGraph[pkgid].ImportFromNamespace(name); ok {
 		ds := sref.DeclStatus
 		*sref = *sym
 		sref.DeclStatus = ds

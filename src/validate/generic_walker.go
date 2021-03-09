@@ -150,7 +150,7 @@ func (w *Walker) createGenericInstance(generic typing.DataType, genericPos *logg
 			w.fatalDefError = true
 			return nil, ok
 		}
-
+		// TODO: Wildcard generics
 	}
 
 	// not a generic type -- error
@@ -165,14 +165,24 @@ func (w *Walker) createGenericInstance(generic typing.DataType, genericPos *logg
 
 // setSelfType sets the selfType field accounting for generic context
 func (w *Walker) setSelfType(st typing.DataType) {
-	// if there is no generic context, then we can just assign as is
-	if w.genericCtx == nil {
+	// handle both kinds of generic context where determining whether or not to
+	// wrap out self-type in a generic.  Since only type definitions and
+	// interfaces used this field, `interfGenericCtx` will never interfere with
+	// regular type generation since interfaces cannot contain type definitions
+	// nor can they contain other interfaces.  So always checking
+	// `interfGenericCtx` is not a problem
+	if w.genericCtx != nil {
+		w.selfType = &typing.GenericType{
+			TypeParams: w.genericCtx,
+			Template:   st,
+		}
+	} else if w.interfGenericCtx != nil {
+		w.selfType = &typing.GenericType{
+			TypeParams: w.interfGenericCtx,
+			Template:   st,
+		}
+	} else {
+		// if there is no generic context, then we can just assign as is
 		w.selfType = st
-	}
-
-	// otherwise, we need to wrap it in a generic to be used later
-	w.selfType = &typing.GenericType{
-		TypeParams: w.genericCtx,
-		Template:   st,
 	}
 }

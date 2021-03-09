@@ -8,7 +8,7 @@ export of
     interf for string is Showable of
         func show() string => this
 
-    interf for char is Showable of
+    interf for rune is Showable of
         func show() string => this as string
 
     // No other implementations since those will be given in `stringutil`

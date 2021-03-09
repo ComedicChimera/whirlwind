@@ -1,58 +1,55 @@
 export of
-    interf Monad<M, V> of
-        func bind<N>(f: func(V)(M<N>)) M<N>
+    // interf Monad<M, V> of
+    //     func bind<N>(f: func(V)(M<N>)) M<N>
 
-        func then<N>(next: func()(M<N>)) M<N>
+    //     func then<N>(next: func()(M<N>)) M<N>
 
-        func apply<N>(f: func(V)(N)) M<N>
+    //     func apply<N>(f: func(V)(N)) M<N>
 
-        func after(f: func(V)())
+    //     func after(f: func(V)())
 
     type Option<T>
         | Some(T)
         | None
 
-    interf<T> for Option<T> is Monad<Option, T> of
-        func bind<N>(f: func(V)(Option<N>)) Option<N>
-            => match this to
-                Some(v) => f(v)
-                None => None
+    // interf<T> for Option<T> is Monad<Option, T> of
+    //     func bind<N>(f: func(V)(Option<N>)) Option<N>
+    //         => match this to
+    //             Some(v) => f(v)
+    //             None => None
 
-        func then<N>(next: func()(Option<N>)) Option<N> 
-            => None if this match None else next()
+    //     func then<N>(next: func()(Option<N>)) Option<N> 
+    //         => None if this match None else next()
 
-        func apply<N>(f: func(V)(N)) Option<N>
-            => match this to
-                Some(v) => Some(f(v))
-                None => None
+    //     func apply<N>(f: func(V)(N)) Option<N>
+    //         => match this to
+    //             Some(v) => Some(f(v))
+    //             None => None
         
-        func after(f: func(V)()) do
-            if this match Some(v) do
-                f(v)
+    //     func after(f: func(V)()) do
+    //         if this match Some(v) do
+    //             f(v)
 
     type Result<T>
         | Ok(T)
         | Err(Error)
 
-    interf<T> for Result<T> is Monad<Result, T> of
-        func bind<N>(f: func(V)(Result<N>)) Result<N>
-            => match this to
-                Ok(v) => f(v)
-                Err(e) => Err(e)
+    // interf<T> for Result<T> is Monad<Result, T> of
+    //     func bind<N>(f: func(V)(Result<N>)) Result<N>
+    //         => match this to
+    //             Ok(v) => f(v)
+    //             Err(e) => Err(e)
         
-        func then<N>(next: func()(Result<N>)) Result<N>
-            => match this to
-                Ok(_) => next()
-                Err(_) => this
+    //     func then<N>(next: func()(Result<N>)) Result<N>
+    //         => match this to
+    //             Ok(_) => next()
+    //             Err(_) => this
 
-        func apply<N>(f: func(V)(N)) Result<N>
-            => match this to
-                Ok(v) => Ok(f(v))
-                Err(e) => Err(e)
+    //     func apply<N>(f: func(V)(N)) Result<N>
+    //         => match this to
+    //             Ok(v) => Ok(f(v))
+    //             Err(e) => Err(e)
 
-        func after(f: func(V)()) do
-            if this match Ok(v) do
-                f(v)
-
-    
-
+    //     func after(f: func(V)()) do
+    //         if this match Ok(v) do
+    //             f(v)

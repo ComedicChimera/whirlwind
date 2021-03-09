@@ -83,18 +83,21 @@ func NewWalker(pkg *common.WhirlPackage, file *common.WhirlFile, fpath string, s
 	// field)
 	file.LocalBindings = &typing.BindingRegistry{}
 
+	lctx := &logging.LogContext{
+		PackageID: pkg.PackageID,
+		FilePath:  fpath,
+	}
+
 	return &Walker{
 		SrcPackage: pkg,
 		SrcFile:    file,
-		Context: &logging.LogContext{
-			PackageID: pkg.PackageID,
-			FilePath:  fpath,
-		},
+		Context:    lctx,
 		DeclStatus: common.DSInternal,
 		unknowns:   make(map[string]*common.UnknownSymbol),
 		solver: &typing.Solver{
 			GlobalBindings: pkg.GlobalBindings,
 			LocalBindings:  file.LocalBindings,
+			Context:        lctx,
 		},
 		resolving:          true, // start in resolution by default
 		sharedOpaqueSymbol: sos,

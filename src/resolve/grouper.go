@@ -154,7 +154,7 @@ func (g *Grouper) resolveSingle(pkg *common.WhirlPackage) bool {
 	// statuses won't matter anyway
 	g.ResolutionStatuses[pkg.PackageID] = true
 
-	r := NewResolver([]*common.WhirlPackage{pkg})
+	r := NewResolver([]*common.WhirlPackage{pkg}, g.DepGraph)
 	return r.Resolve()
 }
 
@@ -176,6 +176,6 @@ func (g *Grouper) resolveCurrentUnit() bool {
 	}
 
 	// resolve the current unit and return the status
-	r := NewResolver(runit)
+	r := NewResolver(runit, g.DepGraph)
 	return r.Resolve()
 }

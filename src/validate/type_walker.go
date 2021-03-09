@@ -174,6 +174,18 @@ func (w *Walker) walkNamedType(namedTypeLabel *syntax.ASTBranch) (typing.DataTyp
 		} else {
 			return nil, false, false
 		}
+	} else {
+		// check if the named type is a generic with no type parameters
+		switch namedType.(type) {
+		case *typing.GenericType, *typing.OpaqueGenericType:
+			w.logFatalDefError(
+				"Generic type must be provided with type parameters",
+				logging.LMKGeneric,
+				namedTypeLabel.Position(),
+			)
+
+			return nil, false, false
+		}
 	}
 
 	return namedType, requiresRef, true
