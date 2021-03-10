@@ -194,6 +194,8 @@ func (w *Walker) walkTypeDef(dast *syntax.ASTBranch) (*common.HIRTypeDef, bool) 
 		}
 	}
 
+	// fmt.Println(name)
+
 	symbol := &common.Symbol{
 		Name:       name,
 		Type:       dt,
@@ -433,6 +435,10 @@ func (w *Walker) walkFuncDef(branch *syntax.ASTBranch, isMethod bool) (*common.H
 			case syntax.IDENTIFIER:
 				name = v.Value
 				namePosition = v.Position()
+
+				// if name == "clamp" {
+				// 	fmt.Println("found clamp")
+				// }
 
 				// only set current def name if we are not in a method;
 				// otherwise, we will override the interface definition

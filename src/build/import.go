@@ -277,7 +277,6 @@ func (c *Compiler) attachPackageToFile(fpkg *common.WhirlPackage, file *common.W
 					Position:   pos,
 					SrcPackage: apkg,
 				}
-
 			}
 		}
 

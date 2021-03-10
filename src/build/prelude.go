@@ -18,7 +18,7 @@ var preludeImportPatterns = map[string][]string{
 	// TODO: figure out remaining prelude import patterns
 	"core":         {"clamp"},
 	"core/runtime": {"temp"},
-	"core/types":   {"Iterator"},
+	"core/types":   {"Iterator", "Numeric", "Integral", "Floating", "Comparable"},
 }
 
 // initPrelude initializes the prelude packages thereby adding them to the

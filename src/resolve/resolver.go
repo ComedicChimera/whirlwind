@@ -134,6 +134,55 @@ func (r *Resolver) resolveKnownSymImport(pkgid uint, name string, sref *common.S
 // Boolean return value indicates whether all unknowns were resolved (resolution
 // succeeded) or not (resolution failed).
 func (r *Resolver) resolveUnknowns() bool {
+	// go through each package assembler with a non-empty definition queue and
+	// add it to a map of queues by package.  As long as this map is nonempty,
+	// there are still queues to processed.  Once a queue has been processed it
+	// should be removed.  Since the current queue switches "randomly" during
+	// resolution, we can't just use a list to store them and slice off the
+	// front for each one we process.
+	unprocessedQueues := make(map[uint]*DefinitionQueue)
+	for _, pa := range r.Assemblers {
+		if pa.DefQueue.Len() > 0 {
+			unprocessedQueues[pa.PackageRef.PackageID] = pa.DefQueue
+		}
+	}
+
+	// if there are only empty queues, then resolution automatically succeeds
+	if len(unprocessedQueues) == 0 {
+		return true
+	}
+
+	// symbolsDefined is a flag used to indicate that some number of symbols were
+	// defined in between the mark being set and being encountered again
+	symbolsDefined := false
+
+	// resolutionSucceeded is a flag used to indicate whether or not resolution
+	// succeeded -- we have to set a flag instead of just returning so that we
+	// ensure are queues are processed
+	resolutionSucceeded := true
+
+	// currQueue and currPkgID stores the queue and package ID of the assembler
+	// currently being processed.  This may switch without a queue being removed
+	// from `unprocessedQueues` if a foreign package is encountered.
+	var currQueue *DefinitionQueue
+	var currPkgID uint
+
+	// nextQueue automatically fetches the next available queue for processing
+	// from `unprocessedQueues` and stores it into `currQueue` (and updated
+	// `currPkgID`).  It returns `false` if no queues remain.
+	nextQueue := func() bool {
+		for pid, queue := range unprocessedQueues {
+			currPkgID = pid
+			currQueue = queue
+			return true
+		}
+
+		return false
+	}
+
+	// call nextQueue to initialize `currQueue` and `currPkgID`
+	nextQueue()
+
 	// mark is used to store the definition that will be used to test for
 	// repeats.  It is set to be the first definition, and if that definition is
 	// encountered again with no additional defined symbols, then the evaluation
@@ -141,28 +190,6 @@ func (r *Resolver) resolveUnknowns() bool {
 	// we simply keep going.  If it is encountered and resolved, we take the
 	// mark to be the next item in the queue and continue.
 	var mark *Definition
-
-	// symbolsDefined is a flag used to indicate that some number of symbols were
-	// defined in between the mark being set and being encountered again
-	symbolsDefined := false
-
-	// currPkg stores the current queue.  We initialize this arbitrarily to be
-	// the first non-empty queue found in the resolution unit.
-	var currQueue *DefinitionQueue
-	var currPkgID uint // used to know which walker to use for resolution
-	for _, pa := range r.Assemblers {
-		if pa.DefQueue.Len() > 0 {
-			currQueue = pa.DefQueue
-			currPkgID = pa.PackageRef.PackageID
-			break
-		}
-	}
-
-	// if no queue was set, then they are all empty already so we can just return
-	if currQueue == nil {
-		return true
-	}
-
 	for {
 		top := currQueue.Peek()
 
@@ -179,12 +206,22 @@ func (r *Resolver) resolveUnknowns() bool {
 			} else if mark == top {
 				// if we are encountering the same mark twice, check if any new
 				// symbols were defined.  If so, continue.  Otherwise,
-				// resolution has failed and we return.
+				// resolution on this queue has failed
 				if symbolsDefined {
 					// clear the flag
 					symbolsDefined = false
 				} else {
-					return false
+					// set our resolution flag to indicate failure
+					resolutionSucceeded = false
+
+					// remove the queue we processed
+					delete(unprocessedQueues, currPkgID)
+
+					// select the next queue or stop resolution if no queues
+					// remain
+					if !nextQueue() {
+						break
+					}
 				}
 			}
 
@@ -194,8 +231,19 @@ func (r *Resolver) resolveUnknowns() bool {
 			// symbol located in a foreign package, need to update the queue to
 			// be that of the foreign package (switch resolution targets)
 			if unknown.ForeignPackage != nil {
-				currPkgID = unknown.ForeignPackage.PackageID
-				currQueue = r.Assemblers[currPkgID].DefQueue
+				// switch only if we actually have a queue to switch to
+				if _, ok := unprocessedQueues[currPkgID]; ok {
+					currPkgID = unknown.ForeignPackage.PackageID
+					currQueue = r.Assemblers[currPkgID].DefQueue
+				} else {
+					// otherwise, the foreign symbol will not be resolveable in
+					// this pass (because its corresponding queue has already
+					// been processed (or its package if its not in the current
+					// resolution unit) and so no new match can be found this
+					// pass.  Thus, we need to indicate that resolution failed
+					resolutionSucceeded = false
+				}
+
 			} else {
 				// we don't need to check if the current queue is empty b/c we
 				// know there is at least one symbol still in it (the current
@@ -216,25 +264,24 @@ func (r *Resolver) resolveUnknowns() bool {
 			currQueue.Dequeue()
 		}
 
-		// if the current queue is empty, we switch to the first new queue of
-		// length greater than one.  If there are no such queues, resolution has
-		// finished and we return
+		// if the current queue is empty, we have finished processing all the
+		// definitions in this queue successfully.  Thus, we need to either
+		// switch to the next unprocessed queue or stop resolution of such
+		// queues remain
 		if currQueue.Len() == 0 {
-			for _, pa := range r.Assemblers {
-				if pa.DefQueue.Len() > 0 {
-					currQueue = pa.DefQueue
-					currPkgID = pa.PackageRef.PackageID
-					break
-				}
-			}
+			// remove the current queue from `unprocessedQueues` as it has now
+			// been processed
+			delete(unprocessedQueues, currPkgID)
 
-			// if the current queue's length is still 0, then there no new queue
-			// was found
-			if currQueue == nil {
-				return true
+			// select the next queue from the front of unprocessed
+			// assemblers.  Or, if none remain, break to stop resolution
+			if !nextQueue() {
+				break
 			}
 		}
 	}
+
+	return resolutionSucceeded
 }
 
 // resolveDef attempts to resolve and finalize a definition

@@ -98,22 +98,33 @@ resolveLoop:
 		}
 	}
 
-	// if we failed to resolve, we need to log all remaining definitions as
-	// unresolved (all the non-type definitions that is)
-	if !resolveSuccessful {
-		for _, pa := range r.Assemblers {
-			// empty out the queue as we log all remaining errors
-			for pa.DefQueue.Len() > 0 {
-				pa.logUnresolved(pa.DefQueue.Peek())
-				pa.DefQueue.Dequeue()
+	// regardless of our resolution status, we should attempt to resolve all
+	// remaining definitions (ie. not type definitions) and log any we can't
+	// resolve.  Note that failure to resolve any of these definitions will
+	// determine the final return flag of this function (ie. if one fails, the
+	// flag is set to false regardless if all the others succeeded)
+	for _, pa := range r.Assemblers {
+		// since all of these definitions are non-dependent (meaning defining
+		// one won't resolve any others at this stage), we can just loop through
+		// them and attempt resolution sequentially
+		for pa.DefQueue.Len() > 0 {
+			curr := pa.DefQueue.Peek()
+			if _, ok := r.resolveDef(pa.PackageRef.PackageID, curr); !ok {
+				pa.logUnresolved(curr)
+				resolveSuccessful = false
 			}
+
+			// whether we log or we resolve, we want to dequeue the definition
+			pa.DefQueue.Dequeue()
 		}
-	} else {
-		// if resolution was successful, we need to make sure to clear the
-		// shared opaque symbol before proceeding (we just set the SrcPackageID
-		// to be -1 (max uint value) and the name to be "" to ensure it never
-		// matches) -- this is not actually "necessary"; more of a failsafe
-		// against my own "scatter-brainedness"
+	}
+
+	// if resolution was successful, we need to make sure to clear the shared
+	// opaque symbol before proceeding (we just set the SrcPackageID to be -1
+	// (max uint value) and the name to be "" to ensure it never matches) --
+	// this is not actually "necessary"; more of a failsafe against my own
+	// "scatter-brainedness"
+	if resolveSuccessful {
 		*r.sharedOpaqueSymbol = common.OpaqueSymbol{Name: "", SrcPackageID: math.MaxUint32}
 	}
 
@@ -297,10 +308,11 @@ func (r *Resolver) buildCyclicDefTable() map[uint]map[string]*Definition {
 			// to iterate through the queue, we take a starting definition and
 			// rotate through the queue until we hit it a second time
 			start := pa.DefQueue.Peek()
-			var curr *Definition
+			curr := start
 
-			for curr != start {
-				curr = pa.DefQueue.Peek()
+			// guarantee at least one loop at the start since we know curr is
+			// set to start at the very beginning
+			for ok := true; ok; ok = curr != start {
 				currBranch := curr.Branch
 
 				// annotated definitions can contain type defs and interf defs;
@@ -333,8 +345,8 @@ func (r *Resolver) buildCyclicDefTable() map[uint]map[string]*Definition {
 				}
 
 				pa.DefQueue.Rotate()
+				curr = pa.DefQueue.Peek()
 			}
-
 		}
 	}
 

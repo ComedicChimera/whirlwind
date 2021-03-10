@@ -16,8 +16,22 @@ func (w *Walker) Lookup(name string) (*common.Symbol, *common.WhirlPackage, bool
 	}
 
 	if wsi, ok := w.SrcFile.LocalTable[name]; ok {
-		// if the symbol has no name, then it is undefined (accessed via import)
+		// if the symbol has no name, then it was accessed via import but it has
+		// yet to be updated -- which we will do here
 		if wsi.SymbolRef.Name == "" {
+			// check to see if the symbol is already defined in the remote
+			// package.  If it is, just update the symbol reference with it.
+			if rsym, ok := wsi.SrcPackage.ImportFromNamespace(name); ok {
+				ds := wsi.SymbolRef.DeclStatus
+				*wsi.SymbolRef = *rsym
+				wsi.SymbolRef.DeclStatus = ds
+				return rsym, wsi.SrcPackage, true
+			}
+
+			// we do not want to remove the symbol import yet as it may still be
+			// resolveable.  This lookup should only happen once or twice per
+			// definition -- once it is updated, it will never happen again
+
 			return nil, wsi.SrcPackage, false
 		}
 
