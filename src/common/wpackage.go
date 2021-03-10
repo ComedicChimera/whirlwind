@@ -1,9 +1,9 @@
 package common
 
 import (
-	"github.com/ComedicChimera/whirlwind/src/logging"
-	"github.com/ComedicChimera/whirlwind/src/syntax"
-	"github.com/ComedicChimera/whirlwind/src/typing"
+	"whirlwind/logging"
+	"whirlwind/syntax"
+	"whirlwind/typing"
 )
 
 // WhirlFile represents a single program file in a package

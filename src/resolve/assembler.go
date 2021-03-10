@@ -1,10 +1,10 @@
 package resolve
 
 import (
-	"github.com/ComedicChimera/whirlwind/src/common"
-	"github.com/ComedicChimera/whirlwind/src/syntax"
-	"github.com/ComedicChimera/whirlwind/src/typing"
-	"github.com/ComedicChimera/whirlwind/src/validate"
+	"whirlwind/common"
+	"whirlwind/syntax"
+	"whirlwind/typing"
+	"whirlwind/validate"
 )
 
 // PAssembler is an abstraction responsible for putting the definitions

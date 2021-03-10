@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ComedicChimera/whirlwind/src/logging"
+	"whirlwind/logging"
 )
 
 // simple scanner/parser to read in and create grammar

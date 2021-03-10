@@ -3,7 +3,7 @@ package validate
 import (
 	"fmt"
 
-	"github.com/ComedicChimera/whirlwind/src/logging"
+	"whirlwind/logging"
 )
 
 // LogUndefined logs an undefined error for the given symbol.

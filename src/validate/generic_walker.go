@@ -3,10 +3,10 @@ package validate
 import (
 	"fmt"
 
-	"github.com/ComedicChimera/whirlwind/src/common"
-	"github.com/ComedicChimera/whirlwind/src/logging"
-	"github.com/ComedicChimera/whirlwind/src/syntax"
-	"github.com/ComedicChimera/whirlwind/src/typing"
+	"whirlwind/common"
+	"whirlwind/logging"
+	"whirlwind/syntax"
+	"whirlwind/typing"
 )
 
 // primeGenericContext should be called whenever a `generic_tag` node is

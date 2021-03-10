@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/ComedicChimera/whirlwind/src/common"
-	"github.com/ComedicChimera/whirlwind/src/logging"
+	"whirlwind/common"
+	"whirlwind/logging"
 )
 
 // preludeImports is a list of the imported prelude packages (after they are loaded)

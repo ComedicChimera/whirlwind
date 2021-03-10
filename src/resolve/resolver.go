@@ -1,7 +1,7 @@
 package resolve
 
 import (
-	"github.com/ComedicChimera/whirlwind/src/common"
+	"whirlwind/common"
 )
 
 // The Resolution Algorithm

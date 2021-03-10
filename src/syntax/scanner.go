@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ComedicChimera/whirlwind/src/logging"
+	"whirlwind/logging"
 )
 
 // NewScanner creates a scanner for the given file

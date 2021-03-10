@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ComedicChimera/whirlwind/src/logging"
+	"whirlwind/logging"
 )
 
 // Parser is a modified LALR(1) parser designed for Whirlwind

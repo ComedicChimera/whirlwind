@@ -1,8 +1,8 @@
 package resolve
 
 import (
-	"github.com/ComedicChimera/whirlwind/src/common"
-	"github.com/ComedicChimera/whirlwind/src/syntax"
+	"whirlwind/common"
+	"whirlwind/syntax"
 )
 
 // Definition represents a definition that is still being resolved

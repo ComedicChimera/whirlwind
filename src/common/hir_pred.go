@@ -1,7 +1,7 @@
 package common
 
 import (
-	"github.com/ComedicChimera/whirlwind/src/syntax"
+	"whirlwind/syntax"
 )
 
 // This file describes the predicates (expressions, blocks, statements, etc.)

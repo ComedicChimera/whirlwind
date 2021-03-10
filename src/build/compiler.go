@@ -6,10 +6,10 @@ import (
 	"path"
 	"strings"
 
-	"github.com/ComedicChimera/whirlwind/src/common"
-	"github.com/ComedicChimera/whirlwind/src/logging"
-	"github.com/ComedicChimera/whirlwind/src/resolve"
-	"github.com/ComedicChimera/whirlwind/src/syntax"
+	"whirlwind/common"
+	"whirlwind/logging"
+	"whirlwind/resolve"
+	"whirlwind/syntax"
 )
 
 // Store the different possible output formats for the compiler

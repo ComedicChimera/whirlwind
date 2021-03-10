@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ComedicChimera/whirlwind/src/logging"
-	"github.com/ComedicChimera/whirlwind/src/syntax"
+	"whirlwind/logging"
+	"whirlwind/syntax"
 )
 
 // preprocessFile reads the first few tokens of a file to extract any compiler

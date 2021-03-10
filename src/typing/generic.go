@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ComedicChimera/whirlwind/src/logging"
-	"github.com/ComedicChimera/whirlwind/src/syntax"
+	"whirlwind/logging"
+	"whirlwind/syntax"
 )
 
 // GenericType represents a generic definition.  Semantically, generics are not

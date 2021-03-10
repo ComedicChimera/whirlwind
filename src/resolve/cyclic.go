@@ -3,9 +3,9 @@ package resolve
 import (
 	"math"
 
-	"github.com/ComedicChimera/whirlwind/src/common"
-	"github.com/ComedicChimera/whirlwind/src/syntax"
-	"github.com/ComedicChimera/whirlwind/src/typing"
+	"whirlwind/common"
+	"whirlwind/syntax"
+	"whirlwind/typing"
 )
 
 // Cyclic Symbol Resolution Algorithm

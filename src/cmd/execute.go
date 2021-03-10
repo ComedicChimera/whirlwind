@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/ComedicChimera/whirlwind/src/build"
-	"github.com/ComedicChimera/whirlwind/src/logging"
+	"whirlwind/build"
+	"whirlwind/logging"
 )
 
 // Execute should be called from main and initializes the compiler

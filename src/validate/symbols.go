@@ -1,6 +1,6 @@
 package validate
 
-import "github.com/ComedicChimera/whirlwind/src/common"
+import "whirlwind/common"
 
 // Lookup attempts to find a symbol in the current package or global symbol
 // table. If it succeeds, it returns the symbol it finds.  If it fails, it

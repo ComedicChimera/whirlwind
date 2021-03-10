@@ -1,7 +1,7 @@
 package common
 
 import (
-	"github.com/ComedicChimera/whirlwind/src/typing"
+	"whirlwind/typing"
 )
 
 // HIR stands for high-level IR.  It is a structural system used to represent a

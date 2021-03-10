@@ -1,6 +1,6 @@
 package syntax
 
-import "github.com/ComedicChimera/whirlwind/src/logging"
+import "whirlwind/logging"
 
 // ASTNode represents a piece of the Abstract Syntax Tree (AST)
 type ASTNode interface {

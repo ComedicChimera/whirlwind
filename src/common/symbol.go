@@ -1,8 +1,8 @@
 package common
 
 import (
-	"github.com/ComedicChimera/whirlwind/src/logging"
-	"github.com/ComedicChimera/whirlwind/src/typing"
+	"whirlwind/logging"
+	"whirlwind/typing"
 )
 
 // Symbol represents a named value (stored locally or globally)

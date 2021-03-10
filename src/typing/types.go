@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ComedicChimera/whirlwind/src/logging"
+	"whirlwind/logging"
 )
 
 // The Whirlwind Type System is represented in 8 fundamental types from which

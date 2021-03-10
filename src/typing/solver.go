@@ -1,6 +1,6 @@
 package typing
 
-import "github.com/ComedicChimera/whirlwind/src/logging"
+import "whirlwind/logging"
 
 // Solver is the abstraction responsible for inferring the types of an given
 // block or context.  It is also referred to as the inferencer.

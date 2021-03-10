@@ -6,10 +6,10 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/ComedicChimera/whirlwind/src/common"
-	"github.com/ComedicChimera/whirlwind/src/logging"
-	"github.com/ComedicChimera/whirlwind/src/syntax"
-	"github.com/ComedicChimera/whirlwind/src/typing"
+	"whirlwind/common"
+	"whirlwind/logging"
+	"whirlwind/syntax"
+	"whirlwind/typing"
 )
 
 // SrcFileExtension is used to indicate what the file extension is for a

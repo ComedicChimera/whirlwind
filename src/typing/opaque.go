@@ -3,8 +3,8 @@ package typing
 import (
 	"strings"
 
-	"github.com/ComedicChimera/whirlwind/src/logging"
-	"github.com/ComedicChimera/whirlwind/src/syntax"
+	"whirlwind/logging"
+	"whirlwind/syntax"
 )
 
 // OpaqueType is used to represent a type that has yet to be defined but is
