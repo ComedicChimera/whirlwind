@@ -26,7 +26,10 @@ type Symbol struct {
 
 // VisibleExternally determines if remote packages can access this symbol
 func (s *Symbol) VisibleExternally() bool {
-	return s.DeclStatus == DSExported
+	// Since remote symbols are stored in the local table, they won't be able to
+	// be imported directly, but they can still be used in exported definitions
+	// without causing unnecessary errors
+	return s.DeclStatus == DSExported || s.DeclStatus == DSRemote
 }
 
 // Declaration Statuses
