@@ -19,6 +19,9 @@ type Definition struct {
 
 	// SrcFile is the file this definition occurs in.
 	SrcFile *common.WhirlFile
+
+	// DeclStatus stores the declaration status for this definition
+	DeclStatus int
 }
 
 // DefinitionQueue is a simple queue implementation used for the definition

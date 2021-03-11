@@ -237,7 +237,7 @@ func (w *Walker) lookupNamedType(rootName, accessedName string, rootPos, accesse
 				return nil, false, false
 			}
 
-			if w.DeclStatus == common.DSExported {
+			if w.declStatus == common.DSExported {
 				if symbol.VisibleExternally() {
 					return symbol.Type, false, true
 				}
@@ -278,7 +278,7 @@ func (w *Walker) lookupNamedType(rootName, accessedName string, rootPos, accesse
 			w.LogUndefined(rootName, rootPos)
 			return nil, false, false
 		}
-	} else if w.DeclStatus == common.DSExported {
+	} else if w.declStatus == common.DSExported {
 		w.logFatalDefError(
 			"Unable to use implicitly imported symbol in exported definition",
 			logging.LMKUsage,

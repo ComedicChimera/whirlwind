@@ -16,9 +16,11 @@ type Walker struct {
 	SrcFile    *common.WhirlFile
 	Context    *logging.LogContext
 
-	// DeclStatus is a field set by the resolver to indicate the decl status of
-	// all newly defined symbols.  It is set to `DSInternal` by default.
-	DeclStatus int
+	// declStatus is a field set during definition walking to indicate the decl
+	// status of a new definitions.  It is set as a field so that a bunch of
+	// functions don't have to pass it down repeatedly and unnecessarily.  It
+	// default to `DSInternal`.
+	declStatus int
 
 	// unknowns is a map of all of the unknown symbols for a given definition.
 	// This is used by the PAssembler and Resolver during symbol resolution.
@@ -92,7 +94,7 @@ func NewWalker(pkg *common.WhirlPackage, file *common.WhirlFile, fpath string, s
 		SrcPackage: pkg,
 		SrcFile:    file,
 		Context:    lctx,
-		DeclStatus: common.DSInternal,
+		declStatus: common.DSInternal,
 		unknowns:   make(map[string]*common.UnknownSymbol),
 		solver: &typing.Solver{
 			GlobalBindings: pkg.GlobalBindings,

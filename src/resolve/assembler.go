@@ -55,13 +55,11 @@ func (pa *PAssembler) initialPass() {
 			itembranch := item.(*syntax.ASTBranch)
 
 			if itembranch.Name == "export_block" {
-				pa.Walkers[wfile].DeclStatus = common.DSExported
-				pa.initialPassOverBlock(wfile, itembranch.BranchAt(2))
-				pa.Walkers[wfile].DeclStatus = common.DSInternal
+				pa.initialPassOverBlock(wfile, itembranch.BranchAt(2), common.DSExported)
 			} else {
 				// we know this is the "top_level" node and we do not need to
 				// expect any other export blocks.
-				pa.initialPassOverBlock(wfile, itembranch)
+				pa.initialPassOverBlock(wfile, itembranch, common.DSInternal)
 			}
 		}
 
@@ -72,17 +70,18 @@ func (pa *PAssembler) initialPass() {
 
 // initialPassOverBlock takes an AST over which to perform the initial
 // resolution pass (walks a top_level `node`)
-func (pa *PAssembler) initialPassOverBlock(wfile *common.WhirlFile, block *syntax.ASTBranch) {
+func (pa *PAssembler) initialPassOverBlock(wfile *common.WhirlFile, block *syntax.ASTBranch, declStatus int) {
 	for _, topast := range block.Content {
 		// extract the first node from the `definition` node
 		branch := topast.(*syntax.ASTBranch).BranchAt(0)
-		hirn, name, unknowns, ok := pa.Walkers[wfile].WalkDef(branch)
+		hirn, name, unknowns, ok := pa.Walkers[wfile].WalkDef(branch, declStatus)
 		if hirn == nil {
 			pa.DefQueue.Enqueue(&Definition{
-				Name:     name,
-				Branch:   branch,
-				Unknowns: unknowns,
-				SrcFile:  wfile,
+				Name:       name,
+				Branch:     branch,
+				Unknowns:   unknowns,
+				SrcFile:    wfile,
+				DeclStatus: declStatus,
 			})
 		} else if ok {
 			wfile.AddNode(hirn)

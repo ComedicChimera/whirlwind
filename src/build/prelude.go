@@ -18,7 +18,7 @@ var preludeImportPatterns = map[string][]string{
 	// TODO: figure out remaining prelude import patterns
 	"core":         {"clamp"},
 	"core/runtime": {"temp"},
-	"core/types":   {"Iterator", "Numeric", "Integral", "Floating", "Comparable"},
+	"core/types":   {"Iterator", "Numeric", "Integral", "Floating", "Comparable", "Ord"},
 }
 
 // initPrelude initializes the prelude packages thereby adding them to the
@@ -32,8 +32,8 @@ func (c *Compiler) initPrelude() bool {
 		// it is possible for one import to be initialized as a result of
 		// another before it so we have to check and make sure we get to correct
 		// package reference
-		pkgId := getPackageID(preludePath)
-		if pkg, ok := c.depGraph[pkgId]; ok {
+		pkgID := getPackageID(preludePath)
+		if pkg, ok := c.depGraph[pkgID]; ok {
 			preludeImports[stdpkgname] = pkg
 		} else {
 			// if anything happens during initialization of this packages, we

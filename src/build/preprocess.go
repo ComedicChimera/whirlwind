@@ -19,11 +19,11 @@ func (c *Compiler) preprocessFile(sc *syntax.Scanner) (bool, map[string]string, 
 	// if we encountered metadata
 	if next.Kind == syntax.NOT {
 		return c.readMetadata(sc)
-	} else {
-		// if the scanner has not populated to lookahead, we can just
-		// store the token we read in there
-		sc.UnreadToken(next)
 	}
+
+	// if the scanner has not populated to lookahead, we can just store the
+	// token we read in there
+	sc.UnreadToken(next)
 
 	return true, nil, nil
 }

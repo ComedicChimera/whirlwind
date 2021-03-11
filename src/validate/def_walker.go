@@ -25,13 +25,17 @@ var validTypeSetIntrinsics = map[string]struct{}{
 // node.  This function is mainly intended to work with the Resolver and
 // PackageAssembler.  It also always returns the name of the definition is
 // possible.
-func (w *Walker) WalkDef(dast *syntax.ASTBranch) (common.HIRNode, string, map[string]*common.UnknownSymbol, bool) {
+func (w *Walker) WalkDef(dast *syntax.ASTBranch, declStatus int) (common.HIRNode, string, map[string]*common.UnknownSymbol, bool) {
+	w.declStatus = declStatus
 	def, dt, ok := w.walkDefRaw(dast)
 
 	// make sure w.currentDefName is always cleared (for contexts where there is
 	// no name to override it -- eg. interface binding)
 	defer (func() {
 		w.currentDefName = ""
+
+		// reset to default decl status
+		w.declStatus = common.DSInternal
 
 		// clear self-type data last so that generics can still recognize it
 		w.selfType = nil
@@ -194,13 +198,11 @@ func (w *Walker) walkTypeDef(dast *syntax.ASTBranch) (*common.HIRTypeDef, bool) 
 		}
 	}
 
-	// fmt.Println(name)
-
 	symbol := &common.Symbol{
 		Name:       name,
 		Type:       dt,
 		DefKind:    common.DefKindTypeDef,
-		DeclStatus: w.DeclStatus,
+		DeclStatus: w.declStatus,
 		Constant:   true,
 	}
 
@@ -222,7 +224,7 @@ func (w *Walker) walkTypeDef(dast *syntax.ASTBranch) (*common.HIRTypeDef, bool) 
 					Type:       vari,
 					Constant:   true,
 					DefKind:    common.DefKindTypeDef,
-					DeclStatus: w.DeclStatus,
+					DeclStatus: w.declStatus,
 				}
 
 				if !w.define(symbol) {
@@ -467,7 +469,7 @@ func (w *Walker) walkFuncDef(branch *syntax.ASTBranch, isMethod bool) (*common.H
 	sym := &common.Symbol{
 		Name:       name,
 		Type:       funcType,
-		DeclStatus: w.DeclStatus,
+		DeclStatus: w.declStatus,
 		DefKind:    common.DefKindFuncDef,
 		Constant:   true,
 	}
@@ -608,7 +610,7 @@ func (w *Walker) walkInterfDef(branch *syntax.ASTBranch) (*common.HIRInterfDef, 
 		Name:       it.Name,
 		Type:       it,
 		DefKind:    common.DefKindTypeDef,
-		DeclStatus: w.DeclStatus,
+		DeclStatus: w.declStatus,
 		Constant:   true,
 	}
 
@@ -718,7 +720,7 @@ func (w *Walker) walkInterfBind(branch *syntax.ASTBranch) (common.HIRNode, bool)
 		Interf: &common.Symbol{
 			Type:       typeInterf,
 			DefKind:    common.DefKindBinding,
-			DeclStatus: w.DeclStatus,
+			DeclStatus: w.declStatus,
 			Constant:   true,
 		},
 		BoundType: bindDt,
@@ -730,7 +732,7 @@ func (w *Walker) walkInterfBind(branch *syntax.ASTBranch) (common.HIRNode, bool)
 		MatchType:  bindDt,
 		Wildcards:  w.interfGenericCtx,
 		TypeInterf: typeInterf,
-		Exported:   w.DeclStatus == common.DSExported,
+		Exported:   w.declStatus == common.DSExported,
 	}
 
 	w.SrcPackage.GlobalBindings.Bindings = append(w.SrcPackage.GlobalBindings.Bindings, binding)
