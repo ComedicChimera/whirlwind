@@ -150,7 +150,7 @@ const MaxStateLength = 14
 // displayCompilationInfo displays the "start-up" information about the compiler
 // and the current compilation process (target, version, debug, etc.)
 func displayCompilationInfo(targetOS, targetArch string, debug bool) {
-	fmt.Println("Jasmine (whirlc) v.0.1 - LV: W.0.9")
+	fmt.Println("whirl v.0.1 - language version W.0.9")
 
 	if debug {
 		fmt.Printf("Target: %s/%s (debug)\n", targetOS, targetArch)

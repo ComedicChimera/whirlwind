@@ -11,6 +11,7 @@ import (
 
 	"whirlwind/build"
 	"whirlwind/logging"
+	"whirlwind/mods"
 )
 
 // Execute should be called from main and initializes the compiler
@@ -22,12 +23,13 @@ func Execute() {
 	// check for WHIRL_PATH (if it doesn't exist, we error out)
 	if whirlPath == "" {
 		fmt.Println("Unable to locate WHIRL_PATH")
+		fmt.Println("Go to https://whirlwind-lang.dev/install for more information.")
 		os.Exit(1)
 	}
 
 	// ensure that a subcommand is passed to the compiler
 	if len(os.Args) < 2 {
-		fmt.Println("A valid subcommand is required")
+		printHelpMessage()
 		os.Exit(1)
 	}
 
@@ -38,14 +40,18 @@ func Execute() {
 	switch os.Args[1] {
 	case "build":
 		err = Build(whirlPath)
+	case "mod":
+		err = Mod()
+	case "version":
+		fmt.Println("whirl v.0.1 - language version W.0.9")
 	default:
-		fmt.Printf("Config Error: Unknown Command `%s`\n", os.Args[1])
-		// flag.PrintDefaults()
+		fmt.Printf("Unknown command `%s`\n\n", os.Args[1])
+		printHelpMessage()
 		os.Exit(1)
 	}
 
 	if err != nil {
-		fmt.Println("Config Error: " + err.Error())
+		fmt.Println(err)
 		os.Exit(1)
 	}
 }
@@ -75,7 +81,7 @@ func Build(wp string) error {
 	}
 
 	if buildCommand.NArg() != 1 {
-		return errors.New("Expecting exactly one argument which is the path to the build directory")
+		return errors.New("The `build` command takes exactly one argument: the path to the build directory")
 	}
 
 	// collect all necessary information from the arguments
@@ -139,5 +145,46 @@ func Build(wp string) error {
 	compiler.Compile(buildCommand.Lookup("forcegrebuild").Value.String() == "true")
 
 	// the compiler will handle its own errors
+	return nil
+}
+
+// Mod executes a `mod` command
+func Mod() error {
+	if len(os.Args) < 3 {
+		fmt.Println("Missing subcommand")
+		printModHelpMessage()
+		return nil
+	}
+
+	switch os.Args[2] {
+	case "del":
+		finfo, err := os.Stat("whirl.mod")
+
+		if err == nil {
+			if finfo.IsDir() {
+				return errors.New("`whirl.mod` must be a file")
+			}
+
+			return os.Remove("whirl.mod")
+		} else if os.IsNotExist(err) {
+			return errors.New("No module exists in the current directory")
+		}
+
+		return err
+	case "new":
+		if len(os.Args) != 4 {
+			return errors.New("The `mod new` command takes exactly one argument: the name of the new module")
+		}
+
+		return mods.CreateModule(os.Args[3])
+	case "init":
+		if len(os.Args) != 4 {
+			return errors.New("The `mod init` command takes exactly one argument: the name of the new module")
+		}
+
+		return mods.InitModule(os.Args[3], ".")
+	case "rename":
+	}
+
 	return nil
 }

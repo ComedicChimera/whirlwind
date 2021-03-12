@@ -8,6 +8,7 @@ import (
 
 	"whirlwind/common"
 	"whirlwind/logging"
+	"whirlwind/mods"
 	"whirlwind/syntax"
 	"whirlwind/typing"
 )
@@ -27,7 +28,7 @@ const SrcFileExtension = ".wrl"
 func (c *Compiler) initPackage(abspath string) (*common.WhirlPackage, error, bool) {
 	pkgName := filepath.Base(abspath)
 
-	if !isValidPkgName(pkgName) {
+	if !mods.IsValidPackageName(pkgName) {
 		return nil, fmt.Errorf("Invalid package name: `%s`", pkgName), false
 	}
 
@@ -102,23 +103,6 @@ func (c *Compiler) initPackage(abspath string) (*common.WhirlPackage, error, boo
 
 	c.depGraph[pkg.PackageID] = pkg
 	return pkg, nil, logging.ShouldProceed()
-}
-
-// isValidPkgName tests if the package name would be a usable identifier within
-// Whirlwind. If it is not, the package name is considered to be invalid and an
-// error should be thrown.
-func isValidPkgName(pkgName string) bool {
-	if syntax.IsLetter(rune(pkgName[0])) || pkgName[0] == '_' {
-		for i := 1; i < len(pkgName); i++ {
-			if !syntax.IsLetter(rune(pkgName[i])) && !syntax.IsDigit(rune(pkgName[i])) && pkgName[i] != '_' {
-				return false
-			}
-		}
-
-		return true
-	}
-
-	return false
 }
 
 // getPackageID calculates a package ID hash based on a package's file path

@@ -92,6 +92,7 @@ This section describes the layout of packages (ie. where to find what)
 | cmd | Responsible for command-line processing and most auxilliary functions of `whirl` |
 | generate | Produces target LLVM code/output and assembles output binary (stage #5) |
 | logging | Used to log warnings and errors throughout compilation and maintain context |
+| mods | Used for working with Whirlwind modules |
 | optimize | Performs high-level (HIR) tree optimizations (stage #4) |
 | resolve | Responsible for symbol resolution and package assembly (stage #2) |
 | syntax | Scans and parses files to produce syntactically valid ASTs (stage #1) |
