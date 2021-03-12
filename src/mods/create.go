@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"whirlwind/syntax"
-)
+	"whirlwind/logging"
 
-// NOTE: The `whirl.mod` file is a literally just a text file with a name listed
-// in it for the current module
+	"gopkg.in/yaml.v2"
+)
 
 // CreateModule creates a new directory for a module and initializes it with
 // the given name
@@ -46,41 +45,30 @@ func InitModule(name, path string) error {
 		return fmt.Errorf("`%s` is not a valid module name", name)
 	}
 
-	// all modules contain their "definitions" in `whirl.mod`
-	fpath := filepath.Join(path, "whirl.mod")
+	// all modules contain their "definitions" in the module file
+	fpath := filepath.Join(path, moduleFileName)
 
-	// check if the path to `whirl.mod` already exists => we don't want to
+	// check if the path to the module file already exists => we don't want to
 	// override a preexisting file with this command
 	finfo, err := os.Stat(fpath)
 	if err == nil {
 		if finfo.IsDir() {
-			return errors.New("Unable to overwrite directory named `whirl.mod` to initialize module")
+			return fmt.Errorf("Unable to overwrite directory named `%s` to initialize module", moduleFileName)
 		} else {
 			return errors.New("Module already exists")
 		}
 	} else if os.IsNotExist(err) {
+		// convert our module to yaml
+		modData, err := yaml.Marshal(map[string]string{"name": name})
+
+		if err != nil {
+			logging.LogFatal("Failed to marshall module YAML")
+		}
+
 		// if it does not exist, we can go ahead and create it
-		return os.WriteFile(fpath, []byte(name), 0644)
+		return os.WriteFile(fpath, modData, 0644)
 	}
 
 	// some weird os error (idk)
 	return err
-}
-
-// IsValidPackageName checks if a name is valid for a package (or module).
-// Specifically, this function tests if the name would be a valid (usable)
-// identifier within Whirlwind (as a package must be referenceable by name in
-// the language)
-func IsValidPackageName(name string) bool {
-	if syntax.IsLetter(rune(name[0])) || name[0] == '_' {
-		for i := 1; i < len(name); i++ {
-			if !syntax.IsLetter(rune(name[i])) && !syntax.IsDigit(rune(name[i])) && name[i] != '_' {
-				return false
-			}
-		}
-
-		return true
-	}
-
-	return false
 }

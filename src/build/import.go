@@ -198,7 +198,15 @@ func (c *Compiler) getPackagePath(parentModule *mods.Module, relpath string) str
 	}
 
 	if strings.HasPrefix(relpath, parentModule.Name) {
-		bdAbsPath := filepath.Join(parentModule.Path, strings.TrimPrefix(relpath, parentModule.Name))
+		modRelPath := strings.TrimPrefix(relpath, parentModule.Name+"/")
+
+		// path overrides should already be checked and made absolute when
+		// module is loaded
+		if pathOverride, ok := parentModule.PathOverrides[modRelPath]; ok {
+			return pathOverride
+		}
+
+		bdAbsPath := filepath.Join(parentModule.Path, modRelPath)
 		if validPath(bdAbsPath) {
 			return bdAbsPath
 		}
