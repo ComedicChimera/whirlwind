@@ -8,6 +8,7 @@ import (
 
 	"whirlwind/common"
 	"whirlwind/logging"
+	"whirlwind/mods"
 	"whirlwind/syntax"
 	"whirlwind/typing"
 )
@@ -140,7 +141,7 @@ func (c *Compiler) processImport(pkg *common.WhirlPackage, file *common.WhirlFil
 	}
 
 	// calculate the absolute path to the package
-	abspath := c.getPackagePath(relPath)
+	abspath := c.getPackagePath(pkg.ParentModule, relPath)
 	if abspath == "" {
 		logging.LogError(
 			c.lctx,
@@ -157,7 +158,10 @@ func (c *Compiler) processImport(pkg *common.WhirlPackage, file *common.WhirlFil
 	if !ok {
 		var err error
 		var initOk bool
-		newpkg, err, initOk = c.initPackage(abspath)
+
+		// pass the parent module of the package importing to the new package if
+		// no parent module exists
+		newpkg, err, initOk = c.initPackage(abspath, pkg.ParentModule)
 		if err != nil {
 			logging.LogStdError(err)
 			return false
@@ -181,8 +185,8 @@ func (c *Compiler) processImport(pkg *common.WhirlPackage, file *common.WhirlFil
 }
 
 // getPackagePath determines, from a relative path, the absolute path to a
-// package (from build dir, local pkg dir, global/pub pkg dir or std pkg dir)
-func (c *Compiler) getPackagePath(relpath string) string {
+// package (from module dir, local pkg dir, global/pub pkg dir or std pkg dir)
+func (c *Compiler) getPackagePath(parentModule *mods.Module, relpath string) string {
 	validPath := func(abspath string) bool {
 		fi, err := os.Stat(abspath)
 
@@ -193,9 +197,11 @@ func (c *Compiler) getPackagePath(relpath string) string {
 		return false
 	}
 
-	bdAbsPath := filepath.Join(c.buildDirectory, relpath)
-	if validPath(bdAbsPath) {
-		return bdAbsPath
+	if strings.HasPrefix(relpath, parentModule.Name) {
+		bdAbsPath := filepath.Join(parentModule.Path, strings.TrimPrefix(relpath, parentModule.Name))
+		if validPath(bdAbsPath) {
+			return bdAbsPath
+		}
 	}
 
 	for _, ldirpath := range c.localPkgDirectories {

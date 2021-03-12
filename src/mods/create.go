@@ -11,7 +11,7 @@ import (
 // NOTE: The `whirl.mod` file is a literally just a text file with a name listed
 // in it for the current module
 
-// `CreateModule` creates a new directory for a module and initializes it with
+// CreateModule creates a new directory for a module and initializes it with
 // the given name
 func CreateModule(name string) error {
 	finfo, err := os.Stat(name)
@@ -39,7 +39,7 @@ func CreateModule(name string) error {
 	return fmt.Errorf("File by name `%s` already exists and cannot be a module", name)
 }
 
-// `InitModule` initializes a module with a given name in the given directory
+// InitModule initializes a module with a given name in the given directory
 func InitModule(name, path string) error {
 	// first we need to check if the module will be valid
 	if !IsValidPackageName(name) {

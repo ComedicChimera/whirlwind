@@ -2,6 +2,7 @@ package common
 
 import (
 	"whirlwind/logging"
+	"whirlwind/mods"
 	"whirlwind/syntax"
 	"whirlwind/typing"
 )
@@ -92,6 +93,9 @@ type WhirlPackage struct {
 	// already been initialized or are being initialized.  This prevents
 	// unnecessary recursion and repeat initialization
 	Initialized bool
+
+	// ParentModule stores the parent module that this package belongs to
+	ParentModule *mods.Module
 }
 
 // WhirlOperatorOverload represents an operator overload definition

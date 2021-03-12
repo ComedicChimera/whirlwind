@@ -6,6 +6,7 @@ import (
 
 	"whirlwind/common"
 	"whirlwind/logging"
+	"whirlwind/mods"
 )
 
 // preludeImports is a list of the imported prelude packages (after they are loaded)
@@ -24,6 +25,14 @@ var preludeImportPatterns = map[string][]string{
 // initPrelude initializes the prelude packages thereby adding them to the
 // dependency graph and making them available to all other packages being built
 func (c *Compiler) initPrelude() bool {
+	// load the core module to be shared by all core/prelude packages
+	coreMod, ok := mods.LoadModule(filepath.Join(c.whirlpath, "lib/std/core"))
+
+	if !ok {
+		// the core module is essential for building the core library
+		logging.LogFatal("Unable to load core module")
+	}
+
 	// initialize each prelude package so that they are present in the
 	// dependency graph
 	for stdpkgname := range preludeImportPatterns {
@@ -38,7 +47,7 @@ func (c *Compiler) initPrelude() bool {
 		} else {
 			// if anything happens during initialization of this packages, we
 			// throw a fatal compiler error: they are NECESSARY for compilation
-			npkg, err, initOk := c.initPackage(preludePath)
+			npkg, err, initOk := c.initPackage(preludePath, coreMod)
 			if !initOk {
 				if err != nil {
 					logging.LogStdError(err)

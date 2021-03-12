@@ -8,6 +8,7 @@ import (
 
 	"whirlwind/common"
 	"whirlwind/logging"
+	"whirlwind/mods"
 	"whirlwind/resolve"
 	"whirlwind/syntax"
 )
@@ -193,8 +194,16 @@ func (c *Compiler) Compile(forceGrammarRebuild bool) {
 // and fully builds it and all of its dependencies into LLVM modules that can be
 // linked together to form the final program
 func (c *Compiler) buildMainPackage() bool {
-	// start by initializing the package (indexing the directory, parsing the files)
-	pkg, err, initOk := c.initPackage(c.buildDirectory)
+	// start by looking for the main module -- this must exist in order for
+	// compilation to succeed; error out immediately if it isn't found
+	mainMod, ok := mods.LoadModule(c.buildDirectory)
+	if !ok {
+		logging.LogStdError(errors.New("Missing main module"))
+		return false
+	}
+
+	// initialize the main package (indexing the directory, parsing the files)
+	pkg, err, initOk := c.initPackage(c.buildDirectory, mainMod)
 	if !initOk {
 		// an error is only returned if it hasn't already been logged
 		if err != nil {
