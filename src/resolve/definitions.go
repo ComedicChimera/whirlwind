@@ -13,9 +13,9 @@ type Definition struct {
 	// Branch is the ASTBranch associated with the given definition
 	Branch *syntax.ASTBranch
 
-	// Unknowns is a list of the unknown symbols needed to produce the HIRNode
-	// for the given definition along with their first position in the Branch.
-	Unknowns map[string]*common.UnknownSymbol
+	// Dependents is a list of the symbols needed to produce the HIRNode for the
+	// given definition along with their first position in the Branch.
+	Dependents map[string]*DependentSymbol
 
 	// SrcFile is the file this definition occurs in.
 	SrcFile *common.WhirlFile

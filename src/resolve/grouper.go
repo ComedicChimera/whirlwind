@@ -35,36 +35,36 @@ import (
 // resolution units to be passed to the resolver.  The grouper also passes the
 // groups it creates to the resolver as it creates them.
 type Grouper struct {
-	// RootPackage is the package from which compilation began (for applications
+	// rootPackage is the package from which compilation began (for applications
 	// this the main package -- the package to be built into an executable).
-	RootPackage *common.WhirlPackage
+	rootPackage *common.WhirlPackage
 
-	// DepGraph is the dependency graph constructed by the compiler to be analyzed
-	DepGraph map[uint]*common.WhirlPackage
+	// depGraph is the dependency graph constructed by the compiler to be analyzed
+	depGraph map[uint]*common.WhirlPackage
 
-	// ResolutionStatuses stores the IDs of the packages that have a known
+	// resolutionStatuses stores the IDs of the packages that have a known
 	// resolution status.  A false value indicates that a package has yet to be
 	// resolved a true value indicates that it has already been resolved.
-	ResolutionStatuses map[uint]bool
+	resolutionStatuses map[uint]bool
 
-	// CurrentUnit is the resolution unit being constructed
-	CurrentUnit map[uint]*common.WhirlPackage
+	// currentUnit is the resolution unit being constructed
+	currentUnit map[uint]*common.WhirlPackage
 }
 
 // NewGrouper creates a new grouper for the given dep-g and root package
 func NewGrouper(rootpkg *common.WhirlPackage, depg map[uint]*common.WhirlPackage) *Grouper {
 	return &Grouper{
-		RootPackage:        rootpkg,
-		DepGraph:           depg,
-		ResolutionStatuses: make(map[uint]bool),
-		CurrentUnit:        make(map[uint]*common.WhirlPackage),
+		rootPackage:        rootpkg,
+		depGraph:           depg,
+		resolutionStatuses: make(map[uint]bool),
+		currentUnit:        make(map[uint]*common.WhirlPackage),
 	}
 }
 
 // ResolveAll runs the grouping algorithm starting from the root package and
 // resolves all the groups as it arranges them.
 func (g *Grouper) ResolveAll() bool {
-	_, ok := g.groupFrom(g.RootPackage)
+	_, ok := g.groupFrom(g.rootPackage)
 	return ok
 }
 
@@ -79,18 +79,18 @@ func (g *Grouper) ResolveAll() bool {
 // immediate unwind without any further grouping or analysis.
 func (g *Grouper) groupFrom(pkg *common.WhirlPackage) (map[uint]struct{}, bool) {
 	// mark the current package as awaiting resolution
-	g.ResolutionStatuses[pkg.PackageID] = false
+	g.resolutionStatuses[pkg.PackageID] = false
 
 	// store the accumulated cycle roots
 	roots := make(map[uint]struct{})
 	for id := range pkg.ImportTable {
 		// if the package has a known status and has not already been resolved,
 		// then we consider that package to be a cycle root.
-		if status, ok := g.ResolutionStatuses[id]; ok {
+		if status, ok := g.resolutionStatuses[id]; ok {
 			if !status {
 				roots[id] = struct{}{}
 			}
-		} else if nroots, ok := g.groupFrom(g.DepGraph[id]); ok {
+		} else if nroots, ok := g.groupFrom(g.depGraph[id]); ok {
 			// if the package is unknown (ungrouped), then we explore its path
 			// and if it is groupable, we add its new roots to our current cycle
 			// roots
@@ -115,7 +115,7 @@ func (g *Grouper) groupFrom(pkg *common.WhirlPackage) (map[uint]struct{}, bool) 
 		// current unit (happens in either case) and then we check if the
 		// current package is the cycle root and if it is, we resolve the whole
 		// unit and clear it.  Otherwise, we return.
-		g.CurrentUnit[pkg.PackageID] = pkg
+		g.currentUnit[pkg.PackageID] = pkg
 
 		if _, ok := roots[pkg.PackageID]; ok {
 			rok := g.resolveCurrentUnit()
@@ -128,8 +128,8 @@ func (g *Grouper) groupFrom(pkg *common.WhirlPackage) (map[uint]struct{}, bool) 
 		// roots are in the current unit.  If they are not, then we add the
 		// current package to the current unit and return.
 		for root := range roots {
-			if _, ok := g.CurrentUnit[root]; !ok {
-				g.CurrentUnit[pkg.PackageID] = pkg
+			if _, ok := g.currentUnit[root]; !ok {
+				g.currentUnit[pkg.PackageID] = pkg
 				return roots, true
 			}
 		}
@@ -152,9 +152,9 @@ func (g *Grouper) groupFrom(pkg *common.WhirlPackage) (map[uint]struct{}, bool) 
 func (g *Grouper) resolveSingle(pkg *common.WhirlPackage) bool {
 	// whether or not resolution succeeds is unimportant.  If it fails, the
 	// statuses won't matter anyway
-	g.ResolutionStatuses[pkg.PackageID] = true
+	g.resolutionStatuses[pkg.PackageID] = true
 
-	r := NewResolver([]*common.WhirlPackage{pkg}, g.DepGraph)
+	r := NewResolver([]*common.WhirlPackage{pkg}, g.depGraph)
 	return r.Resolve()
 }
 
@@ -164,18 +164,18 @@ func (g *Grouper) resolveCurrentUnit() bool {
 	// whether or not resolution succeeds is unimportant.  If it fails, the
 	// statuses won't matter anyway -- mark every package as resolved,
 	// create the resolution unit, and clear the current unit in one pass
-	runit := make([]*common.WhirlPackage, len(g.CurrentUnit))
+	runit := make([]*common.WhirlPackage, len(g.currentUnit))
 
 	n := 0
-	for id, pkg := range g.CurrentUnit {
-		g.ResolutionStatuses[id] = true
+	for id, pkg := range g.currentUnit {
+		g.resolutionStatuses[id] = true
 		runit[n] = pkg
 		n++
 
-		delete(g.CurrentUnit, id)
+		delete(g.currentUnit, id)
 	}
 
 	// resolve the current unit and return the status
-	r := NewResolver(runit, g.DepGraph)
+	r := NewResolver(runit, g.depGraph)
 	return r.Resolve()
 }
