@@ -27,6 +27,10 @@ def gen_type(defs):
 
 def gen_def(file, name, defs):
     def_kind = randint(0, 2)
+
+    if def_kind == 2:
+        file.write('closed ')
+
     file.write(f'type {name}')
 
     # type set
@@ -82,6 +86,8 @@ if __name__ == '__main__':
         package_name = f'pkg{i}'
         os.mkdir(package_name)
         os.chdir(package_name)
+
+        os.system(f'whirl mod init {package_name}')
 
         definitions = {}
         for j in range(args.files):

@@ -69,7 +69,7 @@ func (pa *PAssembler) initialPass() {
 }
 
 // initialPassOverBlock takes an AST over which to perform the initial
-// resolution pass (walks a top_level `node`)
+// resolution pass (walks a top_level `node`).
 func (pa *PAssembler) initialPassOverBlock(wfile *common.WhirlFile, block *syntax.ASTBranch, declStatus int) {
 	for _, topast := range block.Content {
 		// extract the first node from the `definition` node
@@ -87,7 +87,8 @@ func (pa *PAssembler) initialPassOverBlock(wfile *common.WhirlFile, block *synta
 			wfile.AddNode(hirn)
 		}
 
-		// all declarations and errors will be handled by the walker
+		// fatal definition errors have already been logged.  From this point
+		// forward, they are simply just ignored; we can continue compilation
 	}
 }
 

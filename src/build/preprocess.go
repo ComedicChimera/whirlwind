@@ -48,7 +48,7 @@ func (c *Compiler) readMetadata(sc *syntax.Scanner) (bool, map[string]string, er
 	expecting := syntax.IDENTIFIER
 	var currentMetaTag string
 	tags := make(map[string]string)
-	for true {
+	for {
 		next, err = sc.ReadToken()
 		if err != nil {
 			return false, nil, err
@@ -123,7 +123,4 @@ func (c *Compiler) readMetadata(sc *syntax.Scanner) (bool, map[string]string, er
 			}
 		}
 	}
-
-	// unreachable
-	return false, nil, nil
 }

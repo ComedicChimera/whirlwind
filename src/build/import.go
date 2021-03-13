@@ -95,7 +95,7 @@ func (c *Compiler) initDependencies(pkg *common.WhirlPackage) bool {
 func (c *Compiler) processImport(pkg *common.WhirlPackage, file *common.WhirlFile, ibranch *syntax.ASTBranch) bool {
 	var relPath, rename string
 	var pathPosition, namePosition *logging.TextPosition
-	var importedSymbols map[string]*logging.TextPosition
+	importedSymbols := make(map[string]*logging.TextPosition)
 
 	// walk the import/export statement and extract all meaningful information
 	for _, item := range ibranch.Content {
