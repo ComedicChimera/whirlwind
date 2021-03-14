@@ -12,8 +12,7 @@ import (
 // primeGenericContext should be called whenever a `generic_tag` node is
 // encountered in a definition.  It parses the tag and appropriately populates
 // the `TypeParams` slice with all of the encounter type parameters.  It returns
-// `true` if the parsing was successful.  This function does populate the
-// `Unknowns` field and sets `FatalDefError` appropriately.
+// `true` if the parsing was successful.
 func (w *Walker) primeGenericContext(genericTag *syntax.ASTBranch, isInterf bool) bool {
 	wc := make([]*typing.WildcardType, genericTag.Len()/2)
 	names := make(map[string]struct{})
@@ -29,7 +28,7 @@ func (w *Walker) primeGenericContext(genericTag *syntax.ASTBranch, isInterf bool
 		if _, ok := names[name]; !ok {
 			names[name] = struct{}{}
 		} else {
-			w.logFatalDefError(
+			w.logError(
 				fmt.Sprintf("Multiple type parameters declared with name `%s`", name),
 				logging.LMKName,
 				param.Content[0].Position(),
@@ -91,7 +90,7 @@ func (w *Walker) applyGenericContext(node common.HIRNode, dt typing.DataType) (c
 	// find the symbol of the declared data type so its type can be overwritten
 	// with the generic type (should always succeed b/c this is called
 	// immediately after a definition)
-	symbol, _, _ := w.Lookup(w.currentDefName)
+	symbol, _ := w.Lookup(w.currentDefName)
 	symbol.Type = gt
 
 	// update algebraic variants of open generic algebraic types
@@ -99,7 +98,7 @@ func (w *Walker) applyGenericContext(node common.HIRNode, dt typing.DataType) (c
 		if !at.Closed {
 			for i, vari := range at.Variants {
 				// we know the variant exists -- we can just look it up
-				vs, _, _ := w.Lookup(vari.Name)
+				vs, _ := w.Lookup(vari.Name)
 
 				vs.Type = &typing.GenericAlgebraicVariantType{
 					GenericParent: gt,
@@ -128,7 +127,6 @@ func (w *Walker) createGenericInstance(generic typing.DataType, genericPos *logg
 		if gi, ok := w.solver.CreateGenericInstance(v, params, paramsBranch); ok {
 			return gi, ok
 		} else {
-			w.fatalDefError = true
 			return nil, ok
 		}
 	case *typing.OpaqueGenericType:
@@ -147,14 +145,13 @@ func (w *Walker) createGenericInstance(generic typing.DataType, genericPos *logg
 		if gi, ok := w.solver.CreateGenericInstance(v.EvalType, params, paramsBranch); ok {
 			return gi, ok
 		} else {
-			w.fatalDefError = true
 			return nil, ok
 		}
 		// TODO: Wildcard generics
 	}
 
 	// not a generic type -- error
-	w.logFatalDefError(
+	w.logError(
 		fmt.Sprintf("Unable to pass type parameters to non-generic type `%s`", generic.Repr()),
 		logging.LMKTyping,
 		genericPos,

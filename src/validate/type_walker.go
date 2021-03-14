@@ -71,15 +71,14 @@ var primitiveTypeTable = map[int]*typing.PrimitiveType{
 	syntax.ULONG:   {PrimKind: typing.PrimKindIntegral, PrimSpec: typing.PrimIntUlong},
 }
 
-// walkTypeLabel walks and attempts to extract a data type from a type label. If
-// this function fails, it will set `fatalDefError` appropriately.
+// walkTypeLabel walks and attempts to extract a data type from a type label.
 func (w *Walker) walkTypeLabel(label *syntax.ASTBranch) (typing.DataType, bool) {
 	if dt, requiresRef, ok := w.walkTypeLabelCore(label.BranchAt(0)); ok {
 		// we know that since we are the exterior of walk type label, we will
 		// never have the enclosing reference type required as so we can simply
 		// return false.
 		if requiresRef {
-			w.logFatalDefError(
+			w.logError(
 				fmt.Sprintf("The type `%s` can only be stored by reference here", dt.Repr()),
 				logging.LMKTyping,
 				label.Position(),
@@ -178,7 +177,7 @@ func (w *Walker) walkNamedType(namedTypeLabel *syntax.ASTBranch) (typing.DataTyp
 		// check if the named type is a generic with no type parameters
 		switch namedType.(type) {
 		case *typing.GenericType, *typing.OpaqueGenericType:
-			w.logFatalDefError(
+			w.logError(
 				"Generic type must be provided with type parameters",
 				logging.LMKGeneric,
 				namedTypeLabel.Position(),
@@ -205,7 +204,7 @@ func (w *Walker) lookupNamedType(rootName, accessedName string, rootPos, accesse
 
 	// if there is no accessed name, than this just a standard symbol access
 	if accessedName == "" {
-		symbol, fpkg, ok := w.Lookup(rootName)
+		symbol, ok := w.Lookup(rootName)
 
 		// check for generic type parameters (in the generic ctx)
 		if !ok {
@@ -228,7 +227,7 @@ func (w *Walker) lookupNamedType(rootName, accessedName string, rootPos, accesse
 		} else {
 			// the symbol exists in the regular local table
 			if symbol.DefKind != common.DefKindTypeDef {
-				w.logFatalDefError(
+				w.logError(
 					fmt.Sprintf("Symbol `%s` is not a type", symbol.Name),
 					logging.LMKUsage,
 					rootPos,
@@ -242,7 +241,7 @@ func (w *Walker) lookupNamedType(rootName, accessedName string, rootPos, accesse
 					return symbol.Type, false, true
 				}
 
-				w.logFatalDefError(
+				w.logError(
 					fmt.Sprintf("Symbol `%s` must be exported to be used in an exported definition", symbol.Name),
 					logging.LMKUsage,
 					rootPos,
@@ -263,23 +262,14 @@ func (w *Walker) lookupNamedType(rootName, accessedName string, rootPos, accesse
 			} else if w.selfType != nil && rootName == w.currentDefName {
 				w.selfTypeUsed = true
 				return w.selfType, w.selfTypeRequiresRef, true
-			} else {
-				// otherwise, we mark it as unknown and return
-				w.unknowns[rootName] = &common.UnknownSymbol{
-					Name:           rootName,
-					Position:       rootPos,
-					ForeignPackage: fpkg,
-				}
-
-				return nil, false, false
 			}
 		} else {
-			// symbol is unknown, and we are not resolving
+			// just a regular undefined symbol
 			w.LogUndefined(rootName, rootPos)
 			return nil, false, false
 		}
 	} else if w.declStatus == common.DSExported {
-		w.logFatalDefError(
+		w.logError(
 			"Unable to use implicitly imported symbol in exported definition",
 			logging.LMKUsage,
 			accessedPos,
@@ -289,7 +279,7 @@ func (w *Walker) lookupNamedType(rootName, accessedName string, rootPos, accesse
 	if pkg, ok := w.SrcFile.VisiblePackages[rootName]; ok {
 		if symbol, ok := pkg.ImportFromNamespace(accessedName); ok {
 			if symbol.DefKind != common.DefKindTypeDef {
-				w.logFatalDefError(
+				w.logError(
 					fmt.Sprintf("Symbol `%s` is not a type", symbol.Name),
 					logging.LMKUsage,
 					accessedPos,
@@ -304,23 +294,14 @@ func (w *Walker) lookupNamedType(rootName, accessedName string, rootPos, accesse
 			// resolving (can be accessed via an implicit import)
 			if w.sharedOpaqueSymbol.SrcPackageID == pkg.PackageID && w.sharedOpaqueSymbol.Name == accessedName {
 				return w.sharedOpaqueSymbol.Type, w.opaqueSymbolRequiresRef(), true
-			} else {
-				// otherwise, it is just an unknown
-				w.unknowns[accessedName] = &common.UnknownSymbol{
-					Name:           accessedName,
-					Position:       accessedPos,
-					ForeignPackage: pkg,
-					ImplicitImport: true,
-				}
 			}
-		} else {
-			// we are not resolving, so the error must be fatal
-			w.LogNotVisibleInPackage(accessedName, rootName, accessedPos)
-			return nil, false, false
 		}
+
+		w.LogNotVisibleInPackage(accessedName, rootName, accessedPos)
+		return nil, false, false
 	}
 
-	w.logFatalDefError(
+	w.logError(
 		fmt.Sprintf("Package `%s` is not defined", rootName),
 		logging.LMKName,
 		rootPos,
@@ -382,13 +363,13 @@ func (w *Walker) walkRefType(branch *syntax.ASTBranch) (typing.DataType, bool) {
 			refType.Constant = true
 		}
 
-		refBranch = refBranch.Last().(*syntax.ASTBranch)
+		refBranch = refBranch.LastBranch()
 	}
 
-	if elemType, _, ok := w.walkTypeLabelCore(refBranch.Last().(*syntax.ASTBranch)); ok {
+	if elemType, _, ok := w.walkTypeLabelCore(refBranch.LastBranch()); ok {
 		innerElemType := typing.InnerType(elemType)
 		if _, ok = innerElemType.(typing.RegionType); ok {
-			w.logFatalDefError(
+			w.logError(
 				"Element type of a reference cannot be a region",
 				logging.LMKTyping,
 				refBranch.Last().Position(),
@@ -396,7 +377,7 @@ func (w *Walker) walkRefType(branch *syntax.ASTBranch) (typing.DataType, bool) {
 
 			return nil, false
 		} else if _, ok := innerElemType.(*typing.RefType); ok && !refType.Block {
-			w.logFatalDefError(
+			w.logError(
 				"Element type of a non-block reference cannot be a reference",
 				logging.LMKTyping,
 				refBranch.Last().Position(),
@@ -426,7 +407,7 @@ func (w *Walker) walkFuncType(branch *syntax.ASTBranch) (typing.DataType, bool) 
 			if itembranch.Name == "func_type_args" {
 				if !w.walkRecursiveRepeat(itembranch.Content, func(argbranch *syntax.ASTBranch) bool {
 					// both branches can be walked the same way
-					if adt, ok := w.walkTypeLabel(argbranch.Last().(*syntax.ASTBranch)); ok {
+					if adt, ok := w.walkTypeLabel(argbranch.LastBranch()); ok {
 						ft.Args = append(ft.Args, &typing.FuncArg{
 							Val: &typing.TypeValue{
 								Type: adt,

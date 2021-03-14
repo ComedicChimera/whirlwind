@@ -22,22 +22,12 @@ type Walker struct {
 	// default to `DSInternal`.
 	declStatus int
 
-	// unknowns is a map of all of the unknown symbols for a given definition.
-	// This is used by the PAssembler and Resolver during symbol resolution.
-	// If this field is set to `nil`, then resolution is finished and this field
-	// can be ignored.
-	unknowns map[string]*common.UnknownSymbol
-
 	// Solver stores the type solver that is used for inference and type deduction
 	solver *typing.Solver
 
 	// resolving indicates whether or not the package that contains the file
 	// the walker is analyzing has been fully resolved
 	resolving bool
-
-	// fatalDefError is a flag that is used to mark when an error that occurred in
-	// a definition is fatal (ie. not related to an unknown)
-	fatalDefError bool
 
 	// genericCtx stores a list of the generic wildcard types in use during
 	// declaration so a generic can be formed after.  This field is also used as
@@ -95,7 +85,6 @@ func NewWalker(pkg *common.WhirlPackage, file *common.WhirlFile, fpath string, s
 		SrcFile:    file,
 		Context:    lctx,
 		declStatus: common.DSInternal,
-		unknowns:   make(map[string]*common.UnknownSymbol),
 		solver: &typing.Solver{
 			GlobalBindings: pkg.GlobalBindings,
 			LocalBindings:  file.LocalBindings,
@@ -108,7 +97,6 @@ func NewWalker(pkg *common.WhirlPackage, file *common.WhirlFile, fpath string, s
 
 // resolutionDone indicates to the walker that resolution has finished.
 func (w *Walker) resolutionDone() {
-	w.unknowns = nil
 	w.resolving = false
 }
 
@@ -130,7 +118,7 @@ func (w *Walker) walkIdList(idList *syntax.ASTBranch, nameKind string) (map[stri
 			name := item.(*syntax.ASTLeaf).Value
 
 			if _, ok := names[name]; ok {
-				w.logFatalDefError(
+				w.logError(
 					fmt.Sprintf("Multiple %s named `%s`", nameKind, name),
 					logging.LMKName,
 					item.Position(),

@@ -124,7 +124,7 @@ func (se *SymbolExtractor) extractFromInterfBody(body *syntax.ASTBranch) {
 			case "func_def":
 				se.extractFromMethod(memberCore)
 			case "annotated_method":
-				se.extractFromMethod(memberCore.Last().(*syntax.ASTBranch))
+				se.extractFromMethod(memberCore.LastBranch())
 			case "special_def":
 				// generic tags and specialization specifiers can still create
 				// dependencies (eg. `<T: Name>``)

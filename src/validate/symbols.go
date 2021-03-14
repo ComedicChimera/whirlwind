@@ -4,41 +4,21 @@ import "whirlwind/common"
 
 // Lookup attempts to find a symbol in the current package or global symbol
 // table. If it succeeds, it returns the symbol it finds.  If it fails, it
-// returns false, and marks it as unknown as necessary.  The position of the
-// symbol will need to updated AFTER this function exits.  It also returns the
-// the foreign package the symbol was located in (if it was imported via a named
-// symbol import) so that it can be properly reported as unknown.  This return
-// value will be `nil` if it is local to the current package or if the symbol
-// resolved successfully.  Externally visible for use in symbol resolution.
-func (w *Walker) Lookup(name string) (*common.Symbol, *common.WhirlPackage, bool) {
+// returns false.  The position of the symbol will need to updated AFTER this
+// function exits.  This return value will be `nil` if it is local to the
+// current package or if the symbol resolved successfully.  Externally visible
+// for use in symbol resolution.
+func (w *Walker) Lookup(name string) (*common.Symbol, bool) {
 	if sym, ok := w.SrcPackage.GlobalTable[name]; ok {
-		return sym, nil, true
+		return sym, true
 	}
 
 	if wsi, ok := w.SrcFile.LocalTable[name]; ok {
-		// if the symbol has no name, then it was accessed via import but it has
-		// yet to be updated -- which we will do here
-		if wsi.SymbolRef.Name == "" {
-			// check to see if the symbol is already defined in the remote
-			// package.  If it is, just update the symbol reference with it.
-			if rsym, ok := wsi.SrcPackage.ImportFromNamespace(name); ok {
-				ds := wsi.SymbolRef.DeclStatus
-				*wsi.SymbolRef = *rsym
-				wsi.SymbolRef.DeclStatus = ds
-				return rsym, wsi.SrcPackage, true
-			}
-
-			// we do not want to remove the symbol import yet as it may still be
-			// resolveable.  This lookup should only happen once or twice per
-			// definition -- once it is updated, it will never happen again
-
-			return nil, wsi.SrcPackage, false
-		}
-
-		return wsi.SymbolRef, nil, true
+		// all unresolved imports should be pruned by this point
+		return wsi.SymbolRef, true
 	}
 
-	return nil, nil, false
+	return nil, false
 }
 
 // define defines a new symbol in the global namespace of a package (returns false
@@ -73,22 +53,11 @@ func (w *Walker) implicitImport(ipkg *common.WhirlPackage, name string) (*common
 
 	nsym, ok := ipkg.ImportFromNamespace(name)
 
-	// update the unknowns as necessary
-	if !ok && w.unknowns != nil {
-		w.unknowns[name] = &common.UnknownSymbol{
-			Name:           name,
-			ForeignPackage: ipkg,
-			ImplicitImport: true,
-		}
+	// update entry in import table as necessary
+	if ok {
+		w.SrcPackage.ImportTable[ipkg.PackageID].ImportedSymbols[name] = nsym
+
 	}
 
-	// update entry in import table
-	w.SrcPackage.ImportTable[ipkg.PackageID].ImportedSymbols[name] = nsym
-
 	return nsym, ok
-}
-
-// clearUnknowns resets the map of unknowns before another definition is analyzed
-func (w *Walker) clearUnknowns() {
-	w.unknowns = make(map[string]*common.UnknownSymbol)
 }

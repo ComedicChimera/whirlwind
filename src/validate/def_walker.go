@@ -18,14 +18,11 @@ var validTypeSetIntrinsics = map[string]struct{}{
 
 // WalkDef walks the AST of any given definition and attempts to determine if it
 // can be defined.  If it can, it returns the produced HIR node and the value
-// `true`. If it cannot, then it determines first if the only errors are due to
-// missing symbols, in which case it returns a map of unknowns and `true`.
-// Otherwise, it returns `false`. All unmentioned values for each case will be
-// nil. This is the main definition analysis function and accepts a `definition`
-// node.  This function is mainly intended to work with the Resolver and
-// PackageAssembler.  It also always returns the name of the definition is
-// possible.
-func (w *Walker) WalkDef(dast *syntax.ASTBranch, declStatus int) (common.HIRNode, string, map[string]*common.UnknownSymbol, bool) {
+// `true`. Otherwise, it returns `false`. All unmentioned values for each case
+// will be nil. This is the main definition analysis function and accepts a
+// definition core (that is a node inside a `definition` like `func_def`).  This
+// function is mainly intended to work with the Resolver and PackageAssembler.
+func (w *Walker) WalkDef(dast *syntax.ASTBranch, declStatus int) (common.HIRNode, bool) {
 	w.declStatus = declStatus
 	def, dt, ok := w.walkDefRaw(dast)
 
@@ -44,8 +41,7 @@ func (w *Walker) WalkDef(dast *syntax.ASTBranch, declStatus int) (common.HIRNode
 	})()
 
 	if ok {
-		// apply generic context before returning definition; we can assume that
-		// if we reached this point, there are no unknowns to account for
+		// apply generic context before returning definition
 		def, dt = w.applyGenericContext(def, dt)
 
 		// update the shared opaque symbol with the contents of this definition
@@ -63,24 +59,14 @@ func (w *Walker) WalkDef(dast *syntax.ASTBranch, declStatus int) (common.HIRNode
 			}
 		}
 
-		return def, w.currentDefName, nil, true
+		return def, true
 	}
 
-	// clear the generic context
+	// clear the generic context (not cleared by `applyGenericContext` on this
+	// code path)
 	w.genericCtx = nil
 
-	// handle fatal definition errors
-	if w.fatalDefError {
-		w.fatalDefError = false
-
-		return nil, "", nil, false
-	}
-
-	// collect and clear our unknowns after they have collected for the definition
-	unknowns := w.unknowns
-	w.clearUnknowns()
-
-	return nil, w.currentDefName, unknowns, true
+	return nil, false
 }
 
 // walkDefRaw walks a definition without handling any generics or any of the
@@ -122,8 +108,7 @@ func (w *Walker) walkDefRaw(dast *syntax.ASTBranch) (common.HIRNode, typing.Data
 }
 
 // walkTypeDef walks a `type_def` node and returns the appropriate HIRNode and a
-// boolean indicating if walking was successful.  It does not indicate if an
-// errors were fatal.  This should be checked using the `FatalDefError` flag.
+// boolean indicating if walking was successful.
 func (w *Walker) walkTypeDef(dast *syntax.ASTBranch) (*common.HIRTypeDef, bool) {
 	closedType := false
 	var name string
@@ -228,7 +213,7 @@ func (w *Walker) walkTypeDef(dast *syntax.ASTBranch) (*common.HIRTypeDef, bool) 
 				}
 
 				if !w.define(symbol) {
-					w.logFatalDefError(
+					w.logError(
 						fmt.Sprintf("Algebraic type `%s` must be marked `closed` as its variant `%s` shares a name with an already-defined symbol", name, vari.Name),
 						logging.LMKName,
 						namePosition,
@@ -239,7 +224,7 @@ func (w *Walker) walkTypeDef(dast *syntax.ASTBranch) (*common.HIRTypeDef, bool) 
 		}
 	} else if closedType {
 		// you can't use `closed` on a type that isn't algebraic
-		w.logFatalDefError(
+		w.logError(
 			fmt.Sprintf("`closed` property not applicable on type `%s`", dt.Repr()),
 			logging.LMKDef,
 			dast.Content[0].Position(),
@@ -286,7 +271,7 @@ func (w *Walker) walkAlgebraicSuffix(suffix *syntax.ASTBranch, name string, name
 	// defined and has no alternate form that prevents such recursion (ie. no
 	// "base case") and so we must throw an error.
 	if w.selfTypeUsed && len(algType.Variants) == 1 {
-		w.logFatalDefError(
+		w.logError(
 			fmt.Sprintf("Algebraic type `%s` defined recursively with no base case", name),
 			logging.LMKDef,
 			namePosition,
@@ -332,7 +317,7 @@ func (w *Walker) walkStructSuffix(suffix *syntax.ASTBranch, name string, fieldIn
 					if st, ok := dt.(*typing.StructType); ok {
 						// inherits cannot be self-referential
 						if typing.Equals(st, structType) {
-							w.logFatalDefError(
+							w.logError(
 								fmt.Sprintf("Struct `%s` cannot inherit from itself", name),
 								logging.LMKDef,
 								branch.Position(),
@@ -343,7 +328,7 @@ func (w *Walker) walkStructSuffix(suffix *syntax.ASTBranch, name string, fieldIn
 						structType.Inherit = st
 					} else {
 						// structs can only inherit from other structs
-						w.logFatalDefError(
+						w.logError(
 							fmt.Sprintf("Struct `%s` must inherit from another struct not `%s`", name, dt.Repr()),
 							logging.LMKDef,
 							branch.Position(),
@@ -456,7 +441,7 @@ func (w *Walker) walkFuncDef(branch *syntax.ASTBranch, isMethod bool) (*common.H
 			w.hasFlag("external") ||
 			w.hasFlag("dllimport")) {
 
-			w.logFatalDefError(
+			w.logError(
 				fmt.Sprintf("Function `%s` must have a body", name),
 				logging.LMKDef,
 				namePosition,
@@ -501,7 +486,7 @@ func (w *Walker) walkSignature(branch *syntax.ASTBranch) ([]*typing.FuncArg,
 			if argBranch.Name == "var_arg_decl" {
 				name := argBranch.LeafAt(1).Value
 				if _, ok := initializers[name]; ok {
-					w.logFatalDefError(
+					w.logError(
 						fmt.Sprintf("Multiple arguments named `%s`", name),
 						logging.LMKName,
 						argBranch.Content[1].Position(),
@@ -600,7 +585,7 @@ func (w *Walker) walkInterfDef(branch *syntax.ASTBranch) (*common.HIRInterfDef, 
 
 	w.setSelfType(it)
 
-	methodNodes, ok := w.walkInterfBody(branch.Last().(*syntax.ASTBranch), it, true)
+	methodNodes, ok := w.walkInterfBody(branch.LastBranch(), it, true)
 	if !ok {
 		return nil, false
 	}
@@ -664,7 +649,7 @@ func (w *Walker) walkInterfBind(branch *syntax.ASTBranch) (common.HIRNode, bool)
 					} else if implIt, ok := typing.InnerType(dt).(*typing.InterfType); ok {
 						implInterfs[implIt] = itembranch.Position()
 					} else {
-						w.logFatalDefError(
+						w.logError(
 							fmt.Sprintf("Binding may only derive interfaces not `%s`", dt.Repr()),
 							logging.LMKInterf,
 							itembranch.Position(),
@@ -745,7 +730,7 @@ func (w *Walker) walkInterfBind(branch *syntax.ASTBranch) (common.HIRNode, bool)
 		if w.solver.ImplementsInterf(bindDt, implInterf) {
 			w.solver.Derive(it, implInterf)
 		} else {
-			w.logFatalDefError(
+			w.logError(
 				fmt.Sprintf("Type interface for `%s` does not fully implement interface `%s`", bindDt.Repr(), implInterf.Repr()),
 				logging.LMKInterf,
 				pos,
@@ -787,7 +772,7 @@ func (w *Walker) walkInterfBody(body *syntax.ASTBranch, it *typing.InterfType, c
 							methodKind = typing.MKVirtual
 						}
 					} else if fnnode.Body == nil {
-						w.logFatalDefError(
+						w.logError(
 							"Type interface may not contain abstract methods",
 							logging.LMKInterf,
 							namePosition,
@@ -804,7 +789,7 @@ func (w *Walker) walkInterfBody(body *syntax.ASTBranch, it *typing.InterfType, c
 				if specNode, ok := w.walkSpecial(methodBranch, func(name string, pos *logging.TextPosition) (typing.DataType, bool) {
 					if method, ok := it.Methods[name]; ok {
 						if method.Kind == typing.MKAbstract {
-							w.logFatalDefError(
+							w.logError(
 								"Unable to define specialization for abstract method",
 								logging.LMKGeneric,
 								pos,
@@ -868,11 +853,13 @@ func (w *Walker) walkInterfBody(body *syntax.ASTBranch, it *typing.InterfType, c
 // an interface -- that is one at the top level of the program
 func (w *Walker) walkTopLevelSpecial(branch *syntax.ASTBranch) (common.HIRNode, bool) {
 	return w.walkSpecial(branch, func(name string, pos *logging.TextPosition) (typing.DataType, bool) {
-		sym, fpkg, ok := w.Lookup(name)
+		// just use the global table to prevent specializations from being
+		// applied across packages (big no-no)
+		sym, ok := w.SrcPackage.GlobalTable[name]
 
 		if ok {
 			if sym.DefKind != common.DefKindFuncDef {
-				w.logFatalDefError(
+				w.logError(
 					"Function specialization may only be applied to generic functions",
 					logging.LMKGeneric,
 					pos,
@@ -884,20 +871,18 @@ func (w *Walker) walkTopLevelSpecial(branch *syntax.ASTBranch) (common.HIRNode, 
 			if w.resolving {
 				if w.sharedOpaqueSymbol.SrcPackageID == w.SrcPackage.PackageID && w.sharedOpaqueSymbol.Name == name {
 					// shared opaque symbol can only share things that aren't functions => specialization is invalid
-					w.logFatalDefError(
+					w.logError(
 						"Function specialization may only be applied to generic functions",
 						logging.LMKGeneric,
 						pos,
 					)
-				} else {
-					w.unknowns[name] = &common.UnknownSymbol{
-						Name:           name,
-						Position:       pos,
-						ForeignPackage: fpkg,
-					}
 				}
 			} else {
-				w.LogUndefined(name, pos)
+				w.logError(
+					fmt.Sprintf("Unable to find specialization local to current package named `%s`", name),
+					logging.LMKName,
+					pos,
+				)
 			}
 
 			return nil, false
@@ -955,14 +940,13 @@ func (w *Walker) walkSpecial(branch *syntax.ASTBranch,
 						// instances matching the specialization are valid as
 						// well
 						if _, ok = w.solver.CreateGenericInstance(gt, genericSpecial.MatchingTypes, typeListBranch); !ok {
-							w.fatalDefError = true
 							return nil, false
 						}
 
 						for _, spec := range gt.Specializations {
 							if spec.Match(genericSpecial) {
 								// duplicate/conflicting specialization
-								w.logFatalDefError(
+								w.logError(
 									"Unable to define multiple specializations with for same type parameters",
 									logging.LMKGeneric,
 									typeListBranch.Position(),
@@ -973,7 +957,7 @@ func (w *Walker) walkSpecial(branch *syntax.ASTBranch,
 
 						gt.Specializations = append(gt.Specializations, genericSpecial)
 					} else {
-						w.logFatalDefError(
+						w.logError(
 							"Function specialization is only valid on generic functions",
 							logging.LMKGeneric,
 							v.Position(),

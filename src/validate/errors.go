@@ -24,8 +24,6 @@ func (w *Walker) LogNotVisibleInPackage(symname, pkgname string, pos *logging.Te
 
 // logRepeatDef logs an error indicate that a symbol has already been defined
 func (w *Walker) logRepeatDef(name string, pos *logging.TextPosition, topDefError bool) {
-	w.fatalDefError = topDefError
-
 	logging.LogError(
 		w.Context,
 		fmt.Sprintf("Symbol `%s` already defined", name),
@@ -37,21 +35,19 @@ func (w *Walker) logRepeatDef(name string, pos *logging.TextPosition, topDefErro
 // logInvalidIntrinsic marks that the given named type cannot be intrinsic.
 // Sets `fatalDefError`.
 func (w *Walker) logInvalidIntrinsic(name, kind string, pos *logging.TextPosition) {
-	w.logFatalDefError(
+	w.logError(
 		fmt.Sprintf("No intrinsic %s by name `%s`", kind, name),
 		logging.LMKUsage,
 		pos,
 	)
 }
 
-// logFatalDefError logs a fatal definition error of any kind
-func (w *Walker) logFatalDefError(message string, kind int, pos *logging.TextPosition) {
-	w.fatalDefError = true
-
+// logError logs an error of any kind within the walker's file
+func (w *Walker) logError(message string, kind int, pos *logging.TextPosition) {
 	logging.LogError(
 		w.Context,
 		message,
-		logging.LMKUsage,
+		kind,
 		pos,
 	)
 }

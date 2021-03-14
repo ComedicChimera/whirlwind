@@ -1,6 +1,8 @@
 package syntax
 
-import "whirlwind/logging"
+import (
+	"whirlwind/logging"
+)
 
 // ASTNode represents a piece of the Abstract Syntax Tree (AST)
 type ASTNode interface {
@@ -68,4 +70,10 @@ func (a *ASTBranch) Len() int {
 // Last returns the last element of the branch
 func (a *ASTBranch) Last() ASTNode {
 	return a.Content[len(a.Content)-1]
+}
+
+// LastBranch returns the last element of a branch and casts it
+// to a branch (assumes it is one)
+func (a *ASTBranch) LastBranch() *ASTBranch {
+	return a.Content[len(a.Content)-1].(*ASTBranch)
 }

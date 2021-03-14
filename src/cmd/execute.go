@@ -158,19 +158,11 @@ func Mod() error {
 
 	switch os.Args[2] {
 	case "del":
-		finfo, err := os.Stat("whirl.mod")
-
-		if err == nil {
-			if finfo.IsDir() {
-				return errors.New("`whirl.mod` must be a file")
-			}
-
-			return os.Remove("whirl.mod")
-		} else if os.IsNotExist(err) {
-			return errors.New("No module exists in the current directory")
+		if len(os.Args) != 2 {
+			return errors.New("Too many arguments for the `mod del` command")
 		}
 
-		return err
+		return mods.Del()
 	case "new":
 		if len(os.Args) != 4 {
 			return errors.New("The `mod new` command takes exactly one argument: the name of the new module")
