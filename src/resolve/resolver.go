@@ -9,8 +9,8 @@ import (
 // ------------------------
 // 1. Go through every definition in the resolution unit and extract every type
 //    or interface definition in those packages and determine if they depend on any
-//    unknown symbols.  If they do, add them to the resolution queue and table; if
-//    they don't automatically define them.  We want to isolate these two kinds of
+//    unknown symbols.  If they do, add them to the resolution queue; if they
+//    don't automatically define them.  We want to isolate these two kinds of
 //    definitions since at the top level, they are the only definitions that can
 //    cause other definitions to resolve (eg. a function definition can never be
 //    referenced directly as a type which at the top level is the only kind of
@@ -28,9 +28,28 @@ import (
 //       rotate it to the back of queue.  Do not change the current queue.
 // 3. Attempt to resolve all cyclically defined symbols.  Use the following
 //    algorithm to do so:
-//    a. Take the first definition in the queue to be the "operand" and remove
-//    it from the queue.
-//    b.
+//    a. Construct a graph of the cyclically dependent definitions that connects them
+//       both based on dependents and symbols that they resolve
+//       i. Remove any symbols that depend on definitions that do not exist in our
+//          cyclic dependency table.  These will never resolve and we should
+//          log their erroneous dependency accordingly
+//    b. Select the first definition in the graph that resolves at least one
+//       other definition and choose it to be our "operand".
+//       i.  Update the resolves of the definitions based on what definitions still
+//           remain in the table
+//       ii. If the table is empty, exit resolution.  This is logically on our only
+//           exit condition since all the definitions that remain in the graph depend
+//           on other definitions in the graph and can therefore always be resolved
+//    c. Create an opaque type of the operand and remove it from the graph temporarily
+//    d. Go through each definition listed in the operand's resolves and attempt to resolve
+//       them using the opaque type we defined
+//       i. If any of them resolve, propagate out recursively from them and attempt to resolve
+//          all the definitions that depend on them
+//    e. If no definitions resolved, choose the next operand to be one of the definitions
+//       that the current operand can resolve (assuming missing some other dependent).
+//       Otherwise, repeat the selection process from `b` without the current operand in
+//       the graph.
+//       i. After both stages, re-add the current operand to the graph
 // 4. Resolve all remaining non-determinate definitions and log all unresolved
 //    imports (explicit -- after definitions).
 
@@ -44,13 +63,24 @@ type Resolver struct {
 
 	// depGraph is the dependency graph constructed by the compiler
 	depGraph map[uint]*common.WhirlPackage
+
+	// cyclicGraph stores the cyclic definition graph for use during
+	// cyclic (recursively defined) type definition resolution.  This
+	// field may be unused and is not initialized by default
+	cyclicGraph CyclicDefGraph
+
+	// sharedOpaqueSymbol stores a common opaque symbol reference to be given to
+	// all package assemblers to share with all of their walkers.  It used
+	// during cyclic dependency resolution.
+	sharedOpaqueSymbol *common.OpaqueSymbol
 }
 
 // NewResolver creates a new resolver for the given set of packages
 func NewResolver(pkgs []*common.WhirlPackage, depg map[uint]*common.WhirlPackage) *Resolver {
 	r := &Resolver{
-		assemblers: make(map[uint]*PAssembler),
-		depGraph:   depg,
+		assemblers:         make(map[uint]*PAssembler),
+		depGraph:           depg,
+		sharedOpaqueSymbol: &common.OpaqueSymbol{},
 	}
 
 	for _, pkg := range pkgs {
@@ -186,25 +216,36 @@ func (r *Resolver) resolveStandard() bool {
 				}
 			}
 
-			// rotate the top to the back (doesn't change the reference)
-			currQueue.Rotate()
-
 			// symbol located in a foreign package, need to update the queue to
 			// be that of the foreign package (switch resolution targets)
 			if dep.ForeignPackage != nil {
+				nextPkgID := dep.ForeignPackage.PackageID
+
 				// switch only if we actually have a queue to switch to
-				if _, ok := unprocessedQueues[currPkgID]; ok {
-					currPkgID = dep.ForeignPackage.PackageID
-					currQueue = r.assemblers[currPkgID].DefQueue
-				} else {
-					// otherwise, the foreign symbol will not be resolveable in
-					// this pass (because its corresponding queue has already
-					// been processed (or its package if its not in the current
-					// resolution unit) and so no new match can be found this
-					// pass.  Thus, we need to indicate that resolution failed
+				if _, ok := unprocessedQueues[nextPkgID]; ok {
+					currQueue.Rotate()
+					currPkgID = nextPkgID
+					currQueue = r.assemblers[nextPkgID].DefQueue
+				} else if _, ok := r.assemblers[nextPkgID]; ok {
+					// if the foreign symbol is in the current resolution unit,
+					// but its queue has just already been processed then, it
+					// won't be resolveable in this passand so no new match can
+					// be found this pass.  Thus, we need to indicate that
+					// resolution failed
 					resolutionSucceeded = false
+				} else {
+					// however, if it does not exist in the current resolution
+					// unit, then we know it is generally undefined and the
+					// definition will never resolve and so we log accordingly
+					// and remove this definition from the queue
+					r.logUnresolved(currPkgID, top, dep)
+					resolutionSucceeded = false
+					currQueue.Dequeue()
 				}
 			} else {
+				// rotate the top to the back
+				currQueue.Rotate()
+
 				// we don't need to check if the current queue is empty b/c we
 				// know there is at least one symbol still in it (the current
 				// unknown definition)
@@ -315,4 +356,9 @@ func (r *Resolver) lookup(pkgid uint, wfile *common.WhirlFile, dep *DependentSym
 	// TODO: opaque symbol handling?
 
 	return nil, false
+}
+
+// logUnresolved logs a dependent symbol as unresolved
+func (r *Resolver) logUnresolved(pkgid uint, def *Definition, dep *DependentSymbol) {
+	r.assemblers[pkgid].logUnresolved(def.SrcFile, dep)
 }

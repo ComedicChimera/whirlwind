@@ -19,17 +19,22 @@ type PAssembler struct {
 
 	// walkers stores all the file-specific definition walkers for this package
 	walkers map[*common.WhirlFile]*validate.Walker
+
+	// explicitUndefSymbolErrors is used to make sure errors for misimported
+	// symbols are not logged multiple times
+	explicitUndefSymbolErrors map[string]struct{}
 }
 
 // NewPAssembler creates a new package assembler for the given package
-func NewPAssembler(srcpkg *common.WhirlPackage) *PAssembler {
+func NewPAssembler(srcpkg *common.WhirlPackage, sos *common.OpaqueSymbol) *PAssembler {
 	pa := &PAssembler{
-		SrcPackage: srcpkg,
-		DefQueue:   &DefinitionQueue{},
+		SrcPackage:                srcpkg,
+		DefQueue:                  &DefinitionQueue{},
+		explicitUndefSymbolErrors: make(map[string]struct{}),
 	}
 
 	for fpath, wfile := range srcpkg.Files {
-		pa.walkers[wfile] = validate.NewWalker(srcpkg, wfile, fpath, nil)
+		pa.walkers[wfile] = validate.NewWalker(srcpkg, wfile, fpath, sos)
 	}
 
 	return pa
@@ -177,5 +182,35 @@ func (pa *PAssembler) walkDef(wfile *common.WhirlFile, defNode *syntax.ASTBranch
 
 	if ok {
 		wfile.AddNode(hirn)
+	}
+}
+
+// logUnresolved logs a symbol used in the src package of this package assembler
+// as unresolved or not externally visible (if it is being imported from
+// somewhere).  `wfile` is the file the definition is defined in
+func (pa *PAssembler) logUnresolved(wfile *common.WhirlFile, dep *DependentSymbol) {
+	w := pa.walkers[wfile]
+
+	// if the symbol was explicitly or implicitly imported but it was not
+	// resolved then we need to log an import error for that symbol. It is
+	// imported if it has a non-nil ForiegnPackage field.
+	if dep.ForeignPackage != nil {
+		// if this is an implicit import, then we need to log it at the symbol's
+		// position, every time.  Otherwise, we only only want to log that the
+		// explicit import was unsuccessful once.
+		if dep.ImplicitImport {
+			w.LogNotVisibleInPackage(dep.Name, dep.ForeignPackage.Name, dep.Position)
+		} else if _, logged := pa.explicitUndefSymbolErrors[dep.Name]; !logged {
+			// find the location of the symbol import
+			wsi := wfile.LocalTable[dep.Name]
+
+			// log the appropriate error
+			w.LogNotVisibleInPackage(dep.Name, dep.ForeignPackage.Name, wsi.Position)
+
+			// mark the error as logged
+			pa.explicitUndefSymbolErrors[dep.Name] = struct{}{}
+		}
+	} else {
+		w.LogUndefined(dep.Name, dep.Position)
 	}
 }

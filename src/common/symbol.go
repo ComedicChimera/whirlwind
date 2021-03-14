@@ -1,7 +1,6 @@
 package common
 
 import (
-	"whirlwind/logging"
 	"whirlwind/typing"
 )
 
@@ -47,21 +46,6 @@ const (
 	DefKindFuncDef
 	DefKindNamedValue
 )
-
-// UnknownSymbol is a symbol awaiting resolution
-type UnknownSymbol struct {
-	Name     string
-	Position *logging.TextPosition
-
-	// ForeignPackage is the location where this symbol is expected to be found
-	// (nil if it belongs to the current package or an unknown package --
-	// namespace import).
-	ForeignPackage *WhirlPackage
-
-	// ImplicitImport is used to indicate whether or not a symbol is implicitly
-	// imported. This field is meaningless if the ForeignPackage field is nil.
-	ImplicitImport bool
-}
 
 // OpaqueSymbol acts as a shared opaque symbol references during cyclic
 // resolution.  One of these references should be created and distributed to all

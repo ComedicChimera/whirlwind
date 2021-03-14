@@ -333,6 +333,13 @@ func (se *SymbolExtractor) addDependent(name string, pos *logging.TextPosition) 
 		return
 	}
 
+	if _, ok := se.dependents[name]; ok {
+		// if a dependent already exists, we want the first position to be the
+		// error pos so we don't add it; no shadowing is possible here so no
+		// need to compare foreign packages
+		return
+	}
+
 	// if this depends on an imported symbol, we need to create a different
 	// dependent (has `ForeignPackage`)
 	if localSym, ok := se.wfile.LocalTable[name]; ok {
