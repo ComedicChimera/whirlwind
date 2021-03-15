@@ -164,7 +164,6 @@ func (r *Resolver) constructCyclicDefGraph() {
 					definitionsRemoved = true
 					delete(pkggraph, dname)
 				}
-
 			}
 		}
 	}
@@ -334,14 +333,23 @@ func (r *Resolver) matchesOpaqueSymbol(pkgid uint, name string) bool {
 // resolve but for cyclic resolution).  It also removes the cyclic definition
 // from the graph if it resolves
 func (r *Resolver) cyclicResolveDef(pkgid uint, dnode *CyclicDefGraphNode) bool {
+	// matchedOperandDep is used to indicate if one of this definitions
+	// dependents matched the operand and was remove as a dependent so that if
+	// this definition otherwise fails to resolve all other dependents, the
+	// operand can be readded back in (as it will no longer be opaque in later
+	// iterations).  This field will be nil if the operand was not matched
+	var matchedOperandDep *DependentSymbol
+
 	for _, dep := range dnode.Def.Dependents {
 		// check first for an opaque symbol match
 		if dep.ForeignPackage == nil {
 			if r.matchesOpaqueSymbol(pkgid, dep.Name) {
 				delete(dnode.Def.Dependents, dep.Name)
+				matchedOperandDep = dep
 			}
 		} else if r.matchesOpaqueSymbol(dep.ForeignPackage.PackageID, dep.Name) {
 			delete(dnode.Def.Dependents, dep.Name)
+			matchedOperandDep = dep
 		}
 
 		// then, do a regular lookup within the definitions file for it
@@ -379,6 +387,9 @@ func (r *Resolver) cyclicResolveDef(pkgid uint, dnode *CyclicDefGraphNode) bool 
 			// it never will and we need to prune its dependencies accordingly
 			r.pruneFromGraph(pkgid, dnode)
 		}
+	} else if matchedOperandDep != nil {
+		// readd operand as dependent
+		dnode.Def.Dependents[matchedOperandDep.Name] = matchedOperandDep
 	}
 
 	return false
