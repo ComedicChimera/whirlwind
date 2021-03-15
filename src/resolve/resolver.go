@@ -43,13 +43,15 @@ import (
 //    c. Create an opaque type of the operand and remove it from the graph temporarily
 //    d. Go through each definition listed in the operand's resolves and attempt to resolve
 //       them using the opaque type we defined
-//       i. If any of them resolve, propagate out recursively from them and attempt to resolve
-//          all the definitions that depend on them
+//       i.  If any of them resolve, propagate out recursively from them and attempt to resolve
+//           all the definitions that depend on them
+//       ii. If some of them are determined to be unresolveable, prune them from the graph
 //    e. If no definitions resolved, choose the next operand to be one of the definitions
 //       that the current operand can resolve (assuming missing some other dependent).
 //       Otherwise, repeat the selection process from `b` without the current operand in
 //       the graph.
-//       i. After both stages, re-add the current operand to the graph
+//       i. After both stages, re-add the current operand to the graph and
+//          attempt to resolve it.  If it fails to resolve, prune it.
 // 4. Resolve all remaining non-determinate definitions and log all unresolved
 //    imports (explicit -- after definitions).
 
@@ -308,7 +310,7 @@ func (r *Resolver) resolveDef(pkgid uint, def *Definition) (*DependentSymbol, bo
 	// fdep
 	var fdep *DependentSymbol
 	for name, dep := range def.Dependents {
-		if _, ok := r.lookup(pkgid, def.SrcFile, dep); ok {
+		if r.lookup(pkgid, def.SrcFile, dep) {
 			delete(def.Dependents, name)
 		} else if fdep == nil {
 			fdep = dep
@@ -329,7 +331,7 @@ func (r *Resolver) resolveDef(pkgid uint, def *Definition) (*DependentSymbol, bo
 // symbol.  `wfile` should be the file of the definition that contains the
 // dependent, not the dependent itself.  This function will update local symbol
 // imports as necessary
-func (r *Resolver) lookup(pkgid uint, wfile *common.WhirlFile, dep *DependentSymbol) (*common.Symbol, bool) {
+func (r *Resolver) lookup(pkgid uint, wfile *common.WhirlFile, dep *DependentSymbol) bool {
 	if dep.ForeignPackage != nil {
 		// if it is in a foreign package, then we need to look it up there
 		if sym, ok := dep.ForeignPackage.ImportFromNamespace(dep.Name); ok {
@@ -346,16 +348,14 @@ func (r *Resolver) lookup(pkgid uint, wfile *common.WhirlFile, dep *DependentSym
 				}
 			}
 
-			return sym, true
+			return true
 		}
-	} else if sym, ok := r.assemblers[pkgid].SrcPackage.GlobalTable[dep.Name]; ok {
+	} else if _, ok := r.assemblers[pkgid].SrcPackage.GlobalTable[dep.Name]; ok {
 		// must be a symbol defined in the global namespace
-		return sym, true
+		return true
 	}
 
-	// TODO: opaque symbol handling?
-
-	return nil, false
+	return false
 }
 
 // logUnresolved logs a dependent symbol as unresolved

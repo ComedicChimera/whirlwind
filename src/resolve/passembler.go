@@ -174,15 +174,16 @@ func (pa *PAssembler) checkImports() {
 	}
 }
 
-// walkDef walks a definition node in a specific file.  We don't actually return
-// a flag here since we don't care for the purposes of resolution whether or not
-// the definition was walked successfully
-func (pa *PAssembler) walkDef(wfile *common.WhirlFile, defNode *syntax.ASTBranch, declStatus int) {
+// walkDef walks a definition node in a specific file.  It returns a boolean
+// indicating whether or not the definition was walked successfully.
+func (pa *PAssembler) walkDef(wfile *common.WhirlFile, defNode *syntax.ASTBranch, declStatus int) bool {
 	hirn, ok := pa.walkers[wfile].WalkDef(defNode, declStatus)
 
 	if ok {
 		wfile.AddNode(hirn)
 	}
+
+	return ok
 }
 
 // logUnresolved logs a symbol used in the src package of this package assembler
