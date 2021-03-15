@@ -19,7 +19,7 @@ func LoadModule(path string) (*Module, bool) {
 	finfo, err := os.Stat(modulePath)
 
 	if err != nil {
-		// `whirl.mod` does not exist => no module; no error
+		// module file does not exist => no module; no error
 		if os.IsNotExist(err) {
 			return nil, false
 		}
@@ -29,7 +29,7 @@ func LoadModule(path string) (*Module, bool) {
 		return nil, false
 	}
 
-	// some directory named `whirl.mod` instead of a file
+	// some directory named `whirl-mod.yml` instead of a file
 	if finfo.IsDir() {
 		return nil, false
 	}
