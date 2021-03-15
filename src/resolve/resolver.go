@@ -28,30 +28,17 @@ import (
 //       rotate it to the back of queue.  Do not change the current queue.
 // 3. Attempt to resolve all cyclically defined symbols.  Use the following
 //    algorithm to do so:
-//    a. Construct a graph of the cyclically dependent definitions that connects them
-//       both based on dependents and symbols that they resolve
-//       i. Remove any symbols that depend on definitions that do not exist in our
-//          cyclic dependency table.  These will never resolve and we should
-//          log their erroneous dependency accordingly
-//    b. Select the first definition in the graph that resolves at least one
-//       other definition and choose it to be our "operand".
-//       i.  Update the resolves of the definitions based on what definitions still
-//           remain in the table
-//       ii. If the table is empty, exit resolution.  This is logically on our only
-//           exit condition since all the definitions that remain in the graph depend
-//           on other definitions in the graph and can therefore always be resolved
-//    c. Create an opaque type of the operand and remove it from the graph temporarily
-//    d. Go through each definition listed in the operand's resolves and attempt to resolve
-//       them using the opaque type we defined
-//       i.  If any of them resolve, propagate out recursively from them and attempt to resolve
-//           all the definitions that depend on them
-//       ii. If some of them are determined to be unresolveable, prune them from the graph
-//    e. If no definitions resolved, choose the next operand to be one of the definitions
-//       that the current operand can resolve (assuming missing some other dependent).
-//       Otherwise, repeat the selection process from `b` without the current operand in
-//       the graph.
-//       i. After both stages, re-add the current operand to the graph and
-//          attempt to resolve it.  If it fails to resolve, prune it.
+//    a. Go through all remaining definitions and for any definition that resolves
+//       another, create an opaque symbol of it.
+//    b. Go through the table of opaque symbols and attempt to resolve and walk
+//       each definition.
+//       i.  If it resolves, remove it from the table, update its shared opaque symbol
+//           reference to be its actual symbol, and lets it standard definition stand in
+//           it place.
+//       ii. If it fails to resolve, remove it from the table and recursively log all its
+//           dependents as having an undefined symbol.
+//    c. Go through and attempt to resolve and walk all remaining definitions.  Log errors
+//       as appropriate.
 // 4. Resolve all remaining non-determinate definitions and log all unresolved
 //    imports (explicit -- after definitions).
 
@@ -66,27 +53,23 @@ type Resolver struct {
 	// depGraph is the dependency graph constructed by the compiler
 	depGraph map[uint]*common.WhirlPackage
 
-	// cyclicGraph stores the cyclic definition graph for use during
-	// cyclic (recursively defined) type definition resolution.  This
-	// field may be unused and is not initialized by default
-	cyclicGraph CyclicDefGraph
-
-	// sharedOpaqueSymbol stores a common opaque symbol reference to be given to
-	// all package assemblers to share with all of their walkers.  It used
-	// during cyclic dependency resolution.
-	sharedOpaqueSymbol *common.OpaqueSymbol
+	// sharedOpaqueSymbolTable stores a map of symbols that have been given
+	// prototypes but not actually fully defined.  They are used to facilitate
+	// cyclic dependency resolution.
+	sharedOpaqueSymbolTable common.OpaqueSymbolTable
 }
 
 // NewResolver creates a new resolver for the given set of packages
 func NewResolver(pkgs []*common.WhirlPackage, depg map[uint]*common.WhirlPackage) *Resolver {
 	r := &Resolver{
-		assemblers:         make(map[uint]*PAssembler),
-		depGraph:           depg,
-		sharedOpaqueSymbol: &common.OpaqueSymbol{},
+		assemblers:              make(map[uint]*PAssembler),
+		depGraph:                depg,
+		sharedOpaqueSymbolTable: make(common.OpaqueSymbolTable),
 	}
 
 	for _, pkg := range pkgs {
-		r.assemblers[pkg.PackageID] = NewPAssembler(pkg, r.sharedOpaqueSymbol)
+		r.assemblers[pkg.PackageID] = NewPAssembler(pkg, r.sharedOpaqueSymbolTable)
+		r.sharedOpaqueSymbolTable[pkg.PackageID] = make(map[string]*common.OpaqueSymbol)
 	}
 
 	return r
@@ -107,6 +90,14 @@ func (r *Resolver) Resolve() bool {
 	if r.resolveStandard() {
 		// make sure to resolve all the other definitions
 		r.resolveRemaining()
+
+		// mark all walkers as having finished resolution
+		for _, pa := range r.assemblers {
+			for _, walker := range pa.walkers {
+				walker.ResolutionDone()
+			}
+		}
+
 		return logging.ShouldProceed()
 	}
 
@@ -218,8 +209,8 @@ func (r *Resolver) resolveStandard() bool {
 
 			// symbol located in a foreign package, need to update the queue to
 			// be that of the foreign package (switch resolution targets)
-			if dep.ForeignPackage != nil {
-				nextPkgID := dep.ForeignPackage.PackageID
+			if dep.SrcPackage.PackageID != currPkgID {
+				nextPkgID := dep.SrcPackage.PackageID
 
 				// switch only if we actually have a queue to switch to
 				if _, ok := unprocessedQueues[nextPkgID]; ok {
@@ -330,9 +321,9 @@ func (r *Resolver) resolveDef(pkgid uint, def *Definition) (*DependentSymbol, bo
 // dependent, not the dependent itself.  This function will update local symbol
 // imports as necessary
 func (r *Resolver) lookup(pkgid uint, wfile *common.WhirlFile, dep *DependentSymbol) bool {
-	if dep.ForeignPackage != nil {
+	if dep.SrcPackage.PackageID != pkgid {
 		// if it is in a foreign package, then we need to look it up there
-		if sym, ok := dep.ForeignPackage.ImportFromNamespace(dep.Name); ok {
+		if sym, ok := dep.SrcPackage.ImportFromNamespace(dep.Name); ok {
 			// if it is not an implicit import then we may need to update the
 			// symbol import with new symbol definition
 			if !dep.ImplicitImport {
@@ -348,7 +339,7 @@ func (r *Resolver) lookup(pkgid uint, wfile *common.WhirlFile, dep *DependentSym
 
 			return true
 		}
-	} else if _, ok := r.assemblers[pkgid].SrcPackage.GlobalTable[dep.Name]; ok {
+	} else if _, ok := dep.SrcPackage.GlobalTable[dep.Name]; ok {
 		// must be a symbol defined in the global namespace
 		return true
 	}

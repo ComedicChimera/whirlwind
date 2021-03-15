@@ -58,10 +58,10 @@ type Walker struct {
 	// must be accessed via a reference (eg. for structs)
 	selfTypeRequiresRef bool
 
-	// sharedOpaqueSymbol stores a common opaque symbol reference to be given to
-	// all package assemblers and shared with all walkers.  It used during
+	// sharedOpaqueSymbolTable stores a map of symbols that have been given
+	// prototypes but not actually fully defined.  They are used to facilitate
 	// cyclic dependency resolution.
-	sharedOpaqueSymbol *common.OpaqueSymbol
+	sharedOpaqueSymbolTable common.OpaqueSymbolTable
 
 	// currentDefName stores the symbol name of the current definition being
 	// processed
@@ -69,7 +69,7 @@ type Walker struct {
 }
 
 // NewWalker creates a new walker for the given package and file
-func NewWalker(pkg *common.WhirlPackage, file *common.WhirlFile, fpath string, sos *common.OpaqueSymbol) *Walker {
+func NewWalker(pkg *common.WhirlPackage, file *common.WhirlFile, fpath string, ost common.OpaqueSymbolTable) *Walker {
 	// initialize the files local binding registry (may decide to remove this as
 	// a file field if it is not helpful/necessary and instead embed as a walker
 	// field)
@@ -93,14 +93,15 @@ func NewWalker(pkg *common.WhirlPackage, file *common.WhirlFile, fpath string, s
 			LocalBindings:  file.LocalBindings,
 			Context:        lctx,
 		},
-		resolving:          true, // start in resolution by default
-		sharedOpaqueSymbol: sos,
+		resolving:               true, // start in resolution by default
+		sharedOpaqueSymbolTable: ost,
 	}
 }
 
-// resolutionDone indicates to the walker that resolution has finished.
-func (w *Walker) resolutionDone() {
+// ResolutionDone indicates to the walker that resolution has finished.
+func (w *Walker) ResolutionDone() {
 	w.resolving = false
+	w.sharedOpaqueSymbolTable = nil
 }
 
 // hasFlag checks if the given annotation is active (as a flag; eg. `#packed`)

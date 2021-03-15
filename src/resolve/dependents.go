@@ -12,9 +12,8 @@ type DependentSymbol struct {
 	Name     string
 	Position *logging.TextPosition
 
-	// ForeignPackage is the location where this symbol is expected to be found.
-	// This field is nil if this symbol belongs to the current package
-	ForeignPackage *common.WhirlPackage
+	// SrcPackage is the package where this symbol is expected to be found.
+	SrcPackage *common.WhirlPackage
 
 	// ImplicitImport is used to indicate whether or not a symbol is implicitly
 	// imported. This field is meaningless if the ForeignPackage field is nil.
@@ -268,7 +267,7 @@ func (se *SymbolExtractor) extractFromTypeLabelCore(labelCore *syntax.ASTBranch)
 					se.dependents[accessedName] = &DependentSymbol{
 						Name:           accessedName,
 						Position:       accessedPos,
-						ForeignPackage: wimport.PackageRef,
+						SrcPackage:     wimport.PackageRef,
 						ImplicitImport: true,
 					}
 
@@ -344,15 +343,16 @@ func (se *SymbolExtractor) addDependent(name string, pos *logging.TextPosition) 
 	// dependent (has `ForeignPackage`)
 	if localSym, ok := se.wfile.LocalTable[name]; ok {
 		se.dependents[name] = &DependentSymbol{
-			Name:           name,
-			Position:       pos,
-			ForeignPackage: localSym.SrcPackage,
+			Name:       name,
+			Position:   pos,
+			SrcPackage: localSym.SrcPackage,
 		}
 	} else {
 		// just a regular dependent
 		se.dependents[name] = &DependentSymbol{
-			Name:     name,
-			Position: pos,
+			Name:       name,
+			Position:   pos,
+			SrcPackage: se.srcpkg,
 		}
 	}
 }

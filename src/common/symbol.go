@@ -76,3 +76,6 @@ type OpaqueSymbol struct {
 	// definitions)
 	RequiresRef bool
 }
+
+// OpaqueSymbolTable stores opaque symbols organized by package and name
+type OpaqueSymbolTable map[uint]map[string]*OpaqueSymbol

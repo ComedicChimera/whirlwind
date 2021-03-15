@@ -10,7 +10,11 @@ def gen_type(defs):
         if len(defs) == 0:
             return 'any'
 
-        return choice(list(defs.keys()))
+        name = choice(list(defs.keys()))
+        if defs[name]:
+            return "&" + name
+        else:
+            return name
     else:
         return [
             'int',
@@ -26,33 +30,32 @@ def gen_type(defs):
         ][type_to_gen // 2]
 
 def gen_def(file, name, defs):
-    def_kind = randint(0, 2)
-
-    if def_kind == 2:
-        file.write('closed ')
-
-    file.write(f'type {name}')
-
-    # type set
-    if def_kind == 0:
-        file.write(f' = {" | ".join(gen_type(defs) for _ in range(randint(3, 5)))}')
-    # struct
-    elif def_kind == 1:
-        file.write('{\n')
+    if defs[name]:
+        # struct type
+        file.write(f'type {name}')
+        file.write(' {\n')
 
         for i in range(randint(2, 5)):
             file.write(f'\tfield{i}: {gen_type(defs)}\n')
 
         file.write('}')
-    # alg type
-    elif def_kind == 2:
-        for i in range(randint(2, 5)):
-            arity = randint(0, 2)
+    else:
+        is_alg = bool(randint(0, 2))
 
-            if arity == 0:
-                file.write(f'\n\t| Variant{i}')
-            else:
-                file.write(f'\n\t| Variant{i}({", ".join(gen_type(defs) for _ in range(arity))})')
+        if is_alg:
+            # algebraic type
+            file.write(f'closed type {name}')
+            for i in range(randint(2, 5)):
+                arity = randint(0, 2)
+
+                if arity == 0:
+                    file.write(f'\n\t| Variant{i}')
+                else:
+                    file.write(f'\n\t| Variant{i}({", ".join(gen_type(defs) for _ in range(arity))})')
+        else:
+            # type set
+            file.write(f'type {name}')
+            file.write(f' = {" | ".join(gen_type(defs) for _ in range(randint(3, 5)))}')
 
     file.write('\n\n')
 
@@ -64,8 +67,9 @@ def gen_file(file, defs, package_count):
         if name in defs:
             continue
 
-        local_defs[name] = None
-        defs[name] = None
+        is_struct = bool(randint(0, 1))
+        local_defs[name] = is_struct
+        defs[name] = is_struct
 
     for name in local_defs:
         gen_def(file, name, defs)

@@ -26,7 +26,7 @@ type PAssembler struct {
 }
 
 // NewPAssembler creates a new package assembler for the given package
-func NewPAssembler(srcpkg *common.WhirlPackage, sos *common.OpaqueSymbol) *PAssembler {
+func NewPAssembler(srcpkg *common.WhirlPackage, ost common.OpaqueSymbolTable) *PAssembler {
 	pa := &PAssembler{
 		SrcPackage:             srcpkg,
 		DefQueue:               &DefinitionQueue{},
@@ -35,7 +35,7 @@ func NewPAssembler(srcpkg *common.WhirlPackage, sos *common.OpaqueSymbol) *PAsse
 	}
 
 	for fpath, wfile := range srcpkg.Files {
-		pa.walkers[wfile] = validate.NewWalker(srcpkg, wfile, fpath, sos)
+		pa.walkers[wfile] = validate.NewWalker(srcpkg, wfile, fpath, ost)
 	}
 
 	return pa
@@ -199,18 +199,18 @@ func (pa *PAssembler) logUnresolved(wfile *common.WhirlFile, dep *DependentSymbo
 	// if the symbol was explicitly or implicitly imported but it was not
 	// resolved then we need to log an import error for that symbol. It is
 	// imported if it has a non-nil ForiegnPackage field.
-	if dep.ForeignPackage != nil {
+	if dep.SrcPackage != pa.SrcPackage {
 		// if this is an implicit import, then we need to log it at the symbol's
 		// position, every time.  Otherwise, we only only want to log that the
 		// explicit import was unsuccessful once.
 		if dep.ImplicitImport {
-			w.LogNotVisibleInPackage(dep.Name, dep.ForeignPackage.Name, dep.Position)
+			w.LogNotVisibleInPackage(dep.Name, dep.SrcPackage.Name, dep.Position)
 		} else if _, logged := pa.handledImportedSymbols[dep.Name]; !logged {
 			// find the location of the symbol import
 			wsi := wfile.LocalTable[dep.Name]
 
 			// log the appropriate error
-			w.LogNotVisibleInPackage(dep.Name, dep.ForeignPackage.Name, wsi.Position)
+			w.LogNotVisibleInPackage(dep.Name, dep.SrcPackage.Name, wsi.Position)
 
 			// mark the error as logged
 			pa.handledImportedSymbols[dep.Name] = struct{}{}

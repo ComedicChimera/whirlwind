@@ -20,3 +20,14 @@ func (pkg *WhirlPackage) ImportFromNamespace(name string) (*Symbol, bool) {
 func (wf *WhirlFile) AddNode(node HIRNode) {
 	wf.Root.Elements = append(wf.Root.Elements, node)
 }
+
+// LookupOpaque looks up a symbol in the opaque symbol table
+func (ost OpaqueSymbolTable) LookupOpaque(pkgid uint, name string) (*OpaqueSymbol, bool) {
+	if row, ok := ost[pkgid]; ok {
+		if osym, ok := row[name]; ok {
+			return osym, ok
+		}
+	}
+
+	return nil, false
+}

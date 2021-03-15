@@ -1,31 +1,19 @@
 package resolve
 
 import (
-	"math"
 	"whirlwind/common"
 	"whirlwind/logging"
 	"whirlwind/syntax"
 	"whirlwind/typing"
 )
 
-// CyclicDefGraph is a graph of all the definitions that require cyclic
-// definition resolution -- can't be resolved using the standard mechanism.  We
-// choose only to create it here since it is a much larger data structure than
-// the queue and and the performance cost of using it should be avoided if
-// standard resolution is equally effective.  The key of the top-layer map is a
-// package ID, the key of the lower layer is the name of the definition
-type CyclicDefGraph map[uint]map[string]*CyclicDefGraphNode
-
-// CyclicDefGraphNode is a type that is used to represent a node in the definition
-// dependency graph that is created to resolve cyclic definitions.  It is a by
-// directional node connoting both "depends on" and "depended on by" connections
-type CyclicDefGraphNode struct {
-	Def *Definition
-
-	// Resolves stores a list all of the definitions that this one would resolve
-	// if defined.  It denotes the "depended on by" relation.  These are
-	// organized by package
-	Resolves map[uint]map[string]struct{}
+// OpaqueDefinition is used to represent a definition that is declared as
+// an opaque type.  Specifically, it includes the symbols the definition
+// resolves (if declared) so that it can be used to prune these from
+// the opaque graph as definitions fail to resolve
+type OpaqueDefinition struct {
+	Def      *Definition
+	Resolves map[uint][]*Definition
 }
 
 // resolveCyclic runs stage 3 of the resolution algorithm: it attempts cyclic
@@ -34,231 +22,136 @@ type CyclicDefGraphNode struct {
 // remaining type definitions will be resolved.  Regardless of this, all
 // determinate definitions will be resolved by the time this function exits.
 func (r *Resolver) resolveCyclic() bool {
-	r.constructCyclicDefGraph()
+	// opaqueDefs is a map of all definitions that have opaque types organized
+	// by the package they are defined in
+	opaqueDefs := r.createAllOpaques()
 
-	// pick our initial operand
-	operand, operandSrcPkgID := r.getNextOperand()
-	for len(r.cyclicGraph) > 0 {
-		// start by converting the operand to an opaque type
-		r.createOpaqueType(operand, operandSrcPkgID)
-
-		noneResolved := true
-		for pkgid, presolves := range operand.Resolves {
-			for presolve := range presolves {
-				// attempts to recursively resolve the definition dependent upon
-				// our operand
-				if r.cyclicResolveDef(pkgid, r.cyclicGraph[pkgid][presolve]) {
-					noneResolved = false
-				}
+	// we don't actually delete each opaqueDef as we process it -- instead we
+	// just set the table to `nil` at the end to dump it
+	for pkgid, row := range opaqueDefs {
+		for _, odef := range row {
+			if !r.cyclicResolveDef(pkgid, odef.Def) {
+				// pruning time!
+				r.pruneUnresolveables(opaqueDefs, pkgid, odef.Def)
 			}
 		}
-
-		var nextOperand *CyclicDefGraphNode
-		var nextOperandSrcPkgID uint
-		if noneResolved {
-			// since some definitions may have failed walking, we still need to
-			// update the resolves before selecting our next operand
-			r.updateResolves(operand)
-
-		outerloop:
-			for pkgid, presolves := range operand.Resolves {
-				for presolve := range presolves {
-					dnode := r.cyclicGraph[pkgid][presolve]
-
-					if len(dnode.Resolves) > 0 {
-						// also need to update the new operands resolves
-						r.updateResolves(dnode)
-
-						nextOperand = dnode
-						nextOperandSrcPkgID = pkgid
-						break outerloop
-					}
-				}
-			}
-
-			// none of the "resolves" of operand resolve anything (or still
-			// exist), so we will need to choose a different operand -- just use
-			// the regular operand selection algorithm for this
-			if nextOperand == nil {
-				nextOperand, nextOperandSrcPkgID = r.getNextOperand()
-			}
-		} else {
-			nextOperand, nextOperandSrcPkgID = r.getNextOperand()
-		}
-
-		// always add the operand back in if it doesn't resolve and clear the
-		// opaque symbol (reset)
-		r.cyclicGraph[operandSrcPkgID][operand.Def.Name] = operand
-		r.clearOpaqueSymbol()
-
-		// attempt to resolve our operand -- always do this because our
-		// graph may have changed and some definitions may have been removed
-		// so the operand may no longer by valid
-		r.cyclicResolveDef(operandSrcPkgID, operand)
-
-		// set the next operand to be whatever one we determined
-		operand = nextOperand
-		operandSrcPkgID = nextOperandSrcPkgID
 	}
+
+	// delete table
+	opaqueDefs = nil
+
+	// resolve all remaining type definitions (step 3c)
+	for pkgid, pa := range r.assemblers {
+		for pa.DefQueue.Len() > 0 {
+			// we don't individually care which resolve and which don't
+			r.cyclicResolveDef(pkgid, pa.DefQueue.Peek())
+			pa.DefQueue.Dequeue()
+		}
+	}
+
+	// clear the opaque symbol table -- we no longer need them and mark all
+	// walkers as having finished resolution
+	for _, pa := range r.assemblers {
+		for _, walker := range pa.walkers {
+			walker.ResolutionDone()
+		}
+	}
+
+	r.sharedOpaqueSymbolTable = nil
 
 	return logging.ShouldProceed()
 }
 
-// constructCyclicDefGraph constructs a CyclicDefGraph of all the remaining,
-// unresolved definitions in every package
-func (r *Resolver) constructCyclicDefGraph() {
-	graph := make(CyclicDefGraph)
+// createAllOpaques creates all of the opaques necessary for cyclic symbol
+// resolution (ie. performs step 3a)
+func (r *Resolver) createAllOpaques() map[uint]map[string]*OpaqueDefinition {
+	// opaqueDefs stores all the opaque definitions (since the `Definition`
+	// structs themselves are not stores in the sharedOpaqueSymbolTable)
+	opaqueDefs := make(map[uint]map[string]*OpaqueDefinition)
 
-	// initialize the global graph up here so that we don't have to pass it to
-	// prune definitions
-	r.cyclicGraph = graph
+	// initialize sub-maps since definitions might not be added in package order
+	for pkgid := range r.assemblers {
+		opaqueDefs[pkgid] = make(map[string]*OpaqueDefinition)
+	}
 
+	// first go through and simply create nil entries in opaqueDefs for all the
+	// definitions that resolve something.  This is determined based on whether
+	// or not that definition exists as a dependent to some other definition.
+	// Also populate the resolve list as necessary
 	for pkgid, pa := range r.assemblers {
-		pkggraph := make(map[string]*CyclicDefGraphNode)
-
-		// dequeue everything in our package assembler definition queues and
-		// move them into the table (as we no longer need the queues for
-		// resolution so we can save space by clearing them)
-		for pa.DefQueue.Len() > 0 {
+		for i := 0; i < pa.DefQueue.Len(); i++ {
 			def := pa.DefQueue.Peek()
 
-			pkggraph[def.Name] = &CyclicDefGraphNode{Def: def, Resolves: make(map[uint]map[string]struct{})}
-			pa.DefQueue.Dequeue()
-		}
+			for _, dep := range def.Dependents {
+				depPkgid := dep.SrcPackage.PackageID
 
-		graph[pkgid] = pkggraph
-	}
-
-	// fill in our resolves field now that all of our definitions have been
-	// moved into the graph -- filling in resolves requires each definition to
-	// transfer their dependents to the definition that resolves them.  If a
-	// definition depends on a symbol not in the graph, then we need to remove
-	// it and log it as unresolved
-	definitionsRemoved := false
-	for pkgid, pkggraph := range graph {
-		for dname, dnode := range pkggraph {
-			for name, dep := range dnode.Def.Dependents {
-				var depgraph map[string]*CyclicDefGraphNode
-				if dep.ForeignPackage == nil {
-					depgraph = pkggraph
-				} else {
-					// we can assume it is in the graph at this point since if
-					// it isn't, it would have been removed during
-					// `resolveStandard`
-					depgraph = graph[dep.ForeignPackage.PackageID]
-				}
-
-				// if our definition exists, then we can just add resolves accordingly
-				if ddnode, ok := depgraph[name]; ok {
-					// we have to mutate the slice we can't extract it here
-					if _, ok := ddnode.Resolves[pkgid]; !ok {
-						// initialize an empty map for this package in resolves
-						ddnode.Resolves[pkgid] = make(map[string]struct{})
-					}
-
-					ddnode.Resolves[pkgid][dname] = struct{}{}
-				} else {
-					// definition does not exist, prune the one we are currently using
-					// and log the dependent symbol as undefined
-					r.logUnresolved(pkgid, dnode.Def, dep)
-					definitionsRemoved = true
-					delete(pkggraph, dname)
-				}
-			}
-		}
-	}
-
-	// If any definitions were removed, we may need to do repeated passes of the
-	// graph to prune any definitions that are now themselves invalid.  We wait
-	// to do recursive pruning until here since all our definitions may not have
-	// their resolves fully filled out until now
-	for definitionsRemoved {
-		definitionsRemoved = false
-
-		for pkgid, pkggraph := range graph {
-			for _, dnode := range pkggraph {
-				for _, dep := range dnode.Def.Dependents {
-					var depgraph map[string]*CyclicDefGraphNode
-					if dep.ForeignPackage == nil {
-						depgraph = pkggraph
+				if odef, ok := opaqueDefs[depPkgid][dep.Name]; ok {
+					if row, ok := odef.Resolves[pkgid]; ok {
+						odef.Resolves[pkgid] = append(row, def)
 					} else {
-						depgraph = graph[dep.ForeignPackage.PackageID]
+						odef.Resolves[pkgid] = []*Definition{def}
 					}
-
-					// corresponding definition does not exist, so we prune
-					if _, ok := depgraph[dep.Name]; !ok {
-						definitionsRemoved = true
-						r.logUnresolved(pkgid, dnode.Def, dep)
-
-						r.pruneFromGraph(pkgid, dnode)
+				} else {
+					opaqueDefs[depPkgid][dep.Name] = &OpaqueDefinition{
+						Def: nil,
+						Resolves: map[uint][]*Definition{
+							pkgid: {def},
+						},
 					}
 				}
 			}
+
+			pa.DefQueue.Rotate()
 		}
 	}
 
-}
+	// next, go through and populate all our definition entries in opaqueDefs
+	// and create all our opaque symbols as necessary.  Also dequeue any
+	// definitions that are made into opaque symbols so we know not to try to
+	// resolve them again in step 3c
+	for pkgid, pa := range r.assemblers {
+		// mark stores the initial non-opaque definition we encounter so that
+		// we know when we hit it again to stop processing this queue
+		var mark *Definition
 
-// pruneFromGraph removes a definition from the cyclic definition graph and
-// prunes away all its dependent definitions as well -- logging errors
-// appropriately
-func (r *Resolver) pruneFromGraph(pkgid uint, dnode *CyclicDefGraphNode) {
-	delete(r.cyclicGraph[pkgid], dnode.Def.Name)
+		for mark != pa.DefQueue.Peek() {
+			def := pa.DefQueue.Peek()
+			if odef, ok := opaqueDefs[pkgid][def.Name]; ok {
+				odef.Def = def
+				r.createOpaqueSymbol(pkgid, def)
+				pa.DefQueue.Dequeue()
+				continue
+			} else if mark == nil {
+				mark = pa.DefQueue.Peek()
+			}
 
-	for rpkgid, presolves := range dnode.Resolves {
-		for presolve := range presolves {
-			// resolve may have been deleted and the graph might not
-			// be updated yet, so we need to check here before pruning
-			if rdnode, ok := r.cyclicGraph[rpkgid][presolve]; ok {
-				// our definition is now undefined so we should log accordingly
-				r.logUnresolved(rpkgid, rdnode.Def, rdnode.Def.Dependents[dnode.Def.Name])
+			pa.DefQueue.Rotate()
+		}
+	}
 
-				// prune recursively
-				r.pruneFromGraph(rpkgid, rdnode)
+	// prune all definitions the depend on symbols not in the opaque definition table
+	// since we know these symbols will never be resolveable
+	for _, row := range opaqueDefs {
+		for name, odef := range row {
+			if odef.Def == nil {
+				for pkgid, rrow := range odef.Resolves {
+					for _, def := range rrow {
+						r.logUnresolved(pkgid, def, def.Dependents[name])
+						r.pruneUnresolveables(opaqueDefs, pkgid, def)
+					}
+				}
+
+				delete(row, name)
 			}
 		}
 	}
+
+	return opaqueDefs
 }
 
-// getNextOperand gets the next operand from the table.  It also updates the
-// `Resolves` of any definition it hits along the way
-func (r *Resolver) getNextOperand() (*CyclicDefGraphNode, uint) {
-	for pkgid, pkggraph := range r.cyclicGraph {
-		for name, dnode := range pkggraph {
-			r.updateResolves(dnode)
-
-			if len(dnode.Resolves) > 0 {
-				// remove the operand from the graph before beginning resolution
-				delete(pkggraph, name)
-				return dnode, pkgid
-			}
-		}
-	}
-
-	// this should never be reachable logically
-	logging.LogFatal("Located `nil` operand during cyclic resolution")
-	return nil, 0
-}
-
-// updateResolves updates the `Resolves` field of a `CyclicDefGraphNode` to
-// account for any definitions removed during cyclic resolution
-func (r *Resolver) updateResolves(def *CyclicDefGraphNode) {
-	for pkgid, presolves := range def.Resolves {
-		for name := range presolves {
-			if _, ok := r.cyclicGraph[pkgid][name]; !ok && !r.matchesOpaqueSymbol(pkgid, name) {
-				delete(presolves, name)
-			}
-		}
-
-		if len(presolves) == 0 {
-			delete(def.Resolves, pkgid)
-		}
-	}
-}
-
-// createOpaqueType takes a definition and creates and stores an appropriate
-// opaque type for it.  It stores it as the opaque type in all the walkers.
-func (r *Resolver) createOpaqueType(operand *CyclicDefGraphNode, operandSrcPkgID uint) {
+// createOpaqueSymbol takes a definition and creates and stores an appropriate
+// opaque type for it.  It stores it in the shared opaque symbol table.
+func (r *Resolver) createOpaqueSymbol(pkgid uint, def *Definition) {
 	var generic, requiresRef bool
 
 	typeRequiresRef := func(suffix *syntax.ASTBranch) bool {
@@ -281,29 +174,27 @@ func (r *Resolver) createOpaqueType(operand *CyclicDefGraphNode, operandSrcPkgID
 		return suffix.Len() == 2
 	}
 
-	switch operand.Def.Branch.LeafAt(0).Kind {
+	switch def.Branch.LeafAt(0).Kind {
 	case syntax.TYPE:
-		generic = operand.Def.Branch.BranchAt(2).Name == "generic_tag"
-		requiresRef = typeRequiresRef(operand.Def.Branch.Last().(*syntax.ASTBranch))
+		generic = def.Branch.BranchAt(2).Name == "generic_tag"
+		requiresRef = typeRequiresRef(def.Branch.Last().(*syntax.ASTBranch))
 	case syntax.INTERF:
-		if _, ok := operand.Def.Branch.Content[2].(*syntax.ASTBranch); ok {
+		if _, ok := def.Branch.Content[2].(*syntax.ASTBranch); ok {
 			generic = ok
 		}
 
 		// interfaces never require a reference
 	case syntax.CLOSED:
-		generic = operand.Def.Branch.BranchAt(3).Name == "generic_tag"
-		requiresRef = typeRequiresRef(operand.Def.Branch.Last().(*syntax.ASTBranch))
+		generic = def.Branch.BranchAt(3).Name == "generic_tag"
+		requiresRef = typeRequiresRef(def.Branch.Last().(*syntax.ASTBranch))
 	}
 
 	dependsOn := make(map[string][]uint)
-	for pkgid, presolves := range operand.Resolves {
-		for name := range presolves {
-			if pkgids, ok := dependsOn[name]; ok {
-				dependsOn[name] = append(pkgids, pkgid)
-			} else {
-				dependsOn[name] = []uint{pkgid}
-			}
+	for name, dep := range def.Dependents {
+		if pkgIDs, ok := dependsOn[name]; ok {
+			dependsOn[name] = append(pkgIDs, dep.SrcPackage.PackageID)
+		} else {
+			dependsOn[name] = []uint{dep.SrcPackage.PackageID}
 		}
 	}
 
@@ -311,91 +202,67 @@ func (r *Resolver) createOpaqueType(operand *CyclicDefGraphNode, operandSrcPkgID
 	if generic {
 		opaqueType = &typing.OpaqueGenericType{}
 	} else {
-		opaqueType = &typing.OpaqueType{Name: operand.Def.Name}
+		opaqueType = &typing.OpaqueType{Name: def.Name}
 	}
 
-	*r.sharedOpaqueSymbol = common.OpaqueSymbol{
-		Name:         operand.Def.Name,
+	r.sharedOpaqueSymbolTable[pkgid][def.Name] = &common.OpaqueSymbol{
+		Name:         def.Name,
 		Type:         opaqueType,
-		SrcPackageID: operandSrcPkgID,
+		SrcPackageID: pkgid,
 		DependsOn:    dependsOn,
 		RequiresRef:  requiresRef,
 	}
 }
 
-// matchesOpaqueSymbol tests if a given name and package ID match the globally
-// declared opaque symbol
-func (r *Resolver) matchesOpaqueSymbol(pkgid uint, name string) bool {
-	return r.sharedOpaqueSymbol.SrcPackageID == pkgid && r.sharedOpaqueSymbol.Name == name
+// pruneUnresolveables recursively prunes all definitions that cannot be
+// resolved because the definition passed in itself cannot be resolved. The
+// `pkgid` is the package ID of the definition whose resolves we want to prune.
+// It also prunes the original definition
+func (r *Resolver) pruneUnresolveables(opaqueDefs map[uint]map[string]*OpaqueDefinition, pkgid uint, def *Definition) {
+	if odef, ok := opaqueDefs[pkgid][def.Name]; ok {
+		delete(opaqueDefs[pkgid], def.Name)
+
+		// no opaque symbol has actually been declared so nothing to remove from
+		// that table (only declared if matching def is found)
+
+		for rpkgid, rrow := range odef.Resolves {
+			for _, resolve := range rrow {
+				r.logUnresolved(rpkgid, resolve, resolve.Dependents[def.Name])
+				r.pruneUnresolveables(opaqueDefs, rpkgid, resolve)
+			}
+		}
+	} else {
+		// definition has already been pruned so we don't need to do anything
+		return
+	}
 }
 
-// cyclicResolveDef attempts to resolve a cyclically defined type (like regular
-// resolve but for cyclic resolution).  It also removes the cyclic definition
-// from the graph if it resolves
-func (r *Resolver) cyclicResolveDef(pkgid uint, dnode *CyclicDefGraphNode) bool {
-	// matchedOperandDep is used to indicate if one of this definitions
-	// dependents matched the operand and was remove as a dependent so that if
-	// this definition otherwise fails to resolve all other dependents, the
-	// operand can be readded back in (as it will no longer be opaque in later
-	// iterations).  This field will be nil if the operand was not matched
-	var matchedOperandDep *DependentSymbol
-
-	for _, dep := range dnode.Def.Dependents {
-		// check first for an opaque symbol match
-		if dep.ForeignPackage == nil {
-			if r.matchesOpaqueSymbol(pkgid, dep.Name) {
-				delete(dnode.Def.Dependents, dep.Name)
-				matchedOperandDep = dep
-			}
-		} else if r.matchesOpaqueSymbol(dep.ForeignPackage.PackageID, dep.Name) {
-			delete(dnode.Def.Dependents, dep.Name)
-			matchedOperandDep = dep
-		}
-
-		// then, do a regular lookup within the definitions file for it
-		if r.lookup(pkgid, dnode.Def.SrcFile, dep) {
-			delete(dnode.Def.Dependents, dep.Name)
+// cyclicResolveDef attempts to resolve and walk a cyclic definition. It will
+// log appropriate errors if the definition fails to resolve
+func (r *Resolver) cyclicResolveDef(pkgid uint, def *Definition) bool {
+	// the only things that remain unresolved should be the the opaque
+	// definitions (all others should've been removed from dependents during
+	// resolution stage 2) -- so we can just lookup those; we do not want to
+	// delete the dependents since otherwise if the opaque symbol fails to
+	// resolve, this definition could still be unresolved itself and we want to
+	// log it appropriately
+	unresolved := make(map[string]struct{})
+	for _, dep := range def.Dependents {
+		if _, ok := r.sharedOpaqueSymbolTable.LookupOpaque(dep.SrcPackage.PackageID, dep.Name); !ok {
+			unresolved[dep.Name] = struct{}{}
 		}
 	}
 
-	// no dependents means we can resolve it
-	if len(dnode.Def.Dependents) == 0 {
-		// we don't know what other state has changed so we update the resolves
-		// just to make sure we don't try to resolve something that doesn't
-		// exist (especially since there are cycles)
-		r.updateResolves(dnode)
+	// if there are no unresolved, then we can try to walk the definition
+	if len(unresolved) == 0 {
+		// if walking fails, then so does cyclic resolution for this definition
+		return r.assemblers[pkgid].walkDef(def.SrcFile, def.Branch, def.DeclStatus)
+	}
 
-		// we know the definition resolves so we can now just walk the
-		// definition and handle the result
-		if r.assemblers[pkgid].walkDef(dnode.Def.SrcFile, dnode.Def.Branch, dnode.Def.DeclStatus) {
-			// remove it from the graph since it has been resolved (we don't do
-			// this above since we want to prune if walking fails)
-			delete(r.cyclicGraph[pkgid], dnode.Def.Name)
-
-			// recursively resolve all its dependents
-			for pkgid, presolves := range dnode.Resolves {
-				for presolve := range presolves {
-					// we don't care about the result here
-					r.cyclicResolveDef(pkgid, r.cyclicGraph[pkgid][presolve])
-				}
-			}
-
-			// this is the only codepath on which the symbol fully resolved properly
-			return true
-		} else {
-			// some other error prevented the definition from resolving, meaning
-			// it never will and we need to prune its dependencies accordingly
-			r.pruneFromGraph(pkgid, dnode)
-		}
-	} else if matchedOperandDep != nil {
-		// readd operand as dependent
-		dnode.Def.Dependents[matchedOperandDep.Name] = matchedOperandDep
+	// log all unresolved dependents
+	for depname := range unresolved {
+		r.logUnresolved(pkgid, def, def.Dependents[depname])
 	}
 
 	return false
-}
-
-// clearOpaqueSymbol resets the opaque symbol so the next operand can be selected
-func (r *Resolver) clearOpaqueSymbol() {
-	*r.sharedOpaqueSymbol = common.OpaqueSymbol{Name: "", SrcPackageID: math.MaxUint32}
 }

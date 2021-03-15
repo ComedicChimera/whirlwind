@@ -48,14 +48,16 @@ func (w *Walker) WalkDef(dast *syntax.ASTBranch, declStatus int) (common.HIRNode
 		// as necessary (not always resolving since we could be dealing with
 		// local functions).  Generic and non-generic should always match up
 		// because the opaque type is generated based on the definition
-		if w.resolving && w.sharedOpaqueSymbol.SrcPackageID == w.SrcPackage.PackageID && w.sharedOpaqueSymbol.Name == w.currentDefName {
-			if ot, ok := w.sharedOpaqueSymbol.Type.(*typing.OpaqueType); ok {
-				ot.EvalType = dt
-			} else if ogt, ok := w.sharedOpaqueSymbol.Type.(*typing.OpaqueGenericType); ok {
-				// none of the errors caused by this should effect the
-				// generation of this definition -- don't cause unnecessary
-				// errors (even in recursive case error is already logged)
-				ogt.Evaluate(dt.(*typing.GenericType), w.solver)
+		if w.resolving {
+			if os, ok := w.sharedOpaqueSymbolTable.LookupOpaque(w.SrcPackage.PackageID, w.currentDefName); ok {
+				if ot, ok := os.Type.(*typing.OpaqueType); ok {
+					ot.EvalType = dt
+				} else if ogt, ok := os.Type.(*typing.OpaqueGenericType); ok {
+					// none of the errors caused by this should effect the
+					// generation of this definition -- don't cause unnecessary
+					// errors (even in recursive case error is already logged)
+					ogt.Evaluate(dt.(*typing.GenericType), w.solver)
+				}
 			}
 		}
 
@@ -869,7 +871,7 @@ func (w *Walker) walkTopLevelSpecial(branch *syntax.ASTBranch) (common.HIRNode, 
 			}
 		} else {
 			if w.resolving {
-				if w.sharedOpaqueSymbol.SrcPackageID == w.SrcPackage.PackageID && w.sharedOpaqueSymbol.Name == name {
+				if _, ok := w.sharedOpaqueSymbolTable.LookupOpaque(w.SrcPackage.PackageID, name); ok {
 					// shared opaque symbol can only share things that aren't functions => specialization is invalid
 					w.logError(
 						"Function specialization may only be applied to generic functions",

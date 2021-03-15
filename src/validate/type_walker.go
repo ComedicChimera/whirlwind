@@ -257,8 +257,8 @@ func (w *Walker) lookupNamedType(rootName, accessedName string, rootPos, accesse
 		if w.resolving {
 			// if we are resolving, then we need to check for opaque types and
 			// self types (checked in two separate if blocks)
-			if w.sharedOpaqueSymbol.SrcPackageID == w.SrcPackage.PackageID && w.sharedOpaqueSymbol.Name == rootName {
-				return w.sharedOpaqueSymbol.Type, w.opaqueSymbolRequiresRef(), true
+			if os, ok := w.sharedOpaqueSymbolTable.LookupOpaque(w.SrcPackage.PackageID, rootName); ok {
+				return os.Type, w.opaqueSymbolRequiresRef(os), true
 			} else if w.selfType != nil && rootName == w.currentDefName {
 				w.selfTypeUsed = true
 				return w.selfType, w.selfTypeRequiresRef, true
@@ -292,8 +292,8 @@ func (w *Walker) lookupNamedType(rootName, accessedName string, rootPos, accesse
 		} else if w.resolving {
 			// opaque symbols may exist in the other package if we are still
 			// resolving (can be accessed via an implicit import)
-			if w.sharedOpaqueSymbol.SrcPackageID == pkg.PackageID && w.sharedOpaqueSymbol.Name == accessedName {
-				return w.sharedOpaqueSymbol.Type, w.opaqueSymbolRequiresRef(), true
+			if os, ok := w.sharedOpaqueSymbolTable.LookupOpaque(pkg.PackageID, accessedName); ok {
+				return os.Type, w.opaqueSymbolRequiresRef(os), true
 			}
 		}
 
@@ -312,9 +312,9 @@ func (w *Walker) lookupNamedType(rootName, accessedName string, rootPos, accesse
 // opaqueSymbolRequiresRef checks within the given context whether or not the
 // shared opaque symbol must be accessed by reference.  This function assumes
 // that the opaque symbol can be used
-func (w *Walker) opaqueSymbolRequiresRef() bool {
-	if w.sharedOpaqueSymbol.RequiresRef {
-		if pkgIDs, ok := w.sharedOpaqueSymbol.DependsOn[w.currentDefName]; ok {
+func (w *Walker) opaqueSymbolRequiresRef(os *common.OpaqueSymbol) bool {
+	if os.RequiresRef {
+		if pkgIDs, ok := os.DependsOn[w.currentDefName]; ok {
 			for _, pkgID := range pkgIDs {
 				if pkgID == w.SrcPackage.PackageID {
 					return true
