@@ -86,9 +86,7 @@ func NewResolver(pkgs []*common.WhirlPackage, depg map[uint]*common.WhirlPackage
 	}
 
 	for _, pkg := range pkgs {
-		r.assemblers[pkg.PackageID] = &PAssembler{
-			SrcPackage: pkg,
-		}
+		r.assemblers[pkg.PackageID] = NewPAssembler(pkg, r.sharedOpaqueSymbol)
 	}
 
 	return r

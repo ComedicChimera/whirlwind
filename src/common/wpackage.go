@@ -96,6 +96,10 @@ type WhirlPackage struct {
 
 	// ParentModule stores the parent module that this package belongs to
 	ParentModule *mods.Module
+
+	// PreludeImport indicates that this package is apart of the implicitly
+	// imported prelude; used for handling errors
+	PreludeImport bool
 }
 
 // WhirlOperatorOverload represents an operator overload definition

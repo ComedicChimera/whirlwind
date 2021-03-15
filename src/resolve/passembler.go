@@ -20,17 +20,18 @@ type PAssembler struct {
 	// walkers stores all the file-specific definition walkers for this package
 	walkers map[*common.WhirlFile]*validate.Walker
 
-	// explicitUndefSymbolErrors is used to make sure errors for misimported
-	// symbols are not logged multiple times
-	explicitUndefSymbolErrors map[string]struct{}
+	// handledImportedSymbols is used to make sure errors for misimported
+	// symbols are not logged multiple times -- keep the output clean
+	handledImportedSymbols map[string]struct{}
 }
 
 // NewPAssembler creates a new package assembler for the given package
 func NewPAssembler(srcpkg *common.WhirlPackage, sos *common.OpaqueSymbol) *PAssembler {
 	pa := &PAssembler{
-		SrcPackage:                srcpkg,
-		DefQueue:                  &DefinitionQueue{},
-		explicitUndefSymbolErrors: make(map[string]struct{}),
+		SrcPackage:             srcpkg,
+		DefQueue:               &DefinitionQueue{},
+		handledImportedSymbols: make(map[string]struct{}),
+		walkers:                make(map[*common.WhirlFile]*validate.Walker),
 	}
 
 	for fpath, wfile := range srcpkg.Files {
@@ -158,13 +159,16 @@ func (pa *PAssembler) checkImports() {
 				if isym, ok := wsi.SrcPackage.ImportFromNamespace(name); ok {
 					*wsi.SymbolRef = *isym
 
-					// warn that the symbol is unused
-					logging.LogWarning(
-						walker.Context,
-						fmt.Sprintf("Symbol `%s` imported but never used", name),
-						logging.LMKName,
-						wsi.Position,
-					)
+					// don't warn if we are importing the core package
+					if !wsi.SrcPackage.PreludeImport {
+						// warn that the symbol is unused
+						logging.LogWarning(
+							walker.Context,
+							fmt.Sprintf("Symbol `%s` imported but never used", name),
+							logging.LMKName,
+							wsi.Position,
+						)
+					}
 				} else {
 					// symbol is actually undefined
 					walker.LogNotVisibleInPackage(name, wsi.SrcPackage.Name, wsi.Position)
@@ -201,7 +205,7 @@ func (pa *PAssembler) logUnresolved(wfile *common.WhirlFile, dep *DependentSymbo
 		// explicit import was unsuccessful once.
 		if dep.ImplicitImport {
 			w.LogNotVisibleInPackage(dep.Name, dep.ForeignPackage.Name, dep.Position)
-		} else if _, logged := pa.explicitUndefSymbolErrors[dep.Name]; !logged {
+		} else if _, logged := pa.handledImportedSymbols[dep.Name]; !logged {
 			// find the location of the symbol import
 			wsi := wfile.LocalTable[dep.Name]
 
@@ -209,7 +213,7 @@ func (pa *PAssembler) logUnresolved(wfile *common.WhirlFile, dep *DependentSymbo
 			w.LogNotVisibleInPackage(dep.Name, dep.ForeignPackage.Name, wsi.Position)
 
 			// mark the error as logged
-			pa.explicitUndefSymbolErrors[dep.Name] = struct{}{}
+			pa.handledImportedSymbols[dep.Name] = struct{}{}
 		}
 	} else {
 		w.LogUndefined(dep.Name, dep.Position)

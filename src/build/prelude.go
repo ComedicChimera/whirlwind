@@ -48,6 +48,7 @@ func (c *Compiler) initPrelude() bool {
 			// if anything happens during initialization of this packages, we
 			// throw a fatal compiler error: they are NECESSARY for compilation
 			npkg, err, initOk := c.initPackage(preludePath, coreMod)
+			npkg.PreludeImport = true
 			if !initOk {
 				if err != nil {
 					logging.LogStdError(err)

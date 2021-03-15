@@ -25,7 +25,7 @@ type CyclicDefGraphNode struct {
 	// Resolves stores a list all of the definitions that this one would resolve
 	// if defined.  It denotes the "depended on by" relation.  These are
 	// organized by package
-	Resolves map[uint][]string
+	Resolves map[uint]map[string]struct{}
 }
 
 // resolveCyclic runs stage 3 of the resolution algorithm: it attempts cyclic
@@ -44,7 +44,7 @@ func (r *Resolver) resolveCyclic() bool {
 
 		noneResolved := true
 		for pkgid, presolves := range operand.Resolves {
-			for _, presolve := range presolves {
+			for presolve := range presolves {
 				// attempts to recursively resolve the definition dependent upon
 				// our operand
 				if r.cyclicResolveDef(pkgid, r.cyclicGraph[pkgid][presolve]) {
@@ -62,10 +62,13 @@ func (r *Resolver) resolveCyclic() bool {
 
 		outerloop:
 			for pkgid, presolves := range operand.Resolves {
-				for _, presolve := range presolves {
+				for presolve := range presolves {
 					dnode := r.cyclicGraph[pkgid][presolve]
 
 					if len(dnode.Resolves) > 0 {
+						// also need to update the new operands resolves
+						r.updateResolves(dnode)
+
 						nextOperand = dnode
 						nextOperandSrcPkgID = pkgid
 						break outerloop
@@ -118,7 +121,8 @@ func (r *Resolver) constructCyclicDefGraph() {
 		// resolution so we can save space by clearing them)
 		for pa.DefQueue.Len() > 0 {
 			def := pa.DefQueue.Peek()
-			pkggraph[def.Name] = &CyclicDefGraphNode{Def: def}
+
+			pkggraph[def.Name] = &CyclicDefGraphNode{Def: def, Resolves: make(map[uint]map[string]struct{})}
 			pa.DefQueue.Dequeue()
 		}
 
@@ -148,11 +152,11 @@ func (r *Resolver) constructCyclicDefGraph() {
 				if ddnode, ok := depgraph[name]; ok {
 					// we have to mutate the slice we can't extract it here
 					if _, ok := ddnode.Resolves[pkgid]; !ok {
-						// initialize an empty slice for this package in resolves
-						ddnode.Resolves[pkgid] = nil
+						// initialize an empty map for this package in resolves
+						ddnode.Resolves[pkgid] = make(map[string]struct{})
 					}
 
-					ddnode.Resolves[pkgid] = append(ddnode.Resolves[pkgid], name)
+					ddnode.Resolves[pkgid][dname] = struct{}{}
 				} else {
 					// definition does not exist, prune the one we are currently using
 					// and log the dependent symbol as undefined
@@ -203,7 +207,7 @@ func (r *Resolver) pruneFromGraph(pkgid uint, dnode *CyclicDefGraphNode) {
 	delete(r.cyclicGraph[pkgid], dnode.Def.Name)
 
 	for rpkgid, presolves := range dnode.Resolves {
-		for _, presolve := range presolves {
+		for presolve := range presolves {
 			// resolve may have been deleted and the graph might not
 			// be updated yet, so we need to check here before pruning
 			if rdnode, ok := r.cyclicGraph[rpkgid][presolve]; ok {
@@ -241,17 +245,14 @@ func (r *Resolver) getNextOperand() (*CyclicDefGraphNode, uint) {
 // account for any definitions removed during cyclic resolution
 func (r *Resolver) updateResolves(def *CyclicDefGraphNode) {
 	for pkgid, presolves := range def.Resolves {
-		newPresolves := presolves[:0]
-		for _, name := range presolves {
-			if _, ok := r.cyclicGraph[pkgid][name]; ok || r.matchesOpaqueSymbol(pkgid, name) {
-				newPresolves = append(newPresolves, name)
+		for name := range presolves {
+			if _, ok := r.cyclicGraph[pkgid][name]; !ok && !r.matchesOpaqueSymbol(pkgid, name) {
+				delete(presolves, name)
 			}
 		}
 
-		if len(newPresolves) == 0 {
+		if len(presolves) == 0 {
 			delete(def.Resolves, pkgid)
-		} else {
-			def.Resolves[pkgid] = newPresolves
 		}
 	}
 }
@@ -298,7 +299,7 @@ func (r *Resolver) createOpaqueType(operand *CyclicDefGraphNode, operandSrcPkgID
 
 	dependsOn := make(map[string][]uint)
 	for pkgid, presolves := range operand.Resolves {
-		for _, name := range presolves {
+		for name := range presolves {
 			if pkgids, ok := dependsOn[name]; ok {
 				dependsOn[name] = append(pkgids, pkgid)
 			} else {
@@ -365,7 +366,7 @@ func (r *Resolver) cyclicResolveDef(pkgid uint, dnode *CyclicDefGraphNode) bool 
 
 			// recursively resolve all its dependents
 			for pkgid, presolves := range dnode.Resolves {
-				for _, presolve := range presolves {
+				for presolve := range presolves {
 					// we don't care about the result here
 					r.cyclicResolveDef(pkgid, r.cyclicGraph[pkgid][presolve])
 				}

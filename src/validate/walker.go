@@ -80,6 +80,9 @@ func NewWalker(pkg *common.WhirlPackage, file *common.WhirlFile, fpath string, s
 		FilePath:  fpath,
 	}
 
+	// initialize the file's root
+	file.Root = &common.HIRRoot{}
+
 	return &Walker{
 		SrcPackage: pkg,
 		SrcFile:    file,
