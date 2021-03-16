@@ -6,14 +6,19 @@ import "time"
 // compiler as necessary
 type Logger struct {
 	ErrorCount int // Total encountered errors
-	Warnings   []*LogMessage
 	LogLevel   int
+
+	// warnings is a list of all warnings to be logged at the end of compilation
+	warnings []LogMessage
 
 	// buildPath is used to shorten display paths in errors
 	buildPath string
 
 	// prevUpdate is used to hold the last time when the state updated
 	prevUpdate time.Time
+
+	// logMsgChan is the channel used for passing `LogMessages` to the Logger
+	logMsgChan chan LogMessage
 }
 
 // Enumeration of the different log levels
@@ -24,56 +29,36 @@ const (
 	LogLevelVerbose        // errors, warnings, compiler version and progress summary, closing message (DEFAULT)
 )
 
-// LogMessage represents a thrown error or warning
-type LogMessage struct {
-	Message  string
-	Kind     int
-	Position *TextPosition
-	Context  *LogContext
+// newLogger creates a new logger struct
+func newLogger(buildPath string, loglevel int) Logger {
+	l := Logger{buildPath: buildPath, LogLevel: loglevel}
+
+	l.logMsgChan = make(chan LogMessage)
+
+	return l
 }
 
-// Implementation of `error` for LogMessage (so it can be returned as one). This
-// method should not be used to display a LogMessage.
-func (lm *LogMessage) Error() string {
-	return lm.Message
-}
+// logLoop is run in a Goroutine to handle logging from all worker goroutines
+// spawned by the compiler in the process of compilation.  It also means that
+// logging is concurrent and non-blocking.  This isn't always necessary but for
+// situations when many errors are being generated and logged concurrently, it
+// means that the compiler isn't constantly slowing down to print and that one
+// goroutine is handling all IO operations that aren't necessarily required for
+// the compiler to function.  It also handles all updates to the Logger's state
+func (l *Logger) logLoop() {
+	for {
+		if lm, ok := <-l.logMsgChan; ok {
+			if lm.isError() {
+				l.ErrorCount++
 
-// Enumeration of the different kinds of a log messages
-const (
-	LMKToken    = iota // Error generating a token
-	LMKSyntax          // Error parsing file
-	LMKImport          // Error importing/lift-exporting package
-	LMKTyping          // Error in type checking
-	LMKMemory          // Error in memory analysis
-	LMKImmut           // Error mutating an immutable value
-	LMKName            // Error occurring due a misused/undefined name
-	LMKMetadata        // Error occuring in metadata
-	LMKUsage           // Error ocurring generally (due to some other rule)
-	LMKUser            // Error caused by the user (through `!! warn`)
-	LMKInterf          // Error related some specific interface behavior
-	LMKGeneric         // Error related to a generic or generic instance
-	LMKDef             // Error related to a definition in general
-	// TODO: add more as needed
-)
-
-// TextPosition represents a positional range in the source text
-type TextPosition struct {
-	StartLn, StartCol int // starting line, starting 0-indexed column
-	EndLn, EndCol     int // ending Line, column trailing token (one over)
-}
-
-// LogContext represents the context in which an error occurred
-type LogContext struct {
-	PackageID uint
-	FilePath  string
-}
-
-// CreateMessage is used to generate a log message in the given context
-func (lctx *LogContext) CreateMessage(message string, kind int, pos *TextPosition) *LogMessage {
-	return &LogMessage{
-		Message:  message,
-		Kind:     kind,
-		Position: pos,
-		Context:  lctx,
+				if l.LogLevel > LogLevelSilent {
+					lm.display()
+				}
+			} else {
+				l.warnings = append(l.warnings, lm)
+			}
+		} else {
+			break
+		}
 	}
 }

@@ -28,22 +28,20 @@ var errorKindStringTable = map[int]string{
 	LMKDef:      "Definition",
 }
 
-// displayLogMessage displays a LogMessage.  isError is used to determine the
-// header for the error (eg. "Type Error"  or "Type Warning").
-func displayLogMessage(buildPath string, lm *LogMessage, isError bool) {
-	displayLogMessageHeader(buildPath, lm, isError)
+func (cm *CompileMessage) display() {
+	displayLogMessageHeader(logger.buildPath, cm)
 
-	if lm.Position == nil {
-		fmt.Println(lm.Message)
+	if cm.Position == nil {
+		fmt.Println(cm.Message)
 		return
 	}
 
-	fmt.Printf("%s at (Ln: %d, Col: %d)\n\n", lm.Message, lm.Position.StartLn, lm.Position.StartCol+1)
+	fmt.Printf("%s at (Ln: %d, Col: %d)\n\n", cm.Message, cm.Position.StartLn, cm.Position.StartCol+1)
 
 	// `f` should be guaranteed to exist since it was opened earlier (unless the
 	// user deleted the file in between running the compiler and this function
 	// being called which should cause a panic -- not a compiler error)
-	f, _ := os.Open(lm.Context.FilePath)
+	f, _ := os.Open(cm.Context.FilePath)
 	defer f.Close()
 
 	sc := bufio.NewScanner(f)
@@ -51,10 +49,43 @@ func displayLogMessage(buildPath string, lm *LogMessage, isError bool) {
 	// we need to make sure the line is scanned in and ready to go; we can
 	// assume the line number is correct (since it was determined by our scanner
 	// before this function was called -- if it isn't, panic)
-	for i := 0; sc.Scan() && i < lm.Position.StartLn-1; i++ {
+	for i := 0; sc.Scan() && i < cm.Position.StartLn-1; i++ {
 	}
 
-	displayCodeSelection(sc, lm.Position)
+	displayCodeSelection(sc, cm.Position)
+}
+
+// displayCompileMessageHeader displays the header/banner that is placed on top
+// of every formal compiler message (contains error kind, filepath, etc)
+func displayLogMessageHeader(buildPath string, cm *CompileMessage) {
+	fmt.Print("\n\n--- ")
+
+	sb := strings.Builder{}
+	sb.WriteString(errorKindStringTable[cm.Kind])
+
+	if cm.IsError {
+		sb.WriteString(" Error ")
+	} else {
+		sb.WriteString(" Warning ")
+	}
+
+	sb.WriteString(strings.Repeat("-", 28-sb.Len()))
+	fmt.Print(sb.String())
+
+	fpath, _ := filepath.Rel(buildPath, cm.Context.FilePath)
+
+	// anything that is not in the build directory may be in the library
+	// directory so we can check for that (simplify our paths)
+	if strings.HasPrefix(fpath, "..") {
+		fpath, _ = filepath.Rel(filepath.Join(os.Getenv("WHIRL_PATH"), "lib"), cm.Context.FilePath)
+
+		// if it also not in our library directory, then we just use the abspath
+		if strings.HasPrefix(fpath, "..") {
+			fpath = cm.Context.FilePath
+		}
+	}
+
+	fmt.Printf(" (file: %s)\n", filepath.Clean(fpath))
 }
 
 // displayCodeSelection displays the code that an error occurs on and highlights
@@ -90,42 +121,8 @@ func displayCodeSelection(sc *bufio.Scanner, pos *TextPosition) {
 	}
 }
 
-// displayLogMessageHeader displays the header/banner that is placed on top of
-// every formal log message (contains error kind, filepath, etc)
-func displayLogMessageHeader(buildPath string, lm *LogMessage, isError bool) {
-	fmt.Print("\n\n--- ")
-
-	sb := strings.Builder{}
-	sb.WriteString(errorKindStringTable[lm.Kind])
-
-	if isError {
-		sb.WriteString(" Error ")
-	} else {
-		sb.WriteString(" Warning ")
-	}
-
-	sb.WriteString(strings.Repeat("-", 28-sb.Len()))
-	fmt.Print(sb.String())
-
-	fpath, _ := filepath.Rel(buildPath, lm.Context.FilePath)
-
-	// anything that is not in the build directory may be in the library
-	// directory so we can check for that (simplify our paths)
-	if strings.HasPrefix(fpath, "..") {
-		fpath, _ = filepath.Rel(filepath.Join(os.Getenv("WHIRL_PATH"), "lib"), lm.Context.FilePath)
-
-		// if it also not in our library directory, then we just use the abspath
-		if strings.HasPrefix(fpath, "..") {
-			fpath = lm.Context.FilePath
-		}
-	}
-
-	fmt.Printf(" (file: %s)\n", filepath.Clean(fpath))
-}
-
-// displayStdError displays a standard Go error that is not a LogMessage
-func displayStdError(err error) {
-	fmt.Printf("\n\n%s\n", err)
+func (ie *InternalError) display() {
+	fmt.Println("Configuration Error:", ie.Message)
 }
 
 // fatalErrorMessage is the string printed before after any fatal error
@@ -137,10 +134,12 @@ sorry for the inconvenience. I will fix this issue as soon as possible. This
 language is an ongoing project and like all projects, it will have bugs.
 Sorry again :(`
 
-// displayFatalMessage displays a fatal error message (DOES NOT EXIT)
-func displayFatalMessage(message string) {
-	fmt.Printf("\n\nUnexpected Fatal Error: %s\n", message)
+// This function does exit immediately after printing
+func (fe *FatalError) display() {
+	fmt.Printf("\n\nUnexpected Fatal Error in %s: %s\n", fe.Component, fe.Message)
 	fmt.Println(fatalErrorMessage)
+
+	os.Exit(-1)
 }
 
 // MaxStateLength is the number of character required to represent a state

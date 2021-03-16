@@ -10,10 +10,10 @@ import (
 
 // preprocessFile reads the first few tokens of a file to extract any compiler
 // metadata and decide whether or not to compile the file
-func (c *Compiler) preprocessFile(sc *syntax.Scanner) (bool, map[string]string, error) {
-	next, err := sc.ReadToken()
-	if err != nil {
-		return false, nil, err
+func (c *Compiler) preprocessFile(sc *syntax.Scanner) (map[string]string, bool) {
+	next, ok := sc.ReadToken()
+	if !ok {
+		return nil, false
 	}
 
 	// if we encountered metadata
@@ -25,40 +25,41 @@ func (c *Compiler) preprocessFile(sc *syntax.Scanner) (bool, map[string]string, 
 	// token we read in there
 	sc.UnreadToken(next)
 
-	return true, nil, nil
+	return nil, true
 }
 
 // readMetadata reads and processes metadata at the start of a file
-func (c *Compiler) readMetadata(sc *syntax.Scanner) (bool, map[string]string, error) {
+func (c *Compiler) readMetadata(sc *syntax.Scanner) (map[string]string, bool) {
 	// we first need to check for the second exclamation mark
-	next, err := sc.ReadToken()
-	if err != nil {
-		return false, nil, err
+	next, ok := sc.ReadToken()
+	if !ok {
+		return nil, false
 	}
 
 	if next.Kind != syntax.NOT {
-		return false, nil, &logging.LogMessage{
-			Message:  "Metadata must begin with two `!`",
-			Kind:     logging.LMKSyntax,
-			Position: syntax.TextPositionOfToken(next),
-			Context:  sc.Context(),
-		}
+		logging.LogCompileError(
+			sc.Context(),
+			"Metadata must begin with two `!`",
+			logging.LMKSyntax,
+			syntax.TextPositionOfToken(next),
+		)
+		return nil, false
 	}
 
 	expecting := syntax.IDENTIFIER
 	var currentMetaTag string
 	tags := make(map[string]string)
 	for {
-		next, err = sc.ReadToken()
-		if err != nil {
-			return false, nil, err
+		next, ok = sc.ReadToken()
+		if !ok {
+			return nil, false
 		}
 
 		// we can only exit if we are not in the middle of metadata
 		if expecting == syntax.COMMA && next.Kind == syntax.NEWLINE {
 			// if we have not yet decided to not compile, then we never will and
 			// should return true
-			return true, tags, nil
+			return tags, true
 		}
 
 		if next.Kind == expecting {
@@ -68,16 +69,17 @@ func (c *Compiler) readMetadata(sc *syntax.Scanner) (bool, map[string]string, er
 				case "nocompile":
 					// nocompile automatically means we stop compilation and
 					// flags don't matter since the file won't be compiled
-					return false, nil, nil
+					return nil, false
 				case "arch", "os", "no_util", "unsafe_all", "no_warn_all", "warn":
 					currentMetaTag = next.Value
 				default:
-					return false, nil, &logging.LogMessage{
-						Message:  fmt.Sprintf("Unknown metadata tag: `%s`", next.Value),
-						Kind:     logging.LMKMetadata,
-						Position: syntax.TextPositionOfToken(next),
-						Context:  sc.Context(),
-					}
+					logging.LogCompileError(
+						sc.Context(),
+						fmt.Sprintf("Unknown metadata tag: `%s`", next.Value),
+						logging.LMKMetadata,
+						syntax.TextPositionOfToken(next),
+					)
+					return nil, false
 				}
 				// if we reach here, then we are always expected a value
 				expecting = syntax.ASSIGN
@@ -90,16 +92,16 @@ func (c *Compiler) readMetadata(sc *syntax.Scanner) (bool, map[string]string, er
 				case "arch":
 					// if the architecture's don't match, we exit
 					if c.targetarch != tagValue {
-						return false, nil, nil
+						return nil, false
 					}
 				case "os":
 					// if the OS's don't match, we don't compile
 					if c.targetos != tagValue {
-						return false, nil, nil
+						return nil, false
 					}
 				case "warn":
 					// create a custom warning message
-					logging.LogWarning(
+					logging.LogCompileWarning(
 						sc.Context(),
 						tagValue,
 						logging.LMKUser,
@@ -115,12 +117,13 @@ func (c *Compiler) readMetadata(sc *syntax.Scanner) (bool, map[string]string, er
 				expecting = syntax.IDENTIFIER
 			}
 		} else {
-			return false, nil, &logging.LogMessage{
-				Message:  fmt.Sprintf("Unexpected Token: `%s`", next.Value),
-				Kind:     logging.LMKSyntax,
-				Position: syntax.TextPositionOfToken(next),
-				Context:  sc.Context(),
-			}
+			logging.LogCompileError(
+				sc.Context(),
+				fmt.Sprintf("Unexpected Token: `%s`", next.Value),
+				logging.LMKSyntax,
+				syntax.TextPositionOfToken(next),
+			)
+			return nil, false
 		}
 	}
 }

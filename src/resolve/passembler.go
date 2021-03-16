@@ -162,7 +162,7 @@ func (pa *PAssembler) checkImports() {
 					// don't warn if we are importing the core package
 					if !wsi.SrcPackage.PreludeImport {
 						// warn that the symbol is unused
-						logging.LogWarning(
+						logging.LogCompileWarning(
 							walker.Context,
 							fmt.Sprintf("Symbol `%s` imported but never used", name),
 							logging.LMKName,

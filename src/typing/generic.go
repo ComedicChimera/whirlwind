@@ -124,7 +124,7 @@ func (gt *GenericType) copyTemplate() DataType {
 // a generic be unable to be generated.
 func (s *Solver) CreateGenericInstance(gt *GenericType, typeParams []DataType, typeParamsBranch *syntax.ASTBranch) (DataType, bool) {
 	if len(gt.TypeParams) != len(typeParams) {
-		logging.LogError(
+		logging.LogCompileError(
 			s.Context,
 			fmt.Sprintf("Generic `%s` expects `%d` type parameters; received `%d`", gt.Repr(), len(gt.TypeParams), len(typeParams)),
 			logging.LMKTyping,
@@ -163,7 +163,7 @@ outerloop:
 			}
 
 			if !matchedRestrictor {
-				logging.LogError(
+				logging.LogCompileError(
 					s.Context,
 					fmt.Sprintf("Type `%s` does not satisfy restrictor of type parameter `%s` of generic `%s`", typeParams[i].Repr(), wt.Name, gt.Repr()),
 					logging.LMKTyping,

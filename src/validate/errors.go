@@ -8,13 +8,13 @@ import (
 
 // LogUndefined logs an undefined error for the given symbol.
 func (w *Walker) LogUndefined(name string, pos *logging.TextPosition) {
-	logging.LogError(w.Context, fmt.Sprintf("Symbol `%s` undefined", name), logging.LMKName, pos)
+	logging.LogCompileError(w.Context, fmt.Sprintf("Symbol `%s` undefined", name), logging.LMKName, pos)
 }
 
 // LogNotVisibleInPackage logs an import error in which is a symbol is not able
 // to be imported from a foreign package.
 func (w *Walker) LogNotVisibleInPackage(symname, pkgname string, pos *logging.TextPosition) {
-	logging.LogError(
+	logging.LogCompileError(
 		w.Context,
 		fmt.Sprintf("Symbol `%s` is not externally visible in package `%s`", symname, pkgname),
 		logging.LMKName,
@@ -24,7 +24,7 @@ func (w *Walker) LogNotVisibleInPackage(symname, pkgname string, pos *logging.Te
 
 // logRepeatDef logs an error indicate that a symbol has already been defined
 func (w *Walker) logRepeatDef(name string, pos *logging.TextPosition, topDefError bool) {
-	logging.LogError(
+	logging.LogCompileError(
 		w.Context,
 		fmt.Sprintf("Symbol `%s` already defined", name),
 		logging.LMKName,
@@ -44,7 +44,7 @@ func (w *Walker) logInvalidIntrinsic(name, kind string, pos *logging.TextPositio
 
 // logError logs an error of any kind within the walker's file
 func (w *Walker) logError(message string, kind int, pos *logging.TextPosition) {
-	logging.LogError(
+	logging.LogCompileError(
 		w.Context,
 		message,
 		kind,

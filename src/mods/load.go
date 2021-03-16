@@ -50,7 +50,7 @@ func LoadModule(path string) (*Module, bool) {
 	// invalid yaml -- log error and but do not exit fatally as we can simply
 	// continue compilation as if there was no module
 	if err != nil {
-		logging.LogStdError(fmt.Errorf("YAML Error Decoding module: %s", err))
+		logging.LogInternalError("Module", fmt.Sprintf("YAML Error Decoding module: %s", err))
 		return nil, false
 	}
 
@@ -59,7 +59,7 @@ func LoadModule(path string) (*Module, bool) {
 	// any module parsing errors are not fatal: they should simply be logged and
 	// then the compiler should proceed as if there is no module there
 	if err != nil {
-		logging.LogStdError(err)
+		logging.LogInternalError("Module", err.Error())
 		return nil, false
 	}
 

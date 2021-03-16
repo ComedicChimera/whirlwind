@@ -11,15 +11,16 @@ import (
 )
 
 // NewScanner creates a scanner for the given file
-func NewScanner(fpath string, lctx *logging.LogContext) (*Scanner, error) {
+func NewScanner(fpath string, lctx *logging.LogContext) (*Scanner, bool) {
 	f, err := os.Open(fpath)
 
 	if err != nil {
-		return nil, err
+		logging.LogInternalError("File", err.Error())
+		return nil, false
 	}
 
 	s := &Scanner{file: bufio.NewReader(f), fpath: fpath, line: 1, lctx: lctx}
-	return s, nil
+	return s, true
 }
 
 // IsLetter tests if a rune is an ASCII character
@@ -67,12 +68,12 @@ type Scanner struct {
 	auxLookahead *Token
 }
 
-// ReadToken reads a single token from the stream, error can indicate malformed
-// token or end of token stream
-func (s *Scanner) ReadToken() (*Token, error) {
+// ReadToken reads a single token from the stream.  True indicates that there is
+// a token to be read/processed
+func (s *Scanner) ReadToken() (*Token, bool) {
 	// check the lookahead before yielding a token
 	if next := s.readLookahead(); next != nil {
-		return next, nil
+		return next, true
 	}
 
 	for s.readNext() {
@@ -91,11 +92,11 @@ func (s *Scanner) ReadToken() (*Token, error) {
 			s.tokBuilder.Reset()
 
 			// handle any errors that occur from processing the NEWLINE
-			if err := s.processNewline(); err != nil {
-				return nil, err
+			if !s.processNewline() {
+				return nil, false
 			}
 
-			return tok, nil
+			return tok, true
 		// handle space-based indentation (and spaces generally)
 		case ' ':
 			// if we are expecting some kind of space-based indentation
@@ -120,11 +121,12 @@ func (s *Scanner) ReadToken() (*Token, error) {
 				// the identation should be completely ignored.  We want to make
 				// sure NOT to update the indentation level in this case so the
 				// indentation can be processed later
-				newline, err := s.applyBlankLineRule()
-				if err != nil {
-					return nil, err
-				} else if newline != nil {
-					return newline, nil
+				if newline, ok := s.applyBlankLineRule(); ok {
+					if newline != nil {
+						return newline, true
+					}
+				} else {
+					return nil, false
 				}
 
 				// if we are determining the indentation mode, the number of
@@ -162,7 +164,7 @@ func (s *Scanner) ReadToken() (*Token, error) {
 						// if there was no change, we need to check to see if
 						// the lookahead is populated, if it is, we should
 						// return it here (so it is not skipped)
-						return next, nil
+						return next, true
 					} else {
 						// otherwise, the scanner should continue reading (this
 						// indentation did not change the level and so no token
@@ -172,7 +174,7 @@ func (s *Scanner) ReadToken() (*Token, error) {
 				}
 
 				// no need to check for malformed tokens or clear the tokBuilder
-				return tok, nil
+				return tok, true
 			} else {
 				// discard all non-meaningful spaces
 				s.tokBuilder.Reset()
@@ -197,11 +199,12 @@ func (s *Scanner) ReadToken() (*Token, error) {
 				// preemptively apply blank line rule for tab based to
 				// indentation as well (see comment in space-based tabing case
 				// for a more thorough explanation)
-				newline, err := s.applyBlankLineRule()
-				if err != nil {
-					return nil, err
-				} else if newline != nil {
-					return newline, nil
+				if newline, ok := s.applyBlankLineRule(); ok {
+					if newline != nil {
+						return newline, true
+					}
+				} else {
+					return nil, false
 				}
 
 				// if we need to set the indentation mode to TAB, do it but only
@@ -225,7 +228,7 @@ func (s *Scanner) ReadToken() (*Token, error) {
 					// if there was no change, we need to check to see if the
 					// lookahead is populated, if it is, we should return it
 					// here (so it is not skipped)
-					return next, nil
+					return next, true
 				} else {
 					// otherwise, the scanner should continue reading (this
 					// indentation did not change the level and so no token
@@ -234,7 +237,7 @@ func (s *Scanner) ReadToken() (*Token, error) {
 				}
 
 				// no need to check for malformed tokens or clear the tokBuilder
-				return tok, nil
+				return tok, true
 			} else {
 				// drop the lingering tab
 				s.tokBuilder.Reset()
@@ -259,13 +262,13 @@ func (s *Scanner) ReadToken() (*Token, error) {
 				// handle any errors that occur from applying the blank line
 				// rule (don't need to discard tokBuilder in the event of an
 				// error since errors stop parsing for this file)
-				if err := s.skipLineComment(); err != nil {
-					return nil, err
+				if !s.skipLineComment() {
+					return nil, false
 				}
 
 				// return a newline so that the indentation is measured
 				// correctly by the parser (position is still accurate)
-				return &Token{Kind: NEWLINE, Value: "\n", Line: s.line, Col: s.col}, nil
+				return &Token{Kind: NEWLINE, Value: "\n", Line: s.line, Col: s.col}, true
 			} else if ahead == '*' {
 				s.tokBuilder.Reset() // get rid of lingering `/`
 				s.skipBlockComment()
@@ -289,11 +292,13 @@ func (s *Scanner) ReadToken() (*Token, error) {
 					// if we encounter something that is not a whitespace
 					// character before we encounter a newline, the character is
 					// invalid and we mark only that character as erroneous
-					return nil, s.lctx.CreateMessage(
+					logging.LogCompileError(
+						s.lctx,
 						"Expecting a Line Break before next non-whitespace character",
 						logging.LMKToken,
 						&logging.TextPosition{StartLn: s.line, StartCol: s.col - 1, EndLn: s.line, EndCol: s.col},
 					)
+					return nil, false
 				}
 			}
 
@@ -342,18 +347,20 @@ func (s *Scanner) ReadToken() (*Token, error) {
 
 		// error out on any malformed tokens (using contents of token builder)
 		if malformed {
-			return nil, s.lctx.CreateMessage(
+			logging.LogCompileError(
+				s.lctx,
 				fmt.Sprintf("Malformed Token: `%s`", s.tokBuilder.String()),
 				logging.LMKToken,
 				&logging.TextPosition{StartLn: s.line, StartCol: s.col, EndLn: s.line, EndCol: s.col + s.tokBuilder.Len()},
 			)
+			return nil, false
 		}
 
 		// if we reach here, we do not need to update the indentation (another
 		// meaningful token was encountered => no more indentation counting)
 		s.updateIndentLevel = false
 
-		return tok, nil
+		return tok, true
 	}
 
 	// if we're are at the end of the file, we need to first return an
@@ -361,7 +368,7 @@ func (s *Scanner) ReadToken() (*Token, error) {
 	// token in the lookahead (this section should only run once)
 	s.lookahead = &Token{Kind: EOF}
 
-	return s.makeToken(DEDENT, string(s.indentLevel)), nil
+	return s.makeToken(DEDENT, string(s.indentLevel)), true
 }
 
 // UnreadToken is used to undo the preprocessor read the occurs at the start of
@@ -404,11 +411,11 @@ func (s *Scanner) readNext() bool {
 	r, _, err := s.file.ReadRune()
 
 	if err != nil {
-		if err == io.EOF {
-			return false
+		if err != io.EOF {
+			logging.LogInternalError("File", "Error reading file "+s.fpath)
 		}
 
-		logging.LogFatal("Error reading file " + s.fpath)
+		return false
 	}
 
 	// do line and column counting after the newline token
@@ -439,11 +446,11 @@ func (s *Scanner) skipNext() bool {
 	r, _, err := s.file.ReadRune()
 
 	if err != nil {
-		if err == io.EOF {
-			return false
+		if err != io.EOF {
+			logging.LogInternalError("File", "Error reading file "+s.fpath)
 		}
 
-		logging.LogFatal("Error reading file " + s.fpath)
+		return false
 	}
 
 	// do line and column counting after the newline token
@@ -843,7 +850,7 @@ func (s *Scanner) readRawStringLiteral() (*Token, bool) {
 	return s.getToken(STRINGLIT), false
 }
 
-func (s *Scanner) skipLineComment() error {
+func (s *Scanner) skipLineComment() bool {
 	for s.skipNext() && s.curr != '\n' {
 	}
 
@@ -868,19 +875,19 @@ func (s *Scanner) skipBlockComment() {
 }
 
 // processNewline performs all necessary scanner logic to handle a newline
-func (s *Scanner) processNewline() error {
+func (s *Scanner) processNewline() bool {
 	s.updateIndentLevel = true
-	var err error = nil
+	var ok bool = true
 
 	emitDedent := func() {
 		// if strings.HasSuffix(s.fpath, "iter.wrl") {
 		// 	fmt.Println("Encountered first DEDENT")
 		// }
 
-		next, berr := s.applyBlankLineRule()
+		next, bok := s.applyBlankLineRule()
 
-		if berr != nil {
-			err = berr
+		if !bok {
+			ok = bok
 			return
 		}
 
@@ -927,7 +934,7 @@ func (s *Scanner) processNewline() error {
 	// want to keep updateIndentLevel flag
 	s.tokBuilder.Reset()
 
-	return err
+	return ok
 }
 
 // applyBlankLineRule checks if a given line is blank and if it is, it
@@ -939,11 +946,11 @@ func (s *Scanner) processNewline() error {
 // override the current lookahead with the token the scanner should return on
 // the next consumption.  It will not always, but it should be assumed that it
 // will.  It will also return any errors it encounters while looking ahead.
-func (s *Scanner) applyBlankLineRule() (*Token, error) {
-	tok, err := s.ReadToken()
+func (s *Scanner) applyBlankLineRule() (*Token, bool) {
+	tok, ok := s.ReadToken()
 
-	if err != nil {
-		return nil, err
+	if !ok {
+		return nil, false
 	}
 
 	// if the next token is NEWLINE, the line was blank and should be skipped.
@@ -954,7 +961,7 @@ func (s *Scanner) applyBlankLineRule() (*Token, error) {
 	if tok.Kind == NEWLINE {
 		// no need to set explicitly set the lookahead here: if it is needed,
 		// (ie. to store an upcoming DEDENT), it will already be set.
-		return tok, nil
+		return tok, true
 	}
 
 	// if the token was not a line break, then we simply store what we read
@@ -966,7 +973,7 @@ func (s *Scanner) applyBlankLineRule() (*Token, error) {
 	// can freely override the lookahead here as the only time we couldn't would
 	// be in the context of a blank line which has already been handled.
 	s.lookahead = tok
-	return nil, nil
+	return nil, true
 }
 
 // readLookahead checks to see if the scanner has a lookahead that it should

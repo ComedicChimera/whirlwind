@@ -11,63 +11,61 @@ var logger Logger
 
 // Initialize initializes the global logger with the provided log level
 func Initialize(buildPath string, loglevelname string) {
-	logger = Logger{buildPath: buildPath}
-
+	var loglevel int
 	switch loglevelname {
 	case "silent":
-		logger.LogLevel = LogLevelSilent
+		loglevel = LogLevelSilent
 	case "error":
-		logger.LogLevel = LogLevelError
+		loglevel = LogLevelError
 	case "warning":
-		logger.LogLevel = LogLevelWarning
+		loglevel = LogLevelWarning
 	// everything else (including invalid log levels) should default to verbose
 	default:
-		logger.LogLevel = LogLevelVerbose
+		loglevel = LogLevelVerbose
 	}
+
+	logger = newLogger(buildPath, loglevel)
+
+	// start up our logging loop (so we can print out messages as necessary)
+	go logger.logLoop()
 }
 
 // NOTE TO READER: all log functions will only display if the appropriate log
 // level is set.  Most log functions will simply fail silently if below their
 // appropriate log level.
 
-// LogError logs and displays a compilation error (user-induced, bad code)
-func LogError(lctx *LogContext, message string, kind int, pos *TextPosition) {
-	logger.ErrorCount++
-
-	if logger.LogLevel > LogLevelSilent {
-		displayLogMessage(logger.buildPath, &LogMessage{Context: lctx, Message: message, Kind: kind, Position: pos}, true)
-	}
-}
-
-// LogStdError logs a standard Go `error` appropriately.  If it is a LogMessage,
-// this function has the same behavior as `LogError`.  If it is not, it will be
-// printed without any boxing. NOTE: `err` should NOT be `nil` -- this function
-// will panic if it is.
-func LogStdError(err error) {
-	if logger.LogLevel > LogLevelSilent {
-		if lm, ok := err.(*LogMessage); ok {
-			logger.ErrorCount++
-			displayLogMessage(logger.buildPath, lm, true)
-		} else {
-			displayStdError(err)
-		}
-	}
-}
-
-// LogWarning logs a compilation warning (user-induced, less-than-ideal code)
-func LogWarning(lctx *LogContext, message string, kind int, pos *TextPosition) {
-	logger.Warnings = append(logger.Warnings, &LogMessage{
-		Context:  lctx,
+// LogCompileError logs and a compilation error (user-induced, bad code)
+func LogCompileError(lctx *LogContext, message string, kind int, pos *TextPosition) {
+	logger.logMsgChan <- &CompileMessage{
 		Message:  message,
 		Kind:     kind,
 		Position: pos,
-	})
+		Context:  lctx,
+		IsError:  true,
+	}
+}
+
+// LogCompileWarning logs a compilation warning (user-induced, problematic code)
+func LogCompileWarning(lctx *LogContext, message string, kind int, pos *TextPosition) {
+	logger.logMsgChan <- &CompileMessage{
+		Message:  message,
+		Kind:     kind,
+		Position: pos,
+		Context:  lctx,
+		IsError:  false,
+	}
+}
+
+// LogInternalError logs an error related to some non-compilation related
+// failure (usually configuration)
+func LogInternalError(kind, message string) {
+	logger.logMsgChan <- &InternalError{Kind: kind, Message: message}
 }
 
 // LogFatal logs a fatal error message (something unexpected happened with the
 // compiler -- developer error, requires bug fix).  TERMINATES PROGRAM!
 func LogFatal(message string) {
-	displayFatalMessage(message)
+	logger.logMsgChan <- &FatalError{Message: message}
 	os.Exit(-1)
 }
 
@@ -94,13 +92,13 @@ func LogStateChange(newstate string) {
 // success or failure).
 func LogFinished() {
 	if logger.LogLevel > LogLevelError {
-		for _, warning := range logger.Warnings {
-			displayLogMessage(logger.buildPath, warning, false)
+		for _, warning := range logger.warnings {
+			warning.display()
 		}
 	}
 
 	if logger.LogLevel > LogLevelSilent {
-		displayFinalMessage(logger.ErrorCount, len(logger.Warnings))
+		displayFinalMessage(logger.ErrorCount, len(logger.warnings))
 	}
 }
 

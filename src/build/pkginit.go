@@ -28,12 +28,13 @@ const SrcFileExtension = ".wrl"
 // as file level errors are not returned!  `abspath` should be the absolute path
 // to the package. It also returns a boolean flag indicating whether or not
 // compilation should proceed.
-func (c *Compiler) initPackage(abspath string, parentModule *mods.Module) (*common.WhirlPackage, error, bool) {
+func (c *Compiler) initPackage(abspath string, parentModule *mods.Module) (*common.WhirlPackage, bool) {
 	pkgName := filepath.Base(abspath)
 
 	// check if the package name is valid
 	if !mods.IsValidPackageName(pkgName) {
-		return nil, fmt.Errorf("Invalid package name: `%s`", pkgName), false
+		logging.LogInternalError("Package", fmt.Sprintf("Invalid package name: `%s`", pkgName))
+		return nil, false
 	}
 
 	// attempt to load the module if one exists or just take the parent module
@@ -58,7 +59,7 @@ func (c *Compiler) initPackage(abspath string, parentModule *mods.Module) (*comm
 	// try to open the package directory
 	files, err := ioutil.ReadDir(abspath)
 	if err != nil {
-		logging.LogStdError(err)
+		logging.LogInternalError("File", err.Error())
 	}
 
 	// walk each file in the directory.  all file level errors (eg. syntax
@@ -69,27 +70,20 @@ func (c *Compiler) initPackage(abspath string, parentModule *mods.Module) (*comm
 			fpath := filepath.Join(abspath, fInfo.Name())
 			c.lctx.FilePath = fpath
 
-			sc, err := syntax.NewScanner(fpath, c.lctx)
+			sc, ok := syntax.NewScanner(fpath, c.lctx)
 
-			if err != nil {
-				logging.LogStdError(err)
+			if !ok {
 				continue
 			}
 
-			shouldCompile, tags, err := c.preprocessFile(sc)
-			if err != nil {
-				logging.LogStdError(err)
-				continue
-			}
-
+			tags, shouldCompile := c.preprocessFile(sc)
 			if !shouldCompile {
 				continue
 			}
 
-			ast, err := c.parser.Parse(sc)
+			ast, ok := c.parser.Parse(sc)
 
-			if err != nil {
-				logging.LogStdError(err)
+			if !ok {
 				continue
 			}
 
@@ -105,16 +99,13 @@ func (c *Compiler) initPackage(abspath string, parentModule *mods.Module) (*comm
 		}
 	}
 
-	if err != nil {
-		return nil, err, false
-	}
-
 	if len(pkg.Files) == 0 {
-		return nil, fmt.Errorf("Unable to load package by name `%s` because it contains no source files", pkg.Name), false
+		logging.LogInternalError("Package", fmt.Sprintf("Unable to load package by name `%s` because it contains no source files", pkg.Name))
+		return nil, false
 	}
 
 	c.depGraph[pkg.PackageID] = pkg
-	return pkg, nil, logging.ShouldProceed()
+	return pkg, logging.ShouldProceed()
 }
 
 // getPackageID calculates a package ID hash based on a package's file path

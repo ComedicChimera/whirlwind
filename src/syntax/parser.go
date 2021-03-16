@@ -3,7 +3,6 @@ package syntax
 import (
 	"errors"
 	"fmt"
-	"io"
 
 	"whirlwind/logging"
 )
@@ -100,7 +99,7 @@ func NewParser(grammarPath string, forceGBuild bool) (*Parser, error) {
 }
 
 // Parse runs the main parsing algorithm on the given scanner
-func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
+func (p *Parser) Parse(sc *Scanner) (ASTNode, bool) {
 	p.sc = sc
 	p.lctx = sc.lctx
 	p.stateStack = []int{0}
@@ -110,8 +109,8 @@ func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 	p.indentFrames = []*IndentFrame{{Mode: -1, EntryLevel: -1}}
 
 	// initialize the lookahead
-	if err := p.consume(); err != nil {
-		return nil, err
+	if !p.consume() {
+		return nil, false
 	}
 
 	for {
@@ -120,13 +119,13 @@ func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 		if action, ok := state.Actions[p.lookahead.Kind]; ok {
 			switch action.Kind {
 			case AKShift:
-				if err := p.shift(action.Operand); err != nil {
-					return nil, err
+				if !p.shift(action.Operand) {
+					return nil, false
 				}
 			case AKReduce:
 				p.reduce(action.Operand)
 			case AKAccept:
-				return p.semanticStack[0], nil
+				return p.semanticStack[0], true
 			}
 		} else {
 			switch p.lookahead.Kind {
@@ -135,18 +134,20 @@ func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 				break
 			// generate descriptive error messages for special tokens
 			case EOF:
-				return nil, p.lctx.CreateMessage(
+				logging.LogCompileError(
+					p.lctx,
 					"Unexpected End of File",
 					logging.LMKSyntax,
 					nil, // EOFs only happen in one place :)
 				)
+				return nil, false
 			case INDENT, DEDENT:
 				// check indentation changes only if we are not in a blind frame
 				if p.topIndentFrame().Mode == -1 {
 					// if the scanner's next token is an EOF, then this
 					// is actually an unexpected EOF not an unexpected
 					// indentation change (caused by closing DEDENT)
-					if tok, err := p.sc.ReadToken(); err == io.EOF || (err == nil && tok.Kind == EOF) {
+					if tok, ok := p.sc.ReadToken(); ok && tok.Kind == EOF {
 						// if an EOF would be acceptable at this point instead
 						// of an indentation, then we can simply ignore the
 						// indentation and end the file (probably just
@@ -162,18 +163,22 @@ func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 							continue
 						}
 
-						return nil, p.lctx.CreateMessage(
+						logging.LogCompileError(
+							p.lctx,
 							"Unexpected End of File",
 							logging.LMKSyntax,
-							nil,
+							nil, // EOFs only happen in one place :)
 						)
+						return nil, false
 					}
 
-					return nil, p.lctx.CreateMessage(
+					logging.LogCompileError(
+						p.lctx,
 						"Unexpected Indentation Change",
 						logging.LMKSyntax,
 						TextPositionOfToken(p.lookahead),
 					)
+					return nil, false
 				}
 			// handle lexical edge case where `<<` and `>>` are actually two
 			// separate tokens (ie. for generics) - we do this here instead of
@@ -187,16 +192,18 @@ func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 
 				fallthrough
 			default:
-				return nil, p.lctx.CreateMessage(
+				logging.LogCompileError(
+					p.lctx,
 					fmt.Sprintf("Unexpected Token: `%s`", p.lookahead.Value),
 					logging.LMKSyntax,
 					TextPositionOfToken(p.lookahead),
 				)
+				return nil, false
 			}
 
 			// if we reach here, whatever token was errored on can be ignored
-			if err := p.consume(); err != nil {
-				return nil, err
+			if !p.consume() {
+				return nil, false
 			}
 		}
 	}
@@ -205,7 +212,7 @@ func (p *Parser) Parse(sc *Scanner) (ASTNode, error) {
 // shift performs a shift operation and returns an error indicating whether or
 // not it was able to successfully get the next token (from scanner or self) and
 // whether or not the shift operation on the current token is valid (ie. indents)
-func (p *Parser) shift(state int) error {
+func (p *Parser) shift(state int) bool {
 	p.stateStack = append(p.stateStack, state)
 	p.semanticStack = append(p.semanticStack, (*ASTLeaf)(p.lookahead))
 
@@ -227,7 +234,7 @@ func (p *Parser) shift(state int) error {
 		// no need to update lookahead if full level change hasn't been handled
 		if levelChange > 1 {
 			p.lookahead.Value = string(levelChange - 1)
-			return nil
+			return true
 		}
 	// handle indentation blind frame openers
 	case LPAREN, LBRACE, LBRACKET:
@@ -252,17 +259,14 @@ func (p *Parser) shift(state int) error {
 
 // consume reads the next token from the scanner into the lookahead REGARDLESS
 // OF WHAT IS IN THE LOOKAHEAD (not whitespace aware - should be used as such)
-func (p *Parser) consume() error {
-	tok, err := p.sc.ReadToken()
+func (p *Parser) consume() bool {
+	tok, ok := p.sc.ReadToken()
 
-	if err == nil {
+	if ok {
 		p.lookahead = tok
-		return nil
-	} else if err == io.EOF {
-		p.lookahead = &Token{Kind: EOF}
-		return nil
+		return true
 	} else {
-		return err
+		return false
 	}
 }
 

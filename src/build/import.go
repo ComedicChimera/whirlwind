@@ -143,7 +143,7 @@ func (c *Compiler) processImport(pkg *common.WhirlPackage, file *common.WhirlFil
 	// calculate the absolute path to the package
 	abspath := c.getPackagePath(pkg.ParentModule, relPath)
 	if abspath == "" {
-		logging.LogError(
+		logging.LogCompileError(
 			c.lctx,
 			fmt.Sprintf("Unable to locate package at path `%s`", relPath),
 			logging.LMKImport,
@@ -156,23 +156,19 @@ func (c *Compiler) processImport(pkg *common.WhirlPackage, file *common.WhirlFil
 	// either access the already initialized package or init a new one
 	newpkg, ok := c.depGraph[getPackageID(abspath)]
 	if !ok {
-		var err error
 		var initOk bool
 
 		// pass the parent module of the package importing to the new package if
 		// no parent module exists
-		newpkg, err, initOk = c.initPackage(abspath, pkg.ParentModule)
-		if err != nil {
-			logging.LogStdError(err)
-			return false
-		} else if !initOk {
+		newpkg, initOk = c.initPackage(abspath, pkg.ParentModule)
+		if !initOk {
 			return false
 		}
 	}
 
 	// check for self-imports (which are illegal)
 	if pkg.PackageID == newpkg.PackageID {
-		logging.LogError(
+		logging.LogCompileError(
 			c.lctx,
 			fmt.Sprintf("Package `%s` cannot import itself", pkg.Name),
 			logging.LMKImport,
@@ -251,7 +247,7 @@ func (c *Compiler) attachPackageToFile(fpkg *common.WhirlPackage, file *common.W
 		if len(importedSymbols) > 0 {
 			for name, pos := range importedSymbols {
 				if _, ok := file.LocalTable[name]; ok {
-					logging.LogError(c.lctx, fmt.Sprintf("Symbol `%s` defined multiple times", name), logging.LMKName, pos)
+					logging.LogCompileError(c.lctx, fmt.Sprintf("Symbol `%s` defined multiple times", name), logging.LMKName, pos)
 					return false
 				}
 
@@ -307,7 +303,7 @@ func (c *Compiler) attachPackageToFile(fpkg *common.WhirlPackage, file *common.W
 		}
 
 		if _, ok := file.VisiblePackages[name]; ok {
-			logging.LogError(
+			logging.LogCompileError(
 				c.lctx,
 				fmt.Sprintf("Multiple packages imported with the name `%s`", name),
 				logging.LMKImport,
