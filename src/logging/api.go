@@ -30,9 +30,9 @@ func Initialize(buildPath string, loglevelname string) {
 	go logger.logLoop()
 }
 
-// NOTE TO READER: all log functions will only display if the appropriate log
-// level is set.  Most log functions will simply fail silently if below their
-// appropriate log level.
+// NOTE: All log functions will only display if the appropriate log level is
+// set.  Most log functions will simply fail silently if below their appropriate
+// log level.
 
 // LogCompileError logs and a compilation error (user-induced, bad code)
 func LogCompileError(lctx *LogContext, message string, kind int, pos *TextPosition) {
@@ -68,6 +68,9 @@ func LogFatal(message string) {
 	logger.logMsgChan <- &FatalError{Message: message}
 	os.Exit(-1)
 }
+
+// NOTE: All info logging functions are NOT atomic.  They are not intended to be
+// used concurrently
 
 // LogInfo logs the inital info about the compiler and compilation process.
 // This should be called at the start of compilation (for verbose logging).

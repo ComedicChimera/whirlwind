@@ -1,7 +1,6 @@
 package syntax
 
 import (
-	"errors"
 	"fmt"
 
 	"whirlwind/logging"
@@ -54,60 +53,22 @@ type IndentFrame struct {
 	EntryLevel int
 }
 
-// NewParser creates a new parser from the scanner and the given grammar. Note:
-// We don't need to provide the parser with a log context as it retrieves it
-// from the Scanner when its `Parse` method is called
-func NewParser(grammarPath string, forceGBuild bool) (*Parser, error) {
-	var parsingTable *ParsingTable
-
-	if !forceGBuild {
-		parsingTable, err := loadParsingTable(grammarPath)
-
-		if err == nil {
-			return &Parser{ptable: parsingTable}, nil
-		}
+// NewParser creates a new parser for the given parsing table and the
+// given scannner (file).  Context is extracted from scanner
+func NewParser(ptable *ParsingTable, sc *Scanner) *Parser {
+	return &Parser{
+		ptable: ptable,
+		sc:     sc,
+		lctx:   sc.Context(),
+		// set the state stack to the starting/initial state
+		stateStack: []int{0},
+		// parser starts with one indentation-aware indent frame that will never close
+		indentFrames: []*IndentFrame{{Mode: -1, EntryLevel: -1}},
 	}
-
-	g, err := loadGrammar(grammarPath)
-
-	if err != nil {
-		return nil, err
-	}
-
-	bnfg := expandGrammar(g)
-
-	// clear the EBNF grammar from memory (no longer needed)
-	g = nil
-
-	parsingTable, ok := constructParsingTable(bnfg)
-
-	// clear BNF grammar from memory (no longer needed)
-	bnfg = nil
-
-	if !ok {
-		return nil, errors.New("Parser Error: Failed to build the parsing table")
-	}
-
-	// save the newly generate parsing table.  If it didn't generate, we want to
-	// return an error (even if the parsing table generated correctly)
-	if err = saveParsingTable(parsingTable, grammarPath); err != nil {
-		return nil, err
-	}
-
-	// initialize only parsingTable since that is all the persists between parses
-	return &Parser{ptable: parsingTable}, nil
 }
 
 // Parse runs the main parsing algorithm on the given scanner
-func (p *Parser) Parse(sc *Scanner) (ASTNode, bool) {
-	p.sc = sc
-	p.lctx = sc.lctx
-	p.stateStack = []int{0}
-	p.semanticStack = nil // clear semantic stack
-
-	// parser starts with one indentation-aware indent frame that will never close
-	p.indentFrames = []*IndentFrame{{Mode: -1, EntryLevel: -1}}
-
+func (p *Parser) Parse() (ASTNode, bool) {
 	// initialize the lookahead
 	if !p.consume() {
 		return nil, false

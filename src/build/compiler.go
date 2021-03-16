@@ -42,9 +42,9 @@ type Compiler struct {
 	// global, shared log context
 	lctx *logging.LogContext
 
-	// parser is the a shared reference to a `Parser` struct used throughout
-	// compilation ("singleton" - shared parsing table ref)
-	parser *syntax.Parser
+	// ptable is the global, shared parsing table loaded once at the beginning
+	// of compilation.  This is shared by all parser instances
+	ptable *syntax.ParsingTable
 
 	// depGraph represents the graph of all the packages used in a given project
 	// along with their connections.  It is the main way the compiler will store
@@ -160,15 +160,15 @@ func (c *Compiler) Compile(forceGrammarRebuild bool) {
 	// initialize our log context
 	c.lctx = &logging.LogContext{}
 
-	// create and setup the parser
-	parser, err := syntax.NewParser(path.Join(c.whirlpath, "/config/grammar.ebnf"), forceGrammarRebuild)
+	// create and setup the parser table
+	ptable, err := syntax.NewParsingTable(path.Join(c.whirlpath, "/config/grammar.ebnf"), forceGrammarRebuild)
 
 	if err != nil {
 		logging.LogFatal(err.Error())
 		return
 	}
 
-	c.parser = parser
+	c.ptable = ptable
 	c.depGraph = make(map[uint]*common.WhirlPackage)
 
 	// make sure we log the completion of compilation

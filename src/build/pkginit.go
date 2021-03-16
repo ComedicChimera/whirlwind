@@ -17,6 +17,13 @@ import (
 // Whirlwind source file (used to identify files when loading packages)
 const SrcFileExtension = ".wrl"
 
+// initedFile represents a file that has been initialized and parsed.  This
+// struct is used to send message down the channel for concurrent parsing
+type initedFile struct {
+	wfile *common.WhirlFile
+	fpath string
+}
+
 // initPackage takes a directory path and parses all files in the directory and
 // creates entries for them in a new package created based on the directory's
 // name.  It does not extract any definitions or do anything more than
@@ -62,42 +69,47 @@ func (c *Compiler) initPackage(abspath string, parentModule *mods.Module) (*comm
 		logging.LogInternalError("File", err.Error())
 	}
 
-	// walk each file in the directory.  all file level errors (eg. syntax
-	// errors) are logged with the log module for display later -- this is
-	// to ensure that every file is walked at least once
+	// Parse each Whirlwind file in the directory.  all file level errors (eg.
+	// syntax errors) are logged with the log module for display later -- this
+	// is to ensure that every file is walked at least once.  All files
+	// are parsed concurrently using a channel to pass their data back
+	parseChan := make(chan *initedFile)
+	fileCount := 0
 	for _, fInfo := range files {
 		if !fInfo.IsDir() && filepath.Ext(fInfo.Name()) == SrcFileExtension {
+			fileCount++
+
 			fpath := filepath.Join(abspath, fInfo.Name())
-			c.lctx.FilePath = fpath
 
-			sc, ok := syntax.NewScanner(fpath, c.lctx)
+			go func() {
+				wfile, ok := c.initFile(fpath)
 
-			if !ok {
-				continue
-			}
-
-			tags, shouldCompile := c.preprocessFile(sc)
-			if !shouldCompile {
-				continue
-			}
-
-			ast, ok := c.parser.Parse(sc)
-
-			if !ok {
-				continue
-			}
-
-			abranch := ast.(*syntax.ASTBranch)
-			pkg.Files[fpath] = &common.WhirlFile{
-				AST:                    abranch,
-				MetadataTags:           tags,
-				LocalTable:             make(map[string]*common.WhirlSymbolImport),
-				LocalOperatorOverloads: make(map[int][]typing.DataType),
-				VisiblePackages:        make(map[string]*common.WhirlPackage),
-				LocalBindings:          &typing.BindingRegistry{},
-			}
+				if ok {
+					parseChan <- &initedFile{
+						wfile: wfile,
+						fpath: fpath,
+					}
+				} else {
+					// write `nil` so that we know the file was handled but
+					// shouldn't be compiled
+					parseChan <- nil
+				}
+			}()
 		}
 	}
+
+	// each time a file is sent down the channel, decrement the file count
+	// (based on what was calculated when the goroutines were spawned)
+	for ; fileCount > 0; fileCount-- {
+		initfile := <-parseChan
+
+		if initfile != nil {
+			pkg.Files[initfile.fpath] = initfile.wfile
+		}
+	}
+
+	// we no longer need the channel
+	close(parseChan)
 
 	if len(pkg.Files) == 0 {
 		logging.LogInternalError("Package", fmt.Sprintf("Unable to load package by name `%s` because it contains no source files", pkg.Name))
@@ -106,6 +118,41 @@ func (c *Compiler) initPackage(abspath string, parentModule *mods.Module) (*comm
 
 	c.depGraph[pkg.PackageID] = pkg
 	return pkg, logging.ShouldProceed()
+}
+
+// initFile initializes and parses a file for a given package.  The boolean flag
+// indicates whether or not the file was actually loaded or simply skipped
+// (either due to an error or a metadata tag)
+func (c *Compiler) initFile(fpath string) (*common.WhirlFile, bool) {
+	sc, ok := syntax.NewScanner(fpath, &logging.LogContext{
+		PackageID: c.lctx.PackageID,
+		FilePath:  fpath,
+	})
+
+	if !ok {
+		return nil, false
+	}
+
+	tags, shouldCompile := c.preprocessFile(sc)
+	if !shouldCompile {
+		return nil, false
+	}
+
+	parser := syntax.NewParser(c.ptable, sc)
+	ast, ok := parser.Parse()
+
+	if !ok {
+		return nil, false
+	}
+
+	return &common.WhirlFile{
+		AST:                    ast.(*syntax.ASTBranch),
+		MetadataTags:           tags,
+		LocalTable:             make(map[string]*common.WhirlSymbolImport),
+		LocalOperatorOverloads: make(map[int][]typing.DataType),
+		VisiblePackages:        make(map[string]*common.WhirlPackage),
+		LocalBindings:          &typing.BindingRegistry{},
+	}, true
 }
 
 // getPackageID calculates a package ID hash based on a package's file path

@@ -2,6 +2,7 @@ package syntax
 
 import (
 	"encoding/gob"
+	"errors"
 	"os"
 	"strings"
 )
@@ -46,6 +47,44 @@ const (
 type PTableRule struct {
 	Name  string
 	Count int
+}
+
+// NewParsingTable creates a new parsing table struct based on the given
+// grammar. This table will either be newly generated or loaded from disk
+func NewParsingTable(grammarPath string, forcegrebuild bool) (*ParsingTable, error) {
+	var parsingTable *ParsingTable
+
+	if !forcegrebuild {
+		return loadParsingTable(grammarPath)
+	}
+
+	g, err := loadGrammar(grammarPath)
+
+	if err != nil {
+		return nil, err
+	}
+
+	bnfg := expandGrammar(g)
+
+	// clear the EBNF grammar from memory (no longer needed)
+	g = nil
+
+	parsingTable, ok := constructParsingTable(bnfg)
+
+	// clear BNF grammar from memory (no longer needed)
+	bnfg = nil
+
+	if !ok {
+		return nil, errors.New("Parser Error: Failed to build the parsing table")
+	}
+
+	// save the newly generate parsing table.  If it didn't generate, we want to
+	// return an error (even if the parsing table generated correctly)
+	if err = saveParsingTable(parsingTable, grammarPath); err != nil {
+		return nil, err
+	}
+
+	return parsingTable, nil
 }
 
 // loadParsingTable allows us to load a parsing table from a saved file which should
