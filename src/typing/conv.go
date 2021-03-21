@@ -95,9 +95,15 @@ func (s *Solver) CoerceTo(src, dest DataType) bool {
 			return Equals(dv.ElemType, srt.ElemType) && dv.Constant && !srt.Constant
 		}
 	case *InterfType:
-		// Any type that implements (even implicitly) an interface can be
-		// coerced to it (duck typing)
-		return s.ImplementsInterf(src, dv)
+		// Interfaces can never implement other interfaces
+		if _, ok := src.(*InterfType); ok {
+			return false
+		}
+
+		// Any type that explicitly implements an interface can be coerced to it
+		if ContainsType(src, dv.Instances) {
+			return true
+		}
 	case *TypeSet:
 		// Any type that is in a type set can be coerced to that type set.
 		// Additionally, several intrinsic type sets (eg. `Vector`) require

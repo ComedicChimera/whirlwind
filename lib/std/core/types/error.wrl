@@ -1,15 +1,15 @@
 export of
-    // Error is a general purpose interface that acts similarly to `Showable`.
-    // It is used to store basic error information (NOT stack traces, etc.).  
+    # Error is a general purpose interface that acts similarly to `Showable`.
+    # It is used to store basic error information (NOT stack traces, etc.).  
     interf Error of
         func message() string
 
-        // All `Error` instances are showable (implicitly)
+        # All `Error` instances are showable (implicitly)
         func show() string
-            => this.message()
+            -> this.message()
 
-    // StdError is an algebraic type that contains several common error types
-    // used by the core library.  Some of these errors are only used internally.
+    # StdError is an algebraic type that contains several common error types
+    # used by the core library.  Some of these errors are only used internally.
     type StdError
         | BoundsError(int)
         | ValueError(Showable)
@@ -17,15 +17,15 @@ export of
         | StackOverflowError
         | HeapOverflowError
         | NullPointerError(int)
-        // TODO: add more errors
+        # TODO: add more errors
 
-    // Provide the `StdError` implementation of `Error`
+    # Provide the `StdError` implementation of `Error`
     interf for StdError is Error of
         func message() string
-            => match this to
-                BoundsError(n) => itoa(n)
-                ValueError(s) => s.show()
-                LogicError(m) => m
-                StackOverflowError => "Stack overflow"
-                HeapOverflowError => "Heap overflow"
-                NullPointerError(addr) => "Null pointer derefenced at " + itoa_hex(addr)   
+            -> match this to
+                BoundsError(n) -> itoa(n)
+                ValueError(s) -> s.show()
+                LogicError(m) -> m
+                StackOverflowError -> "Stack overflow"
+                HeapOverflowError -> "Heap overflow"
+                NullPointerError(addr) -> "Null pointer derefenced at " + itoa_hex(addr)   

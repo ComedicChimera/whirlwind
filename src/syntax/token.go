@@ -101,7 +101,6 @@ const (
 	RAISETO
 	INCREM
 	DECREM
-	COMPOSE
 
 	// boolean operators
 	LT
@@ -135,8 +134,7 @@ const (
 	GETNAME
 
 	// punctuation
-	DECORAT
-	ANNOTHASH
+	ANNOTSTART
 	LPAREN
 	RPAREN
 	LBRACE
@@ -189,8 +187,8 @@ var keywordPatterns = map[string]int{
 	"region":      REGION,
 	"func":        FUNC,
 	"async":       ASYNC,
-	"special":     SPECIAL,
 	"operator":    OPERATOR,
+	"special":     SPECIAL,
 	"type":        TYPE,
 	"closed":      CLOSED,
 	"interf":      INTERF,
@@ -229,10 +227,9 @@ var symbolPatterns = map[string]int{
 	"-":   MINUS,
 	"--":  DECREM,
 	"*":   STAR,
-	"~/":  FDIVIDE,
+	"//":  FDIVIDE,
 	"%":   MOD,
-	"~^":  RAISETO,
-	"~*":  COMPOSE,
+	"**":  RAISETO,
 	"<":   LT,
 	">":   GT,
 	"<=":  LTEQ,
@@ -252,8 +249,7 @@ var symbolPatterns = map[string]int{
 	".":   DOT,
 	"..":  RANGETO,
 	"...": ELLIPSIS,
-	"@":   DECORAT,
-	"#":   ANNOTHASH,
+	"@":   ANNOTSTART,
 	"(":   LPAREN,
 	")":   RPAREN,
 	"{":   LBRACE,
@@ -264,9 +260,7 @@ var symbolPatterns = map[string]int{
 	";":   SEMICOLON,
 	":":   COLON,
 	"::":  GETNAME,
-	"=>":  ARROW,
+	"->":  ARROW,
 	"<-":  BINDTO,
-
-	// "/" is not scanned in as a symbol (to avoid comment conflicts) => entry is only here for grammar loading
-	"/": DIVIDE,
+	"/":   DIVIDE,
 }

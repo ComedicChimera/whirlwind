@@ -58,6 +58,8 @@ used for collections or sequences.
 
 ## <a name="polyinterf"/> Polymorphism and Interface Binding
 
+NOTE: Interfaces no longer support duck typing
+
 ## <a name="algebraic"/> Algebraic Types
 
 ## Generics

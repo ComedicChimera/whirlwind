@@ -69,7 +69,7 @@ Fibonacci:
     func fib() func()(int) do
         let a = 0, b = 1
 
-        func f int do
+        func f : int do
             yield a
 
             a, b = b, a + b
@@ -94,11 +94,11 @@ Radix Sort:
         region r local
         let mx = list.max()
 
-        while let it = 0; 10 ~^ it < mx do
+        while let it = 0; 10 ** it < mx do
             let buckets = [new in[r] [int] for _ in 1..10]
 
             for item in list do
-                buckets[item ~/ (10 ~^ it) % 10].push(item)            
+                buckets[item // (10 ** it) % 10].push(item)            
 
             list = buckets.flatten().to_list(r)
             it++
@@ -121,15 +121,14 @@ Linked List:
         next: Option<own& LLNode>
     }
 
-    func ll_range(r: region, val: int) own& LLNode do
+    func ll_range[region r](val: int) own& LLNode do
         if val == 0 do
             return make in[r] LLNode{value=val, next=None}
 
-        return make in[r] LLNode{value=val, next=Some(ll_range(r, val - 1))}
+        return make in[r] LLNode{value=val, next=Some(ll_range[region r](val - 1))}
 
     func main() do
-        region r local
-        let ll = ll_range(r, 10)
+        let ll = ll_range[region local](r, 10)
 
         while true do
             println(ll.value)

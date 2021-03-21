@@ -48,10 +48,11 @@ func (c *Compiler) initPrelude() bool {
 			// if anything happens during initialization of this packages, we
 			// throw a fatal compiler error: they are NECESSARY for compilation
 			npkg, initOk := c.initPackage(preludePath, coreMod)
-			npkg.PreludeImport = true
+
 			if !initOk {
 				logging.LogFatal(fmt.Sprintf("Unable to load necessary prelude package: `%s`", stdpkgname))
 			}
+			npkg.PreludeImport = true
 
 			preludeImports[stdpkgname] = npkg
 		}

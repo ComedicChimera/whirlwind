@@ -1,17 +1,20 @@
 ## Syntax Update
 
 - no more semicolons and braces
-- use `do`, `of`, and `to` as beginnings of blocks
-- use newlines and indentations
-- semicolons sometimes used in compound statements
-- eg. c-style for loops
-- cleans up code
-- allow for argument parentheses to be elided if
-the function takes no arguments
-  - eg. `func main do`
+  - use `do`, `of`, and `to` as beginnings of blocks
+  - use newlines and indentations
+  - semicolons sometimes used in compound statements
+  - cleans up code
+- new commenting style:
+  - `#` for line comments
+  - `#!` for multiline comments (closing `!#`)
+  - allows us to use `//` as the floor division operator instead of hideous `~/`
+- use `**` as power operator instead of `~^` (ich...)
+- change annotations to use `@` instead of `#`
+- use single arrow (`->`) instead of double arrow (`=>`)
+  - former looks nicer and is easier to type
 - the `do` can be elided after "lonely" control flow keywords.
   - eg. `else` instead of `else do` (redundant)
-  - eg. `loop` instead of `loop do` (again, redundant)
   - general rule: if the control flow keyword contains no
   content -> `do` can be elided
 - whitespace *aware*
@@ -41,12 +44,10 @@ checking on the next line (works like it does in Python).
   - for, if, elif, match, async-for, with
   - inside with expressions
 - reorder match expression (`match ... to` instead of `... match to`)
-- heap alloc synactic "overhaul"
-  - to allocate types: `make for type`
-  - to allocate a block of types: `make for type * numtypes`
-  - to allocate a value `make expr`
-- allow for stacked annotations
+- combine multiple annotations into single line
+  - `@[inline, inplace]`
 - revised iterator syntax
   - use `in` instead of `<-` (easier to type and looks better)
   - use `for` instead of `|` in comprehensions (looks better, removed ambiguity)
   - "Python style"
+  

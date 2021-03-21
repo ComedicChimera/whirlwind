@@ -251,13 +251,18 @@ func (s *Scanner) ReadToken() (*Token, bool) {
 		case '`':
 			tok, malformed = s.readRawStringLiteral()
 		// handle comments
-		case '/':
+		case '#':
 			ahead, more := s.peek()
 
 			if !more {
-				tok = s.getToken(FDIVIDE)
-			} else if ahead == '/' {
-				s.tokBuilder.Reset() // get rid of lingering `/`
+				// some weird error happened -- not just an eof
+				return nil, false
+			} else if ahead == '!' {
+				s.tokBuilder.Reset() // get rid of lingering `#`
+				s.skipBlockComment()
+				continue
+			} else {
+				s.tokBuilder.Reset() // get rid of lingering `#`
 
 				// handle any errors that occur from applying the blank line
 				// rule (don't need to discard tokBuilder in the event of an
@@ -269,12 +274,6 @@ func (s *Scanner) ReadToken() (*Token, bool) {
 				// return a newline so that the indentation is measured
 				// correctly by the parser (position is still accurate)
 				return &Token{Kind: NEWLINE, Value: "\n", Line: s.line, Col: s.col}, true
-			} else if ahead == '*' {
-				s.tokBuilder.Reset() // get rid of lingering `/`
-				s.skipBlockComment()
-				continue
-			} else {
-				tok = s.getToken(FDIVIDE)
 			}
 		// handle the split-join character ('\')
 		case '\\':
@@ -859,14 +858,14 @@ func (s *Scanner) skipLineComment() bool {
 }
 
 func (s *Scanner) skipBlockComment() {
-	// skip opening '*'
+	// skip opening '!'
 	s.skipNext()
 
 	for s.skipNext() {
-		if s.curr == '*' {
+		if s.curr == '!' {
 			p, more := s.peek()
 
-			if more && p == '/' {
+			if more && p == '#' {
 				s.skipNext()
 				return
 			}
@@ -880,10 +879,6 @@ func (s *Scanner) processNewline() bool {
 	var ok bool = true
 
 	emitDedent := func() {
-		// if strings.HasSuffix(s.fpath, "iter.wrl") {
-		// 	fmt.Println("Encountered first DEDENT")
-		// }
-
 		next, bok := s.applyBlankLineRule()
 
 		if !bok {

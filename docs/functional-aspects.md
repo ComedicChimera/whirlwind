@@ -34,7 +34,7 @@ that failed
 manager exits (even in the case of a return).
 - All types implement the `Contextual<T>` interface which defines the
 following methods:
-  - `chain<R>(f: func(T)(R)) (R, bool)`.  `f` is the function to chain after,
+  - `chain<R>(f: func(T)(R)) : (R, bool)`.  `f` is the function to chain after,
   bool indicates whether or not the chain was broken at any point.  `R` is
   chained value returned.  This method is abstract.
   - `exit`  This is called whenever the chain ends -- success or fail.  This

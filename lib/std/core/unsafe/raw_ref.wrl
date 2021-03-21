@@ -1,24 +1,24 @@
 export of
-    // `get_addr` converts any reference to a `uintptr`
-    #intrinsic
+    # `get_addr` converts any reference to a `uintptr`
+    @intrinsic
     func get_addr(a: any) uintptr
 
-    // `from_addr` converts any `uintptr` to a reference `R` should always be
-    // some kind of reference.
-    #intrinsic
+    # `from_addr` converts any `uintptr` to a reference `R` should always be
+    # some kind of reference.
+    @intrinsic
     func from_addr<R>(p: uintptr) R
 
-    // `as_block` converts any given reference to a block reference
-    #introspect
+    # `as_block` converts any given reference to a block reference
+    @introspect
     func as_block<T>(r: &T, len: uint) []T do
-        // It just inserts the reference into the array struct
+        # It just inserts the reference into the array struct
         return __stdarray{
             ref=r,
             len=len
         }
 
-    // `access_offset` allows one to perform simple pointer arithmetic by
-    // accessing a memory address offset from a pointer by some amount. The
-    // offset is given in bytes.  `offset` can be negative.
-    #intrinsic
+    # `access_offset` allows one to perform simple pointer arithmetic by
+    # accessing a memory address offset from a pointer by some amount. The
+    # offset is given in bytes.  `offset` can be negative.
+    @intrinsic
     func access_offset<T>(r: &T, offset: int) &T

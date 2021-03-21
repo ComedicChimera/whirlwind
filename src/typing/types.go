@@ -17,7 +17,6 @@ import (
 // 6. Interfaces -- A type that groups types based on shared behavior
 // 7. Algebraic Types - A type that contains a finite number of enumerated values
 // 8. Type Sets -- A set/union of multiple type values
-// 9. Regions -- A region literal (ref to region)
 // There are several other types such as AlgebraicVariants and WildcardTypes
 // that are not actually considered "fundamental types" but rather semantic
 // constructs to assist in compilation and type analysis.
@@ -697,25 +696,4 @@ func (ts *TypeSet) copyTemplate() DataType {
 		Types:        copyTemplateSlice(ts.Types),
 		Intrinsic:    ts.Intrinsic,
 	}
-}
-
-// -----------------------------------------------------
-
-// RegionType represents a region literal.  Its value is that region's unique ID
-// -- used for memory checking.
-type RegionType uint
-
-func (rt RegionType) Repr() string {
-	return "region"
-}
-
-func (rt RegionType) equals(other DataType) bool {
-	// all region types are equivalent for the purposes of type checking
-	_, ok := other.(RegionType)
-	return ok
-}
-
-func (rt RegionType) copyTemplate() DataType {
-	// regions contain no wildcard types so copyTemplate is just an identity
-	return rt
 }

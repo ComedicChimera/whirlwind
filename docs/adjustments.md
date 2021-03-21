@@ -19,7 +19,7 @@ is applied to mutable values (where mutation is expected, not where it is possib
   provided the argument in their position is marked `const` (allows for compound assignment forms
   of the operator work as desired).
     - the compiler should determine this immutablility reasonably
-  - specified by a `#inplace` annotation
+  - specified by a `@inplace` annotation
 - **all** operator overloads aggressively elide copies (even in violation of Whirlwind's value
 semantics - eg. the underlying array of a list will not copied even if the operator is called
 as a function)

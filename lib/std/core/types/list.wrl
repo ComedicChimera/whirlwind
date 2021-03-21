@@ -3,53 +3,53 @@
 import core::unsafe
 
 export of
-    // `__stdlist` is the implementation of Whirlwind's list data type.
+    # `__stdlist` is the implementation of Whirlwind's list data type.
     type __stdlist<T> {
         arr: scoped &[]T
         length: uint
     }
 
-    // `__stdlist_iterator` is the implementation of an iterator for a list (goes
-    // through and outputs the elements in order)
+    # `__stdlist_iterator` is the implementation of an iterator for a list (goes
+    # through and outputs the elements in order)
     type __stdlist_iterator<T> {
         list: &[T]
         ndx: uint
     }
 
     const 
-        LIST_START_CAP = 16   // the starting capacity of a standard list
-        LIST_BLOCK_CAP = 1024 // the capacity from which the list capacity grows linearly
+        LIST_START_CAP = 16   # the starting capacity of a standard list
+        LIST_BLOCK_CAP = 1024 # the capacity from which the list capacity grows linearly
 
-    // TODO: fix the memory model to allow this implementation (or close to it)
-    // of a list to work as intended
+    # TODO: fix the memory model to allow this implementation (or close to it)
+    # of a list to work as intended
 
-    // The implementation of `__stdlist`
+    # The implementation of `__stdlist`
     interf<T> for __stdlist<T> is Iterable<T>, Sequence<T> of
-        // `iter` just returns a `__stdlist_iterator`
+        # `iter` just returns a `__stdlist_iterator`
         func iter() Iterator<T>
             => __stdlist_iterator{
                 list: &this,
                 ndx: 0
             }
 
-        // `at` gives a specific element in the list
+        # `at` gives a specific element in the list
         func at(ndx: int) T
-            => this[ndx] // we just use the operator overload here
+            => this[ndx] # we just use the operator overload here
 
-        // `len` gives the length of the list
+        # `len` gives the length of the list
         func len() uint
             => this.length
 
-        // `cap` gives the current capacity of the list
+        # `cap` gives the current capacity of the list
         func cap() uint
             => this.arr.len()
 
-        // `grow` increases the capacity of the list to hold the given length
+        # `grow` increases the capacity of the list to hold the given length
         func grow(new_length: uint) do
-            // The list capacity grows exponentially (doubling) up until the
-            // `LIST_BLOCK_CAP` is reached at which point is starts growing
-            // linearly.  This is to allow it to grow quickly up until it would
-            // become wasteful for it to.
+            # The list capacity grows exponentially (doubling) up until the
+            # `LIST_BLOCK_CAP` is reached at which point is starts growing
+            # linearly.  This is to allow it to grow quickly up until it would
+            # become wasteful for it to.
             while this.cap() < new_length do
                 if cap >= LIST_BLOCK_CAP do
                     this.arr -> make scoped for (T * this.cap() + LIST_BLOCK_CAP) 
@@ -58,8 +58,8 @@ export of
 
             this.length = new_length
 
-        // `shrink_to_fit` reduces the capacity of the list to be the minimum
-        // that can hold the list's current length
+        # `shrink_to_fit` reduces the capacity of the list to be the minimum
+        # that can hold the list's current length
         func shrink_to_fit() do
             let curr_cap = 0
             while let next_cap = this.cap(); next_cap > this.length do
@@ -72,37 +72,37 @@ export of
                 else
                     break
             
-            // `curr_cap > 0` if the cap changed
+            # `curr_cap > 0` if the cap changed
             if curr_cap > 0 do
                 this.arr -> make scoped for (T * curr_cap)
 
-        // `push` adds a new element to the end of the list
+        # `push` adds a new element to the end of the list
         func push(elem: T) do
             this.grow(this.length + 1)
             this.arr[this.length-1] = elem
 
-        // `pop` removes the last element from a list and returns it
+        # `pop` removes the last element from a list and returns it
         func pop() T do
             let elem = this[-1]
             this.length--
             return elem
 
-        // `unshift` adds a new element to the front of the list
+        # `unshift` adds a new element to the front of the list
         func unshift(elem: T) do
             this.grow(this.length + 1)
             copy_to(this.arr[:this.length-1], this.arr[1:])
             this.arr[0] = elem
 
-        // `shift` removes the first element of the list and returns it
+        # `shift` removes the first element of the list and returns it
         func shift() T do
             let elem = this[0]
             this.length--
             copy_to(this.arr[1:], this.arr[:this.length])
             return elem
 
-        // `insert` adds a new element to the list at a given position
+        # `insert` adds a new element to the list at a given position
         func insert(elem: T, ndx: int) do
-            // we grow first to allow insert to work at the end of the list
+            # we grow first to allow insert to work at the end of the list
             this.grow(this.length + 1)
 
             if ndx >= this.length do
@@ -111,14 +111,14 @@ export of
             copy_to(this.arr[ndx:], this.arr[ndx+1:])
             this.arr[ndx] = elem
 
-        // `remove_at` removes an element at a specific position and returns it
+        # `remove_at` removes an element at a specific position and returns it
         func remove_at(ndx: int) do
             let elem = this[ndx]
             copy_to(this.arr[ndx+1:this.length], this.arr[ndx:this.length-1])
             this.length--
             return elem
 
-    // A list iterator just goes through the elements of the list C-style
+    # A list iterator just goes through the elements of the list C-style
     interf<T> for __stdlist_iterator<T> is Iterator<T> of
         #introspect
         func next() Option<T> do
@@ -128,7 +128,7 @@ export of
 
             return None
 
-    #introspect
+    @introspect
     operator<T> ([]) (const list: [T], const ndx: int) T do
         if ndx < 0 do
             ndx = list.len() + ndx
@@ -138,7 +138,7 @@ export of
         else
             panic(BoundsError(ndx))
 
-    #introspect
+    @introspect
     operator<T> ([]) (list: [T], const ndx: int, const value: T) do
         if ndx < 0 do
             ndx = list.len() + ndx

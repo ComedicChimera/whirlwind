@@ -15,16 +15,16 @@ export of
 
     type Bytelike = byte | sbyte
 
-    #intrinsic
+    @intrinsic
     type Vector = nothing
 
-    #intrinsic
+    @intrinsic
     type TypedVector<T> = T
 
-    #intrinsic
+    @intrinsic
     type IntegralVector = nothing
 
-    #intrinsic
+    @intrinsic
     type Tuple = nothing
     
 

@@ -3,54 +3,54 @@
 import __get_kind_of, __pointer_size from core::runtime
 
 export of
-    // `voidptr` is the equivalent of C's `void*` which may be used to bind to C
-    // libraries.  It is defined to be a `&byte` since that type translates to
-    // an `i8*` in LLVM which is (at that level) semantically equivalent to a
-    // `void*.  (In fact, most C compilers implement `void*` as an `i8*` in
-    // LLVM).
+    # `voidptr` is the equivalent of C's `void*` which may be used to bind to C
+    # libraries.  It is defined to be a `&byte` since that type translates to
+    # an `i8*` in LLVM which is (at that level) semantically equivalent to a
+    # `void*.  (In fact, most C compilers implement `void*` as an `i8*` in
+    # LLVM).
     type voidptr = &byte
 
-    // `to_voidptr` converts a regular Whirlwind value (of `any` type) to a
-    // voidptr.  This will work for both pointers and values since pointers are
-    // not stored when they are passed into an `any` type; they are simply
-    // bitcast to an `i8*`.  Values will be stored in a reference.  This
-    // function uses a little bit of trickery and introspection to get around
-    // the type system (exploiting the fact that under the hood, `any` stores
-    // the equivalent of a `void*` to hold its value).
-    #introspect
-    func to_voidptr(v: any) voidptr
-        => v.ptr // `ptr` is an internal field of the `any` type struct
+    # `to_voidptr` converts a regular Whirlwind value (of `any` type) to a
+    # voidptr.  This will work for both pointers and values since pointers are
+    # not stored when they are passed into an `any` type; they are simply
+    # bitcast to an `i8*`.  Values will be stored in a reference.  This
+    # function uses a little bit of trickery and introspection to get around
+    # the type system (exploiting the fact that under the hood, `any` stores
+    # the equivalent of a `void*` to hold its value).
+    @introspect
+    func to_voidptr(v: any) : voidptr
+        => v.ptr # `ptr` is an internal field of the `any` type struct
 
-    // `from_voidptr` uses the same "exploit" as `to_voidptr` by treating the
-    // `voidptr` as a `&byte` storable inside an `any` type.  WARNING: This
-    // function contains several implicit assertions: it assumes the type
-    // parameter passed in accurately represents the underlying data stored
-    // in the `voidptr`.  Secondly, it assumes that the memory is NOT owned.
-    // Use `from_owned_voidptr` to treat the returned pointer as owned.  
-    // TODO: Figure out if Whirlwind can determine if the pointer is nullable.
-    #introspect
-    func from_voidptr<T>(p: voidptr) &T? do
+    # `from_voidptr` uses the same "exploit" as `to_voidptr` by treating the
+    # `voidptr` as a `&byte` storable inside an `any` type.  WARNING: This
+    # function contains several implicit assertions: it assumes the type
+    # parameter passed in accurately represents the underlying data stored
+    # in the `voidptr`.  Secondly, it assumes that the memory is NOT owned.
+    # Use `from_owned_voidptr` to treat the returned pointer as owned.  
+    # TODO: Figure out if Whirlwind can determine if the pointer is nullable.
+    @introspect
+    func from_voidptr<T>(p: voidptr) &T do
         let a = __stdtypeset{
             ptr=p as &byte,
-            kind=__get_kind_of() as &T?
+            kind=__get_kind_of::<&T>()
             size=__pointer_size()
         }
 
-        return a as &T?
+        return a as &T
 
-    // `from_owned_voidptr` works similarly to `from_voidptr` except it returns
-    // an owned reference as opposed to unowned one.
-    #introspect
-    func from_owned_voidptr(p: voidptr) own &T? do
+    # `from_owned_voidptr` works similarly to `from_voidptr` except it returns
+    # an owned reference as opposed to unowned one.
+    @introspect
+    func from_owned_voidptr(p: voidptr) own &T do
         let a = __stdtypeset{
             ptr=p as &byte,
-            kind=__get_kind_of() as own &T?
+            kind=__get_kind_of::<own &T>()
             size=__pointer_size()
         }
 
         return a as own &T?
 
     type c_int_t = uintptr
-    type size_t = uint // TODO: may be another type; may be platform dependent
+    type size_t = uint # TODO: may be another type; may be platform dependent
 
     

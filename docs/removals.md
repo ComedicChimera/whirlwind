@@ -33,3 +33,5 @@ replaced from previous versions of the language.
 - implicit infinite loop
   - just kinda looks ugly
   - not necessarily unclear but really not very idiomatic
+- duck typing
+- decorators -- excessive and unnecessary

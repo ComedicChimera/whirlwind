@@ -1,40 +1,40 @@
-// Not all of these imports may occur in every instance of the Prelude. On
-// occasion the compiler may choose to selectively elide such an import if it is
-// redundant/unnecessary (eg. `core::runtime` doesn't need to import itself).
+# Not all of these imports may occur in every instance of the Prelude. On
+# occasion the compiler may choose to selectively elide such an import if it is
+# redundant/unnecessary (eg. `core::runtime` doesn't need to import itself).
 export of
-    // `iota` creates an array of `n` integers starting at `start` with a
-    // spacing of `spacing`.  Useful for creating a complex range quickly.
-    func iota(n, start, spacing: int, r: region) []int do
+    # `iota` creates an array of `n` integers starting at `start` with a
+    # spacing of `spacing`.  Useful for creating a complex range quickly.
+    func iota[region r](n, start, spacing: int) []int do
         if spacing < 1 || n < 1 do
             return null as []int
 
         return new in[r] {item * spacing for item in start..start+n}
 
-    // `floor` performs a mathematical floor operation (lowest integer).
+    # `floor` performs a mathematical floor operation (lowest integer).
     func floor<N: Floating, R: Integral>(n: N) R
-        => (n - n % 1) as R
+        -> (n - n % 1) as R
 
-    // `ceil` performs a mathematical ceiling operation (greatest integer).
+    # `ceil` performs a mathematical ceiling operation (greatest integer).
     func ceil<N: Floating, R: Integral>(n: N) R
-        => (n - n % 1 + 1) as R
+        -> (n - n % 1 + 1) as R
 
-    // `abs` returns the absolute value of a number.
+    # `abs` returns the absolute value of a number.
     func abs<T: Numeric>(n: T) T
-        => n if n >= 0 else -n
+        -> n if n >= 0 else -n
 
-    // `filled` creates a new array with a given length filled with the given
-    // value.  It returns an empty array if the given length is less than one.
-    func filled<T>(v: T, length: int, r: region) []T do
+    # `filled` creates a new array with a given length filled with the given
+    # value.  It returns an empty array if the given length is less than one.
+    func filled<T>[region r](v: T, length: int) []T do
         if length < 1 do
             return null as []T
 
         return new in[r] {v for _ in 1..length}
 
-    // `clamp` constains a number to be within an upper and lower bound such
-    // that if the number's value cannot exceed those bounds (eg. with the
-    // bounds of 1 and 3, the number 4 would be clamped to 3).  If the lower
-    // bound passed in is greater than the upper bound, the original number is
-    // returned without any clamping being performed.
+    # `clamp` constains a number to be within an upper and lower bound such
+    # that if the number's value cannot exceed those bounds (eg. with the
+    # bounds of 1 and 3, the number 4 would be clamped to 3).  If the lower
+    # bound passed in is greater than the upper bound, the original number is
+    # returned without any clamping being performed.
     func clamp<T: Numeric>(n, l, u: T) T do
         if u == l do
             return l
@@ -48,31 +48,31 @@ export of
 
         return n
 
-    // `normalize` normalizes a number with a given minimum and maximum value.
+    # `normalize` normalizes a number with a given minimum and maximum value.
     func normalize<T: Numeric>(n, min, max: T) float
-        => (n - min) / (max - min) as float
+        -> (n - min) / (max - min) as float
 
-    // `transmute` converts a number `n` in a range of `l` to `u` to be at an
-    // equivalent position within a range of `nl` to `nu`.  This function is
-    // equivalent to Processing's `map` function.
+    # `transmute` converts a number `n` in a range of `l` to `u` to be at an
+    # equivalent position within a range of `nl` to `nu`.  This function is
+    # equivalent to Processing's `map` function.
     func transmute<T: Numeric>(n, l, u, nl, nu: T) T
-        => normalize(n, l, u) * (nu - nl) + nl
+        -> normalize(n, l, u) * (nu - nl) + nl
 
-    // `min` takes two numbers and returns the smaller of the two.
+    # `min` takes two numbers and returns the smaller of the two.
     func min<T: Numeric>(a, b: T) T 
-        => a if a < b else b
+        -> a if a < b else b
 
-    // `max` takes two numbers and returns the larger of the two.
+    # `max` takes two numbers and returns the larger of the two.
     func max<T: Numeric>(a, b: T) T
-        => a if a > b else b
+        -> a if a > b else b
 
-    // `compare` returns the `Ord` value of a comparison between two
-    // `Comparable` values.  This function should be used instead of directly
-    // calling `compare_to`.
+    # `compare` returns the `Ord` value of a comparison between two
+    # `Comparable` values.  This function should be used instead of directly
+    # calling `compare_to`.
     func compare<T: Comparable>(a, b: T) Ord
-        => a.compare_to(b)
+        -> a.compare_to(b)
 
-    // `round` rounds a `floating-point` number to the nearest integer.
+    # `round` rounds a `floating-point` number to the nearest integer.
     func round<T: Floating, R: Integral>(n: T) R do
         let nmod = n % 1
 
@@ -81,16 +81,16 @@ export of
         else
             return n - nmod + 1
 
-    // `fill_block` takes a block reference and fills its block with the given
-    // value (floods a block of memory).
+    # `fill_block` takes a block reference and fills its block with the given
+    # value (floods a block of memory).
     func fill_block<T>(br: &[]T, v: T) do
         for i in br.indices() do
             br[i] = v
 
-    // `copy_to` copies the contents of one block reference to another block
-    // reference (thereby replacing the contents of the `dest` block reference).
-    // It returns a boolean indicating whether or not the copy was performed
-    // successfully.
+    # `copy_to` copies the contents of one block reference to another block
+    # reference (thereby replacing the contents of the `dest` block reference).
+    # It returns a boolean indicating whether or not the copy was performed
+    # successfully.
     func copy_to<T>(src, dest: &[]T) bool do
         if src.len() != dest.len() do
             return false

@@ -3,8 +3,8 @@
 import __sizeof, __get_kind_of from core::runtime
 
 export of
-    // `get_bytes` converts any given type to its corresponding byte array
-    #introspect
+    # `get_bytes` converts any given type to its corresponding byte array
+    @introspect
     func get_bytes(a: any) []byte do
         let bytearray = filled(0b00, a.size)
 
@@ -13,9 +13,9 @@ export of
 
         return bytearray
 
-    // `cast_bytes` takes a byte array and casts it to its type if such a
-    // cast/interpretation is valid (by size).  
-    #introspect
+    # `cast_bytes` takes a byte array and casts it to its type if such a
+    # cast/interpretation is valid (by size).  
+    @introspect
     func cast_bytes<T>(bytearray: []byte) Option<T> do
         let size = __sizeof(null as T)
 
@@ -30,8 +30,8 @@ export of
 
         return Some(a as T)
 
-    // `bit_cast` casts one kind of pointer to another kind of pointer
-    // disregarding typing rules (with the exception of ownership)
+    # `bit_cast` casts one kind of pointer to another kind of pointer
+    # disregarding typing rules (with the exception of ownership)
     func bit_cast<T, R>(src: &T) &R do
         return from_addr(get_addr(src))
 

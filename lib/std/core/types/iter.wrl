@@ -1,57 +1,56 @@
 export of
-    // `Iterator` is a construct that is used to iterate through the elements of
-    // some Iterable (that may be "abstract") and produce those elements one at
-    // a time until no elements remain.  It is the basis of Whirlwind's iterator
-    // protocol.
+    # `Iterator` is a construct that is used to iterate through the elements of
+    # some Iterable (that may be "abstract") and produce those elements one at
+    # a time until no elements remain.  It is the basis of Whirlwind's iterator
+    # protocol.
     interf Iterator<T> of
         func next() Option<T>
 
-    // `Iterable` is something over which an `Iterator` can be created.  It
-    // could be a sequence of elements, a stream or something else entirely.
+    # `Iterable` is something over which an `Iterator` can be created.  It
+    # could be a sequence of elements, a stream or something else entirely.
     interf Iterable<T> of
         func iter() Iterator<T>
 
-        // NOTE: Most iterable (transformative) functions are lazy.  This means
-        // that they don't actually apply any kind of transformation until they
-        // are unwound or iterated through. They also do not mutate the
-        // underlying iterable.  When we say `apply`, we mean it in the sense of
-        // creating a new iterable with that application performed.
+        # NOTE: Most iterable (transformative) functions are lazy.  This means
+        # that they don't actually apply any kind of transformation until they
+        # are unwound or iterated through. They also do not mutate the
+        # underlying iterable.  When we say `apply`, we mean it in the sense of
+        # creating a new iterable with that application performed.
 
-        // `map` applies a function to every element of an Iterable
+        # `map` applies a function to every element of an Iterable
         func map<R>(fn: func(T)(R)) Iterable<R>
-            => MapIterator{base=&this.iter(), fn=fn} as IterableMask<R> 
+            -> MapIterator{base=&this.iter(), fn=fn} as IterableMask<R> 
 
-        // `filter` applies a filter function to every element of an Iterable
+        # `filter` applies a filter function to every element of an Iterable
         func filter(fn: func(T)(bool)) Iterable<T>
-            => FilterIterator{base=&this.iter(), fn=fn} as IterableMask<T>
+            -> FilterIterator{base=&this.iter(), fn=fn} as IterableMask<T>
 
-    // `IterableMask` is a type used to treat an Iterator as an Iterable by
-    // allowing its `iter` function to act as an identity (blurs the line
-    // between iterables and iterators)
+    # `IterableMask` is a type used to treat an Iterator as an Iterable by
+    # allowing its `iter` function to act as an identity (blurs the line
+    # between iterables and iterators)
     type IterableMask<T> = Iterator<T>
 
-    // As mentioned above, since `IterableMask` is already an `Iterator`,
-    // `iter` simply acts to perform a type cast back to an `Iterator`.
+    # As mentioned above, since `IterableMask` is already an `Iterator`,
+    # `iter` simply acts to perform a type cast back to an `Iterator`.
     interf<T> for IterableMask<T> is Iterable<T> of
-        func iter() Iterator<T> => this as Iterator<T>
+        func iter() Iterator<T> -> this as Iterator<T>
 
-// `MapIterator` applies a function to the outputs of another iterator. In
-// effect, it binds itself on top of the iterator.  Many other Iterators work
-// like this (transformatively).
+# `MapIterator` applies a function to the outputs of another iterator. In
+# effect, it binds itself on top of the iterator.  Many other Iterators work
+# like this (transformatively).
 type MapIterator<T, R> {
     base: &Iterator<T>
     fn: func(T)(R)
 }
 
-// We can leverage the monadic nature of a `Option` to write a concise `next`
-// function (in this context).  You will see this type of pattern occurring
-// repeatedly as well.
+# We can leverage the monadic nature of a `Option` to write a concise `next`
+# function (in this context).  You will see this type of pattern occurring
+# repeatedly as well.
 interf<T, R> for MapIterator<T, R> is Iterator<R> of
-    func next() Option<R>
-        => this.base.next().apply(this.fn)
+    func next() Option<R> -> this.base.next().apply(this.fn)
 
-// `FilterIterator` applies a filter function to the outputs of another iterator
-// only returning the elements from which that function returns true.
+# `FilterIterator` applies a filter function to the outputs of another iterator
+# only returning the elements from which that function returns true.
 type FilterIterator<T> {
     base: &Iterator<T>
     fn: func(T)(bool)

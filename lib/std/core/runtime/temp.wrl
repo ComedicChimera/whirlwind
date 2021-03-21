@@ -1,5 +1,5 @@
-// This file exists so that this package contains some files
-// All other files are currently marked `nocompile`.
+# This file exists so that this package contains some files
+# All other files are currently marked `nocompile`.
 export of
     func temp() do
         ...

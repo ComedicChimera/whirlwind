@@ -1,17 +1,17 @@
 export of
-    // `Hashable` is an interface implemented by several builtin types that
-    // allows them to be stored in a dictionary (only `Hashable` types can be
-    // stored in a dictionary).  It can and often will need to be implemented
-    // by users.
+    # `Hashable` is an interface implemented by several builtin types that
+    # allows them to be stored in a dictionary (only `Hashable` types can be
+    # stored in a dictionary).  It can and often will need to be implemented
+    # by users.
     interf Hashable of
-        // `hash` should produce a large value representing the value of the
-        // type it is called on.  NOTE: The hash codes for each value of a given
-        // type should be distinct (or as distinct as possible) to minimize
-        // collisions in dictionaries.  This function will be called a lot in
-        // certain conditions so performance is of the essence.
+        # `hash` should produce a large value representing the value of the
+        # type it is called on.  NOTE: The hash codes for each value of a given
+        # type should be distinct (or as distinct as possible) to minimize
+        # collisions in dictionaries.  This function will be called a lot in
+        # certain conditions so performance is of the essence.
         func hash() ulong
 
-    // All integral types simply `hash` to themselves (since they are all
-    // already numerically distinct and reasonably castable to a ulong).
+    # All integral types simply `hash` to themselves (since they are all
+    # already numerically distinct and reasonably castable to a ulong).
     interf<T: Integral> for T is Hashable of
-        func hash() ulong => this as ulong
+        func hash() ulong -> this as ulong

@@ -92,26 +92,17 @@ of a page -- they have no fixed size and can grow as necessary.
 References in Whirlwind cannot be individually deleted (except in the global region).
 Instead, references are allocated in a region which is deleted when its lifetime ends.
 
-Regions can be created in a number of ways and can be passed as values.  Here are all
-of the proper initializations of regions.
-
-    // Create a new region or reference a preexisting region that is 
-    // local to the current function/method/region-scope
-    region r local
+One can create a scoped region as follows:
 
     // Create a region `r` that exists with the following scope
     region r of
         ...
 
-Notice that in the first case, a new region may not be created if a local region already
-exists.  Additionally, in the second case, the region will only exist for the length of
-the block.
+Note that  the region will only exist for the length of the block.
 
-Regions can be treated as literal values -- so that they can be allocated in as necessary.
-They have a type label of `region`.  Both the two regions above were named `r` and can be
-referenced by that name.
-
-Regions cannot be stored in collections of any kind.
+Regions can be passed through region tags using the `[region r]` syntax.  The syntax
+is mirrored on calling with the additional advantage of being able to just write
+`[region local]` to pass in the local region.
 
 ## Allocation
 
@@ -168,6 +159,7 @@ can also be a comprehension.
 content initializer.  This type must implement the `HeapCollection<T>` interface.  A block reference for
 its content will be allocated according to the content initializer.  Then, the collection data structure itself
 will be allocated, and then created block reference will be passed to its `init` method.
+4. Sized-Single-Type: This parameter allocates an empty collection of size `n` of whatever type is provided 
 
 As is explained above, a type can implement the `HeapCollection<T>` interface to allow for collection
 allocation using it.  This interface defines two abstract methods: `empty_init` and `init`.  `empty_init`
@@ -177,7 +169,7 @@ it with an content.  `init` accepts a block reference and populates the data str
 Here is the interface definition of `HeapCollection<T>`.
 
     interf HeapCollection<T> of
-        func empty_init 
+        func empty_init(size: int)
 
         func init(ref: [&]T)
 
@@ -187,6 +179,7 @@ Here are some sample allocations with this syntax:
     new in[r] [int: string]      // => [int: string]
     new local {x for x in 1..10} // => [&]int
     new in[r] Set{"abc", "def"}  // => Set<string>
+    new local ([]bool, 10)       // => []bool
 
 ## Lifetimes
 
@@ -198,7 +191,7 @@ return a reference allocated in a local region nor can you return a free referen
 Lifetimes are calculated relative to the current location -- much like Rust's generic lifetimes.
 For example, in the function:
 
-    func update(r: &T) &T
+    func update(r: &T) : &T
         return r
 
 The lifetime of `r` is not known in a concrete sense.  However, the compiler does know that the
@@ -220,7 +213,7 @@ across many different instances.  Eg.
         ref: own &int
     }
 
-    func fn(r: region) do
+    func fn[region r] do
         let t1 = Test{}, t2 = Test{}
 
         // both of these are ok

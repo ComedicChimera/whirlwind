@@ -1,6 +1,6 @@
 !! arch="x64"
 
 export of 
-    // `uintptr` represents a pointer that is represented by an integer value. It
-    // essentially equivalent to the a memory address.
+    # `uintptr` represents a pointer that is represented by an integer value. It
+    # essentially equivalent to the a memory address.
     type uintptr = ulong

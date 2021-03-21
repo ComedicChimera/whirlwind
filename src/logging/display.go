@@ -122,7 +122,7 @@ func displayCodeSelection(sc *bufio.Scanner, pos *TextPosition) {
 }
 
 func (ie *InternalError) display() {
-	fmt.Println("Configuration Error:", ie.Message)
+	fmt.Println("\nConfiguration Error:", ie.Message)
 }
 
 // fatalErrorMessage is the string printed before after any fatal error

@@ -368,15 +368,7 @@ func (w *Walker) walkRefType(branch *syntax.ASTBranch) (typing.DataType, bool) {
 
 	if elemType, _, ok := w.walkTypeLabelCore(refBranch.LastBranch()); ok {
 		innerElemType := typing.InnerType(elemType)
-		if _, ok = innerElemType.(typing.RegionType); ok {
-			w.logError(
-				"Element type of a reference cannot be a region",
-				logging.LMKTyping,
-				refBranch.Last().Position(),
-			)
-
-			return nil, false
-		} else if _, ok := innerElemType.(*typing.RefType); ok && !refType.Block {
+		if _, ok := innerElemType.(*typing.RefType); ok && !refType.Block {
 			w.logError(
 				"Element type of a non-block reference cannot be a reference",
 				logging.LMKTyping,
