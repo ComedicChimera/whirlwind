@@ -128,7 +128,7 @@ func (w *Walker) walkTypeDef(dast *syntax.ASTBranch) (*common.HIRTypeDef, bool) 
 					return nil, false
 				}
 			case "region_tag":
-				if ids, ok := w.walkIdList(v.BranchAt(1), "regions"); ok {
+				if ids, ok := w.walkIdList(v.BranchAt(2), "regions"); ok {
 					for name := range ids {
 						regions = append(regions, name)
 					}
@@ -423,7 +423,7 @@ func (w *Walker) walkFuncDef(branch *syntax.ASTBranch, isMethod bool) (*common.H
 					return nil, false
 				}
 			case "region_tag":
-				if ids, ok := w.walkIdList(v.BranchAt(1), "regions"); ok {
+				if ids, ok := w.walkIdList(v.BranchAt(2), "regions"); ok {
 					for name := range ids {
 						regions = append(regions, name)
 					}
