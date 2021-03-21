@@ -502,6 +502,10 @@ type InterfMethod struct {
 
 	// Can be any one of the enumerated method kinds below
 	Kind int
+
+	// Specializations stores any of the specializations of this method.  Note
+	// that this slice is NOT mirrored on the associated definition node
+	Specializations []*GenericSpecialization
 }
 
 const (

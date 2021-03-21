@@ -21,6 +21,11 @@ type Symbol struct {
 	// DefKind indicates what type of value the symbol stores (typedef, binding,
 	// etc.). Should contain one of the symbol kind constants listed below
 	DefKind int
+
+	// DefNode stores the node that produced this symbol.  Note that this field
+	// will be `null` for most symbols: it is only populated by type definitions
+	// and functions (declared globally)
+	DefNode HIRNode
 }
 
 // VisibleExternally determines if remote packages can access this symbol

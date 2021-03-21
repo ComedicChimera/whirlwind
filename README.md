@@ -67,14 +67,12 @@ Fibonacci:
     import println from io::std
 
     func fib() func()(int) do
-        let a = 0, b = 1
+        let a = 0, b = 1        
 
-        func f : int do
+        return || do
             yield a
 
             a, b = b, a + b
-
-        return f
 
     func main() do
         let f = fib()

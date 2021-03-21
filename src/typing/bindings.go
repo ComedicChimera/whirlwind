@@ -126,17 +126,18 @@ func (s *Solver) Derive(it, deriving *InterfType) {
 			}
 
 			// migrate/derive specializations
-			if igt, ok := imethod.Signature.(*GenericType); ok {
-				gt := method.Signature.(*GenericType)
-
-				for _, spec := range gt.Specializations {
-					for _, ispec := range igt.Specializations {
+			if len(imethod.Specializations) == 0 && len(method.Specializations) > 0 {
+				imethod.Specializations = method.Specializations
+			} else {
+				for _, spec := range method.Specializations {
+					for _, ispec := range imethod.Specializations {
 						if !spec.Match(ispec) {
-							igt.Specializations = append(igt.Specializations, ispec)
+							method.Specializations = append(method.Specializations, ispec)
 						}
 					}
 				}
 			}
+
 		} else if method.Kind == MKVirtual {
 			it.Methods[name] = method
 		}

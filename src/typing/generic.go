@@ -30,9 +30,6 @@ type GenericType struct {
 	// separate definitions) can be performed efficiently and so that we can
 	// avoid repeatedly creating generates we already have (memoization).
 	Instances []*GenericInstanceType
-
-	// Specializations stores the specializations for this generic type
-	Specializations []*GenericSpecialization
 }
 
 func (gt *GenericType) Repr() string {
@@ -372,8 +369,8 @@ func (gavt *GenericAlgebraicVariantType) copyTemplate() DataType {
 }
 
 // GenericSpecialization represents a generic function or method specialization.
-// It is not a data type, rather it is an entry to be stored in a `GenericType`
-// or `OpaqueGenericType`.
+// It is not a data type, rather it is an entry to be stored in a `HIRGeneric`
+// and generic methods
 type GenericSpecialization struct {
 	// MatchingTypes stores a list of the type parameters that this
 	// specialization matches.  These can be wildcard types if this

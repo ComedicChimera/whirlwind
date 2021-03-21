@@ -93,6 +93,11 @@ func (w *Walker) applyGenericContext(node common.HIRNode, dt typing.DataType) (c
 	symbol, _ := w.Lookup(w.currentDefName)
 	symbol.Type = gt
 
+	// if there is a definition node stored, we need to update it
+	if symbol.DefNode != nil {
+		symbol.DefNode = gen
+	}
+
 	// update algebraic variants of open generic algebraic types
 	if at, ok := dt.(*typing.AlgebraicType); ok {
 		if !at.Closed {

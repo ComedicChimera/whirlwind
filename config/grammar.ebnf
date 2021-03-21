@@ -81,7 +81,7 @@ special_func_body = do_block | 'INDENT' '->' expr 'DEDENT' | '->' expr 'NEWLINE'
 (* ellipsis is used to designate a block that hasn't been filled in yet *)
 do_block = 'do' block ;
 block = 'INDENT' ( block_content {block_content} | '...') 'DEDENT' ;
-block_content = simple_stmt 'NEWLINE' | complex_stmt | func_def ;
+block_content = simple_stmt 'NEWLINE' | complex_stmt ;
 
 (* complex statements contain a block (eg. an if statement) *)
 complex_stmt = if_chain | match_stmt | for_loop | while_loop 
@@ -107,7 +107,7 @@ full_ctx = ctx_elem {semilinebr ctx_elem} ;
 ctx_elem = identifier_list '<-' expr ;
 ctx_else_clause = 'else' (block | do_block | 'match' (expr do_block | val_match_block)) ;
 
-region_decl = 'region' 'IDENTIFIER' 'of' block ;
+region_decl = 'region' 'IDENTIFIER' ('of' block | 'local') ;
 
 (* simple statements do not contain a block - newline suffix is added in block *)
 simple_stmt = 

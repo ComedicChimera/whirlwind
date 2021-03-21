@@ -49,6 +49,9 @@ type HIRTypeDef struct {
 	// FieldInits is a map of all field initializers along with what fields they
 	// correspond to (used for type structs)
 	FieldInits map[string]HIRNode
+
+	// RegionParams stores a list of all the region parameters to this definition
+	RegionParams []string
 }
 
 func (*HIRTypeDef) Kind() int {
@@ -76,6 +79,11 @@ type HIRFuncDef struct {
 	// Initializers contains all of the special modifiers to the arguments
 	// of the function (ie. volatility, initializers)
 	Initializers map[string]HIRNode
+
+	// RegionParams stores a list of all the region parameters to this function.
+	// This field is NOT used for methods -- their information is stored on the
+	// *InterfMethod itself so it can be migrated between bindings
+	RegionParams []string
 }
 
 func (*HIRFuncDef) Kind() int {
@@ -84,8 +92,9 @@ func (*HIRFuncDef) Kind() int {
 
 // HIRGeneric is an enclosing node wrapping any generic definition
 type HIRGeneric struct {
-	Generic     *typing.GenericType
-	GenericNode HIRNode
+	Generic         *typing.GenericType
+	GenericNode     HIRNode
+	Specializations []*typing.GenericSpecialization
 }
 
 func (*HIRGeneric) Kind() int {
