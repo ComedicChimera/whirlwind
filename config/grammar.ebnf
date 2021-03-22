@@ -165,8 +165,8 @@ atom_expr = atom {trailer} | make_expr | new_expr ;
 make_expr = 'make' region_spec ['const'] alloc_param ;
 new_expr = 'new' region_spec ['const'] col_alloc_param ;
 region_spec = 'in' '[' expr ']' | 'local' | 'global' ;
-alloc_param = type | '(' type '*' expr ')' | 'IDENTIFIER' {'::' 'IDENTIFIER'} '{' [init_list] '}';
-col_alloc_param = named_type [block_builder] | block_builder | list_builder | dict_builder | '(' type '*' expr ')' ;
+alloc_param = type | 'IDENTIFIER' ['::' 'IDENTIFIER'] '{' [init_list] '}';
+col_alloc_param = named_type [block_builder] | block_builder | list_builder | dict_builder | type '(' expr ')' ;
 
 trailer = '.' ( 'IDENTIFIER' | 'INTLIT' )
   | '[' expr [slice_suffix] ']'

@@ -113,25 +113,21 @@ The region specifier can either be `in[r]` where `r` is the region the memory wi
 allocated in or `local` to indicate that we want to allocate in the local region.  Note
 that if a local region does not already exist, one will be created when this occurs.
 
-The allocation parameter describes how the memory will be allocated.  There are three kinds
+The allocation parameter describes how the memory will be allocated.  There are two kinds
 of allocation parameters.
 
 1. Single-Type: The allocation parameter is a type label.  A heap reference of that size will
 be created.
-2. Block-Type: The allocation parameter is `(T, size)` where `T` is a type label and `size` is
-an expression evaluating to an unsigned integral value.  This allocates an empty block reference
-with an element `T` and a length of `size`.
-3. Struct-Type: This is used to allocate a struct on the heap.  It is simply a struct initializer
+2. Struct-Type: This is used to allocate a struct on the heap.  It is simply a struct initializer
 (ie. `Name{...}` where `...` contains any field initializers and `Name` is the name of the struct
 -- can be a full package access).  The amount memory necessary to hold the struct is allocated and
 the fields are initialized as specified.
 
-All allocation of this form either returns a block reference or an owned reference.
+All allocation of this form either returns an owned reference.
 
 Here are some examples of allocations using this operator:
 
     make local string            // => own& string
-    make in[r] (int, 5)          // => [&]int
     make local Point2D{x=1, y=3} // => own& Point2D
 
 ## Collection Allocation
@@ -151,7 +147,7 @@ The content parameter can be in one of the following three forms:
 1. Single-Type: This parameter allocates an empty collection of whatever type is provided.  This
 is used to create things like empty lists which are non-nullable.  This collection must implement the
 `HeapCollection<T>` interface.  The data structure itself will be allocated and then its `empty_init`
-method will be called.
+method will be called with a size of `0`
 2. Literal-Type: This parameter takes in a literal of a builtin-collection (either a block reference,
 list, or dictionary) and allocates the space for it, and the populates it appropriately.  This parameter
 can also be a comprehension.
@@ -159,12 +155,14 @@ can also be a comprehension.
 content initializer.  This type must implement the `HeapCollection<T>` interface.  A block reference for
 its content will be allocated according to the content initializer.  Then, the collection data structure itself
 will be allocated, and then created block reference will be passed to its `init` method.
-4. Sized-Single-Type: This parameter allocates an empty collection of size `n` of whatever type is provided 
+4. Sized-Single-Type: This parameter allocates an empty collection of size `n` of whatever type is provided.  This
+will invoke the `empty_init` method with the size `n`.
 
 As is explained above, a type can implement the `HeapCollection<T>` interface to allow for collection
 allocation using it.  This interface defines two abstract methods: `empty_init` and `init`.  `empty_init`
 should appropriately set up all of the data structure's internal state for allocation but not populate
-it with an content.  `init` accepts a block reference and populates the data structure appropriately.
+it with an content.  It also accepts a size of data to preallocate.  `init` accepts a block reference
+and populates the data structure appropriately.
 
 Here is the interface definition of `HeapCollection<T>`.
 
@@ -179,7 +177,7 @@ Here are some sample allocations with this syntax:
     new in[r] [int: string]      // => [int: string]
     new local {x for x in 1..10} // => [&]int
     new in[r] Set{"abc", "def"}  // => Set<string>
-    new local ([]bool, 10)       // => []bool
+    new local [&]bool(10)        // => [&]bool
 
 ## Lifetimes
 
@@ -257,7 +255,7 @@ Here are some example constant reference type labels:
 A reference can be allocated as const by placing a `const` after the region
 specifier.  For example:
 
-    make in[r] const (int, 5)
+    make in[r] const Struct{}
     new local const [1, 2, 3, 4]
 
 Reference constancy cannot be cast or coerced away.  Additionally, a free reference
