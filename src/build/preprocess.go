@@ -70,7 +70,7 @@ func (c *Compiler) readMetadata(sc *syntax.Scanner) (map[string]string, bool) {
 					// nocompile automatically means we stop compilation and
 					// flags don't matter since the file won't be compiled
 					return nil, false
-				case "arch", "os", "no_util", "unsafe_all", "no_warn_all", "warn":
+				case "arch", "os", "no_util", "unsafe", "no_warn", "warn":
 					currentMetaTag = next.Value
 				default:
 					logging.LogCompileError(
