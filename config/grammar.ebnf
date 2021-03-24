@@ -72,7 +72,7 @@ struct_member = ['const'] ['vol'] identifier_list type_ext [initializer] 'NEWLIN
 annotated_def = annotation (func_def | type_def | operator_def | interf_def | interf_bind) ;
 annotated_method = annotation func_def ;
 annotation = '@' (annot_single | '[' annot_single {',' annot_single} ']') 'NEWLINE' ;
-annot_single = 'IDENTIFIER' ['(' 'STRINGLIT' ')'] ;
+annot_single = 'IDENTIFIER' ['(' 'STRINGLIT' {',' 'STRINGLIT'} ')'] ;
 
 (* generic function specialization *)
 special_def = 'special' [generic_tag] 'IDENTIFIER' '<' type_list '>' special_func_body ;

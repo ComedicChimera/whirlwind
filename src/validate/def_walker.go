@@ -1096,3 +1096,23 @@ func (w *Walker) walkMethodSpecial(it *typing.InterfType, branch *syntax.ASTBran
 		}, true
 	}
 }
+
+// walkAnnotatedDef walks an `annotated_def` or `annotated_method` node
+func (w *Walker) walkAnnotatedDef(branch *syntax.ASTBranch) (common.HIRNode, typing.DataType, bool) {
+	// store the outer annotation to restore it after this function is called
+	outerAnnots := w.annotations
+	defer func() {
+		w.annotations = outerAnnots
+	}()
+
+	w.annotations = nil
+	defNode := branch.BranchAt(1)
+	for _, item := range branch.BranchAt(0).Content {
+		// only branch is `annot_single`
+		if annot, ok := item.(*syntax.ASTBranch); ok {
+			_ = annot
+		}
+	}
+
+	return w.walkDefRaw(defNode)
+}
