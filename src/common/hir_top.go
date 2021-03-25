@@ -71,7 +71,7 @@ func (*HIRInterfDef) Kind() int {
 // HIRFuncDef is the node used to represent a function definition
 type HIRFuncDef struct {
 	Sym         *Symbol
-	Annotations map[string]string
+	Annotations map[string][]string
 
 	// Body can be `nil` if there is no function body
 	Body HIRNode

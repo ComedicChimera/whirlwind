@@ -1110,9 +1110,107 @@ func (w *Walker) walkAnnotatedDef(branch *syntax.ASTBranch) (common.HIRNode, typ
 	for _, item := range branch.BranchAt(0).Content {
 		// only branch is `annot_single`
 		if annot, ok := item.(*syntax.ASTBranch); ok {
-			_ = annot
+			var annotName string
+			var annotArgs []string
+			for _, elem := range annot.Content {
+				if elemleaf, ok := elem.(*syntax.ASTLeaf); ok {
+					if elemleaf.Kind == syntax.IDENTIFIER {
+						annotName = elemleaf.Value
+					} else if elemleaf.Kind == syntax.STRINGLIT {
+						annotArgs = append(annotArgs, elemleaf.Value[1:len(elemleaf.Value)-1])
+					}
+				}
+			}
+
+			// duplicate annotations are not allowed
+			if _, ok := w.annotations[annotName]; ok {
+				w.logError(
+					fmt.Sprintf("Annotation `%s` defined multiple times", annotName),
+					logging.LMKAnnot,
+					annot.Position(),
+				)
+
+				return nil, nil, false
+			}
+
+			if w.validateAnnotation(annotName, annotArgs, defNode.Name, annot.Position()) {
+				w.annotations[annotName] = annotArgs
+			} else {
+				return nil, nil, false
+			}
 		}
 	}
 
 	return w.walkDefRaw(defNode)
+}
+
+// validateAnnotation takes in the name of an annotation, any arguments it
+// takes, and the name of the node it is applied to and determines whether or
+// not that combination is valid.  It logs appropriate errors if not.
+func (w *Walker) validateAnnotation(annotName string, annotArgs []string, defNodeName string, pos *logging.TextPosition) bool {
+	logAnnotArgError := func(expectedCount int) {
+		w.logError(
+			fmt.Sprintf("Annotation `%s` expects `%d` arguments; received `%d`", annotName, expectedCount, len(annotArgs)),
+			logging.LMKAnnot,
+			pos,
+		)
+	}
+
+	// functions and operators are functionally the same for annotations as are
+	// interface definitions and interface bindings
+	switch defNodeName {
+	case "func_def", "operator_def":
+		switch annotName {
+		case "external", "intrinsic", "introspect", "vec_unroll", "no_warn",
+			"inline", "tail_rec", "hot_call", "no_inline":
+			if len(annotArgs) != 0 {
+				logAnnotArgError(0)
+				return false
+			} else {
+				return true
+			}
+		case "dll_import":
+			if len(annotArgs) != 2 {
+				logAnnotArgError(2)
+				return false
+			} else {
+				return true
+			}
+
+		}
+	case "interf_def", "interf_bind":
+		if annotName == "introspect" {
+			if len(annotArgs) != 0 {
+				logAnnotArgError(0)
+				return false
+			} else {
+				return true
+			}
+		}
+	case "type_def":
+		switch annotName {
+		case "packed":
+			if len(annotArgs) != 0 {
+				logAnnotArgError(0)
+				return false
+			} else {
+				return true
+			}
+		case "impl":
+			if len(annotArgs) != 1 {
+				logAnnotArgError(1)
+				return false
+			} else {
+				return true
+			}
+		}
+	}
+
+	// if we reach here, not other annotation matched
+	w.logError(
+		fmt.Sprintf("Annotation `%s` is not valid for %s", annotName, defNodeName),
+		logging.LMKAnnot,
+		pos,
+	)
+	return false
 }

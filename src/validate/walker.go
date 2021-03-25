@@ -45,7 +45,7 @@ type Walker struct {
 	interfGenericCtx []*typing.WildcardType
 
 	// annotations stores the active annotations on any definition
-	annotations map[string]string
+	annotations map[string][]string
 
 	// selfType stores a reference to the type currently being defined for self
 	// referencing
