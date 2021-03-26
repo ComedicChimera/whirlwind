@@ -104,6 +104,8 @@ func (w *Walker) walkDefRaw(dast *syntax.ASTBranch) (common.HIRNode, typing.Data
 			// `w.applyGenericContext` is never involved
 			return specNode, nil, true
 		}
+	case "annotated_def":
+		return w.walkAnnotatedDef(dast)
 	}
 
 	return nil, nil, false
@@ -787,8 +789,19 @@ func (w *Walker) walkInterfBody(body *syntax.ASTBranch, it *typing.InterfType, c
 
 			methodBranch := interfMember.BranchAt(0)
 			switch methodBranch.Name {
-			case "func_def":
-				if fnnode, ok := w.walkFuncDef(methodBranch, true); ok {
+			case "func_def", "annotated_method":
+				var fnnode *common.HIRFuncDef
+				var ok bool
+
+				if methodBranch.Name == "func_def" {
+					fnnode, ok = w.walkFuncDef(methodBranch, true)
+				} else {
+					methodNode, _, mok := w.walkAnnotatedDef(methodBranch)
+					fnnode = methodNode.(*common.HIRFuncDef)
+					ok = mok
+				}
+
+				if ok {
 					name = fnnode.Sym.Name
 					dt = fnnode.Sym.Type
 					node = fnnode
@@ -823,7 +836,6 @@ func (w *Walker) walkInterfBody(body *syntax.ASTBranch, it *typing.InterfType, c
 				} else {
 					return nil, false
 				}
-				// TODO: other method types (specializations, etc.)
 			}
 
 			// apply the generic context of any methods should such context
@@ -1105,6 +1117,8 @@ func (w *Walker) walkAnnotatedDef(branch *syntax.ASTBranch) (common.HIRNode, typ
 		w.annotations = outerAnnots
 	}()
 
+	isMethod := branch.Name == "annotated_method"
+
 	w.annotations = nil
 	defNode := branch.BranchAt(1)
 	for _, item := range branch.BranchAt(0).Content {
@@ -1133,12 +1147,22 @@ func (w *Walker) walkAnnotatedDef(branch *syntax.ASTBranch) (common.HIRNode, typ
 				return nil, nil, false
 			}
 
-			if w.validateAnnotation(annotName, annotArgs, defNode.Name, annot.Position()) {
+			if w.validateAnnotation(annotName, annotArgs, defNode.Name, annot.Position(), isMethod) {
 				w.annotations[annotName] = annotArgs
 			} else {
 				return nil, nil, false
 			}
 		}
+	}
+
+	if isMethod {
+		fdef, ok := w.walkFuncDef(defNode, isMethod)
+
+		if ok {
+			return fdef, fdef.Sym.Type, ok
+		}
+
+		return nil, nil, false
 	}
 
 	return w.walkDefRaw(defNode)
@@ -1147,7 +1171,7 @@ func (w *Walker) walkAnnotatedDef(branch *syntax.ASTBranch) (common.HIRNode, typ
 // validateAnnotation takes in the name of an annotation, any arguments it
 // takes, and the name of the node it is applied to and determines whether or
 // not that combination is valid.  It logs appropriate errors if not.
-func (w *Walker) validateAnnotation(annotName string, annotArgs []string, defNodeName string, pos *logging.TextPosition) bool {
+func (w *Walker) validateAnnotation(annotName string, annotArgs []string, defNodeName string, pos *logging.TextPosition, isMethod bool) bool {
 	logAnnotArgError := func(expectedCount int) {
 		w.logError(
 			fmt.Sprintf("Annotation `%s` expects `%d` arguments; received `%d`", annotName, expectedCount, len(annotArgs)),
@@ -1166,26 +1190,43 @@ func (w *Walker) validateAnnotation(annotName string, annotArgs []string, defNod
 			if len(annotArgs) != 0 {
 				logAnnotArgError(0)
 				return false
-			} else {
-				return true
+			} else if isMethod {
+				if annotName == "external" || annotName == "intrinsic" {
+					w.logError(
+						fmt.Sprintf("Unable to apply annotation `%s` to method", annotName),
+						logging.LMKAnnot,
+						pos,
+					)
+
+					return false
+				}
 			}
+
+			return true
 		case "dll_import":
 			if len(annotArgs) != 2 {
 				logAnnotArgError(2)
 				return false
-			} else {
-				return true
+			} else if isMethod {
+				w.logError(
+					"Unable to apply annotation `dll_import` to method",
+					logging.LMKAnnot,
+					pos,
+				)
+
+				return false
 			}
 
+			return true
 		}
 	case "interf_def", "interf_bind":
 		if annotName == "introspect" {
 			if len(annotArgs) != 0 {
 				logAnnotArgError(0)
 				return false
-			} else {
-				return true
 			}
+
+			return true
 		}
 	case "type_def":
 		switch annotName {
@@ -1193,16 +1234,16 @@ func (w *Walker) validateAnnotation(annotName string, annotArgs []string, defNod
 			if len(annotArgs) != 0 {
 				logAnnotArgError(0)
 				return false
-			} else {
-				return true
 			}
+
+			return true
 		case "impl":
 			if len(annotArgs) != 1 {
 				logAnnotArgError(1)
 				return false
-			} else {
-				return true
 			}
+
+			return true
 		}
 	}
 
