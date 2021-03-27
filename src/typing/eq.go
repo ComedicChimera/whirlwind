@@ -41,3 +41,38 @@ func InnerType(dt DataType) DataType {
 		return dt
 	}
 }
+
+// OperatorsConflict tests if two operator signatures conflict
+func OperatorsConflict(a, b DataType) bool {
+	extractFuncType := func(f DataType) *FuncType {
+		switch v := f.(type) {
+		case *FuncType:
+			return v
+		case *GenericType:
+			return v.Template.(*FuncType)
+		}
+
+		// unreachable
+		return nil
+	}
+
+	afn := extractFuncType(a)
+	bfn := extractFuncType(b)
+
+	// operators don't allow indefinite or optional arguments => if the lengths
+	// aren't equal, then the operators don't conflict
+	if len(afn.Args) != len(bfn.Args) {
+		return false
+	}
+
+	// positional matching is all the matters not name (since operators are
+	// never invoked with named arguments)
+	for i, arg := range afn.Args {
+		// only one need not match
+		if !Equals(arg.Val.Type, bfn.Args[i].Val.Type) {
+			return false
+		}
+	}
+
+	return true
+}

@@ -106,6 +106,13 @@ func (w *Walker) walkDefRaw(dast *syntax.ASTBranch) (common.HIRNode, typing.Data
 		}
 	case "annotated_def":
 		return w.walkAnnotatedDef(dast)
+	case "operator_def":
+		if opdefNode, ok := w.walkOperatorDef(dast); ok {
+			// operator definitions have special logic for their generics
+			// so `applyGenericContext` will never be used meaning we can
+			// freely return a `nil` data type
+			return opdefNode, nil, true
+		}
 	}
 
 	return nil, nil, false
@@ -433,7 +440,7 @@ func (w *Walker) walkFuncDef(branch *syntax.ASTBranch, isMethod bool) (*common.H
 					return nil, false
 				}
 			case "signature":
-				if args, adata, rtType, ok := w.walkSignature(v); ok {
+				if args, adata, rtType, ok := w.walkSignature(v, false); ok {
 					funcType.Args = args
 					initializers = adata
 					funcType.ReturnType = rtType
@@ -507,7 +514,7 @@ func (w *Walker) walkFuncDef(branch *syntax.ASTBranch, isMethod bool) (*common.H
 
 // walkSignature walks a `signature` node (used for functions, operator
 // definitions, etc.)
-func (w *Walker) walkSignature(branch *syntax.ASTBranch) ([]*typing.FuncArg,
+func (w *Walker) walkSignature(branch *syntax.ASTBranch, isOperator bool) ([]*typing.FuncArg,
 	map[string]common.HIRNode, typing.DataType, bool) {
 
 	var args []*typing.FuncArg
@@ -517,6 +524,16 @@ func (w *Walker) walkSignature(branch *syntax.ASTBranch) ([]*typing.FuncArg,
 	if argsDecl.Len() > 2 {
 		if !w.walkRecursiveRepeat(argsDecl.Content[1:argsDecl.Len()-1], func(argBranch *syntax.ASTBranch) bool {
 			if argBranch.Name == "var_arg_decl" {
+				if isOperator {
+					w.logError(
+						fmt.Sprintf("Operators cannot accept indefinite arguments"),
+						logging.LMKDef,
+						argBranch.Position(),
+					)
+
+					return false
+				}
+
 				name := argBranch.LeafAt(1).Value
 				if _, ok := initializers[name]; ok {
 					w.logError(
@@ -545,6 +562,16 @@ func (w *Walker) walkSignature(branch *syntax.ASTBranch) ([]*typing.FuncArg,
 				// argument duplication checked in `walkTypeValues`
 				if argNames, tv, initializer, ok := w.walkTypeValues(argBranch, "arguments"); ok {
 					if initializer != nil {
+						if isOperator {
+							w.logError(
+								"Operators cannot accept optional arguments",
+								logging.LMKDef,
+								argBranch.Position(),
+							)
+
+							return false
+						}
+
 						for name := range argNames {
 							args = append(args, &typing.FuncArg{
 								Name:     name,
@@ -838,25 +865,8 @@ func (w *Walker) walkInterfBody(body *syntax.ASTBranch, it *typing.InterfType, c
 				}
 			}
 
-			// apply the generic context of any methods should such context
-			// exist (basically a reimplementation of `applyGenericContext` for
-			// methods of an interface; working without a symbol)
-			if w.genericCtx != nil {
-				// selfType is never valid a generic here
-				gt := &typing.GenericType{
-					TypeParams: w.genericCtx,
-					Template:   dt,
-				}
-
-				dt = gt
-
-				node = &common.HIRGeneric{
-					Generic:     gt,
-					GenericNode: node,
-				}
-
-				w.genericCtx = nil
-			}
+			// handle generic methods
+			dt, node = w.applyGenericContextToMethod(dt, node)
 
 			// methods cannot be duplicated (just create a name error)
 			if _, ok := it.Methods[name]; ok {
@@ -978,29 +988,8 @@ func (w *Walker) walkFuncSpecial(branch *syntax.ASTBranch) (common.HIRNode, bool
 		}
 	}
 
-	if w.genericCtx == nil {
-		return &common.HIRSpecialDef{
-			RootGeneric: gt,
-			TypeParams:  genericSpecial.MatchingTypes,
-			Body:        body,
-		}, true
-	} else {
-		// clear the generic context since we no longer need it as a flag
-		w.genericCtx = nil
-
-		// set up the shared slice that both the typing.GenericSpecialization
-		// and the common.HIRParametricSpecialDef will share.  It can just
-		// be `nil` for now.
-		var parametricInstanceSlice [][]typing.DataType
-
-		genericSpecial.ParametricInstances = &parametricInstanceSlice
-		return &common.HIRParametricSpecialDef{
-			RootGeneric:         gt,
-			TypeParams:          genericSpecial.MatchingTypes,
-			ParametricInstances: &parametricInstanceSlice,
-			Body:                body,
-		}, true
-	}
+	// handle any parametric specialization before returning
+	return w.applyGenericContextToSpecial(gt, genericSpecial, body), true
 }
 
 // walkMethodSpecial walks a method specialization
@@ -1084,29 +1073,8 @@ func (w *Walker) walkMethodSpecial(it *typing.InterfType, branch *syntax.ASTBran
 		}
 	}
 
-	if w.genericCtx == nil {
-		return &common.HIRSpecialDef{
-			RootGeneric: gt,
-			TypeParams:  genericSpecial.MatchingTypes,
-			Body:        body,
-		}, true
-	} else {
-		// clear the generic context since we no longer need it as a flag
-		w.genericCtx = nil
-
-		// set up the shared slice that both the typing.GenericSpecialization
-		// and the common.HIRParametricSpecialDef will share.  It can just
-		// be `nil` for now.
-		var parametricInstanceSlice [][]typing.DataType
-
-		genericSpecial.ParametricInstances = &parametricInstanceSlice
-		return &common.HIRParametricSpecialDef{
-			RootGeneric:         gt,
-			TypeParams:          genericSpecial.MatchingTypes,
-			ParametricInstances: &parametricInstanceSlice,
-			Body:                body,
-		}, true
-	}
+	// handle any parametric specialization before returning
+	return w.applyGenericContextToSpecial(gt, genericSpecial, body), true
 }
 
 // walkAnnotatedDef walks an `annotated_def` or `annotated_method` node
@@ -1254,4 +1222,142 @@ func (w *Walker) validateAnnotation(annotName string, annotArgs []string, defNod
 		pos,
 	)
 	return false
+}
+
+// walkOperatorDef walks an operator definitions
+func (w *Walker) walkOperatorDef(branch *syntax.ASTBranch) (common.HIRNode, bool) {
+	// operators aren't marked boxable since they can never be boxed
+	opfn := &typing.FuncType{}
+	od := &common.HIROperDef{
+		Signature:   opfn,
+		Annotations: w.annotations,
+	}
+
+	var opValue string
+	var argsPos *logging.TextPosition
+	for _, item := range branch.Content {
+		if itembranch, ok := item.(*syntax.ASTBranch); ok {
+			switch itembranch.Name {
+			case "operator_value":
+				// the formula in the argument determines which token is
+				// actually going to act as our opkind.  For nodes of length 1
+				// and 2 (all operators except slice), it will point to the
+				// first token (0/2 and 1/2).  For the slice operator, it will
+				// point to the second token (':', 2/2).
+				od.OperKind = itembranch.LeafAt((itembranch.Len() - 1) / 2).Kind
+				for _, item := range itembranch.Content {
+					opValue += item.(*syntax.ASTLeaf).Value
+				}
+			case "region_tag":
+				if regions, ok := w.walkIdList(itembranch.BranchAt(2), "regions"); ok {
+					for name := range regions {
+						od.RegionParams = append(od.RegionParams, name)
+					}
+				} else {
+					return nil, false
+				}
+			case "generic_tag":
+				if !w.primeGenericContext(itembranch, false) {
+					return nil, false
+				}
+			case "signature":
+				if args, inits, rttype, ok := w.walkSignature(itembranch, true); ok {
+					argsPos = itembranch.BranchAt(0).Position()
+
+					opfn.Args = args
+					od.Initializers = inits
+					opfn.ReturnType = rttype
+				} else {
+					return nil, false
+				}
+			case "decl_func_body":
+				od.Body = w.extractFuncBody(itembranch)
+			}
+		}
+	}
+
+	argsCount := len(opfn.Args)
+	logExpectedArgCountError := func(expected int) {
+		w.logError(
+			fmt.Sprintf("Operator `%s` takes exactly %d arguments not %d", opValue, expected, argsCount),
+			logging.LMKDef,
+			argsPos,
+		)
+	}
+
+	// validate that the number of arguments this operator definition accepts
+	// makes sense for the arity of the operator (eg. `+` must take two
+	// arguments)
+	switch od.OperKind {
+	case syntax.NOT, syntax.COMPL:
+		// strictly unary operators
+		if argsCount != 1 {
+			logExpectedArgCountError(1)
+			return nil, false
+		}
+	case syntax.MINUS:
+		// the `-` operator (can either be unary or binary)
+		if argsCount != 1 && argsCount != 2 {
+			w.logError(
+				fmt.Sprintf("Operator `-` can accept either 1 or 2 arguments not %d", argsCount),
+				logging.LMKDef,
+				argsPos,
+			)
+
+			return nil, false
+		}
+	default:
+		// all other operators are binary
+		if argsCount != 2 {
+			logExpectedArgCountError(2)
+			return nil, false
+		}
+	}
+
+	// operators do not use standard generic wrapping (as they aren't defined as
+	// symbols) and so we need to use a special generic context applicator for
+	// them. Because of the order of expression evaluation, if `od.Signature`
+	// needs to be changed to a generic type, that change happen before
+	// `w.defineOperator` is called so we can ensure proper generic context is
+	// applied
+	return w.applyGenericContextToOpDef(od), w.defineOperator(od, opValue, argsPos)
+}
+
+// defineOperator takes an operator signature and attempts to define it within
+// the current package.  It logs all necessary errors and returns a flag
+// indicating whether or not the operator was defined successfully.  It also
+// contextually checks for conflicting local overloads in the current file
+func (w *Walker) defineOperator(opdef *common.HIROperDef, opValue string, argPos *logging.TextPosition) bool {
+	// check for local operator conflicts
+	for _, sig := range w.SrcFile.LocalOperatorDefinitions[opdef.OperKind] {
+		if typing.OperatorsConflict(opdef.Signature, sig) {
+			w.logError(
+				fmt.Sprintf("Operator definition for `%s` conflicts with preexisting definition with signature `%s`", opValue, sig.Repr()),
+				logging.LMKDef,
+				argPos,
+			)
+			return false
+		}
+	}
+
+	// check for global operator conflicts
+	globOpDefs := w.SrcPackage.OperatorDefinitions[opdef.OperKind]
+	for _, gopdef := range globOpDefs {
+		if typing.OperatorsConflict(opdef.Signature, gopdef.Signature) {
+			w.logError(
+				fmt.Sprintf("Operator definition for `%s` conflicts with preexisting definition with signature `%s`", opValue, gopdef.Signature.Repr()),
+				logging.LMKDef,
+				argPos,
+			)
+			return false
+		}
+	}
+
+	// add the operator globally
+	w.SrcPackage.OperatorDefinitions[opdef.OperKind] = append(globOpDefs, &common.WhirlOperatorDefinition{
+		Signature: opdef.Signature,
+		Exported:  w.declStatus == common.DSExported,
+	})
+
+	return true
 }

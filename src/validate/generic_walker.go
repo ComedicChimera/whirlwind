@@ -58,65 +58,6 @@ func (w *Walker) primeGenericContext(genericTag *syntax.ASTBranch, isInterf bool
 	return true
 }
 
-// applyGenericContext should be called at the end of every definition.  This
-// function checks if a generic context exists (in `TypeParams`).  If so,
-// returns the appropriately constructed `HIRGeneric` and clears the generic
-// context for the next definition.  If there is no context, it simply returns
-// the definition passed in.
-func (w *Walker) applyGenericContext(node common.HIRNode, dt typing.DataType) (common.HIRNode, typing.DataType) {
-	if w.genericCtx == nil {
-		return node, dt
-	}
-
-	// if there is a selfType, then we know that selfType stores a pre-built
-	// GenericType type used for selfType referencing (so we don't need to
-	// create a new one at all)
-	var gt *typing.GenericType
-	if w.selfType != nil {
-		gt = w.selfType.(*typing.GenericType)
-	} else {
-		gt = &typing.GenericType{
-			TypeParams: w.genericCtx,
-			Template:   dt,
-		}
-	}
-
-	// wrap our generic into a HIRGeneric
-	gen := &common.HIRGeneric{
-		Generic:     gt,
-		GenericNode: node,
-	}
-
-	// find the symbol of the declared data type so its type can be overwritten
-	// with the generic type (should always succeed b/c this is called
-	// immediately after a definition)
-	symbol, _ := w.Lookup(w.currentDefName)
-	symbol.Type = gt
-
-	// if there is a definition node stored, we need to update it
-	if symbol.DefNode != nil {
-		symbol.DefNode = gen
-	}
-
-	// update algebraic variants of open generic algebraic types
-	if at, ok := dt.(*typing.AlgebraicType); ok {
-		if !at.Closed {
-			for i, vari := range at.Variants {
-				// we know the variant exists -- we can just look it up
-				vs, _ := w.Lookup(vari.Name)
-
-				vs.Type = &typing.GenericAlgebraicVariantType{
-					GenericParent: gt,
-					VariantPos:    i,
-				}
-			}
-		}
-	}
-
-	w.genericCtx = nil
-	return gen, symbol.Type
-}
-
 // createGenericInstance creates a new instance of the given generic type or
 // generic opaque type.  It will log an error if the type passed in is not
 // generic.
@@ -187,4 +128,137 @@ func (w *Walker) setSelfType(st typing.DataType) {
 		// if there is no generic context, then we can just assign as is
 		w.selfType = st
 	}
+}
+
+// applyGenericContext should be called at the end of every definition.  This
+// function checks if a generic context exists (in `TypeParams`).  If so,
+// returns the appropriately constructed `HIRGeneric` and clears the generic
+// context for the next definition.  If there is no context, it simply returns
+// the definition passed in.
+func (w *Walker) applyGenericContext(node common.HIRNode, dt typing.DataType) (common.HIRNode, typing.DataType) {
+	if w.genericCtx == nil {
+		return node, dt
+	}
+
+	// if there is a selfType, then we know that selfType stores a pre-built
+	// GenericType type used for selfType referencing (so we don't need to
+	// create a new one at all)
+	var gt *typing.GenericType
+	if w.selfType != nil {
+		gt = w.selfType.(*typing.GenericType)
+	} else {
+		gt = &typing.GenericType{
+			TypeParams: w.genericCtx,
+			Template:   dt,
+		}
+	}
+
+	// wrap our generic into a HIRGeneric
+	gen := &common.HIRGeneric{
+		Generic:     gt,
+		GenericNode: node,
+	}
+
+	// find the symbol of the declared data type so its type can be overwritten
+	// with the generic type (should always succeed b/c this is called
+	// immediately after a definition)
+	symbol, _ := w.Lookup(w.currentDefName)
+	symbol.Type = gt
+
+	// if there is a definition node stored, we need to update it
+	if symbol.DefNode != nil {
+		symbol.DefNode = gen
+	}
+
+	// update algebraic variants of open generic algebraic types
+	if at, ok := dt.(*typing.AlgebraicType); ok {
+		if !at.Closed {
+			for i, vari := range at.Variants {
+				// we know the variant exists -- we can just look it up
+				vs, _ := w.Lookup(vari.Name)
+
+				vs.Type = &typing.GenericAlgebraicVariantType{
+					GenericParent: gt,
+					VariantPos:    i,
+				}
+			}
+		}
+	}
+
+	w.genericCtx = nil
+	return gen, symbol.Type
+}
+
+// applyGenericContextToSpecial applies the generic context to a specialization
+// to create a parametric specialization as necessary
+func (w *Walker) applyGenericContextToSpecial(gt *typing.GenericType, genericSpecial *typing.GenericSpecialization, body common.HIRNode) common.HIRNode {
+	if w.genericCtx == nil {
+		return &common.HIRSpecialDef{
+			RootGeneric: gt,
+			TypeParams:  genericSpecial.MatchingTypes,
+			Body:        body,
+		}
+	} else {
+		// clear the generic context since we no longer need it as a flag
+		w.genericCtx = nil
+
+		// set up the shared slice that both the typing.GenericSpecialization
+		// and the common.HIRParametricSpecialDef will share.  It can just
+		// be `nil` for now.
+		var parametricInstanceSlice [][]typing.DataType
+
+		genericSpecial.ParametricInstances = &parametricInstanceSlice
+		return &common.HIRParametricSpecialDef{
+			RootGeneric:         gt,
+			TypeParams:          genericSpecial.MatchingTypes,
+			ParametricInstances: &parametricInstanceSlice,
+			Body:                body,
+		}
+	}
+}
+
+// applyGenericContextToOpDef applies the generic context specifically to an
+// operator definition (as opposed to a more general definition)
+func (w *Walker) applyGenericContextToOpDef(opdef *common.HIROperDef) common.HIRNode {
+	if w.genericCtx != nil {
+		gt := &typing.GenericType{
+			TypeParams: w.genericCtx,
+			Template:   opdef.Signature,
+		}
+
+		opdef.Signature = gt
+
+		w.genericCtx = nil
+		return &common.HIRGeneric{
+			Generic:     gt,
+			GenericNode: opdef,
+		}
+	}
+
+	return opdef
+}
+
+// applyGenericContextToMethod applies the generic context to a method and
+// returns the newly computed values (as necessary - basically a
+// reimplementation of `applyGenericContext` for methods of an interface;
+// working without a symbol)
+func (w *Walker) applyGenericContextToMethod(dt typing.DataType, node common.HIRNode) (typing.DataType, common.HIRNode) {
+	if w.genericCtx != nil {
+		// selfType is never valid a generic here
+		gt := &typing.GenericType{
+			TypeParams: w.genericCtx,
+			Template:   dt,
+		}
+
+		dt = gt
+
+		node = &common.HIRGeneric{
+			Generic:     gt,
+			GenericNode: node,
+		}
+
+		w.genericCtx = nil
+	}
+
+	return dt, node
 }

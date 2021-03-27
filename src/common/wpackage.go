@@ -24,10 +24,10 @@ type WhirlFile struct {
 	// other files in the same package (used to facilitate imports)
 	LocalTable map[string]*WhirlSymbolImport
 
-	// LocalOperatorOverloads contains the signatures of all the operator
+	// LocalOperatorDefinitions contains the signatures of all the operator
 	// overloads only visible in this file (via. imports).  The values are the
 	// operator overload signatures (since export statuses don't matter).
-	LocalOperatorOverloads map[int][]typing.DataType
+	LocalOperatorDefinitions map[int][]typing.DataType
 
 	// VisiblePackages lists all the packages that are visible by name or rename
 	// in the current file.  The key is the name by with the package is visible.
@@ -76,9 +76,9 @@ type WhirlPackage struct {
 	// GlobalTable stores all of the globally-defined symbols in the package.
 	GlobalTable map[string]*Symbol
 
-	// OperatorOverloads stores all of the overloaded operator definitions by
-	// their operator kind
-	OperatorOverloads map[int][]*WhirlOperatorOverload
+	// OperatorDefinitions stores all of the operator definitions by their
+	// operator kind along with their export status
+	OperatorDefinitions map[int][]*WhirlOperatorDefinition
 
 	// ImportTable Stores all of the packages that this package imports (by ID)
 	// as well as what items it imports (useful for constructing dependency
@@ -102,10 +102,10 @@ type WhirlPackage struct {
 	PreludeImport bool
 }
 
-// WhirlOperatorOverload represents an operator overload definition
-type WhirlOperatorOverload struct {
+// WhirlOperatorDefinition represents an operator overload definition
+type WhirlOperatorDefinition struct {
 	// Signature is the function type or generic type representing the
-	// operator form (eg. `Integral + Integral => `Integral` = `func(Integral,
+	// operator form (eg. `Integral + Integral => Integral' = `func(Integral,
 	// Integral)(Integral)`) defined for this operator overload.
 	Signature typing.DataType
 

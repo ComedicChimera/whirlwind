@@ -33,7 +33,7 @@ const (
 	NKGeneric
 	NKSpecialDef
 	NKParametricSpecialDef
-	NKOperDecl // operator overload
+	NKOperDef // operator overload
 	NKBlockStmt
 	NKSimpleStmt
 	NKAssignment
@@ -143,20 +143,21 @@ func (*HIRInterfBind) Kind() int {
 	return NKInterfBind
 }
 
-// HIROperDecl represents an operator overload declaration
-type HIROperDecl struct {
+// HIROperDef represents an operator overload declaration
+type HIROperDef struct {
 	// OperKind is the token value of the operator (subscript = `[`, slice = `:`)
 	OperKind int
 
 	// Signature is the function signature of the operator
-	Signature *typing.FuncType
+	Signature typing.DataType
 
-	Annotations map[string]string
+	Annotations map[string][]string
 	Body        HIRNode
 
 	Initializers map[string]HIRNode
+	RegionParams []string
 }
 
-func (*HIROperDecl) Kind() int {
-	return NKOperDecl
+func (*HIROperDef) Kind() int {
+	return NKOperDef
 }

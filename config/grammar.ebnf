@@ -169,12 +169,12 @@ alloc_param = type | 'IDENTIFIER' ['::' 'IDENTIFIER'] '{' [init_list] '}';
 col_alloc_param = named_type [block_builder] | block_builder | list_builder | dict_builder | type '(' expr ')' ;
 
 trailer = '.' ( 'IDENTIFIER' | 'INTLIT' )
-  | '[' expr [slice_suffix] ']'
+  | '[' sub_slice ']'
   | '{' [init_list] '}' 
   | '(' [args_list] ')'
   | '::' ('IDENTIFIER' | '<' type_list '>')
   | '[' region_args ']' ;
-slice_suffix = ':' expr [':' expr] ;
+sub_slice = expr [':' [expr]] | ':' expr ;
 init_list = '...' expr {',' init_member_expr} | init_member_expr {',' init_member_expr} ;
 init_member_expr = 'IDENTIFIER' '=' expr;
 args_list = arg {',' arg} ;

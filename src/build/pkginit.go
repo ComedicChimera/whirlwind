@@ -52,15 +52,15 @@ func (c *Compiler) initPackage(abspath string, parentModule *mods.Module) (*comm
 
 	// initialize the package struct itself
 	pkg := &common.WhirlPackage{
-		PackageID:         getPackageID(abspath),
-		Name:              pkgName,
-		RootDirectory:     abspath,
-		Files:             make(map[string]*common.WhirlFile),
-		ImportTable:       make(map[uint]*common.WhirlImport),
-		OperatorOverloads: make(map[int][]*common.WhirlOperatorOverload),
-		GlobalTable:       make(map[string]*common.Symbol),
-		GlobalBindings:    &typing.BindingRegistry{},
-		ParentModule:      mod,
+		PackageID:           getPackageID(abspath),
+		Name:                pkgName,
+		RootDirectory:       abspath,
+		Files:               make(map[string]*common.WhirlFile),
+		ImportTable:         make(map[uint]*common.WhirlImport),
+		OperatorDefinitions: make(map[int][]*common.WhirlOperatorDefinition),
+		GlobalTable:         make(map[string]*common.Symbol),
+		GlobalBindings:      &typing.BindingRegistry{},
+		ParentModule:        mod,
 	}
 
 	// try to open the package directory
@@ -146,12 +146,12 @@ func (c *Compiler) initFile(fpath string) (*common.WhirlFile, bool) {
 	}
 
 	return &common.WhirlFile{
-		AST:                    ast.(*syntax.ASTBranch),
-		MetadataTags:           tags,
-		LocalTable:             make(map[string]*common.WhirlSymbolImport),
-		LocalOperatorOverloads: make(map[int][]typing.DataType),
-		VisiblePackages:        make(map[string]*common.WhirlPackage),
-		LocalBindings:          &typing.BindingRegistry{},
+		AST:                      ast.(*syntax.ASTBranch),
+		MetadataTags:             tags,
+		LocalTable:               make(map[string]*common.WhirlSymbolImport),
+		LocalOperatorDefinitions: make(map[int][]typing.DataType),
+		VisiblePackages:          make(map[string]*common.WhirlPackage),
+		LocalBindings:            &typing.BindingRegistry{},
 	}, true
 }
 
