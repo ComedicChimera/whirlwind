@@ -687,6 +687,7 @@ func (w *Walker) walkInterfBind(branch *syntax.ASTBranch) (common.HIRNode, bool)
 
 	implInterfs := make(map[*typing.InterfType]*logging.TextPosition)
 
+	var bindTypePos *logging.TextPosition
 	for _, item := range branch.Content {
 		if itembranch, ok := item.(*syntax.ASTBranch); ok {
 			switch itembranch.Name {
@@ -702,6 +703,8 @@ func (w *Walker) walkInterfBind(branch *syntax.ASTBranch) (common.HIRNode, bool)
 				}
 			case "type":
 				if dt, ok := w.walkTypeLabel(itembranch); ok {
+					bindTypePos = item.Position()
+
 					// once bindDt is set, all other types must be types to
 					// derive => add them to implInterfs
 					if bindDt == nil {
@@ -780,7 +783,11 @@ func (w *Walker) walkInterfBind(branch *syntax.ASTBranch) (common.HIRNode, bool)
 		Exported:   w.declStatus == common.DSExported,
 	}
 
-	w.SrcPackage.GlobalBindings.Bindings = append(w.SrcPackage.GlobalBindings.Bindings, binding)
+	if w.checkBinding(binding, bindTypePos) {
+		w.SrcPackage.GlobalBindings.Bindings = append(w.SrcPackage.GlobalBindings.Bindings, binding)
+	} else {
+		return nil, false
+	}
 
 	// clear our interface generic context
 	w.interfGenericCtx = nil
@@ -799,6 +806,33 @@ func (w *Walker) walkInterfBind(branch *syntax.ASTBranch) (common.HIRNode, bool)
 	}
 
 	return node, true
+}
+
+// checkBinding checks that a binding does not conflict with any preexisting
+// bindings.  It logs appropriate errors if such a conflict exists.
+func (w *Walker) checkBinding(binding *typing.Binding, bindTypePos *logging.TextPosition) bool {
+	logBindingConflictError := func(mname string, binding *typing.Binding) {
+		w.logError(
+			fmt.Sprintf("Multiple implementations given for method `%s` bound to `%s`",
+				mname,
+				binding.MatchType.Repr(),
+			),
+			logging.LMKImport,
+			bindTypePos,
+		)
+	}
+
+	if mname, isConflict := w.SrcFile.LocalBindings.CheckBindingConflicts(binding); isConflict {
+		logBindingConflictError(mname, binding)
+		return false
+	}
+
+	if mname, isConflict := w.SrcPackage.GlobalBindings.CheckBindingConflicts(binding); isConflict {
+		logBindingConflictError(mname, binding)
+		return false
+	}
+
+	return true
 }
 
 // walkInterfBody is used to walk the bodies of both kinds of interfaces (the `interf_body` node)

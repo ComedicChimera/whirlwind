@@ -32,6 +32,54 @@ func (b *Binding) PrivateCopy() *Binding {
 	}
 }
 
+// ClearWildcards clears the wildcard evaluated values of an interface binding
+// (should be called after every match attempt once any generics have been
+// generated if no alternative clearing mechanism is employed)
+func (b *Binding) ClearWildcards() {
+	for _, wc := range b.Wildcards {
+		wc.Value = nil
+	}
+}
+
+// CheckBindingConflicts takes in a binding and checks if it conflicts with any
+// binding defines in the binding registry.  If so, it returns the name of the
+// conflicting method (for logging) and the return flag `true`.  Conversely, if
+// no conflict is found, an empty string and the return flag `false` are
+// returned
+func (br *BindingRegistry) CheckBindingConflicts(nb *Binding) (string, bool) {
+	getInterfType := func(b *Binding) *InterfType {
+		switch v := b.TypeInterf.(type) {
+		case *InterfType:
+			return v
+		case *GenericType:
+			return v.Template.(*InterfType)
+		}
+
+		// unreachable
+		return nil
+	}
+
+	for _, binding := range br.Bindings {
+		if Equals(binding.MatchType, nb.MatchType) {
+			binding.ClearWildcards()
+
+			ait, bit := getInterfType(binding), getInterfType(nb)
+
+			// if two bindings define a method multiple times even if it
+			// has the same signature, that binding is invalid
+			for name := range ait.Methods {
+				if _, ok := bit.Methods[name]; ok {
+					return name, true
+				}
+			}
+		} else {
+			binding.ClearWildcards()
+		}
+	}
+
+	return "", false
+}
+
 // GetBindings fetches all applicable interface bindings for a given type
 func (s *Solver) GetBindings(br *BindingRegistry, dt DataType) []*InterfType {
 	var matches []*InterfType

@@ -10,6 +10,7 @@ import (
 	"whirlwind/logging"
 	"whirlwind/mods"
 	"whirlwind/syntax"
+	"whirlwind/typing"
 )
 
 /*
@@ -316,7 +317,7 @@ func (c *Compiler) attachPackageToFile(fpkg *common.WhirlPackage, file *common.W
 	}
 
 	// import all exported bindings
-	if !c.importBindings(apkg, file, namePosition) {
+	if !c.importBindings(apkg, file, fpkg, namePosition) {
 		return false
 	}
 
@@ -332,9 +333,32 @@ func (c *Compiler) attachPackageToFile(fpkg *common.WhirlPackage, file *common.W
 // importBindings lifts all exported bindings of an imported package into the
 // local namespace of current file.  It logs any conflicts it finds and returns
 // an appropriate flag boolean.
-func (c *Compiler) importBindings(srcpkg *common.WhirlPackage, destfile *common.WhirlFile, pos *logging.TextPosition) bool {
+func (c *Compiler) importBindings(srcpkg *common.WhirlPackage, destfile *common.WhirlFile, destpkg *common.WhirlPackage, pos *logging.TextPosition) bool {
+	logBindingConflictError := func(mname string, binding *typing.Binding) {
+		logging.LogCompileError(
+			c.lctx,
+			fmt.Sprintf("Unable to import package `%s`; multiple implementations given for method `%s` bound to `%s`",
+				srcpkg.Name,
+				mname,
+				binding.MatchType.Repr(),
+			),
+			logging.LMKImport,
+			pos,
+		)
+	}
+
 	for _, binding := range srcpkg.GlobalBindings.Bindings {
 		if binding.Exported {
+			if mname, isConflict := destfile.LocalBindings.CheckBindingConflicts(binding); isConflict {
+				logBindingConflictError(mname, binding)
+				return false
+			}
+
+			if mname, isConflict := destpkg.GlobalBindings.CheckBindingConflicts(binding); isConflict {
+				logBindingConflictError(mname, binding)
+				return false
+			}
+
 			destfile.LocalBindings.Bindings = append(destfile.LocalBindings.Bindings, binding.PrivateCopy())
 		}
 	}
