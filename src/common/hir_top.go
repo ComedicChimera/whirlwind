@@ -145,7 +145,7 @@ func (*HIRInterfBind) Kind() int {
 
 // HIROperDef represents an operator overload declaration
 type HIROperDef struct {
-	// OperKind is the token value of the operator (subscript = `[`, slice = `:`)
+	// OperKind is the token kind of the operator (subscript = `[`, slice = `:`)
 	OperKind int
 
 	// Signature is the function signature of the operator

@@ -10,7 +10,6 @@ import (
 	"whirlwind/logging"
 	"whirlwind/mods"
 	"whirlwind/syntax"
-	"whirlwind/typing"
 )
 
 /*
@@ -316,9 +315,58 @@ func (c *Compiler) attachPackageToFile(fpkg *common.WhirlPackage, file *common.W
 		file.VisiblePackages[name] = apkg
 	}
 
-	// import/move over all of the bindings as necessary
-	typing.MigrateBindings(apkg.GlobalBindings, file.LocalBindings)
+	// import all exported bindings
+	if !c.importBindings(apkg, file, namePosition) {
+		return false
+	}
+
+	// import all the exported operators
+	if !c.importOperators(apkg, file, fpkg, namePosition) {
+		return false
+	}
 
 	// we need to recursively initialize dependencies
 	return c.initDependencies(apkg)
+}
+
+// importBindings lifts all exported bindings of an imported package into the
+// local namespace of current file.  It logs any conflicts it finds and returns
+// an appropriate flag boolean.
+func (c *Compiler) importBindings(srcpkg *common.WhirlPackage, destfile *common.WhirlFile, pos *logging.TextPosition) bool {
+	for _, binding := range srcpkg.GlobalBindings.Bindings {
+		if binding.Exported {
+			destfile.LocalBindings.Bindings = append(destfile.LocalBindings.Bindings, binding.PrivateCopy())
+		}
+	}
+
+	return true
+}
+
+// importOperators lifts all exported operators of an imported package into the
+// local namespace of current file.  It logs any conflicts it finds and returns
+// an appropriate flag boolean.
+func (c *Compiler) importOperators(srcpkg *common.WhirlPackage, destfile *common.WhirlFile, destpkg *common.WhirlPackage, pos *logging.TextPosition) bool {
+	for opkind, gopdefs := range srcpkg.OperatorDefinitions {
+		for _, gopdef := range gopdefs {
+			if gopdef.Exported {
+				if sig, isConflict := destpkg.CheckOperatorConflicts(destfile, opkind, gopdef.Signature); isConflict {
+					logging.LogCompileError(
+						c.lctx,
+						fmt.Sprintf("Unable to import package `%s`; conflicting operator definitions for `%s` of `%s` and `%s`",
+							srcpkg.Name,
+							syntax.GetOperatorTokenValueByKind(opkind),
+							sig.Repr(),
+							gopdef.Signature.Repr(),
+						),
+						logging.LMKImport,
+						pos,
+					)
+
+					return false
+				}
+			}
+		}
+	}
+
+	return true
 }

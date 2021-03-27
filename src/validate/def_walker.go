@@ -1328,33 +1328,18 @@ func (w *Walker) walkOperatorDef(branch *syntax.ASTBranch) (common.HIRNode, bool
 // indicating whether or not the operator was defined successfully.  It also
 // contextually checks for conflicting local overloads in the current file
 func (w *Walker) defineOperator(opdef *common.HIROperDef, opValue string, argPos *logging.TextPosition) bool {
-	// check for local operator conflicts
-	for _, sig := range w.SrcFile.LocalOperatorDefinitions[opdef.OperKind] {
-		if typing.OperatorsConflict(opdef.Signature, sig) {
-			w.logError(
-				fmt.Sprintf("Operator definition for `%s` conflicts with preexisting definition with signature `%s`", opValue, sig.Repr()),
-				logging.LMKDef,
-				argPos,
-			)
-			return false
-		}
-	}
+	if sig, isConflict := w.SrcPackage.CheckOperatorConflicts(w.SrcFile, opdef.OperKind, opdef.Signature); isConflict {
+		w.logError(
+			fmt.Sprintf("Operator definition for `%s` conflicts with preexisting definition with signature `%s`", opValue, sig.Repr()),
+			logging.LMKDef,
+			argPos,
+		)
 
-	// check for global operator conflicts
-	globOpDefs := w.SrcPackage.OperatorDefinitions[opdef.OperKind]
-	for _, gopdef := range globOpDefs {
-		if typing.OperatorsConflict(opdef.Signature, gopdef.Signature) {
-			w.logError(
-				fmt.Sprintf("Operator definition for `%s` conflicts with preexisting definition with signature `%s`", opValue, gopdef.Signature.Repr()),
-				logging.LMKDef,
-				argPos,
-			)
-			return false
-		}
+		return false
 	}
 
 	// add the operator globally
-	w.SrcPackage.OperatorDefinitions[opdef.OperKind] = append(globOpDefs, &common.WhirlOperatorDefinition{
+	w.SrcPackage.OperatorDefinitions[opdef.OperKind] = append(w.SrcPackage.OperatorDefinitions[opdef.OperKind], &common.WhirlOperatorDefinition{
 		Signature: opdef.Signature,
 		Exported:  w.declStatus == common.DSExported,
 	})

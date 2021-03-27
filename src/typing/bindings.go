@@ -155,13 +155,3 @@ func containsMethod(binding *InterfType, methodName string, method *InterfMethod
 
 	return false
 }
-
-// MigrateBindings perform importing/lifting of bindings from another package into
-// either the current file or current package (depends on what registry is passed in).
-func MigrateBindings(src, dest *BindingRegistry) {
-	for _, binding := range src.Bindings {
-		if binding.Exported {
-			dest.Bindings = append(dest.Bindings, binding.PrivateCopy())
-		}
-	}
-}
