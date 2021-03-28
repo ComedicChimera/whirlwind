@@ -88,8 +88,7 @@ Radix Sort:
 
     import println from io::std
 
-    func radix_sort(list: [uint]) [uint] do
-        region r local
+    func radix_sort[region r](list: [uint]) [uint] do
         let mx = list.max()
 
         while let it = 0; 10 ** it < mx do
@@ -106,7 +105,7 @@ Radix Sort:
     func main() do
         let list = new local [9, 4, 7, 8, 2, 3, 9, 0, 0, 1]
 
-        list = radix_sort(list)
+        list = radix_sort[region local](list)
 
         println(list) // [0, 0, 1, 2, 3, 4, 7, 8, 9, 9]
 
