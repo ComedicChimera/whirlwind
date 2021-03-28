@@ -38,18 +38,6 @@ export of
 
         return a as &T
 
-    # `from_owned_voidptr` works similarly to `from_voidptr` except it returns
-    # an owned reference as opposed to unowned one.
-    @introspect
-    func from_owned_voidptr(p: voidptr) own &T do
-        let a = __stdtypeset{
-            ptr=p as &byte,
-            kind=__get_kind_of::<own &T>()
-            size=__pointer_size()
-        }
-
-        return a as own &T?
-
     type c_int_t = uintptr
     type size_t = uint # TODO: may be another type; may be platform dependent
 
