@@ -13,6 +13,7 @@ const (
 	// variables
 	LET = iota
 	CONST
+	VOL
 
 	// control flow
 	IF
@@ -35,15 +36,6 @@ const (
 	// function terminators
 	RETURN
 	YIELD
-
-	// memory management
-	VOL
-	LOCAL
-	GLOBAL
-	OWN
-	MAKE
-	REGION
-	NEW
 
 	// function definitions
 	FUNC
@@ -68,6 +60,7 @@ const (
 	AWAIT
 	AS
 	IN
+	MAKE
 
 	// whitespace
 	NEWLINE
@@ -180,11 +173,6 @@ var keywordPatterns = map[string]int{
 	"yield":       YIELD,
 	"vol":         VOL,
 	"make":        MAKE,
-	"new":         NEW,
-	"local":       LOCAL,
-	"global":      GLOBAL,
-	"own":         OWN,
-	"region":      REGION,
 	"func":        FUNC,
 	"async":       ASYNC,
 	"operator":    OPERATOR,

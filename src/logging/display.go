@@ -15,7 +15,6 @@ import (
 var errorKindStringTable = map[int]string{
 	LMKImmut:    "Mutability",
 	LMKImport:   "Import",
-	LMKMemory:   "Memory",
 	LMKName:     "Name",
 	LMKSyntax:   "Syntax",
 	LMKToken:    "Token",
@@ -26,6 +25,8 @@ var errorKindStringTable = map[int]string{
 	LMKInterf:   "Interface",
 	LMKGeneric:  "Generic",
 	LMKDef:      "Definition",
+	LMKAnnot:    "Annotation",
+	LMKProp:     "Property",
 }
 
 func (cm *CompileMessage) display() {

@@ -328,61 +328,23 @@ func (w *Walker) opaqueSymbolRequiresRef(os *common.OpaqueSymbol) bool {
 
 // walkRefType walks a `ref_type` node and attempts to produce a reference type
 func (w *Walker) walkRefType(branch *syntax.ASTBranch) (typing.DataType, bool) {
-	var refBranch *syntax.ASTBranch
-	global := false
+	elemtype, _, ok := w.walkTypeLabelCore(branch.LastBranch())
 
-	// only branch of length 2 starts with 'global'
-	if branch.Len() == 2 {
-		global = true
-		refBranch = branch.BranchAt(1)
+	if !ok {
+		return nil, false
+	}
+
+	// length 3 => constant (`&const type`)
+	if branch.Len() == 3 {
+		return &typing.RefType{
+			ElemType: elemtype,
+			Constant: true,
+		}, true
 	} else {
-		refBranch = branch.BranchAt(0)
+		return &typing.RefType{
+			ElemType: elemtype,
+		}, true
 	}
-
-	refType := &typing.RefType{
-		Global: global,
-	}
-
-	switch refBranch.Name {
-	case "owned_ref":
-		refType.Owned = true
-
-		// extract the inner free ref
-		refBranch = refBranch.BranchAt(1)
-		fallthrough
-	case "free_ref":
-		// len 3 => `const` after the `&` => constant ref
-		if refBranch.Len() == 3 {
-			refType.Constant = true
-		}
-	case "block_ref":
-		refType.Block = true
-
-		// len 5 => `const` after `[&]` => constant ref
-		if refBranch.Len() == 5 {
-			refType.Constant = true
-		}
-
-		refBranch = refBranch.LastBranch()
-	}
-
-	if elemType, _, ok := w.walkTypeLabelCore(refBranch.LastBranch()); ok {
-		innerElemType := typing.InnerType(elemType)
-		if _, ok := innerElemType.(*typing.RefType); ok && !refType.Block {
-			w.logError(
-				"Element type of a non-block reference cannot be a reference",
-				logging.LMKTyping,
-				refBranch.Last().Position(),
-			)
-
-			return nil, false
-		}
-
-		refType.ElemType = elemType
-		return refType, true
-	}
-
-	return nil, false
 }
 
 // walkFuncType walks a function type label

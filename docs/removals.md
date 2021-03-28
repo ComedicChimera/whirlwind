@@ -35,3 +35,8 @@ replaced from previous versions of the language.
   - not necessarily unclear but really not very idiomatic
 - duck typing
 - decorators -- excessive and unnecessary
+
+## Memory Model
+
+Whirlwind used to use static memory analysis as opposed to a garbage collector.
+The ideas pertaining to this version can be found on the branch `no-gc`.  

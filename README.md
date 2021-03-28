@@ -39,7 +39,6 @@ language, I aimed for an "85% solution" which effectively means close enough but
 
 ## <a name="features"/> Notable Features
 
-- Intelligent Memory Model (no GC)
 - Versatile Type System
 - Baked-In Concurrency
 - Builtin Collections (arrays, lists, dictionaries)
@@ -88,23 +87,22 @@ Radix Sort:
 
     import println from io::std
 
-    func radix_sort(list: [uint]) [uint] do
-        region r local
+    func radix_sort(list: [int]) [int] do
         let mx = list.max()
 
         while let it = 0; 10 ** it < mx do
-            let buckets = [new in[r] [int] for _ in 1..10]
+            let buckets = [make [int] for _ in 1..10]
 
             for item in list do
                 buckets[item // (10 ** it) % 10].push(item)            
 
-            list = buckets.flatten().to_list(r)
+            list = buckets.flatten().to_list()
             it++
 
         return list
 
     func main() do
-        let list = new local [9, 4, 7, 8, 2, 3, 9, 0, 0, 1]
+        let list = [9, 4, 7, 8, 2, 3, 9, 0, 0, 1]
 
         list = radix_sort(list)
 
@@ -116,17 +114,17 @@ Linked List:
 
     type LLNode {
         value: int
-        next: Option<own& LLNode>
+        next: Option<&LLNode>
     }
 
-    func ll_range[region r](val: int) own& LLNode do
+    func ll_range(val: int) &LLNode do
         if val == 0 do
-            return make in[r] LLNode{value=val, next=None}
+            return &LLNode{value=val, next=None}
 
-        return make in[r] LLNode{value=val, next=Some(ll_range[region r](val - 1))}
+        return &LLNode{value=val, next=Some(ll_range[region r](val - 1))}
 
     func main() do
-        let ll = ll_range[region local](r, 10)
+        let ll = ll_range(10)
 
         while true do
             println(ll.value)
@@ -192,5 +190,5 @@ and language design pretty much since the first day I picked up programming. I h
 can be as amazing to you as it is to me. I am always happy to have people who want to make
 suggestions and contributions to help make this language as great as it can be.
 
-By the time it is finished, this language will likely be the culminations of thousands of hours of work,
+By the time it is finished, this language will likely be the culmination of thousands of hours of work,
 and I sincerely believe it will be worth it.

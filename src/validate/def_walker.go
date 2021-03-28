@@ -126,7 +126,6 @@ func (w *Walker) walkTypeDef(dast *syntax.ASTBranch) (*common.HIRTypeDef, bool) 
 	var namePosition *logging.TextPosition
 	var dt typing.DataType
 	fieldInits := make(map[string]common.HIRNode)
-	var regions []string
 
 	for _, item := range dast.Content {
 		switch v := item.(type) {
@@ -134,14 +133,6 @@ func (w *Walker) walkTypeDef(dast *syntax.ASTBranch) (*common.HIRTypeDef, bool) 
 			switch v.Name {
 			case "generic_tag":
 				if !w.primeGenericContext(v, false) {
-					return nil, false
-				}
-			case "region_tag":
-				if ids, ok := w.walkIdList(v.BranchAt(2), "regions"); ok {
-					for name := range ids {
-						regions = append(regions, name)
-					}
-				} else {
 					return nil, false
 				}
 			case "newtype":
@@ -217,9 +208,8 @@ func (w *Walker) walkTypeDef(dast *syntax.ASTBranch) (*common.HIRTypeDef, bool) 
 	}
 
 	tdef := &common.HIRTypeDef{
-		Sym:          symbol,
-		FieldInits:   fieldInits,
-		RegionParams: regions,
+		Sym:        symbol,
+		FieldInits: fieldInits,
 	}
 
 	symbol.DefNode = tdef
@@ -421,7 +411,6 @@ func (w *Walker) walkFuncDef(branch *syntax.ASTBranch, isMethod bool) (*common.H
 	funcType := &typing.FuncType{Boxable: !w.hasFlag("intrinsic")}
 	var initializers map[string]common.HIRNode
 	var body common.HIRNode
-	var regions []string
 
 	for _, item := range branch.Content {
 		switch v := item.(type) {
@@ -429,14 +418,6 @@ func (w *Walker) walkFuncDef(branch *syntax.ASTBranch, isMethod bool) (*common.H
 			switch v.Name {
 			case "generic_tag":
 				if !w.primeGenericContext(v, false) {
-					return nil, false
-				}
-			case "region_tag":
-				if ids, ok := w.walkIdList(v.BranchAt(2), "regions"); ok {
-					for name := range ids {
-						regions = append(regions, name)
-					}
-				} else {
 					return nil, false
 				}
 			case "signature":
@@ -504,7 +485,6 @@ func (w *Walker) walkFuncDef(branch *syntax.ASTBranch, isMethod bool) (*common.H
 		Annotations:  w.annotations,
 		Initializers: initializers,
 		Body:         body,
-		RegionParams: regions,
 	}
 
 	sym.DefNode = fdef
@@ -1281,14 +1261,6 @@ func (w *Walker) walkOperatorDef(branch *syntax.ASTBranch) (common.HIRNode, bool
 				od.OperKind = itembranch.LeafAt((itembranch.Len() - 1) / 2).Kind
 				for _, item := range itembranch.Content {
 					opValue += item.(*syntax.ASTLeaf).Value
-				}
-			case "region_tag":
-				if regions, ok := w.walkIdList(itembranch.BranchAt(2), "regions"); ok {
-					for name := range regions {
-						od.RegionParams = append(od.RegionParams, name)
-					}
-				} else {
-					return nil, false
 				}
 			case "generic_tag":
 				if !w.primeGenericContext(itembranch, false) {

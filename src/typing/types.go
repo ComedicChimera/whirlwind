@@ -234,27 +234,13 @@ func (vt *VectorType) copyTemplate() DataType {
 
 // RefType represents a reference type
 type RefType struct {
-	ElemType             DataType
-	Constant             bool
-	Owned, Block, Global bool
-
-	// TODO: lifetimes?
+	ElemType DataType
+	Constant bool
 }
 
 func (rt *RefType) Repr() string {
 	sb := strings.Builder{}
-
-	if rt.Global {
-		sb.WriteString("global ")
-	}
-
-	if rt.Block {
-		sb.WriteString("[&] ")
-	} else if rt.Owned {
-		sb.WriteString("own& ")
-	} else {
-		sb.WriteRune('&')
-	}
+	sb.WriteRune('&')
 
 	if rt.Constant {
 		sb.WriteString("const ")
@@ -267,11 +253,7 @@ func (rt *RefType) Repr() string {
 
 func (rt *RefType) equals(other DataType) bool {
 	if ort, ok := other.(*RefType); ok {
-		return (Equals(rt.ElemType, ort.ElemType) &&
-			rt.Constant == ort.Constant &&
-			rt.Owned == rt.Owned &&
-			rt.Global == rt.Global &&
-			rt.Block == rt.Block)
+		return Equals(rt.ElemType, ort.ElemType) && rt.Constant == ort.Constant
 	}
 
 	return false
@@ -282,9 +264,6 @@ func (rt *RefType) copyTemplate() DataType {
 	return &RefType{
 		Constant: rt.Constant,
 		ElemType: rt.ElemType.copyTemplate(),
-		Global:   rt.Global,
-		Owned:    rt.Owned,
-		Block:    rt.Block,
 	}
 }
 

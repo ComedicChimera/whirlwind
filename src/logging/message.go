@@ -31,7 +31,6 @@ const (
 	LMKSyntax          // Error parsing file
 	LMKImport          // Error importing/lift-exporting package
 	LMKTyping          // Error in type checking
-	LMKMemory          // Error in memory analysis
 	LMKImmut           // Error mutating an immutable value
 	LMKName            // Error occurring due a misused/undefined name
 	LMKMetadata        // Error occuring in metadata

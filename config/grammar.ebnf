@@ -46,13 +46,13 @@ interf_bind = 'interf' [generic_tag] 'for' type ['is' type {',' type}] 'of' inte
 interf_body = 'INDENT' interf_member { interf_member } 'DEDENT' ;
 interf_member = func_def | special_def | annotated_method ;
 
-operator_def = 'operator' '(' operator_value ')' [generic_tag] [region_tag] signature decl_func_body ;
+operator_def = 'operator' '(' operator_value ')' [generic_tag] signature decl_func_body ;
 operator_value = '+' | '-' | '*' | '/' | '//'
   | '**' | '%' | '>' | '>>' | '<' | '<<' | '<=' | '>=' 
   | '==' | '!' | '!=' | '&' | '&&' | '|' | '||' | '^' 
   | '~' | '[' [':'] ']' ;
 
-func_def = ('func' | 'async') 'IDENTIFIER' [generic_tag] [region_tag] signature decl_func_body ;
+func_def = ('func' | 'async') 'IDENTIFIER' [generic_tag] signature decl_func_body ;
 signature = args_decl [type] ;
 args_decl = '(' [arg_decl next_arg_decl | var_arg_decl] ')' ;
 next_arg_decl = ',' (arg_decl next_arg_decl | var_arg_decl) | '' ;
@@ -60,7 +60,7 @@ arg_decl = ['const'] ['vol'] identifier_list type_ext [initializer] ;
 var_arg_decl = '...' 'IDENTIFIER' type_ext ;
 decl_func_body = do_block | 'NEWLINE' ['INDENT' '->' expr 'DEDENT'] | '->' expr 'NEWLINE' ;
 
-type_def = ['closed'] 'type' 'IDENTIFIER' [generic_tag] [region_tag] ( ? typeset ? | newtype ) ;
+type_def = ['closed'] 'type' 'IDENTIFIER' [generic_tag] ( ? typeset ? | newtype ) ;
 typeset = '=' type {'|' type } ;
 newtype = ? alg_suffix ? | struct_suffix ;
 alg_suffix = alg_variant {alg_variant} ;
@@ -85,7 +85,7 @@ block_content = simple_stmt 'NEWLINE' | complex_stmt ;
 
 (* complex statements contain a block (eg. an if statement) *)
 complex_stmt = if_chain | match_stmt | for_loop | while_loop 
-  | ctx_manager | async_for_loop | region_decl ;
+  | ctx_manager | async_for_loop ;
 
 if_chain = 'if' [variable_decl ';'] expr do_block {elif_block} [else_block] ;
 elif_block = 'elif' [variable_decl ';'] expr do_block ;
@@ -106,8 +106,6 @@ ctx_manager = 'with' ? full_ctx ? do_block [ctx_else_clause] ;
 full_ctx = ctx_elem {semilinebr ctx_elem} ;
 ctx_elem = identifier_list '<-' expr ;
 ctx_else_clause = 'else' (block | do_block | 'match' (expr do_block | val_match_block)) ;
-
-region_decl = 'region' 'IDENTIFIER' ('of' block | 'local') ;
 
 (* simple statements do not contain a block - newline suffix is added in block *)
 simple_stmt = 
@@ -131,7 +129,7 @@ mut_expr = ['await'] ['*'] mut_atom {trailer} ;
 mut_atom = 'IDENTIFIER' | '(' expr ')' ;
 assign_op = ['+' | '-' | '*' | '/' | '%' | '//' | '**' | '>>' | '<<' | '&' | '|' | '^'] '=' ;
 
-expr = (match_expr ['if' match_expr 'else' expr ] | closure | with_expr) ;
+expr = match_expr ['if' match_expr 'else' expr ] | closure ;
 closure = ['async'] ('||' | '|' [closure_arg {',' closure_arg}] '|' closure_body) ;
 closure_arg = ['const'] 'IDENTIFIER' [type_ext] ;
 closure_body = do_block | '->' expr ;
@@ -142,8 +140,6 @@ inline_match_expr_block = 'INDENT' inline_match_expr_branch {inline_match_expr_b
 inline_match_expr_branch = expr_list '->' expr 'NEWLINE' ;
 inline_match_type_block = 'INDENT' inline_match_type_branch {inline_match_type_branch} 'DEDENT' ;
 inline_match_type_branch = type_pattern_list '->' expr 'NEWLINE' ;
-
-with_expr = 'with' ? full_ctx ? '->' expr ;
 
 core_expr = ['await'] or_expr [core_expr_suffix] ;
 core_expr_suffix = '..' or_expr
@@ -161,29 +157,24 @@ term = factor {('*' | '/' | '//' | '%') factor} ;
 factor = unary_expr {'**' unary_expr} ;
 unary_expr = ['&' ['const'] | '*' | '-' | '~'] atom_expr ;
 
-atom_expr = atom {trailer} | make_expr | new_expr ;
-make_expr = 'make' region_spec ['const'] alloc_param ;
-new_expr = 'new' region_spec ['const'] col_alloc_param ;
-region_spec = 'in' '[' expr ']' | 'local' | 'global' ;
-alloc_param = type | 'IDENTIFIER' ['::' 'IDENTIFIER'] '{' [init_list] '}';
-col_alloc_param = named_type [block_builder] | block_builder | list_builder | dict_builder | type '(' expr ')' ;
+atom_expr = atom {trailer} | make_expr ;
+make_expr = 'make' ['const'] alloc_param ;
+alloc_param = type ['(' expr ')'];
 
 trailer = '.' ( 'IDENTIFIER' | 'INTLIT' )
   | '[' sub_slice ']'
   | '{' [init_list] '}' 
   | '(' [args_list] ')'
   | '::' ('IDENTIFIER' | '<' type_list '>')
-  | '[' region_args ']' ;
+  ;
 sub_slice = expr [':' [expr]] | ':' expr ;
 init_list = '...' expr {',' init_member_expr} | init_member_expr {',' init_member_expr} ;
 init_member_expr = 'IDENTIFIER' '=' expr;
 args_list = arg {',' arg} ;
 arg = expr ['=' expr] ;
-region_args = 'region' region_arg {',' region_arg} ;
-region_arg = 'local' | 'IDENTIFIER' ;
 
-atom = 'INTLIT' | 'STRINGLIT' | 'FLOATLIT' | 'BOOLLIT' | 'RUNELIT' 
-  | vector_builder | tupled_expr | array_builder | 'IDENTIFIER' | 'null' ;
+atom = 'INTLIT' | 'STRINGLIT' | 'FLOATLIT' | 'BOOLLIT' | 'RUNELIT' | vector_builder | tupled_expr 
+  | array_builder | list_builder| dict_builder| 'IDENTIFIER' | 'null' ;
 
 array_builder = '{' expr_list '}' ;
 block_builder = '{' seq_contents '}' ;
@@ -216,17 +207,11 @@ func_type_arg = ['~'] type ;
 func_type_var_arg = '...' type ;
 tup_type = '(' type ',' type {',' type} ')' ;
 
-ref_type = 'global' (block_ref | owned_ref) | free_ref | owned_ref | free_ref ; 
-owned_ref = 'own' free_ref ;
-block_ref = '[' '&' ']' ['const'] (named_type | value_type | ref_type) ;
-free_ref = '&' ['const'] (value_type | named_type) ;
+ref_type = '&' ['const'] (value_type | named_type) ; 
 
 (* generic constructions *)
 generic_tag = '<' generic_param {',' generic_param} '>' ;
 generic_param = 'IDENTIFIER' [':' type {'|' type}];
-
-(* region construction *)
-region_tag = '[' 'region' identifier_list ']' ;
 
 (* iterable constructions *)
 comp_suffix = 'for' iterator [when_cond] ;

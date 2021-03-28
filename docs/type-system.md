@@ -16,8 +16,7 @@ various sizes of integer and floating point numbers, a character type, a string
 type (strings are considered primitive in Whirlwind), and a boolean type.
 
 **References**
-A reference type is used to reference another value allocated in memory.  These
-are discussed in the [Memory Model](https://github.com/ComedicChimera/Whirlwind/blob/master/docs/memory-model.md).
+A reference type is used to reference another value allocated in memory. 
 
 **Tuples**
 A tuple is an ordered n-tuple of variously typed values.  Eg. the pair `(int, string)` is
