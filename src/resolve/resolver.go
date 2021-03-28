@@ -3,6 +3,7 @@ package resolve
 import (
 	"whirlwind/common"
 	"whirlwind/logging"
+	"whirlwind/validate"
 )
 
 // The Resolution Algorithm
@@ -110,6 +111,15 @@ func (r *Resolver) Resolve() bool {
 
 	// cyclic resolution failed; return
 	return false
+}
+
+// CreateValidators populates the map of validators passed in with the walkers
+// of the package assemblers.  This can be called before `Resolve` since all the
+// package assemblers (and therefore walkers) will already have been created
+func (r *Resolver) CreateValidators(pvs map[uint]*validate.PredicateValidator) {
+	for pkgid, pa := range r.assemblers {
+		pvs[pkgid] = validate.NewPredicateValidator(pa.walkers)
+	}
 }
 
 // resolveStandard runs stage 2 of the resolution algorithm in which non-cyclic

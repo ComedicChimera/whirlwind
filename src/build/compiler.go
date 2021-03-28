@@ -11,6 +11,7 @@ import (
 	"whirlwind/mods"
 	"whirlwind/resolve"
 	"whirlwind/syntax"
+	"whirlwind/validate"
 )
 
 // Store the different possible output formats for the compiler
@@ -51,6 +52,9 @@ type Compiler struct {
 	// dependencies and keep track of what imports what.  It is also used to
 	// help manage and resolve cyclic dependencies.  The key is the package ID.
 	depGraph map[uint]*common.WhirlPackage
+
+	// validators stores all the validators for each specific package
+	validators map[uint]*validate.PredicateValidator
 }
 
 // AddLocalPackageDirectories interprets a command-line input string for the
@@ -136,7 +140,9 @@ func NewCompiler(o string, a string, op string, bd string, debugT bool, whirlpat
 	}
 
 	return &Compiler{targetos: o, targetarch: a, outputPath: op,
-		buildDirectory: bd, debugTarget: debugT, whirlpath: whirlpath}, nil
+		buildDirectory: bd, debugTarget: debugT, whirlpath: whirlpath,
+		validators: make(map[uint]*validate.PredicateValidator),
+	}, nil
 }
 
 // determines the pointer size for any given architecture (and/or platform)
@@ -215,9 +221,23 @@ func (c *Compiler) buildMainPackage() bool {
 
 	// once the dependency graph has been created, group and resolve all
 	// dependencies (using the Grouper)
-	g := resolve.NewGrouper(pkg, c.depGraph)
+	g := resolve.NewGrouper(pkg, c.depGraph, c.validators)
 	if !g.ResolveAll() {
 		return false
+	}
+
+	// run stage 3 of compilation -- predicate validation.  This stage cannot be
+	// run concurrently due to the surplus of shared stage between dependent
+	// packages (eg. generic instances, interface instances, etc.) that can't
+	// really be updated concurrently (at least not without a lot of extra
+	// lifting).  Plus, most projects are going to have upwards of 20 packages
+	// which on many systems is going to result in a lot of resource squabbling
+	// especially since none of the goroutines are going to performing any
+	// blocking IO operations (no cooperative switching except for maybe a few
+	// channel read/writes)
+	// TODO: revise this approach -- allow concurrency?
+	for _, v := range c.validators {
+		v.Validate()
 	}
 
 	// TODO: rest of compilation

@@ -58,12 +58,6 @@ validation once for every instance generated -- this ensures complete type
 correctness. All specializations are also evaluated but only after their
 generics have been generated. This process is repeated until all instances have
 been resolved.
-#### 3 - Memory Analysis
-
-All predicates and blocks of non-generic definitions and all instances and
-specializations of generics are put through memory analysis.  This occurs after
-generic evaluation so that all blocks have already been generated.  Note that
-the previous stages should include relevant positional data for this stage.
 
 ### Stage 4 - Optimization
 

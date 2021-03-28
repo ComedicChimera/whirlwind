@@ -2,6 +2,7 @@ package resolve
 
 import (
 	"whirlwind/common"
+	"whirlwind/validate"
 )
 
 // Grouping Algorithm
@@ -42,6 +43,9 @@ type Grouper struct {
 	// depGraph is the dependency graph constructed by the compiler to be analyzed
 	depGraph map[uint]*common.WhirlPackage
 
+	// validators is a map of predicate validators to populated during grouping
+	validators map[uint]*validate.PredicateValidator
+
 	// resolutionStatuses stores the IDs of the packages that have a known
 	// resolution status.  A false value indicates that a package has yet to be
 	// resolved a true value indicates that it has already been resolved.
@@ -52,12 +56,13 @@ type Grouper struct {
 }
 
 // NewGrouper creates a new grouper for the given dep-g and root package
-func NewGrouper(rootpkg *common.WhirlPackage, depg map[uint]*common.WhirlPackage) *Grouper {
+func NewGrouper(rootpkg *common.WhirlPackage, depg map[uint]*common.WhirlPackage, pvs map[uint]*validate.PredicateValidator) *Grouper {
 	return &Grouper{
 		rootPackage:        rootpkg,
 		depGraph:           depg,
 		resolutionStatuses: make(map[uint]bool),
 		currentUnit:        make(map[uint]*common.WhirlPackage),
+		validators:         pvs,
 	}
 }
 
@@ -155,6 +160,7 @@ func (g *Grouper) resolveSingle(pkg *common.WhirlPackage) bool {
 	g.resolutionStatuses[pkg.PackageID] = true
 
 	r := NewResolver([]*common.WhirlPackage{pkg}, g.depGraph)
+	r.CreateValidators(g.validators)
 	return r.Resolve()
 }
 
@@ -177,5 +183,6 @@ func (g *Grouper) resolveCurrentUnit() bool {
 
 	// resolve the current unit and return the status
 	r := NewResolver(runit, g.depGraph)
+	r.CreateValidators(g.validators)
 	return r.Resolve()
 }
