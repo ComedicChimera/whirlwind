@@ -66,6 +66,10 @@ type Walker struct {
 	// currentDefName stores the symbol name of the current definition being
 	// processed
 	currentDefName string
+
+	// funcContext stores the enclosing function for the purposes of return type
+	// checking.  This field is `nil` during definition walking
+	funcContext *typing.FuncType
 }
 
 // NewWalker creates a new walker for the given package and file

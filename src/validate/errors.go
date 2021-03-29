@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"whirlwind/logging"
+	"whirlwind/typing"
 )
 
 // LogUndefined logs an undefined error for the given symbol.
@@ -38,6 +39,15 @@ func (w *Walker) logInvalidIntrinsic(name, kind string, pos *logging.TextPositio
 	w.logError(
 		fmt.Sprintf("No intrinsic %s by name `%s`", kind, name),
 		logging.LMKUsage,
+		pos,
+	)
+}
+
+// logCoercionError logs an error coercing from one type to another
+func (w *Walker) logCoercionError(src, dest typing.DataType, pos *logging.TextPosition) {
+	w.logError(
+		fmt.Sprintf("Unable to coerce from `%s` to `%s`", src.Repr(), dest.Repr()),
+		logging.LMKTyping,
 		pos,
 	)
 }

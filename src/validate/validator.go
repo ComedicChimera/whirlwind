@@ -2,6 +2,7 @@ package validate
 
 import (
 	"whirlwind/common"
+	"whirlwind/syntax"
 	"whirlwind/typing"
 )
 
@@ -86,11 +87,38 @@ func (pv *PredicateValidator) validateNode(w *Walker, node common.HIRNode) {
 // function body.  It also accepts the data type (signature) of the function
 // whose body is walks -- this is used as the function context
 func (w *Walker) walkFuncBody(inc *common.HIRIncomplete, fn *typing.FuncType) (common.HIRNode, bool) {
+	branch := (*syntax.ASTBranch)(inc)
+	if branch.Name == "expr" {
+		if expr, ok := w.walkExpr(branch); ok {
+			if w.coerceTo(expr, fn.ReturnType) {
+				return expr.(common.HIRNode), true
+			} else {
+				w.logCoercionError(expr.Type(), fn.ReturnType, branch.Position())
+			}
+		}
+	} else {
+		// set the function context for return checking
+		w.funcContext = fn
+
+		// TODO: do block walking
+
+		// clear the context before the function returns
+		w.funcContext = nil
+	}
+
 	return nil, false
 }
 
 // walkInitializer is used to walk an initializer branch (wrapped in a
 // HIRIncomplete) and check it against the expected type it was given.
 func (w *Walker) walkInitializer(inc *common.HIRIncomplete, expected typing.DataType) (common.HIRNode, bool) {
+	if expr, ok := w.walkExpr((*syntax.ASTBranch)(inc)); ok {
+		if w.coerceTo(expr, expected) {
+			return expr.(common.HIRNode), true
+		} else {
+			w.logCoercionError(expr.Type(), expected, (*syntax.ASTBranch)(inc).Position())
+		}
+	}
+
 	return nil, false
 }

@@ -277,7 +277,7 @@ func (w *Walker) lookupNamedType(rootName, accessedName string, rootPos, accesse
 	}
 
 	if pkg, ok := w.SrcFile.VisiblePackages[rootName]; ok {
-		if symbol, ok := pkg.ImportFromNamespace(accessedName); ok {
+		if symbol, ok := w.implicitImport(pkg, accessedName); ok {
 			if symbol.DefKind != common.DefKindTypeDef {
 				w.logError(
 					fmt.Sprintf("Symbol `%s` is not a type", symbol.Name),
