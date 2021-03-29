@@ -43,8 +43,8 @@ const (
 
 // HIRTypeDef is the node used to represent a type definition.
 type HIRTypeDef struct {
-	// Sym is all of the definition information about the symbol
-	Sym *Symbol
+	Name string
+	Type typing.DataType
 
 	// FieldInits is a map of all field initializers along with what fields they
 	// correspond to (used for type structs)
@@ -57,8 +57,12 @@ func (*HIRTypeDef) Kind() int {
 
 // HIRInterfDef is the node used to represent an interface definition
 type HIRInterfDef struct {
-	Sym     *Symbol
+	Name    string
 	Methods []HIRNode
+
+	// Type is the actual, internal type of the interface, not any enclosing
+	// generics -- this is more useful later on
+	Type *typing.InterfType
 }
 
 func (*HIRInterfDef) Kind() int {
@@ -67,8 +71,12 @@ func (*HIRInterfDef) Kind() int {
 
 // HIRFuncDef is the node used to represent a function definition
 type HIRFuncDef struct {
-	Sym         *Symbol
+	Name        string
 	Annotations map[string][]string
+
+	// Type is the actual, internal type of the function, not any enclosing
+	// generics -- this is more useful later on
+	Type *typing.FuncType
 
 	// Body can be `nil` if there is no function body
 	Body HIRNode
@@ -124,11 +132,12 @@ func (*HIRParametricSpecialDef) Kind() int {
 // HIRInterfBind represents an interface binding (generic bindings are
 // just HIRInterfBinds wrapped in HIRGenerics)
 type HIRInterfBind struct {
-	// Symbol is anonymous: used to store aspects like DeclStatus
-	Interf    *Symbol
-	BoundType typing.DataType
+	// Type is the actual, internal type of the interface binding, not any
+	// enclosing generics -- this is more useful later on
+	Type *typing.InterfType
 
-	Methods []HIRNode
+	BoundType typing.DataType
+	Methods   []HIRNode
 }
 
 func (*HIRInterfBind) Kind() int {
@@ -141,7 +150,7 @@ type HIROperDef struct {
 	OperKind int
 
 	// Signature is the function signature of the operator
-	Signature typing.DataType
+	Signature *typing.FuncType
 
 	Annotations map[string][]string
 	Body        HIRNode

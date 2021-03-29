@@ -80,15 +80,15 @@ func (w *Walker) walkDefRaw(dast *syntax.ASTBranch) (common.HIRNode, typing.Data
 	switch dast.Name {
 	case "type_def":
 		if tdnode, ok := w.walkTypeDef(dast); ok {
-			return tdnode, tdnode.Sym.Type, true
+			return tdnode, tdnode.Type, true
 		}
 	case "func_def":
 		if fnnode, ok := w.walkFuncDef(dast, false); ok {
-			return fnnode, fnnode.Sym.Type, true
+			return fnnode, fnnode.Type, true
 		}
 	case "interf_def":
 		if itnode, ok := w.walkInterfDef(dast); ok {
-			return itnode, itnode.Sym.Type, true
+			return itnode, itnode.Type, true
 		}
 	case "interf_bind":
 		if itbind, ok := w.walkInterfBind(dast); ok {
@@ -208,7 +208,8 @@ func (w *Walker) walkTypeDef(dast *syntax.ASTBranch) (*common.HIRTypeDef, bool) 
 	}
 
 	tdef := &common.HIRTypeDef{
-		Sym:        symbol,
+		Name:       name,
+		Type:       dt,
 		FieldInits: fieldInits,
 	}
 
@@ -481,7 +482,8 @@ func (w *Walker) walkFuncDef(branch *syntax.ASTBranch, isMethod bool) (*common.H
 	}
 
 	fdef := &common.HIRFuncDef{
-		Sym:          sym,
+		Name:         name,
+		Type:         funcType,
 		Annotations:  w.annotations,
 		Initializers: initializers,
 		Body:         body,
@@ -650,7 +652,8 @@ func (w *Walker) walkInterfDef(branch *syntax.ASTBranch) (*common.HIRInterfDef, 
 	w.interfGenericCtx = nil
 
 	return &common.HIRInterfDef{
-		Sym:     sym,
+		Name:    it.Name,
+		Type:    it,
 		Methods: methodNodes,
 	}, true
 }
@@ -745,12 +748,7 @@ func (w *Walker) walkInterfBind(branch *syntax.ASTBranch) (common.HIRNode, bool)
 
 	// create the HIRNode (same for generic and non-generic types)
 	node = &common.HIRInterfBind{
-		Interf: &common.Symbol{
-			Type:       typeInterf,
-			DefKind:    common.DefKindBinding,
-			DeclStatus: w.declStatus,
-			Constant:   true,
-		},
+		Type:      it,
 		BoundType: bindDt,
 		Methods:   methodNodes,
 	}
@@ -843,8 +841,8 @@ func (w *Walker) walkInterfBody(body *syntax.ASTBranch, it *typing.InterfType, c
 				}
 
 				if ok {
-					name = fnnode.Sym.Name
-					dt = fnnode.Sym.Type
+					name = fnnode.Name
+					dt = fnnode.Type
 					node = fnnode
 
 					// the name of a function is always the second node
@@ -1141,7 +1139,7 @@ func (w *Walker) walkAnnotatedDef(branch *syntax.ASTBranch) (common.HIRNode, typ
 		fdef, ok := w.walkFuncDef(defNode, isMethod)
 
 		if ok {
-			return fdef, fdef.Sym.Type, ok
+			return fdef, fdef.Type, ok
 		}
 
 		return nil, nil, false
@@ -1322,19 +1320,19 @@ func (w *Walker) walkOperatorDef(branch *syntax.ASTBranch) (common.HIRNode, bool
 
 	// operators do not use standard generic wrapping (as they aren't defined as
 	// symbols) and so we need to use a special generic context applicator for
-	// them. Because of the order of expression evaluation, if `od.Signature`
-	// needs to be changed to a generic type, that change happen before
-	// `w.defineOperator` is called so we can ensure proper generic context is
-	// applied
-	return w.applyGenericContextToOpDef(od), w.defineOperator(od, opValue, argsPos)
+	// them.  We need to ensure that defineOperator is given the full generic
+	// signature -- thus why we call this first
+	node, sig := w.applyGenericContextToOpDef(od)
+
+	return node, w.defineOperator(od.OperKind, sig, opValue, argsPos)
 }
 
 // defineOperator takes an operator signature and attempts to define it within
 // the current package.  It logs all necessary errors and returns a flag
 // indicating whether or not the operator was defined successfully.  It also
 // contextually checks for conflicting local overloads in the current file
-func (w *Walker) defineOperator(opdef *common.HIROperDef, opValue string, argPos *logging.TextPosition) bool {
-	if sig, isConflict := w.SrcPackage.CheckOperatorConflicts(w.SrcFile, opdef.OperKind, opdef.Signature); isConflict {
+func (w *Walker) defineOperator(opkind int, sig typing.DataType, opValue string, argPos *logging.TextPosition) bool {
+	if sig, isConflict := w.SrcPackage.CheckOperatorConflicts(w.SrcFile, opkind, sig); isConflict {
 		w.logError(
 			fmt.Sprintf("Operator definition for `%s` conflicts with preexisting definition with signature `%s`", opValue, sig.Repr()),
 			logging.LMKDef,
@@ -1345,8 +1343,8 @@ func (w *Walker) defineOperator(opdef *common.HIROperDef, opValue string, argPos
 	}
 
 	// add the operator globally
-	w.SrcPackage.OperatorDefinitions[opdef.OperKind] = append(w.SrcPackage.OperatorDefinitions[opdef.OperKind], &common.WhirlOperatorDefinition{
-		Signature: opdef.Signature,
+	w.SrcPackage.OperatorDefinitions[opkind] = append(w.SrcPackage.OperatorDefinitions[opkind], &common.WhirlOperatorDefinition{
+		Signature: sig,
 		Exported:  w.declStatus == common.DSExported,
 	})
 

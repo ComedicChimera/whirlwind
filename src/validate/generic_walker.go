@@ -218,24 +218,23 @@ func (w *Walker) applyGenericContextToSpecial(gt *typing.GenericType, genericSpe
 }
 
 // applyGenericContextToOpDef applies the generic context specifically to an
-// operator definition (as opposed to a more general definition)
-func (w *Walker) applyGenericContextToOpDef(opdef *common.HIROperDef) common.HIRNode {
+// operator definition (as opposed to a more general definition).  It returns
+// the generic node as well as the true (wrapped) signature
+func (w *Walker) applyGenericContextToOpDef(opdef *common.HIROperDef) (common.HIRNode, typing.DataType) {
 	if w.genericCtx != nil {
 		gt := &typing.GenericType{
 			TypeParams: w.genericCtx,
 			Template:   opdef.Signature,
 		}
 
-		opdef.Signature = gt
-
 		w.genericCtx = nil
 		return &common.HIRGeneric{
 			Generic:     gt,
 			GenericNode: opdef,
-		}
+		}, gt
 	}
 
-	return opdef
+	return opdef, opdef.Signature
 }
 
 // applyGenericContextToMethod applies the generic context to a method and
