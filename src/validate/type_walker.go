@@ -204,7 +204,7 @@ func (w *Walker) lookupNamedType(rootName, accessedName string, rootPos, accesse
 
 	// if there is no accessed name, than this just a standard symbol access
 	if accessedName == "" {
-		symbol, ok := w.Lookup(rootName)
+		symbol, ok := w.globalLookup(rootName)
 
 		// check for generic type parameters (in the generic ctx)
 		if !ok {

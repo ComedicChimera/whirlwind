@@ -44,11 +44,11 @@ type HIRExpr interface {
 type ExprBase struct {
 	dataType typing.DataType
 
-	// Category is the expression's value category -> should be one of the
-	// enumerated categories below (using an int for extensibility)
+	// category is the expression's value category -> should be one of the enumerated
+	// categories below (using an int for extensibility)
 	category int
 
-	// Constant indicates whether or not the expression/value is constant
+	// constant indicates whether or not the expression/value is constant
 	constant bool
 }
 
@@ -57,6 +57,15 @@ const (
 	LValue = iota
 	RValue
 )
+
+// NewExprBase creates a new `ExprBase` for a given `HIRExpr`
+func NewExprBase(dt typing.DataType, cat int, constant bool) ExprBase {
+	return ExprBase{
+		dataType: dt,
+		category: cat,
+		constant: constant,
+	}
+}
 
 // Type of ExprBase is its dataType property
 func (eb *ExprBase) Type() typing.DataType {

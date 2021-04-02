@@ -162,7 +162,7 @@ func (w *Walker) applyGenericContext(node common.HIRNode, dt typing.DataType) (c
 	// find the symbol of the declared data type so its type can be overwritten
 	// with the generic type (should always succeed b/c this is called
 	// immediately after a definition)
-	symbol, _ := w.Lookup(w.currentDefName)
+	symbol, _ := w.globalLookup(w.currentDefName)
 	symbol.Type = gt
 
 	// if there is a definition node stored, we need to update it
@@ -175,7 +175,7 @@ func (w *Walker) applyGenericContext(node common.HIRNode, dt typing.DataType) (c
 		if !at.Closed {
 			for i, vari := range at.Variants {
 				// we know the variant exists -- we can just look it up
-				vs, _ := w.Lookup(vari.Name)
+				vs, _ := w.globalLookup(vari.Name)
 
 				vs.Type = &typing.GenericAlgebraicVariantType{
 					GenericParent: gt,

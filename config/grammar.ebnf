@@ -174,7 +174,7 @@ args_list = arg {',' arg} ;
 arg = expr ['=' expr] ;
 
 atom = 'INTLIT' | 'STRINGLIT' | 'FLOATLIT' | 'BOOLLIT' | 'RUNELIT' | vector_builder | tupled_expr 
-  | array_builder | list_builder| dict_builder| 'IDENTIFIER' | 'null' ;
+  | array_builder | list_builder| dict_builder | 'IDENTIFIER' | 'null' ;
 
 array_builder = '{' seq_contents '}' ;
 list_builder = '[' seq_contents ']' ;

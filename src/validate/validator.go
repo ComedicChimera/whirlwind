@@ -87,6 +87,12 @@ func (pv *PredicateValidator) validateNode(w *Walker, node common.HIRNode) {
 // function body.  It also accepts the data type (signature) of the function
 // whose body is walks -- this is used as the function context
 func (w *Walker) walkFuncBody(inc *common.HIRIncomplete, fn *typing.FuncType) (common.HIRNode, bool) {
+	// create our contextual function scope
+	w.pushFuncScope(fn)
+
+	// make sure the scope is popped before we exit (cleanup)
+	defer w.popScope()
+
 	branch := (*syntax.ASTBranch)(inc)
 	if branch.Name == "expr" {
 		if expr, ok := w.walkExpr(branch); ok {
@@ -97,13 +103,7 @@ func (w *Walker) walkFuncBody(inc *common.HIRIncomplete, fn *typing.FuncType) (c
 			}
 		}
 	} else {
-		// set the function context for return checking
-		w.funcContext = fn
-
-		// TODO: do block walking
-
-		// clear the context before the function returns
-		w.funcContext = nil
+		// TODO: block walking
 	}
 
 	return nil, false

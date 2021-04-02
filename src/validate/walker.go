@@ -67,10 +67,6 @@ type Walker struct {
 	// processed
 	currentDefName string
 
-	// funcContext stores the enclosing function for the purposes of return type
-	// checking.  This field is `nil` during definition walking
-	funcContext *typing.FuncType
-
 	// scopeStack is a stack of local scopes active for the current function.
 	// Once a scope exited, it is popped from the stack and its contents are
 	// lost (as opposed to a formal table).  This is because the generator will

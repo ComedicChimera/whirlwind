@@ -691,6 +691,21 @@ func (w *Walker) walkInterfBind(branch *syntax.ASTBranch) (common.HIRNode, bool)
 					// once bindDt is set, all other types must be types to
 					// derive => add them to implInterfs
 					if bindDt == nil {
+						// interfaces cannot be bound onto references or interfaces
+						switch typing.InnerType(dt).(type) {
+						// don't need to check for generics since
+						// `walkTypeLabel` will never let them out (without
+						// erroring first)
+						case *typing.InterfType, *typing.RefType:
+							w.logError(
+								fmt.Sprintf("Cannot bind interface onto type `%s`", dt.Repr()),
+								logging.LMKInterf,
+								itembranch.Position(),
+							)
+
+							return nil, false
+						}
+
 						bindDt = dt
 					} else if implIt, ok := typing.InnerType(dt).(*typing.InterfType); ok {
 						implInterfs[implIt] = itembranch.Position()
