@@ -256,6 +256,23 @@ func (s *Solver) CastTo(src, dest DataType) bool {
 			return Equals(sv.Inherit, dst.Inherit)
 		}
 	case *InterfType:
+		// It is possible to cast from one interface to another as long as the
+		// two interfaces don't have conflicting method definitions -- this type
+		// of casting can fail a runtime
+		if dit, ok := dest.(*InterfType); ok {
+			for name, method := range sv.Methods {
+				if dmethod, ok := dit.Methods[name]; ok {
+					if !Equals(method.Signature, dmethod.Signature) {
+						return false
+					}
+				}
+			}
+
+			// we can't check anymore thoroughly here -- we don't know the
+			// internal type of whatever interface value we are casting
+			return true
+		}
+
 		// Interfaces can be cast to any type that implements them (naively)
 		return s.ImplementsInterf(dest, sv)
 	case *AlgebraicType:

@@ -114,10 +114,12 @@ func (s *Solver) GetBindings(br *BindingRegistry, dt DataType) []*InterfType {
 }
 
 // ImplementsInterf tests if a given type implements the given interface. The
-// interface should NOT be a type interface.
+// interface should NOT be a type interface.  `InnerType` should be called on
+// `dt` before this function is invoked
 func (s *Solver) ImplementsInterf(dt DataType, it *InterfType) bool {
-	// Interfaces can never implement other interfaces
-	if _, ok := dt.(*InterfType); ok {
+	// Interfaces and references can never implement other interfaces
+	switch dt.(type) {
+	case *InterfType, *RefType:
 		return false
 	}
 

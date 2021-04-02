@@ -203,7 +203,7 @@ func (w *Walker) walkTypeDef(dast *syntax.ASTBranch) (*common.HIRTypeDef, bool) 
 	}
 
 	if !w.define(symbol) {
-		w.logRepeatDef(name, namePosition, true)
+		w.logRepeatDef(name, namePosition)
 		return nil, false
 	}
 
@@ -477,7 +477,7 @@ func (w *Walker) walkFuncDef(branch *syntax.ASTBranch, isMethod bool) (*common.H
 	}
 
 	if !isMethod && !w.define(sym) {
-		w.logRepeatDef(name, namePosition, true)
+		w.logRepeatDef(name, namePosition)
 		return nil, false
 	}
 
@@ -627,7 +627,8 @@ func (w *Walker) walkInterfDef(branch *syntax.ASTBranch) (*common.HIRInterfDef, 
 
 	w.setSelfType(it)
 
-	methodNodes, ok := w.walkInterfBody(branch.LastBranch(), it, true)
+	// interfDefs never have any reserved names (those only occur in bindings)
+	methodNodes, ok := w.walkInterfBody(branch.LastBranch(), it, true, make(map[string]struct{}))
 	if !ok {
 		return nil, false
 	}
@@ -642,7 +643,7 @@ func (w *Walker) walkInterfDef(branch *syntax.ASTBranch) (*common.HIRInterfDef, 
 	}
 
 	if !w.define(sym) {
-		w.logRepeatDef(sym.Name, branch.Content[1].Position(), true)
+		w.logRepeatDef(sym.Name, branch.Content[1].Position())
 		return nil, false
 	}
 
@@ -706,7 +707,11 @@ func (w *Walker) walkInterfBind(branch *syntax.ASTBranch) (common.HIRNode, bool)
 							return nil, false
 						}
 
-						bindDt = dt
+						// we always want the `InnerType` to bound to not some
+						// enclosing type; bindings are never processed before
+						// opaques have been handled so this is not an issue
+						// here
+						bindDt = typing.InnerType(dt)
 					} else if implIt, ok := typing.InnerType(dt).(*typing.InterfType); ok {
 						implInterfs[implIt] = itembranch.Position()
 					} else {
@@ -722,7 +727,7 @@ func (w *Walker) walkInterfBind(branch *syntax.ASTBranch) (common.HIRNode, bool)
 					return nil, false
 				}
 			case "interf_body":
-				if mnodes, ok := w.walkInterfBody(itembranch, it, false); ok {
+				if mnodes, ok := w.walkInterfBody(itembranch, it, false, w.getBindFieldNames(bindDt)); ok {
 					methodNodes = mnodes
 				} else {
 					return nil, false
@@ -828,8 +833,31 @@ func (w *Walker) checkBinding(binding *typing.Binding, bindTypePos *logging.Text
 	return true
 }
 
-// walkInterfBody is used to walk the bodies of both kinds of interfaces (the `interf_body` node)
-func (w *Walker) walkInterfBody(body *syntax.ASTBranch, it *typing.InterfType, conceptual bool) ([]common.HIRNode, bool) {
+// getBindFieldNames creates a map of the field names of a type being bound onto by
+// an interface to implement field name/method name collision checking.  This
+// function also handles internal types such as strings
+func (w *Walker) getBindFieldNames(bindDt typing.DataType) map[string]struct{} {
+	fieldNames := make(map[string]struct{})
+
+	// NOTE: interfaces and references can't be bound onto so we don't need to
+	// handle them here
+	switch v := bindDt.(type) {
+	case *typing.StructType:
+		for name := range v.Fields {
+			fieldNames[name] = struct{}{}
+		}
+		// TODO: handle other implicit type impls
+	}
+
+	// type has no fields (of note)
+	return fieldNames
+}
+
+// walkInterfBody is used to walk the bodies of both kinds of interfaces (the
+// `interf_body` node).  `reservedNames` stores a list of any names that are
+// reserved by the type that is called the interface (either because of field
+// collisions or some other reason)
+func (w *Walker) walkInterfBody(body *syntax.ASTBranch, it *typing.InterfType, conceptual bool, reservedNames map[string]struct{}) ([]common.HIRNode, bool) {
 	var methodNodes []common.HIRNode
 
 	for _, item := range body.Content {
@@ -897,7 +925,18 @@ func (w *Walker) walkInterfBody(body *syntax.ASTBranch, it *typing.InterfType, c
 
 			// methods cannot be duplicated (just create a name error)
 			if _, ok := it.Methods[name]; ok {
-				w.logRepeatDef(name, namePosition, true)
+				w.logRepeatDef(name, namePosition)
+				return nil, false
+			}
+
+			// method names also cannot be contained inside the map of reserved names
+			if _, ok := reservedNames[name]; ok {
+				w.logError(
+					fmt.Sprintf("Method `%s` collides with named field of bound type", name),
+					logging.LMKName,
+					namePosition,
+				)
+
 				return nil, false
 			}
 

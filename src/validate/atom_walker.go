@@ -19,10 +19,15 @@ func (w *Walker) walkAtom(branch *syntax.ASTBranch) (common.HIRExpr, bool) {
 			return newLiteral(atomCore, typing.PrimKindText, 0), true
 		case syntax.BOOLLIT:
 			return newLiteral(atomCore, typing.PrimKindBoolean, 0), true
+		case syntax.IDENTIFIER:
+			if sym, ok := w.localLookup(atomCore.Value); ok {
+				return common.NewIdentifierFromSymbol(sym, atomCore.Position()), true
+			} else {
+				w.LogUndefined(atomCore.Value, atomCore.Position())
+			}
 		}
 	}
 
-	// unreachable
 	return nil, false
 }
 

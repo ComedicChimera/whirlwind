@@ -24,7 +24,7 @@ func (w *Walker) LogNotVisibleInPackage(symname, pkgname string, pos *logging.Te
 }
 
 // logRepeatDef logs an error indicate that a symbol has already been defined
-func (w *Walker) logRepeatDef(name string, pos *logging.TextPosition, topDefError bool) {
+func (w *Walker) logRepeatDef(name string, pos *logging.TextPosition) {
 	logging.LogCompileError(
 		w.Context,
 		fmt.Sprintf("Symbol `%s` already defined", name),
