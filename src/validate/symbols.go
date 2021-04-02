@@ -1,6 +1,9 @@
 package validate
 
-import "whirlwind/common"
+import (
+	"whirlwind/common"
+	"whirlwind/typing"
+)
 
 // globalLookup attempts to find a symbol in the current package or global
 // symbol table. If it succeeds, it returns the symbol it finds.  If it fails,
@@ -87,4 +90,9 @@ func (w *Walker) implicitImport(ipkg *common.WhirlPackage, name string) (*common
 	}
 
 	return nsym, ok
+}
+
+// getCoreType loads a core/prelude-defined type from the local table
+func (w *Walker) getCoreType(name string) typing.DataType {
+	return w.SrcFile.LocalTable[name].SymbolRef.Type
 }

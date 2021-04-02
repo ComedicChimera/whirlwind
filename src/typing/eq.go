@@ -1,5 +1,7 @@
 package typing
 
+import "whirlwind/logging"
+
 // Equals is the true equality function for comparing two types.  It's specific
 // benefit over the builtin `equals` methods on every type is that it extracts
 // the inner types by default before performing its comparison.  This is the
@@ -37,6 +39,12 @@ func InnerType(dt DataType) DataType {
 		}
 
 		return v.MemoizedGenerate
+	case *TypeUnknown:
+		if v.EvalType == nil {
+			logging.LogFatal("Attempted to call `InnerType` on an unknown type")
+		}
+
+		return v.EvalType
 	default:
 		return dt
 	}
