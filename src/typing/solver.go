@@ -111,15 +111,13 @@ func (s *Solver) FinishEqn() bool {
 // SolveAll attempts to solve all remaining type equations.  It does not clear
 // the pool of unsolved equations (so that logging can occur in `Walker`)
 func (s *Solver) SolveAll() bool {
-	solvedAll := true
-	for _, eqn := range s.UnsolvedEquations {
-		solvedAll = s.solve(eqn)
-	}
+	// TODO: amend to be more "strategic" in solving
 
-	return solvedAll
+	return false
 }
 
 // solve attempts to solve a given type equation
 func (s *Solver) solve(te *TypeEquation) bool {
+
 	return false
 }

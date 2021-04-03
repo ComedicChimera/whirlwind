@@ -24,20 +24,19 @@ type TypeEquation struct {
 // numbers.  These types correspond to the "operators" of the Hindley-Milner
 // type system.
 type TypeExpression interface {
-	// Deduce applies downward type deduction to the expression to find the
-	// secondary arguments from the primary argument (eg. for App(f, t1, t2,
-	// ..., tn), this function finds t1, t2, ... tn from f)
-	Deduce() bool
-
-	// Inverse applies downward type deduction to the expression to find the
-	// primary argument from the secondary argument (eg. for App(f, t1, t2, ...,
-	// tn), this function find f from t1, t2, ..., tn)
-	Inverse(args ...TypeExpression) bool
-
 	// Result performs upward type deduction on the expression to determine the
-	// resultant type (eg. the return type of App(f, t1, t2, ..., tn)).  It
-	// returns a flag indicating whether deduction succeeded.
+	// resultant type.  If this type is unknown (deduction fails), the unknown
+	// is returned and the return flag is set to false.  If the type was
+	// deducible, then the deduced type is returned and the return flag is set
+	// to true.
 	Result() (DataType, bool)
+
+	// Propagate performs downward type deduction: propagating an expected
+	// result down to the leaves of the type expression.  The return flag
+	// indicates whether propagation suceeded.  Note that the expression is
+	// simplified (modified) as propagation occurs if this operation is
+	// successful.
+	Propagate(result DataType) bool
 }
 
 // TypeUnknown is an unknown in a type equation.  This is technically a DataType
@@ -107,15 +106,6 @@ func (se *SolvedExpr) Result() (DataType, bool) {
 	return se.ResultType, true
 }
 
-func (se *SolvedExpr) Deduce() bool {
+func (se *SolvedExpr) Propagate(dt DataType) bool {
 	return true
 }
-
-func (se *SolvedExpr) Inverse(args ...TypeExpression) bool {
-	// TODO: log fatal if this is called?
-	return true
-}
-
-// App(f, t1, t2, ..., tn)
-// .Deduce() (find t1, t2, ..., tn from f)
-// .Inverse() (find f from t1, t2, ..., tn from f)
