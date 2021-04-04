@@ -26,14 +26,15 @@ func (w *Walker) walkAtom(branch *syntax.ASTBranch) (common.HIRExpr, bool) {
 				w.LogUndefined(atomCore.Value, atomCore.Position())
 			}
 		case syntax.INTLIT:
-			return w.newUndeterminedLiteral(atomCore, "Integral"), true
+			// Integer literals can be either floats or ints depending on usage
+			return w.newUndeterminedLiteral(atomCore, "Numeric"), true
 		case syntax.FLOATLIT:
 			return w.newUndeterminedLiteral(atomCore, "Floating"), true
 		case syntax.NULL:
-			tu := w.solver.CreateUnknown(atomCore.Position())
+			ut := w.solver.CreateUnknown(atomCore.Position())
 
 			return &common.HIRValue{
-				ExprBase: common.NewExprBase(tu, common.RValue, true),
+				ExprBase: common.NewExprBase(ut, common.RValue, true),
 				Value:    atomCore.Value,
 				Position: atomCore.Position(),
 			}, true
@@ -64,11 +65,11 @@ func newLiteral(leaf *syntax.ASTLeaf, primKind, primSpec uint8) common.HIRExpr {
 // of many more specific types depending on usage.  It takes the name of the
 // appropriate constaint interface
 func (w *Walker) newUndeterminedLiteral(leaf *syntax.ASTLeaf, constraintName string) common.HIRExpr {
-	tu := w.solver.CreateUnknown(leaf.Position(), w.getCoreType(constraintName))
+	ut := w.solver.CreateUnknown(leaf.Position(), w.getCoreType(constraintName))
 
 	return &common.HIRValue{
 		ExprBase: common.NewExprBase(
-			tu,
+			ut,
 			common.RValue,
 			true,
 		),

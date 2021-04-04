@@ -113,6 +113,10 @@ func (w *Walker) walkDefRaw(dast *syntax.ASTBranch) (common.HIRNode, typing.Data
 			// freely return a `nil` data type
 			return opdefNode, nil, true
 		}
+	case "cons_def":
+		if consNode, ok := w.walkConsDef(dast); ok {
+			return consNode, consNode.ConsType, true
+		}
 	}
 
 	return nil, nil, false
@@ -126,6 +130,9 @@ func (w *Walker) walkTypeDef(dast *syntax.ASTBranch) (*common.HIRTypeDef, bool) 
 	var namePosition *logging.TextPosition
 	var dt typing.DataType
 	fieldInits := make(map[string]common.HIRNode)
+
+	// flag used to indicate if this is a new algebraic type definition
+	isNewAlg := false
 
 	for _, item := range dast.Content {
 		switch v := item.(type) {
@@ -147,6 +154,7 @@ func (w *Walker) walkTypeDef(dast *syntax.ASTBranch) (*common.HIRTypeDef, bool) 
 				if suffixNode.Name == "alg_suffix" {
 					if adt, ok := w.walkAlgebraicSuffix(suffixNode, name, namePosition); ok {
 						dt = adt
+						isNewAlg = true
 					} else {
 						return nil, false
 					}
@@ -158,26 +166,17 @@ func (w *Walker) walkTypeDef(dast *syntax.ASTBranch) (*common.HIRTypeDef, bool) 
 					}
 				}
 
-			case "typeset":
-				// NOTE: typesets don't define a self-type since such a
+			case "alias":
+				// NOTE: aliases don't exist as a unique type -- they are
+				// literal just a type definition whose value is set to the
+				// value of the alias. They behave identically to their
+				// underlying type in code
+
+				// NOTE: aliases don't define a self-type since such a
 				// definition would have literally no meaning (especially if it
 				// only contained one type -- itself)
-				if types, ok := w.walkOffsetTypeList(v, 1, 0); ok {
-					intrinsic := w.hasFlag("intrinsic")
-
-					if intrinsic {
-						if _, ok := validTypeSetIntrinsics[name]; !ok {
-							w.logInvalidIntrinsic(name, "type set", namePosition)
-							return nil, false
-						}
-					}
-
-					dt = &typing.TypeSet{
-						Name:         name,
-						SrcPackageID: w.SrcPackage.PackageID,
-						Types:        types,
-						Intrinsic:    intrinsic,
-					}
+				if alias, ok := w.walkTypeLabel(v.BranchAt(1)); ok {
+					dt = alias
 				} else {
 					return nil, false
 				}
@@ -218,7 +217,8 @@ func (w *Walker) walkTypeDef(dast *syntax.ASTBranch) (*common.HIRTypeDef, bool) 
 	// only declare algebraic variants if the definition of the core algebraic
 	// type succeeded (that way we don't have random definitions floating around
 	// without a parent)
-	if at, ok := dt.(*typing.AlgebraicType); ok {
+	if isNewAlg {
+		at := dt.(*typing.AlgebraicType)
 		at.Closed = closedType
 
 		if !closedType {
@@ -245,7 +245,7 @@ func (w *Walker) walkTypeDef(dast *syntax.ASTBranch) (*common.HIRTypeDef, bool) 
 	} else if closedType {
 		// you can't use `closed` on a type that isn't algebraic
 		w.logError(
-			fmt.Sprintf("`closed` property not applicable on type `%s`", dt.Repr()),
+			"`closed` property is only applicable on an algebraic type definition",
 			logging.LMKDef,
 			dast.Content[0].Position(),
 		)
@@ -752,7 +752,7 @@ func (w *Walker) walkInterfBind(branch *syntax.ASTBranch) (common.HIRNode, bool)
 		for i, wc := range w.interfGenericCtx {
 			typeParams[i] = &typing.WildcardType{
 				Name:          wc.Name,
-				Restrictors:   wc.Restrictors,
+				Constraints:   wc.Constraints,
 				ImmediateBind: false,
 				// we can ignore the `Value` field here
 			}
@@ -1279,6 +1279,15 @@ func (w *Walker) validateAnnotation(annotName string, annotArgs []string, defNod
 
 			return true
 		}
+	case "cons_def":
+		if annotName == "intrinsic" {
+			if len(annotArgs) != 0 {
+				logAnnotArgError(0)
+				return false
+			}
+
+			return true
+		}
 	}
 
 	// if we reach here, not other annotation matched
@@ -1403,4 +1412,43 @@ func (w *Walker) defineOperator(opkind int, sig typing.DataType, opValue string,
 	})
 
 	return true
+}
+
+// walkConstraintDef walks a generic type constraint definition.
+func (w *Walker) walkConsDef(branch *syntax.ASTBranch) (*common.HIRConsDef, bool) {
+	if typeList, ok := w.walkOffsetTypeList(branch, 3, 0); ok {
+		nameLeaf := branch.LeafAt(1)
+
+		intrinsic := w.hasFlag("intrinsic")
+
+		if intrinsic {
+			if _, ok := validTypeSetIntrinsics[nameLeaf.Value]; !ok {
+				w.logInvalidIntrinsic(nameLeaf.Value, "constaint", nameLeaf.Position())
+				return nil, false
+			}
+		}
+
+		sym := &common.Symbol{
+			Name: nameLeaf.Value,
+			Type: &typing.ConstraintType{
+				Intrinsic: intrinsic,
+				Types:     typeList,
+			},
+			DefKind:    common.DefKindConstraint,
+			DeclStatus: w.declStatus,
+			Constant:   true,
+		}
+
+		if !w.define(sym) {
+			w.logRepeatDef(sym.Name, nameLeaf.Position())
+			return nil, false
+		}
+
+		return &common.HIRConsDef{
+			Name:     sym.Name,
+			ConsType: sym.Type,
+		}, true
+	}
+
+	return nil, false
 }

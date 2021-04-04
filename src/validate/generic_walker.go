@@ -42,7 +42,7 @@ func (w *Walker) primeGenericContext(genericTag *syntax.ASTBranch, isInterf bool
 		} else if typeList, ok := w.walkOffsetTypeList(param, 2, 0); ok {
 			wc[i/2] = &typing.WildcardType{
 				Name:        name,
-				Restrictors: typeList,
+				Constraints: typeList,
 			}
 		} else {
 			return false

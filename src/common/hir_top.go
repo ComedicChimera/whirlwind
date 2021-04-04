@@ -33,7 +33,8 @@ const (
 	NKGeneric
 	NKSpecialDef
 	NKParametricSpecialDef
-	NKOperDef // operator overload
+	NKOperDef // operator definition
+	NKConsDef
 	NKBlockStmt
 	NKSimpleStmt
 	NKAssignment
@@ -160,4 +161,15 @@ type HIROperDef struct {
 
 func (*HIROperDef) Kind() int {
 	return NKOperDef
+}
+
+// HIRConsDef represents a generic constraint definition.  This type exists
+// mostly for compatability with existing compilation architecture
+type HIRConsDef struct {
+	Name     string
+	ConsType typing.DataType
+}
+
+func (*HIRConsDef) Kind() int {
+	return NKConsDef
 }

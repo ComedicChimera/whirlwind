@@ -7,7 +7,7 @@ import (
 	"whirlwind/logging"
 )
 
-// The Whirlwind Type System is represented in 8 fundamental types from which
+// The Whirlwind Type System is represented in 7 fundamental types from which
 // all others derive.  These types are follows:
 // 1. Primitives -- Single unit types, do not contain sub types
 // 2. Tuples -- A pairing of n-types defines an n-tuple
@@ -16,7 +16,6 @@ import (
 // 5. Structures -- A record of named, typed fields
 // 6. Interfaces -- A type that groups types based on shared behavior
 // 7. Algebraic Types - A type that contains a finite number of enumerated values
-// 8. Type Sets -- A set/union of multiple type values
 // There are several other types such as AlgebraicVariants and WildcardTypes
 // that are not actually considered "fundamental types" but rather semantic
 // constructs to assist in compilation and type analysis.
@@ -647,36 +646,4 @@ func (av *AlgebraicVariant) equals(other DataType) bool {
 func (av *AlgebraicVariant) copyTemplate() DataType {
 	logging.LogFatal("`copyTemplate` called on `AlgebraicVariant`")
 	return nil
-}
-
-// -----------------------------------------------------
-
-// TypeSet represents a type set
-type TypeSet struct {
-	Name         string
-	SrcPackageID uint
-
-	Types     []DataType
-	Intrinsic bool
-}
-
-func (ts *TypeSet) Repr() string {
-	return ts.Name
-}
-
-func (ts *TypeSet) equals(other DataType) bool {
-	if ots, ok := other.(*TypeSet); ok {
-		return ts.Name == ots.Name && ts.SrcPackageID == ots.SrcPackageID
-	}
-
-	return false
-}
-
-func (ts *TypeSet) copyTemplate() DataType {
-	return &TypeSet{
-		Name:         ts.Name,
-		SrcPackageID: ts.SrcPackageID,
-		Types:        copyTemplateSlice(ts.Types),
-		Intrinsic:    ts.Intrinsic,
-	}
 }

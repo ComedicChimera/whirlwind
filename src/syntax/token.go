@@ -47,6 +47,7 @@ const (
 	TYPE
 	INTERF
 	CLOSED
+	CONSTRAINT
 
 	// package keywords
 	IMPORT
@@ -180,6 +181,7 @@ var keywordPatterns = map[string]int{
 	"type":        TYPE,
 	"closed":      CLOSED,
 	"interf":      INTERF,
+	"constraint":  CONSTRAINT,
 	"import":      IMPORT,
 	"export":      EXPORT,
 	"from":        FROM,

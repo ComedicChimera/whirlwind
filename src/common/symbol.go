@@ -50,6 +50,7 @@ const (
 	DefKindBinding
 	DefKindFuncDef
 	DefKindNamedValue
+	DefKindConstraint
 )
 
 // OpaqueSymbol acts as a shared opaque symbol references during cyclic

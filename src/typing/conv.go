@@ -15,9 +15,16 @@ package typing
 // Thus, those two operations should be casts (requiring explicit denotation)
 // and not coercions.
 
-// CoerceTo implements coercion checking for the solver.  It checks if two
-// types are equal or can be made equal through implicit casting.
+// CoerceTo implements coercion checking for the solver.  It checks if two types
+// are equal or can be made equal through implicit casting.  This function does
+// work for unknown types.
 func (s *Solver) CoerceTo(src, dest DataType) bool {
+	// check for unknowns before equality -- equals calls `InnerType` which
+	// panics on any unknowns -- CoerceTo is meant to be used on unknowns
+	if performedCoercion, coercedOk := s.coerceUnknowns(src, dest); performedCoercion {
+		return coercedOk
+	}
+
 	if Equals(src, dest) {
 		return true
 	}
@@ -28,7 +35,7 @@ func (s *Solver) CoerceTo(src, dest DataType) bool {
 	// handled below
 	if swt, ok := src.(*WildcardType); ok {
 		if swt.Value == nil {
-			for _, r := range swt.Restrictors {
+			for _, r := range swt.Constraints {
 				if s.CoerceTo(r, dest) {
 					return true
 				}
@@ -46,9 +53,9 @@ func (s *Solver) CoerceTo(src, dest DataType) bool {
 		}
 
 		if spt, ok := src.(*PrimitiveType); ok {
-			// integral, floating to floating
+			// floating to floating
 			if dv.PrimKind == PrimKindFloating {
-				return spt.PrimKind == PrimKindIntegral || (spt.PrimKind == PrimKindFloating && spt.PrimSpec < dv.PrimSpec)
+				return spt.PrimKind == PrimKindFloating && spt.PrimSpec < dv.PrimSpec
 			} else if dv.PrimKind == PrimKindIntegral {
 				// integral to integral
 				if spt.PrimKind == PrimKindIntegral {
@@ -98,7 +105,7 @@ func (s *Solver) CoerceTo(src, dest DataType) bool {
 		// Any type that implicitly or explicitly implements an interface can be
 		// coerced to it (duck typing)
 		return s.ImplementsInterf(src, dv)
-	case *TypeSet:
+	case *ConstraintType:
 		// Any type that is in a type set can be coerced to that type set.
 		// Additionally, several intrinsic type sets (eg. `Vector`) require
 		// a special coercion implementation that is given here.
@@ -143,11 +150,11 @@ func (s *Solver) CoerceTo(src, dest DataType) bool {
 	case *WildcardType:
 		// the only WildcardTypes that reach here have failed the equals check
 		// meaning they either have a value that coercion should be checked on
-		// or the check didn't pass the restrictors on exact equality (so we
-		// have to first check value and then check restrictors)
+		// or the check didn't pass the constraints on exact equality (so we
+		// have to first check value and then check constraints)
 		if dv.Value == nil {
-			for _, r := range dv.Restrictors {
-				if s.CoerceTo(src, r) {
+			for _, cons := range dv.Constraints {
+				if s.CoerceTo(src, cons) {
 					return true
 				}
 			}
@@ -173,6 +180,7 @@ func (s *Solver) CoerceTo(src, dest DataType) bool {
 // CastTo implements the explicit checking.  This function ONLY checks for
 // explicit casts.  Thus, to fulfill the full function of a type cast CoerceTo
 // should be called first (along with any necessary inferencing mechanisms).
+// NOTE: This function will panic if an `UnknownType` is passed to it
 func (s *Solver) CastTo(src, dest DataType) bool {
 	src, dest = InnerType(src), InnerType(dest)
 
@@ -180,8 +188,8 @@ func (s *Solver) CastTo(src, dest DataType) bool {
 	// properly handled below (same problem occurs at top of CoerceTo)
 	if dwt, ok := dest.(*WildcardType); ok {
 		if dwt.Value == nil {
-			for _, r := range dwt.Restrictors {
-				if s.CastTo(src, r) {
+			for _, cons := range dwt.Constraints {
+				if s.CastTo(src, cons) {
 					return true
 				}
 			}
@@ -292,11 +300,11 @@ func (s *Solver) CastTo(src, dest DataType) bool {
 
 			return sv.Closed == dat.Closed
 		}
-	case *TypeSet:
+	case *ConstraintType:
 		// Type sets can be cast to anything that could be one of their
 		// elements. Intrinsic type sets do not define this reverse coercion
 		// operation since they are ONLY intended to be used as generic
-		// restrictors -- this is enforced on instance
+		// constraints -- this is enforced on instance
 		return ContainsType(dest, sv.Types)
 	case *WildcardType:
 		// same logic that was used for coercion applies when value is not nil,
@@ -304,8 +312,8 @@ func (s *Solver) CastTo(src, dest DataType) bool {
 		// top of this function, we are going backwards (`WildcardType as x`).
 		// The reverse logic is also mostly true here so this should be fine.
 		if sv.Value == nil {
-			for _, r := range sv.Restrictors {
-				if s.CastTo(r, dest) {
+			for _, cons := range sv.Constraints {
+				if s.CastTo(cons, dest) {
 					return true
 				}
 			}

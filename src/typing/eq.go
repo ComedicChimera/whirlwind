@@ -39,7 +39,7 @@ func InnerType(dt DataType) DataType {
 		}
 
 		return v.MemoizedGenerate
-	case *TypeUnknown:
+	case *UnknownType:
 		if v.EvalType == nil {
 			logging.LogFatal("Attempted to call `InnerType` on an unknown type")
 		}

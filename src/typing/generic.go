@@ -149,10 +149,10 @@ outerloop:
 	}
 
 	for i, wt := range gt.TypeParams {
-		if len(wt.Restrictors) > 0 {
+		if len(wt.Constraints) > 0 {
 			matchedRestrictor := false
 
-			for _, r := range wt.Restrictors {
+			for _, r := range wt.Constraints {
 				if s.CoerceTo(typeParams[i], r) {
 					matchedRestrictor = true
 					break
@@ -199,10 +199,10 @@ type WildcardType struct {
 	// Repr()).
 	Name string
 
-	// Restrictors stores the list of types that this WildcardType can be
+	// Constraints stores the list of types that this WildcardType can be
 	// (correspondent to the restrictors on a type parameter).  This field will
 	// be `nil` if no restrictors are applied.
-	Restrictors []DataType
+	Constraints []DataType
 
 	// Value stores the type that has been filled in for the current type.  When
 	// this field is not nil, the WildcardType is considered equivalent to this type
@@ -226,7 +226,7 @@ func (wt *WildcardType) Repr() string {
 
 func (wt *WildcardType) equals(other DataType) bool {
 	if wt.Value == nil {
-		if len(wt.Restrictors) > 0 && !ContainsType(other, wt.Restrictors) {
+		if len(wt.Constraints) > 0 && !ContainsType(other, wt.Constraints) {
 			return false
 		}
 
@@ -251,7 +251,7 @@ func (wt *WildcardType) copyTemplate() DataType {
 		// that is changing -- the copy needs to propagate up not down
 		Value:       wt.Value,
 		Name:        wt.Name,
-		Restrictors: wt.Restrictors,
+		Constraints: wt.Constraints,
 		// copyTemplate should never be applied to a WildcardType that requires
 		// ImmediateBind (or if it is, then clearing ImmediateBind is
 		// appropriate/acceptable)
@@ -395,4 +395,28 @@ func (gs *GenericSpecialization) Match(ogs *GenericSpecialization) bool {
 	}
 
 	return true
+}
+
+// ConstraintType represents a defined constraint.  It is only implemented as a
+// type so it can be stored in symbols
+type ConstraintType struct {
+	Name      string
+	Types     []DataType
+	Intrinsic bool
+}
+
+func (ts *ConstraintType) Repr() string {
+	return ts.Name
+}
+
+func (ts *ConstraintType) equals(other DataType) bool {
+	logging.LogFatal("Tested for equality on defined constraint")
+	return false
+}
+
+func (ts *ConstraintType) copyTemplate() DataType {
+	return &ConstraintType{
+		Types:     copyTemplateSlice(ts.Types),
+		Intrinsic: ts.Intrinsic,
+	}
 }
