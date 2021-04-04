@@ -583,7 +583,6 @@ loop:
 				isUns = true
 				continue
 			} else {
-				s.readNext()
 				break
 			}
 		} else if isUns {
@@ -591,7 +590,6 @@ loop:
 				isLong = true
 				continue
 			} else {
-				s.readNext()
 				break
 			}
 		}
@@ -722,8 +720,16 @@ loop:
 			isFloat = true
 			expectNeg = true
 		case 'u':
+			if isFloat {
+				break
+			}
+
 			isUns = true
 		case 'l':
+			if isFloat {
+				break
+			}
+
 			isLong = true
 		default:
 			break loop

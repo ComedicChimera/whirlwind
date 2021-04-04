@@ -1,6 +1,7 @@
 package validate
 
 import (
+	"strings"
 	"whirlwind/common"
 	"whirlwind/syntax"
 	"whirlwind/typing"
@@ -26,10 +27,29 @@ func (w *Walker) walkAtom(branch *syntax.ASTBranch) (common.HIRExpr, bool) {
 				w.LogUndefined(atomCore.Value, atomCore.Position())
 			}
 		case syntax.INTLIT:
-			// Integer literals can be either floats or ints depending on usage
-			return w.newUndeterminedLiteral(atomCore, "Numeric"), true
+			unsigned := strings.Contains(atomCore.Value, "u")
+			long := strings.Contains(atomCore.Value, "l")
+
+			if unsigned && long {
+				return newLiteral(atomCore, typing.PrimKindIntegral, typing.PrimIntUlong), true
+			} else if unsigned {
+				return w.newConstrainedLiteral(atomCore,
+					primitiveTypeTable[syntax.BYTE],
+					primitiveTypeTable[syntax.USHORT],
+					primitiveTypeTable[syntax.UINT],
+					primitiveTypeTable[syntax.ULONG],
+				), true
+			} else if long {
+				return w.newConstrainedLiteral(atomCore,
+					primitiveTypeTable[syntax.LONG],
+					primitiveTypeTable[syntax.ULONG],
+				), true
+			} else {
+				// Integer literals can be either floats or ints depending on usage
+				return w.newConstrainedLiteral(atomCore, w.getCoreType("Numeric")), true
+			}
 		case syntax.FLOATLIT:
-			return w.newUndeterminedLiteral(atomCore, "Floating"), true
+			return w.newConstrainedLiteral(atomCore, w.getCoreType("Floating")), true
 		case syntax.NULL:
 			ut := w.solver.CreateUnknown(atomCore.Position())
 
@@ -60,12 +80,10 @@ func newLiteral(leaf *syntax.ASTLeaf, primKind, primSpec uint8) common.HIRExpr {
 	}
 }
 
-// newUndeterminedLiteral creates a new literal for an undetermined primitive
-// type (eg. int literals, float literals, etc) since these types can assume one
-// of many more specific types depending on usage.  It takes the name of the
-// appropriate constaint interface
-func (w *Walker) newUndeterminedLiteral(leaf *syntax.ASTLeaf, constraintName string) common.HIRExpr {
-	ut := w.solver.CreateUnknown(leaf.Position(), w.getCoreType(constraintName))
+// newConstrainedLiteral creates a new literal for an undetermined primitive
+// type with the given set of constraints
+func (w *Walker) newConstrainedLiteral(leaf *syntax.ASTLeaf, constraints ...typing.DataType) common.HIRExpr {
+	ut := w.solver.CreateUnknown(leaf.Position(), constraints...)
 
 	return &common.HIRValue{
 		ExprBase: common.NewExprBase(

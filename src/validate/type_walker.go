@@ -73,7 +73,7 @@ var primitiveTypeTable = map[int]*typing.PrimitiveType{
 
 // walkTypeLabel walks and attempts to extract a data type from a type label.
 func (w *Walker) walkTypeLabel(label *syntax.ASTBranch) (typing.DataType, bool) {
-	if dt, requiresRef, ok := w.walkTypeLabelCore(label.BranchAt(0)); ok {
+	if dt, requiresRef, ok := w.walkTypeLabelCore(label.BranchAt(0), false); ok {
 		// we know that since we are the exterior of walk type label, we will
 		// never have the enclosing reference type required as so we can simply
 		// return false.
@@ -93,10 +93,39 @@ func (w *Walker) walkTypeLabel(label *syntax.ASTBranch) (typing.DataType, bool) 
 	return nil, false
 }
 
+// walkGenericTypeConstraint walks a generic type constraint node
+func (w *Walker) walkGenericTypeConstraint(param *syntax.ASTBranch) ([]typing.DataType, bool) {
+	typeList := make([]typing.DataType, param.Len()/2)
+
+	for i := 2; i < param.Len(); i += 2 {
+		// we have to call `walkTypeLabelCore` directly so we can allow constraints
+		if dt, requiresRef, ok := w.walkTypeLabelCore(param.BranchAt(i).BranchAt(0), true); ok {
+			// we know that since we are the exterior of a type label
+			// (constraint), we will never have the enclosing reference type
+			// required as so we can simply return false.
+			if requiresRef {
+				w.logError(
+					fmt.Sprintf("The type `%s` can only be stored by reference here", dt.Repr()),
+					logging.LMKTyping,
+					param.Content[i].Position(),
+				)
+
+				return nil, false
+			}
+
+			typeList[(i-2)/2] = dt
+		}
+	}
+
+	return typeList, true
+}
+
 // walkTypeLabelCore walks the inner type of the `type` node -- the type core It
 // returns a boolean indicating whether or not the inner type requires a
-// reference and a boolean indicating if the type was valid.
-func (w *Walker) walkTypeLabelCore(typeCore *syntax.ASTBranch) (typing.DataType, bool, bool) {
+// reference and a boolean indicating if the type was valid.  `allowConstraints`
+// indicates whether type constraints should be allowed as valid types -- this
+// is mostly used in generic tag walking
+func (w *Walker) walkTypeLabelCore(typeCore *syntax.ASTBranch, allowConstraints bool) (typing.DataType, bool, bool) {
 	var dt typing.DataType
 
 	switch typeCore.Name {
@@ -113,7 +142,7 @@ func (w *Walker) walkTypeLabelCore(typeCore *syntax.ASTBranch) (typing.DataType,
 			}
 		}
 	case "named_type":
-		return w.walkNamedType(typeCore)
+		return w.walkNamedType(typeCore, allowConstraints)
 	case "ref_type":
 		if rt, ok := w.walkRefType(typeCore); ok {
 			dt = rt
@@ -129,7 +158,7 @@ func (w *Walker) walkTypeLabelCore(typeCore *syntax.ASTBranch) (typing.DataType,
 // extracts (or nil if no type can be determined), a flag indicating whether or
 // not this named type may only be accessed by reference (eg. for self-types),
 // and a flag indicating whether or not the type was able to determined/created.
-func (w *Walker) walkNamedType(namedTypeLabel *syntax.ASTBranch) (typing.DataType, bool, bool) {
+func (w *Walker) walkNamedType(namedTypeLabel *syntax.ASTBranch, allowConstraints bool) (typing.DataType, bool, bool) {
 	// walk the ast and extract relevant data
 	var rootName, accessedName string
 	var rootPos, accessedPos *logging.TextPosition
@@ -155,7 +184,7 @@ func (w *Walker) walkNamedType(namedTypeLabel *syntax.ASTBranch) (typing.DataTyp
 	}
 
 	// look-up the core named type based on that data
-	namedType, requiresRef, ok := w.lookupNamedType(rootName, accessedName, rootPos, accessedPos)
+	namedType, requiresRef, ok := w.lookupNamedType(rootName, accessedName, rootPos, accessedPos, allowConstraints)
 
 	if !ok {
 		return nil, false, false
@@ -194,7 +223,7 @@ func (w *Walker) walkNamedType(namedTypeLabel *syntax.ASTBranch) (typing.DataTyp
 // that are extracted during the execution of walkNamedType.  It handles opaque
 // types and self-types.  Generics are processed by walkNamedType.  It returns
 // the same parameters as walkNamedType.
-func (w *Walker) lookupNamedType(rootName, accessedName string, rootPos, accessedPos *logging.TextPosition) (typing.DataType, bool, bool) {
+func (w *Walker) lookupNamedType(rootName, accessedName string, rootPos, accessedPos *logging.TextPosition, allowConstraints bool) (typing.DataType, bool, bool) {
 	// NOTE: we don't consider algebraic variants here (statically accessed)
 	// because they cannot be used as types.  They are only values so despite
 	// using the `::` syntax, they are simply not usable here (and simply saying
@@ -226,7 +255,7 @@ func (w *Walker) lookupNamedType(rootName, accessedName string, rootPos, accesse
 			}
 		} else {
 			// the symbol exists in the regular local table
-			if symbol.DefKind != common.DefKindTypeDef {
+			if symbol.DefKind != common.DefKindTypeDef || (allowConstraints && symbol.DefKind == common.DefKindConstraint) {
 				w.logError(
 					fmt.Sprintf("Symbol `%s` is not a type", symbol.Name),
 					logging.LMKUsage,
@@ -278,7 +307,7 @@ func (w *Walker) lookupNamedType(rootName, accessedName string, rootPos, accesse
 
 	if pkg, ok := w.SrcFile.VisiblePackages[rootName]; ok {
 		if symbol, ok := w.implicitImport(pkg, accessedName); ok {
-			if symbol.DefKind != common.DefKindTypeDef {
+			if symbol.DefKind != common.DefKindTypeDef || (allowConstraints && symbol.DefKind == common.DefKindConstraint) {
 				w.logError(
 					fmt.Sprintf("Symbol `%s` is not a type", symbol.Name),
 					logging.LMKUsage,
@@ -328,7 +357,7 @@ func (w *Walker) opaqueSymbolRequiresRef(os *common.OpaqueSymbol) bool {
 
 // walkRefType walks a `ref_type` node and attempts to produce a reference type
 func (w *Walker) walkRefType(branch *syntax.ASTBranch) (typing.DataType, bool) {
-	elemtype, _, ok := w.walkTypeLabelCore(branch.LastBranch())
+	elemtype, _, ok := w.walkTypeLabelCore(branch.LastBranch(), false)
 
 	if !ok {
 		return nil, false

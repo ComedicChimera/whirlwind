@@ -106,9 +106,12 @@ func (s *Solver) CoerceTo(src, dest DataType) bool {
 		// coerced to it (duck typing)
 		return s.ImplementsInterf(src, dv)
 	case *ConstraintType:
-		// Any type that is in a type set can be coerced to that type set.
-		// Additionally, several intrinsic type sets (eg. `Vector`) require
-		// a special coercion implementation that is given here.
+		// Although constraints aren't used as physical types, they do still
+		// implement coercion for operations like type inference and validation
+		// of passed in generic parameters.
+
+		// Any intrinsic constraints require special coercion checking; eg.
+		// `Vector` is modified to be coercible to from all vectors
 		if dv.Intrinsic {
 			switch dv.Name {
 			case "Vector":
@@ -137,15 +140,30 @@ func (s *Solver) CoerceTo(src, dest DataType) bool {
 					})
 				}
 			}
+		} else if scons, ok := src.(*ConstraintType); ok {
+			// if we coercing one constraint to another, then we need to make
+			// sure that every possible type in the source constraint is
+			// coercible to the destination constraint -- we can check this by
+			// simply coercing each individual element to the destination
+			// constraint
+			for _, item := range scons.Types {
+				if !s.CoerceTo(item, dv) {
+					return false
+				}
+			}
+
+			// if we reach here, all coerced fine
+			return true
 		} else {
-			// Coercion into a type set requires equality because the explicit
-			// types that are allowed in a type set define part of its identity.
-			// Thus, coercing other types, even if they may coercible to
-			// elements of that type set into it would violate the identity of
-			// the type set.  Moreover, that would technically require two
-			// distinct, high-level casts to accomplish -- again, not readily
-			// coercible.
-			return ContainsType(src, dv.Types)
+			// if the source is not itself a type constraint, then we can simply
+			// say that coercion is possible if source is coercible to any
+			// element of the constraint.  Note that constraints cannot, by
+			// definition contain other constraints
+			for _, item := range dv.Types {
+				if s.CoerceTo(src, item) {
+					return true
+				}
+			}
 		}
 	case *WildcardType:
 		// the only WildcardTypes that reach here have failed the equals check

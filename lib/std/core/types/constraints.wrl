@@ -1,0 +1,24 @@
+export of
+    constraint Integral = int | uint | short | ushort | long | ulong
+
+    constraint Floating = float | double
+
+    constraint Numeric = int | uint | short | ushort | long | ulong | float | double
+
+    constraint Stringlike = string | rune
+
+    constraint Bytelike = byte | sbyte
+
+    @intrinsic
+    constraint Vector = nothing
+
+    @intrinsic
+    constraint TypedVector<T> = T
+
+    @intrinsic
+    constraint IntegralVector = nothing
+
+    @intrinsic
+    constraint Tuple = nothing
+    
+
