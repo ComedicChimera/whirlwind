@@ -7,13 +7,12 @@ package typing
 // The rule of coercion specifies that a coercion should be legal between two
 // things of (relatively) equivalent value.  That means no coercion should
 // result in a significant change in the meaning of the value of a type or in
-// that value itself.  Thus, `int` to `float` is a valid coercion since (for the
-// most part), the numeric value of the `int` can be preserved across that
-// coercion.  However, something like `int` to `uint` could change the numeric
-// value of the original data significantly, and something like `bool` to `int`
-// dramatically changes the meaning of the data stored in the boolean value.
-// Thus, those two operations should be casts (requiring explicit denotation)
-// and not coercions.
+// that value itself.  Thus, `rune` to `string` is a valid coercion since , the
+// text value of the `rune` can be preserved across that coercion.  However,
+// something like `int` to `uint` could change the numeric value of the original
+// data significantly, and something like `bool` to `int` dramatically changes
+// the meaning of the data stored in the boolean value. Thus, those two
+// operations should be casts (requiring explicit denotation) and not coercions.
 
 // CoerceTo implements coercion checking for the solver.  It checks if two types
 // are equal or can be made equal through implicit casting.  This function does

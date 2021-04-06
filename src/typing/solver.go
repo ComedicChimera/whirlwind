@@ -203,7 +203,39 @@ func (s *Solver) coerceUnknowns(src, dest DataType) (bool, bool) {
 	return false, false
 }
 
-// unify -- unification (of a list) with unknowns
+// unify attempts to produce a single common type from a list of types
+func (s *Solver) unify(types ...DataType) (DataType, bool) {
+	unifiedDt := types[0]
+
+	for _, dt := range types[1:] {
+		if s.CoerceTo(dt, unifiedDt) {
+			continue
+		} else if s.CoerceTo(unifiedDt, dt) {
+			// This should never introduce problems since generally coercion is
+			// only really one step in depth, and don't involve any underlying
+			// loss of data (so we can coerce multiple stages if necessary)
+			unifiedDt = dt
+		} else if cit, ok := s.findCommonInterface(dt, unifiedDt); ok {
+			// NOTE: see comment in `findCommonInterface` impl
+			unifiedDt = cit
+		} else {
+			return nil, false
+		}
+	}
+
+	return unifiedDt, true
+}
+
+// findCommonInterface attempts to find an interface that both types explicitly
+// implement to aggregate them to.  This is intended for use in coercion.
+func (s *Solver) findCommonInterface(a, b DataType) (DataType, bool) {
+	// TODO: should this method really exist?  Technically, you can unify `int`
+	// and `string` to `Showable`, but is that really a coercion you think
+	// should happen automatically?  Even more generally, you can literally
+	// unify any two types in the language to `any` -- does that mean such a
+	// unification is really a good idea?
+	return nil, false
+}
 
 // DeduceApp tells the solver to perform a deduction across a function or method
 // application.  The map contains argument names mapped to their
