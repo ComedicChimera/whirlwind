@@ -38,7 +38,7 @@ export of
     func clamp<T: Numeric>(n, l, u: T) T do
         if u == l do
             return l
-        elif u > l do
+        elif u < l do
             return n
 
         if n < l do
