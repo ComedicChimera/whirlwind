@@ -121,7 +121,7 @@ Linked List:
         if val == 0 do
             return &LLNode{value=val, next=None}
 
-        return &LLNode{value=val, next=Some(ll_range[region r](val - 1))}
+        return &LLNode{value=val, next=Some(ll_range(val - 1))}
 
     func main() do
         let ll = ll_range(10)
