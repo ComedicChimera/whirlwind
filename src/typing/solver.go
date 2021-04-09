@@ -97,9 +97,9 @@ func (s *Solver) initEqn(ut *UnknownType) {
 // built -- this will only be used in this case.
 func (s *Solver) FinishExpr(resultant DataType) {
 	if s.CurrentExpr == nil {
-		s.CurrentExpr = &SolvedExpr{ResultType: resultant}
+		s.CurrentExpr = &TypeValueExpr{StoredType: resultant}
 	} else if dt, ok := s.CurrentExpr.Result(); ok {
-		s.CurrentExpr = &SolvedExpr{ResultType: dt}
+		s.CurrentExpr = &TypeValueExpr{StoredType: dt}
 	}
 
 	s.pushExpr()
@@ -177,26 +177,42 @@ type PositionedType struct {
 }
 
 // coerceUnknowns checks if two types are unknowns (either or both) and performs
-// the appropriate coercion and evaluation if so.  Otherwise, it does nothing
-// and leaves the regular `CoerceTo` function to handle the coercion.  The first
-// flag indicates if coercion was performed at all, the second indicates whether
-// that coercion succeeded or failed if it was performed
+// the appropriate coercion if so.  Otherwise, it does nothing and leaves the
+// regular `CoerceTo` function to handle the coercion.  The first flag indicates
+// if coercion was performed at all, the second indicates whether that coercion
+// succeeded or failed if it was performed.  This function does not perform
+// propagation/evaluation on any unknowns it receives.
 func (s *Solver) coerceUnknowns(src, dest DataType) (bool, bool) {
-	// TODO: figure which direction to coerce and how to evaluate
-
 	if sut, ok := src.(*UnknownType); ok && sut.EvalType == nil {
 		if dut, ok := dest.(*UnknownType); ok && dut.EvalType == nil {
-
+			// TODO: merge/intersect the constraints
 		}
 
 		for _, cons := range sut.Constraints {
-			_ = cons
+			// for actual coercion, we want to check src -> dest because
+			// if any of the source constaints can even coerce to destination
+			// then, this coercion can succeed; the constaint that coerced
+			// is the propagated to the source type
+			if s.CoerceTo(cons, dest) {
+				// TODO: propagate/evaluate
+				return true, true
+			}
 		}
 
 		// no matching constraint found
 		return true, false
 	} else if dut, ok := dest.(*UnknownType); ok && dut.EvalType == nil {
+		// this direction of unknown coercion is comparatively much more simple
+		// -- if the source can be coerced to the destination, then the src
+		// becomes the destination type
+		for _, cons := range dut.Constraints {
+			if s.CoerceTo(src, cons) {
+				dut.EvalType = src
+				return true, true
+			}
+		}
 
+		return true, false
 	}
 
 	// no coercion performed

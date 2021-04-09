@@ -57,10 +57,6 @@ func (ut *UnknownType) equals(other DataType) bool {
 	return ut.EvalType.equals(other)
 }
 
-// evaluateTo checks if the given type matches this unknown type's constraints
-// and if it does, it sets the unknowns evaluated type accordingly
-func (ut *UnknownType) evaluateTo(other DataType)
-
 // TypeEquation represents a relation between one or more types that the solver
 // can manipulate to solve for one or more type variables.
 type TypeEquation struct {
@@ -70,12 +66,6 @@ type TypeEquation struct {
 	// satisfied.  This is a map to prevent duplication
 	Unknowns map[*UnknownType]struct{}
 }
-
-// TODO: do not implement any of these until we know exactly how the solver is
-// going to work -- I don't want to spend time messing with the API until I know
-// exactly what I am going to need (maybe have expressions do all of the heavy
-// lifting and the solver just orchestrate them or have the solver do
-// everything)
 
 // TypeExpression is equivalent to an arithmetic expression used to create a a
 // larger expression or equation in real numbers -- the key difference being
@@ -98,18 +88,24 @@ type TypeExpression interface {
 	Propagate(result DataType) bool
 }
 
-// SolvedExpr is the simplest of the type expressions: it indicates an
-// expression that has been solved to a known type -- it is generated whenever
-// the solver isn't sure if a side of an equation need be solved.  It's
-// `TypeExpression` method implementations are trivial
-type SolvedExpr struct {
-	ResultType DataType
+// TypeValueExpr is the simplest of the type expressions: it contains a
+// single type value and exists as a leaf on a larger type expression.
+type TypeValueExpr struct {
+	StoredType DataType
 }
 
-func (se *SolvedExpr) Result() (DataType, bool) {
-	return se.ResultType, true
+func (tve *TypeValueExpr) Result() (DataType, bool) {
+	_, isUnknown := tve.StoredType.(*UnknownType)
+
+	return tve.StoredType, !isUnknown
 }
 
-func (se *SolvedExpr) Propagate(dt DataType) bool {
+func (tve *TypeValueExpr) Propagate(dt DataType) bool {
+	if ut, ok := dt.(*UnknownType); ok {
+		_ = ut
+		// TODO: propagate to ut
+	}
+
+	// if it is not unknown, propagation always succeeds
 	return true
 }
