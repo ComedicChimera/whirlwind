@@ -91,6 +91,9 @@ type TypeExpression interface {
 // TypeValueExpr is the simplest of the type expressions: it contains a
 // single type value and exists as a leaf on a larger type expression.
 type TypeValueExpr struct {
+	// s is a reference to the parent solver
+	s *Solver
+
 	StoredType DataType
 }
 
@@ -102,8 +105,19 @@ func (tve *TypeValueExpr) Result() (DataType, bool) {
 
 func (tve *TypeValueExpr) Propagate(dt DataType) bool {
 	if ut, ok := dt.(*UnknownType); ok {
-		_ = ut
-		// TODO: propagate to ut
+		if len(ut.Constraints) == 0 {
+			ut.EvalType = dt
+			return true
+		}
+
+		for _, cons := range ut.Constraints {
+			if tve.s.CoerceTo(dt, cons) {
+				ut.EvalType = dt
+				return true
+			}
+		}
+
+		return false
 	}
 
 	// if it is not unknown, propagation always succeeds

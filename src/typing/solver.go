@@ -97,9 +97,9 @@ func (s *Solver) initEqn(ut *UnknownType) {
 // built -- this will only be used in this case.
 func (s *Solver) FinishExpr(resultant DataType) {
 	if s.CurrentExpr == nil {
-		s.CurrentExpr = &TypeValueExpr{StoredType: resultant}
+		s.CurrentExpr = &TypeValueExpr{s: s, StoredType: resultant}
 	} else if dt, ok := s.CurrentExpr.Result(); ok {
-		s.CurrentExpr = &TypeValueExpr{StoredType: dt}
+		s.CurrentExpr = &TypeValueExpr{s: s, StoredType: dt}
 	}
 
 	s.pushExpr()
@@ -150,7 +150,7 @@ func (s *Solver) SolveAll() bool {
 // this function to perform deduction.  NOTE: `FinishEqn` should NOT be called
 // before this function.
 func (s *Solver) SolveExpr(expected DataType) bool {
-	return false
+	return s.CurrentExpr.Propagate(expected)
 }
 
 // solve attempts to solve a given type equation
@@ -181,11 +181,12 @@ type PositionedType struct {
 // regular `CoerceTo` function to handle the coercion.  The first flag indicates
 // if coercion was performed at all, the second indicates whether that coercion
 // succeeded or failed if it was performed.  This function does not perform
-// propagation/evaluation on any unknowns it receives.
+// propagation/evaluation on any unknowns it receives.  However, if two unknowns
+// are coerced, their constraints will be merged.
 func (s *Solver) coerceUnknowns(src, dest DataType) (bool, bool) {
 	if sut, ok := src.(*UnknownType); ok && sut.EvalType == nil {
 		if dut, ok := dest.(*UnknownType); ok && dut.EvalType == nil {
-			// TODO: merge/intersect the constraints
+			return true, s.mergeConstraints(sut, dut)
 		}
 
 		for _, cons := range sut.Constraints {
@@ -194,7 +195,6 @@ func (s *Solver) coerceUnknowns(src, dest DataType) (bool, bool) {
 			// then, this coercion can succeed; the constaint that coerced
 			// is the propagated to the source type
 			if s.CoerceTo(cons, dest) {
-				// TODO: propagate/evaluate
 				return true, true
 			}
 		}
@@ -207,7 +207,6 @@ func (s *Solver) coerceUnknowns(src, dest DataType) (bool, bool) {
 		// becomes the destination type
 		for _, cons := range dut.Constraints {
 			if s.CoerceTo(src, cons) {
-				dut.EvalType = src
 				return true, true
 			}
 		}
@@ -217,6 +216,15 @@ func (s *Solver) coerceUnknowns(src, dest DataType) (bool, bool) {
 
 	// no coercion performed
 	return false, false
+}
+
+// mergeConstraints attempts to combine the constaints of two unknown types into
+// one constraint that best represents both types.  This modifies the unknown
+// types and returns a flag variable indicating whether the merge was
+// successful.
+func (s *Solver) mergeConstraints(a, b *UnknownType) bool {
+	// TODO: implement
+	return false
 }
 
 // unify attempts to produce a single common type from a list of types
@@ -231,26 +239,12 @@ func (s *Solver) unify(types ...DataType) (DataType, bool) {
 			// only really one step in depth, and don't involve any underlying
 			// loss of data (so we can coerce multiple stages if necessary)
 			unifiedDt = dt
-		} else if cit, ok := s.findCommonInterface(dt, unifiedDt); ok {
-			// NOTE: see comment in `findCommonInterface` impl
-			unifiedDt = cit
 		} else {
 			return nil, false
 		}
 	}
 
 	return unifiedDt, true
-}
-
-// findCommonInterface attempts to find an interface that both types explicitly
-// implement to aggregate them to.  This is intended for use in coercion.
-func (s *Solver) findCommonInterface(a, b DataType) (DataType, bool) {
-	// TODO: should this method really exist?  Technically, you can unify `int`
-	// and `string` to `Showable`, but is that really a coercion you think
-	// should happen automatically?  Even more generally, you can literally
-	// unify any two types in the language to `any` -- does that mean such a
-	// unification is really a good idea?
-	return nil, false
 }
 
 // DeduceApp tells the solver to perform a deduction across a function or method
