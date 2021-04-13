@@ -24,17 +24,16 @@ type UnknownType struct {
 	// exists. This field is `nil` for values.
 	SourceExpr TypeExpression
 
+	// Potentials contains all the possible types that this unknown type could
+	// be -- this is used during things like function calls where an unknown may
+	// not be the first type is coerced to.  This field once unified could
+	// propagated as a known type.  `coerceUnknowns` updates this field by
+	// default
+	Potentials []DataType
+
 	// Position indicates wheter this type was defined so we can log errors if
 	// it is not solvable
 	Position *logging.TextPosition
-}
-
-// InferInst attempts to deduce a type for this unknown based on its constraints.
-// If there are no constaints or multiple constaints, then this fails.  If, however,
-// these is only one constaint, then a protocol will be followed to attempt to determine
-// the most sensible type (eg. `Integral` => `int` as default).
-func (ut *UnknownType) InferInst() bool {
-	return false
 }
 
 func (ut *UnknownType) Repr() string {
@@ -43,6 +42,10 @@ func (ut *UnknownType) Repr() string {
 	}
 
 	return "<unknown type>"
+}
+
+func (ut *UnknownType) addPotential(dt DataType) {
+	ut.Potentials = append(ut.Potentials, dt)
 }
 
 // This function should never be used (logically)
@@ -98,7 +101,11 @@ type TypeValueExpr struct {
 }
 
 func (tve *TypeValueExpr) Result() (DataType, bool) {
-	_, isUnknown := tve.StoredType.(*UnknownType)
+	ut, isUnknown := tve.StoredType.(*UnknownType)
+
+	if ut.EvalType != nil {
+		return ut.EvalType, true
+	}
 
 	return tve.StoredType, !isUnknown
 }
@@ -106,13 +113,13 @@ func (tve *TypeValueExpr) Result() (DataType, bool) {
 func (tve *TypeValueExpr) Propagate(dt DataType) bool {
 	if ut, ok := dt.(*UnknownType); ok {
 		if len(ut.Constraints) == 0 {
-			ut.EvalType = dt
+			tve.s.evaluate(ut, dt)
 			return true
 		}
 
 		for _, cons := range ut.Constraints {
 			if tve.s.CoerceTo(dt, cons) {
-				ut.EvalType = dt
+				tve.s.evaluate(ut, dt)
 				return true
 			}
 		}
@@ -122,4 +129,38 @@ func (tve *TypeValueExpr) Propagate(dt DataType) bool {
 
 	// if it is not unknown, propagation always succeeds
 	return true
+}
+
+// TypeAppExpr represents a function application.  It assumes that the function
+// call it contains is valid given the information known at the time of its
+// creation -- all unknown types are properly constrained.
+type TypeAppExpr struct {
+	s *Solver
+
+	Func *FuncType
+	Args []DataType
+}
+
+func (tae *TypeAppExpr) Result() (DataType, bool) {
+	if urt, ok := tae.Func.ReturnType.(*UnknownType); ok {
+		for _, arg := range tae.Func.Args {
+			if aut, ok := arg.Val.Type.(*UnknownType); ok {
+				tae.s.inferFromPotentials(aut)
+			}
+		}
+
+		if urt.EvalType != nil {
+			return urt.EvalType, true
+		}
+
+		return urt, false
+	}
+
+	return tae.Func.ReturnType, true
+}
+
+func (tae *TypeAppExpr) Propagate(dt DataType) bool {
+	// TODO: downward type deduction
+
+	return false
 }

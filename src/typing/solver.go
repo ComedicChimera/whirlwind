@@ -161,21 +161,6 @@ func (s *Solver) solve(te *TypeEquation) bool {
 
 // ----------------------------------------------------------------------------
 
-// The `Deduce*` functions below all update the current expression with a new
-// structural component (such as a function application).  They return a type
-// deduction or an unknown depending on whether or not the solver was able to
-// solve the expression based on the new information given.  They all perform
-// any type checking necessary, log appropriate errors, and return a bool
-// indicating whether or not the given deduction was erroneous (ie. `int +
-// string` would never be valid)
-
-// PositionedType is a struct that pairs a data type with its position so that
-// the solver can log appropriate errors with positions.
-type PositionedType struct {
-	Type DataType
-	Pos  *logging.TextPosition
-}
-
 // coerceUnknowns checks if two types are unknowns (either or both) and performs
 // the appropriate coercion if so.  Otherwise, it does nothing and leaves the
 // regular `CoerceTo` function to handle the coercion.  The first flag indicates
@@ -189,12 +174,24 @@ func (s *Solver) coerceUnknowns(src, dest DataType) (bool, bool) {
 			return true, s.mergeConstraints(sut, dut)
 		}
 
+		// if there are no constraints, then we can assume coercion is possible
+		if len(sut.Constraints) == 0 {
+			sut.addPotential(dest)
+			return true, true
+		}
+
 		for _, cons := range sut.Constraints {
 			// for actual coercion, we want to check src -> dest because
 			// if any of the source constaints can even coerce to destination
 			// then, this coercion can succeed; the constaint that coerced
 			// is the propagated to the source type
 			if s.CoerceTo(cons, dest) {
+				// only a potential if it strictly matches the constaints; it
+				// must be able to become `dest` not just coerce to it
+				if s.matchConstraints(sut, dest) {
+					sut.addPotential(dest)
+				}
+
 				return true, true
 			}
 		}
@@ -205,10 +202,9 @@ func (s *Solver) coerceUnknowns(src, dest DataType) (bool, bool) {
 		// this direction of unknown coercion is comparatively much more simple
 		// -- if the source can be coerced to the destination, then the src
 		// becomes the destination type
-		for _, cons := range dut.Constraints {
-			if s.CoerceTo(src, cons) {
-				return true, true
-			}
+		if s.matchConstraints(dut, src) {
+			dut.addPotential(src)
+			return true, true
 		}
 
 		return true, false
@@ -216,6 +212,21 @@ func (s *Solver) coerceUnknowns(src, dest DataType) (bool, bool) {
 
 	// no coercion performed
 	return false, false
+}
+
+// matchContraints checks if a type matches the constaints of an unknown type
+func (s *Solver) matchConstraints(ut *UnknownType, dt DataType) bool {
+	if len(ut.Constraints) == 0 {
+		return true
+	}
+
+	for _, cons := range ut.Constraints {
+		if s.CoerceTo(dt, cons) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // mergeConstraints attempts to combine the constaints of two unknown types into
@@ -247,26 +258,83 @@ func (s *Solver) unify(types ...DataType) (DataType, bool) {
 	return unifiedDt, true
 }
 
-// DeduceApp tells the solver to perform a deduction across a function or method
-// application.  The map contains argument names mapped to their
-// PositionedTypes. The slice contains PositionedTypes corresponding to
-// indefinite arguments.  This function does NOT check that enough arguments
-// were supplied or that the arguments provided correspond to function
-// arguments.
-func (s *Solver) DeduceApp(fn *FuncType, args map[string]*PositionedType, indefArgs []*PositionedType) (DataType, bool) {
-	for _, arg := range fn.Args {
-		if arg.Indefinite {
+// evaluate evaluates an unknown type to a known type (final step of inference)
+func (s *Solver) evaluate(ut *UnknownType, dt DataType) {
+	ut.EvalType = dt
+	ut.SourceExpr.Propagate(dt)
+	ut.Potentials = nil
+}
 
-		}
+// inferFromPotentials attempts to infer a known type from the potentials of an
+// unknown type.  `Potentials` is cleared after this is called.
+func (s *Solver) inferFromPotentials(ut *UnknownType) bool {
+	if len(ut.Potentials) == 0 {
+		return false
+	}
 
-		if pt, ok := args[arg.Name]; ok {
-			if s.CoerceTo(pt.Type, arg.Val.Type) {
+	if udt, ok := s.unify(ut.Potentials...); ok {
+		if s.matchConstraints(ut, udt) {
+			s.evaluate(ut, udt)
 
-			}
+			return true
 		}
 	}
 
-	return nil, false
+	ut.Potentials = nil
+	return false
+}
+
+// inferInst attempts to deduce a type for an unknown based on its constraints.
+// If there are no constaints or multiple constaints, then this fails.  If, however,
+// these is only one constaint, then a protocol will be followed to attempt to determine
+// the most sensible type (eg. `Integral` => `int` as default).
+func (s *Solver) inferInst(ut *UnknownType) bool {
+	return false
+}
+
+// ----------------------------------------------------------------------------
+
+// The `Deduce*` functions below all update the current expression with a new
+// structural component (such as a function application).  They return a type
+// deduction or an unknown depending on whether or not the solver was able to
+// solve the expression based on the new information given.  They all perform
+// any type checking necessary, log appropriate errors, and return a bool
+// indicating whether or not the given deduction was erroneous (ie. `int +
+// string` would never be valid).  When all said functions set `CurrentExpr`
+// directly, they do so knowing that all sub-elements of that expr are
+// represented in the unknown types of whatever expression that are replacing
+// `CurrentExpr` with -- the higher structure is still preserved.
+
+// DeduceApp tells the solver to perform a deduction across a function or method
+// application.  This function takes the function type and a slice of the
+// arguments it is being applied to.  It returns a return type if deduction is
+// possible; if not, it returns the index of the argument that caused a problem
+// with the deduction (or -1 if the error was non-fatal).  The flag indicates
+// success or failure in dedudction; however, it does not indicate if
+// compilation should continue.  This function does not check that sufficient
+// arguments were supplied.  The `args` should contain the arguments provided to
+// the function in order with named arguments repositioned correctly.  Any arguments
+// that were optional and not provided by the user should be given a default type
+// of `nil`.
+func (s *Solver) DeduceApp(fn *FuncType, args []DataType) (DataType, int, bool) {
+	i := 0
+	for j, arg := range args {
+		if !s.CoerceTo(arg, fn.Args[i].Val.Type) {
+			return nil, j, false
+		}
+
+		if !fn.Args[i].Indefinite {
+			i++
+		}
+	}
+
+	app := &TypeAppExpr{s: s, Func: fn, Args: args}
+	if dt, ok := app.Result(); ok {
+		return dt, -1, true
+	}
+
+	s.CurrentExpr = app
+	return nil, -1, false
 }
 
 // ----------------------------------------------------------------------------
