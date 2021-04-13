@@ -1,0 +1,22 @@
+export of
+    # UntypedPtr represents an untyped pointer.  This is semantically
+    # equivalent to LLVM's `*i8` pointer.  It is logically equivalent to
+    # a void pointer.  It can be managed or unmanaged.
+    @intrinsic
+    type UntypedPtr = nothing    
+
+    # RawPtr is a typed pointer.  It can be managed or unmanaged.  It
+    # has no definite location in memory at compile-time: it can point
+    # to a stack, heap, or external resource.  It effectively a C pointer.
+    @intrinsic
+    type RawPtr<T> = T
+
+    # MemBlock is a contiguous block of memory.  It can be managed or
+    # unmanaged.  It has a definite size as part of its data type, but
+    # it can be resized if it is heap allocated.  It has no definite
+    # location in memory at compile-time: it can be point to a stack,
+    # heap, or external resource.  
+    type MemBlock<T> {
+        ptr: RawPtr<T>
+        size: int
+    }

@@ -1,0 +1,10 @@
+import MemBlock from core::unsafe
+
+export of
+    # `__stddict` is Whirlwind's internal dictionary
+    # implementation.  It is an ordered map of key
+    # value pairs.  This is imported by the prelude.
+    type __stddict<K, V> {
+        htable: MemBlock<int>
+        kv_pairs: [(K, V)]
+    }

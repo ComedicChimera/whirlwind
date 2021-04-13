@@ -1,0 +1,9 @@
+import MemBlock from core::unsafe
+
+export of
+    # `__stdarray` is Whirlwind's internal implementation
+    # of the array data type.  It is a fixed size collection
+    # similarly-typed elements that may be allocated on the
+    # stack or the heap.  It is imported by the prelude.
+    @impl("array")
+    type __stdarray<T> = MemBlock<T>
