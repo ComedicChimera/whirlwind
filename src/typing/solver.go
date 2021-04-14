@@ -76,7 +76,9 @@ func (s *Solver) CreateUnknown(pos *logging.TextPosition, constaints ...DataType
 	if s.CurrentEquation == nil {
 		s.initEqn(ut)
 	} else {
-		s.CurrentEquation.Unknowns[ut] = struct{}{}
+		// if the rhs is nil, then the equation hasn't been pushed yet and we
+		// are still operating on the rhs
+		s.CurrentEquation.Unknowns[ut] = s.CurrentEquation.Rhs != nil
 	}
 
 	return ut
@@ -85,7 +87,7 @@ func (s *Solver) CreateUnknown(pos *logging.TextPosition, constaints ...DataType
 // initEqn initializes the current type equation with a new unknown
 func (s *Solver) initEqn(ut *UnknownType) {
 	s.CurrentEquation = &TypeEquation{
-		Unknowns: map[*UnknownType]struct{}{ut: {}},
+		Unknowns: map[*UnknownType]bool{ut: false},
 	}
 }
 
@@ -260,9 +262,15 @@ func (s *Solver) unify(types ...DataType) (DataType, bool) {
 
 // evaluate evaluates an unknown type to a known type (final step of inference)
 func (s *Solver) evaluate(ut *UnknownType, dt DataType) {
+	// update evaluated type and remove as unknown
 	ut.EvalType = dt
+	delete(s.CurrentEquation.Unknowns, ut)
+
+	// propagate and clear potentials
 	ut.SourceExpr.Propagate(dt)
 	ut.Potentials = nil
+
+	// TODO: simplify subexpressions
 }
 
 // inferFromPotentials attempts to infer a known type from the potentials of an

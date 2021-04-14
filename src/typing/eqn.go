@@ -66,15 +66,17 @@ type TypeEquation struct {
 	Lhs, Rhs TypeExpression
 
 	// Unknowns stores the types that must be resolved for this equation to be
-	// satisfied.  This is a map to prevent duplication
-	Unknowns map[*UnknownType]struct{}
+	// satisfied.  This is a map to prevent duplication.  The boolean indicates
+	// which side of the expression the unknown is on: false => rhs, true => lhs
+	Unknowns map[*UnknownType]bool
 }
 
 // TypeExpression is equivalent to an arithmetic expression used to create a a
 // larger expression or equation in real numbers -- the key difference being
 // type expressions apply to types and expressions of types instead of real
 // numbers.  These types correspond to the "operators" of the Hindley-Milner
-// type system.
+// type system.  NOTE: The return values of both of the functions of this
+// interface DO NOT indicate whether their expression is solveable.
 type TypeExpression interface {
 	// Result performs upward type deduction on the expression to determine the
 	// resultant type.  If this type is unknown (deduction fails), the unknown
@@ -159,8 +161,22 @@ func (tae *TypeAppExpr) Result() (DataType, bool) {
 	return tae.Func.ReturnType, true
 }
 
+// NOTE: This function does not check if all of its arguments have been solved:
+// rather it checks to see if the return type can be inferred from the
+// propagated type and passes that result down as necessary
 func (tae *TypeAppExpr) Propagate(dt DataType) bool {
-	// TODO: downward type deduction
+	rt, ok := tae.Result()
+
+	// not unknown
+	if ok {
+		return tae.s.CoerceTo(rt, dt)
+	}
+
+	urt := rt.(*UnknownType)
+	if tae.s.matchConstraints(urt, dt) {
+		tae.s.evaluate(urt, dt)
+		return true
+	}
 
 	return false
 }
