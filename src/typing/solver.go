@@ -265,36 +265,20 @@ func (s *Solver) unify(types ...DataType) (DataType, bool) {
 // The `Deduce*` functions below all update the current expression with a new
 // structural component (such as a function application).  They return a type
 // deduction or an unknown depending on whether or not the solver was able to
-// solve the expression based on the new information given.  They all perform
-// any type checking necessary, log appropriate errors, and return a bool
-// indicating whether or not the given deduction was erroneous (ie. `int +
-// string` would never be valid).  When all said functions set `CurrentExpr`
-// directly, they do so knowing that all sub-elements of that expr are
-// represented in the unknown types of whatever expression that are replacing
-// `CurrentExpr` with -- the higher structure is still preserved.
+// solve the expression based on the new information given.  When all said
+// functions set `CurrentExpr` directly, they do so knowing that all
+// sub-elements of that expr are represented in the unknown types of whatever
+// expression that are replacing `CurrentExpr` with -- the higher structure is
+// still preserved.  These function do not perform type checking -- the solver
+// assumes correctness of inferencing.
 
 // DeduceApp tells the solver to perform a deduction across a function or method
 // application.  This function takes the function type and a slice of the
-// arguments it is being applied to.  It returns a return type if deduction is
-// possible; if not, it returns the index of the argument that caused a problem
-// with the deduction (or -1 if the error was non-fatal).  The flag indicates if
-// compilation should continue.  This function does not check that sufficient
-// arguments were supplied.  The `args` should contain the arguments provided to
-// the function in order with named arguments repositioned correctly.  Any
-// arguments that were optional and not provided by the user should be given a
-// default type of `nil`.
-func (s *Solver) DeduceApp(fn *FuncType, args []DataType) (DataType, int, bool) {
-	i := 0
-	for j, arg := range args {
-		if !s.CoerceTo(arg, fn.Args[i].Val.Type) {
-			return nil, j, false
-		}
-
-		if !fn.Args[i].Indefinite {
-			i++
-		}
-	}
-
+// arguments it is being applied to.  The `args` should contain the arguments
+// provided to the function in order with named arguments repositioned
+// correctly.  Any arguments that were optional and not provided by the user
+// should be given a default type of `nil`.
+func (s *Solver) DeduceApp(fn *FuncType, args []DataType) DataType {
 	app := s.newTypeAppExpr(fn, args)
 
 	dt, ok := app.Result()
@@ -302,7 +286,7 @@ func (s *Solver) DeduceApp(fn *FuncType, args []DataType) (DataType, int, bool) 
 		s.CurrentExpr = app
 	}
 
-	return dt, -1, true
+	return dt
 }
 
 // ----------------------------------------------------------------------------
