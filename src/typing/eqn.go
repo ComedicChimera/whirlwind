@@ -217,10 +217,8 @@ func (tve *TypeValueExpr) Propagate(dt DataType) bool {
 			return tve.evaluate(ut, dt)
 		}
 
-		for _, cons := range ut.Constraints {
-			if tve.s.CoerceTo(dt, cons) {
-				return tve.evaluate(ut, dt)
-			}
+		if tve.s.matchConstraints(ut, dt) {
+			return tve.evaluate(ut, dt)
 		}
 
 		return false
@@ -288,9 +286,9 @@ func (tae *TypeAppExpr) Result() (DataType, bool) {
 func (tae *TypeAppExpr) Propagate(dt DataType) bool {
 	rt, ok := tae.Result()
 
-	// not unknown
+	// not unknown; we can assume correctness of propagation
 	if ok {
-		return tae.s.CoerceTo(rt, dt) && tae.Solveable()
+		return tae.Solveable()
 	}
 
 	urt := rt.(*UnknownType)
