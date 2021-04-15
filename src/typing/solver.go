@@ -277,13 +277,12 @@ func (s *Solver) unify(types ...DataType) (DataType, bool) {
 // application.  This function takes the function type and a slice of the
 // arguments it is being applied to.  It returns a return type if deduction is
 // possible; if not, it returns the index of the argument that caused a problem
-// with the deduction (or -1 if the error was non-fatal).  The flag indicates
-// success or failure in dedudction; however, it does not indicate if
+// with the deduction (or -1 if the error was non-fatal).  The flag indicates if
 // compilation should continue.  This function does not check that sufficient
 // arguments were supplied.  The `args` should contain the arguments provided to
-// the function in order with named arguments repositioned correctly.  Any arguments
-// that were optional and not provided by the user should be given a default type
-// of `nil`.
+// the function in order with named arguments repositioned correctly.  Any
+// arguments that were optional and not provided by the user should be given a
+// default type of `nil`.
 func (s *Solver) DeduceApp(fn *FuncType, args []DataType) (DataType, int, bool) {
 	i := 0
 	for j, arg := range args {
@@ -297,12 +296,13 @@ func (s *Solver) DeduceApp(fn *FuncType, args []DataType) (DataType, int, bool) 
 	}
 
 	app := s.newTypeAppExpr(fn, args)
-	if dt, ok := app.Result(); ok {
-		return dt, -1, true
+
+	dt, ok := app.Result()
+	if !ok {
+		s.CurrentExpr = app
 	}
 
-	s.CurrentExpr = app
-	return nil, -1, false
+	return dt, -1, true
 }
 
 // ----------------------------------------------------------------------------
