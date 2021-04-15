@@ -99,9 +99,9 @@ func (s *Solver) initEqn(ut *UnknownType) {
 // built -- this will only be used in this case.
 func (s *Solver) FinishExpr(resultant DataType) {
 	if s.CurrentExpr == nil {
-		s.CurrentExpr = &TypeValueExpr{s: s, StoredType: resultant}
+		s.CurrentExpr = s.newTypeValueExpr(resultant)
 	} else if dt, ok := s.CurrentExpr.Result(); ok {
-		s.CurrentExpr = &TypeValueExpr{s: s, StoredType: dt}
+		s.CurrentExpr = s.newTypeValueExpr(dt)
 	}
 
 	s.pushExpr()
@@ -260,46 +260,6 @@ func (s *Solver) unify(types ...DataType) (DataType, bool) {
 	return unifiedDt, true
 }
 
-// evaluate evaluates an unknown type to a known type (final step of inference)
-func (s *Solver) evaluate(ut *UnknownType, dt DataType) {
-	// update evaluated type and remove as unknown
-	ut.EvalType = dt
-	delete(s.CurrentEquation.Unknowns, ut)
-
-	// propagate and clear potentials
-	ut.SourceExpr.Propagate(dt)
-	ut.Potentials = nil
-
-	// TODO: simplify subexpressions
-}
-
-// inferFromPotentials attempts to infer a known type from the potentials of an
-// unknown type.  `Potentials` is cleared after this is called.
-func (s *Solver) inferFromPotentials(ut *UnknownType) bool {
-	if len(ut.Potentials) == 0 {
-		return false
-	}
-
-	if udt, ok := s.unify(ut.Potentials...); ok {
-		if s.matchConstraints(ut, udt) {
-			s.evaluate(ut, udt)
-
-			return true
-		}
-	}
-
-	ut.Potentials = nil
-	return false
-}
-
-// inferInst attempts to deduce a type for an unknown based on its constraints.
-// If there are no constaints or multiple constaints, then this fails.  If, however,
-// these is only one constaint, then a protocol will be followed to attempt to determine
-// the most sensible type (eg. `Integral` => `int` as default).
-func (s *Solver) inferInst(ut *UnknownType) bool {
-	return false
-}
-
 // ----------------------------------------------------------------------------
 
 // The `Deduce*` functions below all update the current expression with a new
@@ -336,7 +296,7 @@ func (s *Solver) DeduceApp(fn *FuncType, args []DataType) (DataType, int, bool) 
 		}
 	}
 
-	app := &TypeAppExpr{s: s, Func: fn, Args: args}
+	app := s.newTypeAppExpr(fn, args)
 	if dt, ok := app.Result(); ok {
 		return dt, -1, true
 	}

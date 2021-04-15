@@ -76,7 +76,7 @@ type TypeEquation struct {
 // type expressions apply to types and expressions of types instead of real
 // numbers.  These types correspond to the "operators" of the Hindley-Milner
 // type system.  NOTE: The return values of both of the functions of this
-// interface DO NOT indicate whether their expression is solveable.
+// interface MUST indicate whether all sub-expressions are solveable.
 type TypeExpression interface {
 	// Result performs upward type deduction on the expression to determine the
 	// resultant type.  If this type is unknown (deduction fails), the unknown
@@ -91,15 +91,114 @@ type TypeExpression interface {
 	// simplified (modified) as propagation occurs if this operation is
 	// successful.
 	Propagate(result DataType) bool
+
+	// Unknown manipulation/updating functions
+	AddUnknown(unk *UnknownType)
+	RemoveUnknown(unk *UnknownType)
+
+	// Solveable indicates whether an expression can be fully solved
+	Solveable() bool
+}
+
+// typeExprBase is the base structure for all type expressions.  It provides
+// some functionality that works the same for all of them.
+type typeExprBase struct {
+	// s is a reference to the parent solver
+	s *Solver
+
+	// parentEqn is the parent equation of this expression
+	parentEqn *TypeEquation
+
+	// exprUnknowns is a list of all the unknowns of this expression
+	exprUnknowns map[*UnknownType]struct{}
+}
+
+func (s *Solver) newTypeExprBase() typeExprBase {
+	return typeExprBase{
+		s:            s,
+		parentEqn:    s.CurrentEquation,
+		exprUnknowns: make(map[*UnknownType]struct{}),
+	}
+}
+
+func (teb *typeExprBase) AddUnknown(unk *UnknownType) {
+	teb.exprUnknowns[unk] = struct{}{}
+}
+
+func (teb *typeExprBase) RemoveUnknown(unk *UnknownType) {
+	delete(teb.exprUnknowns, unk)
+}
+
+func (teb *typeExprBase) Solveable() bool {
+	return len(teb.exprUnknowns) > 0
+}
+
+// evaluate evaluates an unknown type to a known type (final step of inference).
+// Flag bool indicates if this evaluation solved all sub-expressions or not
+func (teb *typeExprBase) evaluate(ut *UnknownType, dt DataType) bool {
+	// update unknown type type
+	ut.EvalType = dt
+	ut.Potentials = nil
+
+	// remove unknown from expression and equation
+	delete(teb.parentEqn.Unknowns, ut)
+	teb.RemoveUnknown(ut)
+
+	// propagate the type down and attempt to simplify sub-expressions
+	if ut.SourceExpr.Propagate(dt) {
+		ut.SourceExpr = teb.s.newTypeValueExpr(ut.EvalType)
+		return true
+	}
+
+	return false
+}
+
+// inferFromPotentials attempts to infer a known type from the potentials of an
+// unknown type.  `Potentials` is cleared after this is called.
+func (teb *typeExprBase) inferFromPotentials(ut *UnknownType) bool {
+	if len(ut.Potentials) == 0 {
+		return false
+	}
+
+	if udt, ok := teb.s.unify(ut.Potentials...); ok {
+		if teb.s.matchConstraints(ut, udt) {
+			teb.evaluate(ut, udt)
+
+			return true
+		}
+	}
+
+	ut.Potentials = nil
+	return false
+}
+
+// inferInst attempts to deduce a type for an unknown based on its constraints.
+// If there are no constaints or multiple constaints, then this fails.  If, however,
+// these is only one constaint, then a protocol will be followed to attempt to determine
+// the most sensible type (eg. `Integral` => `int` as default).
+func (teb *typeExprBase) inferInst(ut *UnknownType) bool {
+	return false
 }
 
 // TypeValueExpr is the simplest of the type expressions: it contains a
 // single type value and exists as a leaf on a larger type expression.
 type TypeValueExpr struct {
-	// s is a reference to the parent solver
-	s *Solver
+	typeExprBase
 
 	StoredType DataType
+}
+
+func (s *Solver) newTypeValueExpr(st DataType) *TypeValueExpr {
+	tve := &TypeValueExpr{
+		typeExprBase: s.newTypeExprBase(),
+		StoredType:   st,
+	}
+
+	if ut, ok := st.(*UnknownType); ok {
+		tve.AddUnknown(ut)
+	}
+
+	return tve
 }
 
 func (tve *TypeValueExpr) Result() (DataType, bool) {
@@ -115,14 +214,12 @@ func (tve *TypeValueExpr) Result() (DataType, bool) {
 func (tve *TypeValueExpr) Propagate(dt DataType) bool {
 	if ut, ok := dt.(*UnknownType); ok {
 		if len(ut.Constraints) == 0 {
-			tve.s.evaluate(ut, dt)
-			return true
+			return tve.evaluate(ut, dt)
 		}
 
 		for _, cons := range ut.Constraints {
 			if tve.s.CoerceTo(dt, cons) {
-				tve.s.evaluate(ut, dt)
-				return true
+				return tve.evaluate(ut, dt)
 			}
 		}
 
@@ -137,45 +234,68 @@ func (tve *TypeValueExpr) Propagate(dt DataType) bool {
 // call it contains is valid given the information known at the time of its
 // creation -- all unknown types are properly constrained.
 type TypeAppExpr struct {
-	s *Solver
+	typeExprBase
 
 	Func *FuncType
 	Args []DataType
+}
+
+func (s *Solver) newTypeAppExpr(fn *FuncType, args []DataType) *TypeAppExpr {
+	tae := &TypeAppExpr{
+		typeExprBase: s.newTypeExprBase(),
+		Func:         fn,
+		Args:         args,
+	}
+
+	// add all the unknowns to the expression once it is created
+	for _, arg := range fn.Args {
+		if ut, isUnknown := arg.Val.Type.(*UnknownType); isUnknown {
+			tae.AddUnknown(ut)
+		}
+	}
+
+	for _, argDt := range args {
+		if ut, isUnknown := argDt.(*UnknownType); isUnknown {
+			tae.AddUnknown(ut)
+		}
+	}
+
+	if ut, isUnknown := fn.ReturnType.(*UnknownType); isUnknown {
+		tae.AddUnknown(ut)
+	}
+
+	return tae
 }
 
 func (tae *TypeAppExpr) Result() (DataType, bool) {
 	if urt, ok := tae.Func.ReturnType.(*UnknownType); ok {
 		for _, arg := range tae.Func.Args {
 			if aut, ok := arg.Val.Type.(*UnknownType); ok {
-				tae.s.inferFromPotentials(aut)
+				tae.inferFromPotentials(aut)
 			}
 		}
 
 		if urt.EvalType != nil {
-			return urt.EvalType, true
+			return urt.EvalType, tae.Solveable()
 		}
 
 		return urt, false
 	}
 
-	return tae.Func.ReturnType, true
+	return tae.Func.ReturnType, tae.Solveable()
 }
 
-// NOTE: This function does not check if all of its arguments have been solved:
-// rather it checks to see if the return type can be inferred from the
-// propagated type and passes that result down as necessary
 func (tae *TypeAppExpr) Propagate(dt DataType) bool {
 	rt, ok := tae.Result()
 
 	// not unknown
 	if ok {
-		return tae.s.CoerceTo(rt, dt)
+		return tae.s.CoerceTo(rt, dt) && tae.Solveable()
 	}
 
 	urt := rt.(*UnknownType)
 	if tae.s.matchConstraints(urt, dt) {
-		tae.s.evaluate(urt, dt)
-		return true
+		return tae.evaluate(urt, dt) && tae.Solveable()
 	}
 
 	return false
