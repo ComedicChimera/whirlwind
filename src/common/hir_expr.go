@@ -191,7 +191,7 @@ type HIRSequence struct {
 	ExprBase
 
 	// Dictionary values will be ordered in pairs
-	Values []HIRNode
+	Values []HIRExpr
 }
 
 // HIRGenerate represents the implicit creation of a generic generate whenever a

@@ -183,7 +183,7 @@ list_builder = '[' seq_contents ']' ;
 seq_contents = expr ({',' expr} | [comp_suffix]) ;
 dict_builder = '{' expr ':' expr ({',' expr ':' expr} | [comp_suffix]) '}' ;
 vector_builder = '<' expr [':' 'INTLIT'] '>' ;
-tupled_expr = '(' expr {',' expr} ')' ;
+tupled_expr = '(' expr_list ')' ;
 
 (* type constructions *)
 type_list = type {',' type} ;
