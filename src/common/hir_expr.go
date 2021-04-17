@@ -163,7 +163,7 @@ type HIRSlice struct {
 
 	// any of these may be null to indicate that the compiler should use the
 	// default value (eg. `[:n]` would only fill in `End`)
-	Begin, End, Step HIRNode
+	Begin, End HIRNode
 }
 
 // HIROperApp represents an operator application (could be an operator overload,
@@ -203,6 +203,15 @@ type HIRGenerate struct {
 
 	// Generic contains the generic source for the generate
 	// TODO: Generic *typing.GenericType
+}
+
+// HIRDotAccess represents an application of the `.` operator for a field or
+// method access
+type HIRDotAccess struct {
+	ExprBase
+
+	RootType, FieldType typing.DataType
+	FieldName           string
 }
 
 // HIRName represents an identifier or variable access
