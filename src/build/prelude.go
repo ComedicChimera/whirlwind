@@ -73,8 +73,8 @@ func (c *Compiler) initPrelude() bool {
 // package imports beyond this point).  All errors that occur in this function
 // are considered fatal (as they have no direct text position).
 func (c *Compiler) attachPrelude(pkg *common.WhirlPackage, file *common.WhirlFile) {
-	for stdpkgname, piPkg := range preludeImports {
-		if pkg.PackageID != piPkg.PackageID {
+	for stdpkgname, preludePkg := range preludeImports {
+		if pkg.PackageID != preludePkg.PackageID {
 			// `core` is the name of the prelude utils directory and so we skip
 			// this import if the specific file requests it (via. `!! no_util`)
 			if _, ok := file.MetadataTags["no_util"]; ok && stdpkgname == "core" {
@@ -92,7 +92,7 @@ func (c *Compiler) attachPrelude(pkg *common.WhirlPackage, file *common.WhirlFil
 
 			// prelude packages are never imported by name so we can leave the
 			// fields that relate to names and renames blank
-			c.attachPackageToFile(pkg, file, piPkg, importedSymbols, "", nil)
+			c.attachPackageToFile(pkg, file, preludePkg, importedSymbols, "", nil)
 		}
 	}
 }

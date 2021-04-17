@@ -275,10 +275,8 @@ func (s *Solver) unify(types ...DataType) (DataType, bool) {
 // DeduceApp tells the solver to perform a deduction across a function or method
 // application.  This function takes the function type and a slice of the
 // arguments it is being applied to.  The `args` should contain the arguments
-// provided to the function in order with named arguments repositioned
-// correctly.  Any arguments that were optional and not provided by the user
-// should be given a default type of `nil`.
-func (s *Solver) DeduceApp(fn *FuncType, args []DataType) DataType {
+// provided to the function rearranged by name
+func (s *Solver) DeduceApp(fn *FuncType, args map[string]DataType) DataType {
 	app := s.newTypeAppExpr(fn, args)
 
 	dt, ok := app.Result()

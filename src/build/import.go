@@ -70,10 +70,10 @@ func (c *Compiler) initDependencies(pkg *common.WhirlPackage) bool {
 	for fpath, file := range pkg.Files {
 		c.lctx.FilePath = fpath
 
-		for i, item := range file.AST.Content {
-			// attach the prelude for a file as necessary
-			c.attachPrelude(pkg, file)
+		// attach the prelude for a file as necessary
+		c.attachPrelude(pkg, file)
 
+		for i, item := range file.AST.Content {
 			if tbranch, ok := item.(*syntax.ASTBranch); ok && tbranch.Name == "import_stmt" {
 				if !c.processImport(pkg, file, tbranch) {
 					return false
@@ -234,16 +234,16 @@ func (c *Compiler) getPackagePath(parentModule *mods.Module, relpath string) str
 }
 
 // attachPackageToFile attaches an already loaded file to a package (completing
-// first stage of importing package for that file).  `fpkg` is the current
-// package (package the file is in) and `apkg` is the new package (package being
-// attached).  NOTE: `rename` can be blank if the package is not renamed,
+// first stage of importing package for that file).  `rootPkg` is the current
+// package (package the file is in) and `newPkg` is the new package (package
+// being attached).  NOTE: `rename` can be blank if the package is not renamed,
 // `namePosition` should point whatever token or branch is used name of the
 // package is derived from (not just rename).
-func (c *Compiler) attachPackageToFile(fpkg *common.WhirlPackage, file *common.WhirlFile,
-	apkg *common.WhirlPackage, importedSymbols map[string]*logging.TextPosition, rename string, namePosition *logging.TextPosition) bool {
+func (c *Compiler) attachPackageToFile(rootPkg *common.WhirlPackage, file *common.WhirlFile,
+	newPkg *common.WhirlPackage, importedSymbols map[string]*logging.TextPosition, rename string, namePosition *logging.TextPosition) bool {
 
 	// update the current package's imports
-	if wimport, ok := fpkg.ImportTable[apkg.PackageID]; ok {
+	if wimport, ok := rootPkg.ImportTable[newPkg.PackageID]; ok {
 		if len(importedSymbols) > 0 {
 			for name, pos := range importedSymbols {
 				if _, ok := file.LocalTable[name]; ok {
@@ -255,7 +255,7 @@ func (c *Compiler) attachPackageToFile(fpkg *common.WhirlPackage, file *common.W
 					file.LocalTable[name] = &common.WhirlSymbolImport{
 						SymbolRef:  wisym,
 						Position:   pos,
-						SrcPackage: apkg,
+						SrcPackage: newPkg,
 					}
 				} else {
 					// create a blank shared symbol reference
@@ -266,13 +266,13 @@ func (c *Compiler) attachPackageToFile(fpkg *common.WhirlPackage, file *common.W
 					file.LocalTable[name] = &common.WhirlSymbolImport{
 						SymbolRef:  sref,
 						Position:   pos,
-						SrcPackage: apkg,
+						SrcPackage: newPkg,
 					}
 				}
 			}
 		}
 	} else /* add a new import entry for the current package */ {
-		wimport = &common.WhirlImport{PackageRef: apkg, ImportedSymbols: make(map[string]*common.Symbol)}
+		wimport = &common.WhirlImport{PackageRef: newPkg, ImportedSymbols: make(map[string]*common.Symbol)}
 
 		if len(importedSymbols) > 0 {
 			for name, pos := range importedSymbols {
@@ -285,13 +285,13 @@ func (c *Compiler) attachPackageToFile(fpkg *common.WhirlPackage, file *common.W
 				file.LocalTable[name] = &common.WhirlSymbolImport{
 					SymbolRef:  sref,
 					Position:   pos,
-					SrcPackage: apkg,
+					SrcPackage: newPkg,
 				}
 			}
 		}
 
 		// add the new import to the current package's import table
-		fpkg.ImportTable[apkg.PackageID] = wimport
+		rootPkg.ImportTable[newPkg.PackageID] = wimport
 	}
 
 	// make the package visible if it is imported as a named entity
@@ -299,7 +299,7 @@ func (c *Compiler) attachPackageToFile(fpkg *common.WhirlPackage, file *common.W
 		// rename supercedes original name
 		name := rename
 		if name == "" {
-			name = apkg.Name
+			name = newPkg.Name
 		}
 
 		if _, ok := file.VisiblePackages[name]; ok {
@@ -313,21 +313,21 @@ func (c *Compiler) attachPackageToFile(fpkg *common.WhirlPackage, file *common.W
 			return false
 		}
 
-		file.VisiblePackages[name] = apkg
+		file.VisiblePackages[name] = newPkg
 	}
 
 	// import all exported bindings
-	if !c.importBindings(apkg, file, fpkg, namePosition) {
+	if !c.importBindings(newPkg, file, rootPkg, namePosition) {
 		return false
 	}
 
 	// import all the exported operators
-	if !c.importOperators(apkg, file, fpkg, namePosition) {
+	if !c.importOperators(newPkg, file, rootPkg, namePosition) {
 		return false
 	}
 
 	// we need to recursively initialize dependencies
-	return c.initDependencies(apkg)
+	return c.initDependencies(newPkg)
 }
 
 // importBindings lifts all exported bindings of an imported package into the

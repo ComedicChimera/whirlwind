@@ -181,8 +181,8 @@ type HIROperApp struct {
 type HIRApp struct {
 	ExprBase
 
-	// TODO: Function  *typing.FuncType
-	Arguments []HIRNode
+	Func      HIRExpr
+	Arguments map[string]HIRExpr
 }
 
 // HIRSequence represents a sequence values

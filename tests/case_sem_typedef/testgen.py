@@ -40,22 +40,15 @@ def gen_def(file, name, defs):
 
         file.write('}')
     else:
-        is_alg = bool(randint(0, 2))
+        # algebraic type
+        file.write(f'closed type {name}')
+        for i in range(randint(2, 5)):
+            arity = randint(0, 2)
 
-        if is_alg:
-            # algebraic type
-            file.write(f'closed type {name}')
-            for i in range(randint(2, 5)):
-                arity = randint(0, 2)
-
-                if arity == 0:
-                    file.write(f'\n\t| Variant{i}')
-                else:
-                    file.write(f'\n\t| Variant{i}({", ".join(gen_type(defs) for _ in range(arity))})')
-        else:
-            # type set
-            file.write(f'type {name}')
-            file.write(f' = {" | ".join(gen_type(defs) for _ in range(randint(3, 5)))}')
+            if arity == 0:
+                file.write(f'\n\t| Variant{i}')
+            else:
+                file.write(f'\n\t| Variant{i}({", ".join(gen_type(defs) for _ in range(arity))})')
 
     file.write('\n\n')
 

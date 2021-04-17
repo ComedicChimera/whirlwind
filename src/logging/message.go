@@ -41,6 +41,7 @@ const (
 	LMKDef             // Error related to a definition in general
 	LMKAnnot           // Error related to annotations
 	LMKProp            // Error related to a property access
+	LMKArg             // Error related to function argument
 	// TODO: add more as needed
 )
 

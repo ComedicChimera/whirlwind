@@ -500,7 +500,7 @@ func (ptb *PTableBuilder) buildTableFromSets() bool {
 							// if !strings.HasSuffix(bnfRule.ProdName, "named_type") {
 							// 	fmt.Printf("Shift/Reduce Conflict Resolved Between `%s` and `%d`. \nRule: ", bnfRule.ProdName, lookahead)
 							// 	ptb.printLR0Item(item)
-							// 	fmt.Println("Original State Shift Is:")
+							// 	fmt.Println("\nOriginal State Shift Is:")
 							// 	ptb.printItems(ptb.ItemSets[action.Operand].Items)
 
 							// 	fmt.Print("\n\n")

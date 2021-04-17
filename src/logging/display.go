@@ -27,6 +27,7 @@ var errorKindStringTable = map[int]string{
 	LMKDef:      "Definition",
 	LMKAnnot:    "Annotation",
 	LMKProp:     "Property",
+	LMKArg:      "Argument",
 }
 
 func (cm *CompileMessage) display() {

@@ -62,9 +62,9 @@ func (w *Walker) walkTrailer(root common.HIRExpr, branch *syntax.ASTBranch) (com
 				FieldName: branch.LeafAt(1).Value,
 			}, true
 		}
+	case syntax.LPAREN:
 	case syntax.LBRACE:
 	case syntax.LBRACKET:
-	case syntax.LPAREN:
 	case syntax.GETNAME:
 	}
 
@@ -120,10 +120,172 @@ func (w *Walker) getFieldOrMethod(dt typing.DataType, fieldName string, opPos, n
 	// if we reach here, then no match was found
 	w.logError(
 		fmt.Sprintf("Type `%s` has no bound method `%s`", dt.Repr(), fieldName),
-		logging.LMKName,
+		logging.LMKProp,
 		namePos,
 	)
 
+	return nil, false
+}
+
+// walkFuncCall walks a `trailer` for a function call -- checking and generating
+// a function call expression based on it
+func (w *Walker) walkFuncCall(root common.HIRExpr, rootInnerType typing.DataType, branch *syntax.ASTBranch) (common.HIRExpr, bool) {
+	var fntype *typing.FuncType
+	switch v := rootInnerType.(type) {
+	case *typing.FuncType:
+		fntype = v
+	case *typing.GenericType:
+		if gnode, ok := w.createImplicitGenericInstance(v, root, branch.Position()); ok {
+			if gfntype, ok := gnode.Type().(*typing.FuncType); ok {
+				fntype = gfntype
+				root = gnode
+			}
+		} else {
+			// ah yes, the classic `fallthrough` not allowed in type switches...
+			w.logError(
+				fmt.Sprintf("Unable to call non-function of type `%s`", rootInnerType.Repr()),
+				logging.LMKTyping,
+				branch.Position(),
+			)
+
+			return nil, false
+		}
+	default:
+		w.logError(
+			fmt.Sprintf("Unable to call non-function of type `%s`", rootInnerType.Repr()),
+			logging.LMKTyping,
+			branch.Position(),
+		)
+
+		return nil, false
+	}
+
+	argDts := make(map[string]typing.DataType)
+	argNodes := make(map[string]common.HIRExpr)
+
+	// length of branch = 3 => there are arguments
+	if branch.Len() == 3 {
+		var namedArgumentsEncountered bool
+		argPos := 0
+		for _, item := range branch.BranchAt(1).Content {
+			if arg, ok := item.(*syntax.ASTBranch); ok {
+				// positional argument
+				if arg.Len() == 1 {
+					if namedArgumentsEncountered {
+						w.logError(
+							"All positional arguments must come before named arguments",
+							logging.LMKArg,
+							arg.Position(),
+						)
+
+						return nil, false
+					}
+
+					if argPos >= len(fntype.Args) {
+						w.logError(
+							fmt.Sprintf("Function expects at most `%d` arguments, but received `%d`", len(fntype.Args), argPos+1),
+							logging.LMKArg,
+							arg.Position(),
+						)
+					}
+
+					farg := fntype.Args[argPos]
+					if argexpr, ok := w.walkExpr(arg.BranchAt(0)); ok {
+						// TODO: argument expression type checking and handling
+						// of indefinite arguments
+						_ = argexpr
+					} else {
+						return nil, false
+					}
+
+					if !farg.Indefinite {
+						argPos++
+					}
+				} else /* named argument */ {
+					namedArgumentsEncountered = true
+					// TODO: named arguments
+				}
+			}
+		}
+	}
+
+	for _, farg := range fntype.Args {
+		if !farg.Optional && !farg.Indefinite {
+			// TODO: handle "unnamed" arguments (generated from first-class
+			// function types)
+			if _, ok := argDts[farg.Name]; !ok {
+				w.logError(
+					fmt.Sprintf("No value specified for required argument: `%s`", farg.Name),
+					logging.LMKArg,
+					branch.Position(),
+				)
+
+				return nil, false
+			}
+		}
+	}
+
+	rt := w.solver.DeduceApp(fntype, argDts)
+	return &common.HIRApp{
+		ExprBase:  common.NewExprBase(rt, common.RValue, false),
+		Func:      root,
+		Arguments: argNodes,
+	}, true
+}
+
+// createImplicitGenericInstance creates a generic instance with all of the type
+// parameters filled out as unknown types.  It returns the expression node
+// representing the creation of the generic instance (whose return value is the
+// new generic instance)
+func (w *Walker) createImplicitGenericInstance(gt *typing.GenericType, root common.HIRExpr, opPos *logging.TextPosition) (common.HIRExpr, bool) {
+	// TODO -- notes:
+	// - how to give meaningful error messages?
+	// - create generic nstance without calling CoerceTo on unknowns?
+	// - deal with instance collisions -- unknown instance that ends up being
+	//   the same as other instances?
+	// - make sure unknowns share the constraints of their type parameters
+
+	return nil, false
+}
+
+// getIdentifierFromExpr reinterprets an `expr` node as a literal identifier.
+// This function is meant to be used in contexts where an identifier is the
+// actual only accepted token, but due to the limitations of the parser a full
+// `expr` node had to be generated.  It is called recursively for all
+// sub-expressions of the `expr` until a root node is reached.
+func (w *Walker) getIdentifierFromExpr(expr *syntax.ASTBranch) (*syntax.ASTLeaf, bool) {
+	// if the `expr` has more than one element, then it cannot be a pure
+	// identifier node and any extra items are invalid is invalid
+	if expr.Len() > 1 {
+		w.logError(
+			"Expecting an identifier not an expression",
+			logging.LMKSyntax,
+			expr.Position(),
+		)
+
+		return nil, false
+	}
+
+	switch v := expr.Content[0].(type) {
+	case *syntax.ASTBranch:
+		// just recur down the tree
+		return w.getIdentifierFromExpr(v)
+	case *syntax.ASTLeaf:
+		// we are at the root and need to extract the identifier if it exists
+		if v.Kind == syntax.IDENTIFIER {
+			return v, true
+		} else {
+			w.logError(
+				fmt.Sprintf("Expecting an identifer not `%s`", v.Value),
+				logging.LMKSyntax,
+				expr.Position(),
+			)
+
+			return nil, false
+		}
+	}
+
+	// unreachable
 	return nil, false
 }
 

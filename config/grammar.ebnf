@@ -79,7 +79,7 @@ special_def = 'special' [generic_tag] 'IDENTIFIER' '<' type_list '>' special_fun
 special_func_body = do_block | 'INDENT' '->' expr 'DEDENT' | '->' expr 'NEWLINE' ;
 
 (* generic constraint definition *)
-cons_def = 'constraint' 'IDENTIFIER' ? '=' type {',' type} ? ;
+cons_def = 'constraint' 'IDENTIFIER' [generic_tag] ? '=' type {'|' type} ? ;
 
 (* ellipsis is used to designate a block that hasn't been filled in yet *)
 do_block = 'do' block ;
@@ -173,7 +173,7 @@ sub_slice = expr [':' [expr]] | ':' expr ;
 init_list = '...' expr {',' init_member_expr} | init_member_expr {',' init_member_expr} ;
 init_member_expr = 'IDENTIFIER' '=' expr;
 args_list = arg {',' arg} ;
-arg = expr ['=' expr] ;
+arg = expr ['=' expr] ; (* has to be written like this to prevent a shift-reduce conflict *)
 
 atom = 'INTLIT' | 'STRINGLIT' | 'FLOATLIT' | 'BOOLLIT' | 'RUNELIT' | vector_builder | tupled_expr 
   | array_builder | list_builder| dict_builder | 'IDENTIFIER' | 'null' ;

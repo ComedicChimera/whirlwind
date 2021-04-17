@@ -235,10 +235,10 @@ type TypeAppExpr struct {
 	typeExprBase
 
 	Func *FuncType
-	Args []DataType
+	Args map[string]DataType
 }
 
-func (s *Solver) newTypeAppExpr(fn *FuncType, args []DataType) *TypeAppExpr {
+func (s *Solver) newTypeAppExpr(fn *FuncType, args map[string]DataType) *TypeAppExpr {
 	tae := &TypeAppExpr{
 		typeExprBase: s.newTypeExprBase(),
 		Func:         fn,
