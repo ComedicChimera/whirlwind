@@ -1,0 +1,6 @@
+export of 
+    # `uintptr` represents a pointer that is represented by an integer value. It
+    # essentially equivalent to the a memory address.  It's size scales
+    # appropriately with that of uint -- 32 on 32bit systems, 64 on 64bit
+    # systems.
+    type uintptr = uint

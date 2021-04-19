@@ -69,20 +69,20 @@ const (
 	DEDENT
 
 	// type keywords
+	U8
+	U16
+	U32
+	U64
+	I8
+	I16
+	I32
+	I64
+	F32
+	F64
 	STRING
-	FLOAT
 	BOOL
 	RUNE
-	DOUBLE
 	ANY
-	INT
-	UINT
-	LONG
-	ULONG
-	SHORT
-	USHORT
-	BYTE
-	SBYTE
 	NOTHING
 
 	// arithmetic/function operators
@@ -193,20 +193,20 @@ var keywordPatterns = map[string]int{
 	"match":       MATCH,
 	"to":          TO,
 	"in":          IN,
+	"i8":          I8,
+	"i16":         I16,
+	"i32":         I32,
+	"i64":         I64,
+	"u8":          U8,
+	"u16":         U16,
+	"u32":         U32,
+	"u64":         U64,
+	"f32":         F32,
+	"f64":         F64,
 	"string":      STRING,
-	"float":       FLOAT,
 	"bool":        BOOL,
 	"rune":        RUNE,
-	"double":      DOUBLE,
 	"any":         ANY,
-	"int":         INT,
-	"uint":        UINT,
-	"long":        LONG,
-	"ulong":       ULONG,
-	"short":       SHORT,
-	"ushort":      USHORT,
-	"byte":        BYTE,
-	"sbyte":       SBYTE,
 	"nothing":     NOTHING,
 }
 

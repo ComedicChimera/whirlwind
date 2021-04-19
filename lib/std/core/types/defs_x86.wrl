@@ -1,0 +1,6 @@
+!! arch = "x86"
+
+export of
+    type int = i32
+    type uint = u32
+    type byte = u8

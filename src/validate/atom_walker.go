@@ -332,18 +332,18 @@ func (w *Walker) walkAtom(branch *syntax.ASTBranch) (common.HIRExpr, bool) {
 			long := strings.Contains(atomCore.Value, "l")
 
 			if unsigned && long {
-				return newLiteral(atomCore, typing.PrimKindIntegral, typing.PrimIntUlong), true
+				return newLiteral(atomCore, typing.PrimKindIntegral, typing.PrimIntU64), true
 			} else if unsigned {
 				return w.newConstrainedLiteral(atomCore,
-					primitiveTypeTable[syntax.BYTE],
-					primitiveTypeTable[syntax.USHORT],
-					primitiveTypeTable[syntax.UINT],
-					primitiveTypeTable[syntax.ULONG],
+					primitiveTypeTable[syntax.U8],
+					primitiveTypeTable[syntax.U16],
+					primitiveTypeTable[syntax.U32],
+					primitiveTypeTable[syntax.U64],
 				), true
 			} else if long {
 				return w.newConstrainedLiteral(atomCore,
-					primitiveTypeTable[syntax.LONG],
-					primitiveTypeTable[syntax.ULONG],
+					primitiveTypeTable[syntax.I64],
+					primitiveTypeTable[syntax.U64],
 				), true
 			} else {
 				// Integer literals can be either floats or ints depending on usage

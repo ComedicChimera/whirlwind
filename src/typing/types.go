@@ -71,7 +71,7 @@ type PrimitiveType struct {
 	// PrimKind is the general kind of primitive (Integral, Floating, etc.)
 	PrimKind uint8
 
-	// PrimSpec is the specific kind of primitive (uint, float, etc.)
+	// PrimSpec is the specific kind of primitive (u32, f32, etc.)
 	// Ordered from smallest value to largest (for non-integral types)
 	PrimSpec uint8
 }
@@ -87,14 +87,14 @@ const (
 
 // The various kinds of integral types
 const (
-	PrimIntByte = iota
-	PrimIntSbyte
-	PrimIntUshort
-	PrimIntShort
-	PrimIntUint
-	PrimIntInt
-	PrimIntUlong
-	PrimIntLong
+	PrimIntU8 = iota
+	PrimIntI8
+	PrimIntU16
+	PrimIntI16
+	PrimIntU32
+	PrimIntI32
+	PrimIntU64
+	PrimIntI64
 )
 
 func (p *PrimitiveType) Repr() string {
@@ -115,28 +115,28 @@ func (p *PrimitiveType) Repr() string {
 		}
 	case PrimKindFloating:
 		if p.PrimSpec == 0 {
-			return "float"
+			return "f32"
 		} else {
-			return "double"
+			return "f64"
 		}
 	case PrimKindIntegral:
 		switch p.PrimSpec {
-		case PrimIntByte:
-			return "byte"
-		case PrimIntSbyte:
-			return "sbyte"
-		case PrimIntShort:
-			return "short"
-		case PrimIntUshort:
-			return "ushort"
-		case PrimIntInt:
-			return "int"
-		case PrimIntUint:
-			return "uint"
-		case PrimIntLong:
-			return "long"
-		case PrimIntUlong:
-			return "ulong"
+		case PrimIntU8:
+			return "u8"
+		case PrimIntI8:
+			return "i8"
+		case PrimIntI16:
+			return "i16"
+		case PrimIntU16:
+			return "u16"
+		case PrimIntI32:
+			return "i32"
+		case PrimIntU32:
+			return "u32"
+		case PrimIntI64:
+			return "i64"
+		case PrimIntU64:
+			return "u64"
 		}
 	}
 

@@ -1,13 +1,13 @@
 export of
-    constraint Integral = int | uint | short | ushort | long | ulong
+    constraint Integral = u8 | u16 | u32 | u64 | i8 | i16 | i32 | i64
 
-    constraint Floating = float | double
+    constraint Floating = f32 | f64
 
-    constraint Numeric = int | uint | short | ushort | long | ulong | float | double
+    constraint Numeric = Integral | Floating
 
     constraint Stringlike = string | rune
 
-    constraint Bytelike = byte | sbyte
+    constraint Bytelike = u8 | i8
 
     @intrinsic
     constraint Vector = nothing

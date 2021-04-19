@@ -132,10 +132,10 @@ func (s *Solver) CoerceTo(src, dest DataType) bool {
 				if svt, ok := src.(*VectorType); ok {
 					return s.CoerceTo(svt.ElemType, &PrimitiveType{
 						PrimKind: PrimKindIntegral,
-						PrimSpec: PrimIntLong,
+						PrimSpec: PrimIntI64,
 					}) || s.CoerceTo(svt.ElemType, &PrimitiveType{
 						PrimKind: PrimKindIntegral,
-						PrimSpec: PrimIntUlong,
+						PrimSpec: PrimIntU64,
 					})
 				}
 			}

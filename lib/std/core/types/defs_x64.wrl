@@ -1,0 +1,6 @@
+!! arch = "x64"
+
+export of
+    type int = i64
+    type uint = u64
+    type byte = u8
