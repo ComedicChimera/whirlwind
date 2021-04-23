@@ -85,7 +85,7 @@ func (s *Solver) GetBindings(br *BindingRegistry, dt DataType) []*InterfType {
 	var matches []*InterfType
 
 	for _, binding := range br.Bindings {
-		if Equals(binding.MatchType, dt) {
+		if pureEquals(binding.MatchType, dt) {
 			switch v := binding.TypeInterf.(type) {
 			case *InterfType:
 				// no wildcards to clear here since this is not a generic binding

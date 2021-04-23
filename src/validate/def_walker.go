@@ -167,16 +167,24 @@ func (w *Walker) walkTypeDef(dast *syntax.ASTBranch) (*common.HIRTypeDef, bool) 
 				}
 
 			case "alias":
-				// NOTE: aliases don't exist as a unique type -- they are
-				// literal just a type definition whose value is set to the
-				// value of the alias. They behave identically to their
-				// underlying type in code
-
 				// NOTE: aliases don't define a self-type since such a
 				// definition would have literally no meaning (especially if it
 				// only contained one type -- itself)
 				if alias, ok := w.walkTypeLabel(v.BranchAt(1)); ok {
-					dt = alias
+					// make sure that aliases aren't contained within aliases
+					if at, ok := alias.(*typing.AliasType); ok {
+						dt = &typing.AliasType{
+							Name:         name,
+							SrcPackageID: w.Context.PackageID,
+							TrueType:     at.TrueType,
+						}
+					} else {
+						dt = &typing.AliasType{
+							Name:         name,
+							SrcPackageID: w.Context.PackageID,
+							TrueType:     alias,
+						}
+					}
 				} else {
 					return nil, false
 				}

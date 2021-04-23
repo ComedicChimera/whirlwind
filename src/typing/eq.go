@@ -10,6 +10,26 @@ func Equals(a, b DataType) bool {
 	return InnerType(a).equals(InnerType(b))
 }
 
+// pureEquals checks for "pure equality".  This function is pretty much
+// exclusively used in method binding and primarily handles aliases.
+func pureEquals(a, b DataType) bool {
+	var innerA, innerB DataType
+
+	if aat, ok := a.(*AliasType); ok {
+		innerA = aat
+	} else {
+		innerA = InnerType(a)
+	}
+
+	if bat, ok := b.(*AliasType); ok {
+		innerB = bat
+	} else {
+		innerB = InnerType(b)
+	}
+
+	return innerA.equals(innerB)
+}
+
 // InnerType extracts the inner type of any data type (that is the type it is
 // enclosing).  For most types, this function is simply an identity.  However,
 // in the case of something like an OpaqueType, it extracts the evaluated type.
@@ -45,6 +65,8 @@ func InnerType(dt DataType) DataType {
 		}
 
 		return v.EvalType
+	case *AliasType:
+		return v.TrueType
 	default:
 		return dt
 	}

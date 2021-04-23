@@ -7,7 +7,7 @@ import (
 	"whirlwind/logging"
 )
 
-// The Whirlwind Type System is represented in 7 fundamental types from which
+// The Whirlwind Type System is represented in 8 fundamental types from which
 // all others derive.  These types are follows:
 // 1. Primitives -- Single unit types, do not contain sub types
 // 2. Tuples -- A pairing of n-types defines an n-tuple
@@ -16,6 +16,7 @@ import (
 // 5. Structures -- A record of named, typed fields
 // 6. Interfaces -- A type that groups types based on shared behavior
 // 7. Algebraic Types - A type that contains a finite number of enumerated values
+// 8. Alias Types -- A type that acts as an alias for another type
 // There are several other types such as AlgebraicVariants and WildcardTypes
 // that are not actually considered "fundamental types" but rather semantic
 // constructs to assist in compilation and type analysis.
@@ -646,4 +647,41 @@ func (av *AlgebraicVariant) equals(other DataType) bool {
 func (av *AlgebraicVariant) copyTemplate() DataType {
 	logging.LogFatal("`copyTemplate` called on `AlgebraicVariant`")
 	return nil
+}
+
+// -----------------------------------------------------
+// AliasType represents a type alias.  This type exists as a semantic construct
+// so that methods bound onto aliases can be distinguished from those bound onto
+// the type itself and to provide more informative error messages.  In all other
+// contexts, this type acts *exactly* like its underlying type.
+type AliasType struct {
+	Name         string
+	SrcPackageID uint
+
+	// TrueType is the type that the alias is standing in for.  This field should
+	// NOT be populated by an alias type.
+	TrueType DataType
+}
+
+func (at *AliasType) Repr() string {
+	return at.Name
+}
+
+// This method implements "pure equality" which is used in method bind lookups.
+// It will only return true if the type is an exact match to this alias.  It
+// is not used in regular equality: InnerType strips away the wrapping alias.
+func (at *AliasType) equals(other DataType) bool {
+	if oat, ok := other.(*AliasType); ok {
+		return at.Name == oat.Name && at.SrcPackageID == oat.SrcPackageID
+	}
+
+	return false
+}
+
+func (at *AliasType) copyTemplate() DataType {
+	return &AliasType{
+		Name:         at.Name,
+		SrcPackageID: at.SrcPackageID,
+		TrueType:     at.TrueType.copyTemplate(),
+	}
 }
