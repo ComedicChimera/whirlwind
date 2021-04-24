@@ -91,7 +91,7 @@ Radix Sort:
         let mx = list.max()
 
         while let it = 0; 10 ** it < mx do
-            let buckets = [make [int] for _ in 1..10]
+            let buckets = [make [int] for _ in 0..10]
 
             for item in list do
                 buckets[item // (10 ** it) % 10].push(item)            

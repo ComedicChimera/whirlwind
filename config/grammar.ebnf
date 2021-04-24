@@ -160,8 +160,7 @@ factor = unary_expr {'**' unary_expr} ;
 unary_expr = ['&' ['const'] | '*' | '-' | '~'] atom_expr ;
 
 atom_expr = atom {trailer} | make_expr ;
-make_expr = 'make' ['const'] alloc_param ;
-alloc_param = type ['(' expr ')'];
+make_expr = 'make' type ['(' expr ')'] ;
 
 trailer = '.' ( 'IDENTIFIER' | 'INTLIT' )
   | '[' sub_slice ']'
