@@ -52,6 +52,25 @@ func (w *Walker) logCoercionError(src, dest typing.DataType, pos *logging.TextPo
 	)
 }
 
+// logUnsolvableGenericTypeParam logs that a the value of a type parameter could
+// not be determined by the solver
+func (w *Walker) logUnsolvableGenericTypeParam(gt *typing.GenericType, name string, pos *logging.TextPosition) {
+	w.logError(
+		fmt.Sprintf("Unable to infer type for generic parameter `%s` of `%s`", name, gt.Repr()),
+		logging.LMKTyping,
+		pos,
+	)
+}
+
+// logUndeterminedNull logs an error indicating that no type was able to be determined for `null`
+func (w *Walker) logUndeterminedNull(pos *logging.TextPosition) {
+	w.logError(
+		"Unable to infer type of `null`",
+		logging.LMKTyping,
+		pos,
+	)
+}
+
 // logError logs an error of any kind within the walker's file
 func (w *Walker) logError(message string, kind int, pos *logging.TextPosition) {
 	logging.LogCompileError(

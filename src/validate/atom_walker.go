@@ -160,8 +160,47 @@ func (w *Walker) walkFuncCall(root common.HIRExpr, rootInnerType typing.DataType
 		return nil, false
 	}
 
+	argDts, argNodes, indefArgs, ok := w.walkFuncCallArgs(fntype, branch)
+	if !ok {
+		return nil, false
+	}
+
+	for _, farg := range fntype.Args {
+		if !farg.Optional && !farg.Indefinite {
+			if _, ok := argDts[farg.Name]; !ok {
+				// argument is unnamed
+				if strings.HasPrefix(farg.Name, "$") {
+					w.logError(
+						fmt.Sprintf("No value specified for required argument at position: `%s`", farg.Name[1:]),
+						logging.LMKArg,
+						branch.Position(),
+					)
+				} else {
+					w.logError(
+						fmt.Sprintf("No value specified for required argument: `%s`", farg.Name),
+						logging.LMKArg,
+						branch.Position(),
+					)
+				}
+
+				return nil, false
+			}
+		}
+	}
+
+	return &common.HIRApp{
+		ExprBase:       common.NewExprBase(fntype.ReturnType, common.RValue, false),
+		Func:           root,
+		Arguments:      argNodes,
+		IndefArguments: indefArgs,
+	}, true
+}
+
+func (w *Walker) walkFuncCallArgs(fntype *typing.FuncType, branch *syntax.ASTBranch) (map[string]typing.DataType, map[string]common.HIRExpr, []common.HIRExpr, bool) {
+	// argDts and argNodes do not have entries for indefinite arguments
 	argDts := make(map[string]typing.DataType)
 	argNodes := make(map[string]common.HIRExpr)
+	var indefArgs []common.HIRExpr
 
 	// length of branch = 3 => there are arguments
 	if branch.Len() == 3 {
@@ -178,7 +217,7 @@ func (w *Walker) walkFuncCall(root common.HIRExpr, rootInnerType typing.DataType
 							arg.Position(),
 						)
 
-						return nil, false
+						return nil, nil, nil, false
 					}
 
 					if argPos >= len(fntype.Args) {
@@ -190,12 +229,28 @@ func (w *Walker) walkFuncCall(root common.HIRExpr, rootInnerType typing.DataType
 					}
 
 					farg := fntype.Args[argPos]
+
+					if _, ok := argDts[farg.Name]; ok {
+						w.logError(
+							fmt.Sprintf("Multiple values specified for argument `%s`", farg.Name),
+							logging.LMKArg,
+							arg.Position(),
+						)
+
+						return nil, nil, nil, false
+					}
+
 					if argexpr, ok := w.walkExpr(arg.BranchAt(0)); ok {
-						// TODO: argument expression type checking and handling
-						// of indefinite arguments
-						_ = argexpr
+						w.solver.AddConstraint(farg.Val.Type, argexpr.Type(), arg.Position())
+
+						if farg.Indefinite {
+							indefArgs = append(indefArgs, argexpr)
+						} else {
+							argNodes[farg.Name] = argexpr
+							argDts[farg.Name] = argexpr.Type()
+						}
 					} else {
-						return nil, false
+						return nil, nil, nil, false
 					}
 
 					if !farg.Indefinite {
@@ -203,33 +258,58 @@ func (w *Walker) walkFuncCall(root common.HIRExpr, rootInnerType typing.DataType
 					}
 				} else /* named argument */ {
 					namedArgumentsEncountered = true
-					// TODO: named arguments
+
+					if idLeaf, ok := w.getIdentifierFromExpr(arg.BranchAt(0)); ok {
+						for _, farg := range fntype.Args {
+							if farg.Name == idLeaf.Value {
+								if farg.Indefinite {
+									w.logError(
+										"Unable to specify indefinite arguments by name",
+										logging.LMKArg,
+										idLeaf.Position(),
+									)
+
+									return nil, nil, nil, false
+								}
+
+								if _, ok := argDts[farg.Name]; ok {
+									w.logError(
+										fmt.Sprintf("Multiple values specified for argument `%s`", farg.Name),
+										logging.LMKArg,
+										idLeaf.Position(),
+									)
+
+									return nil, nil, nil, false
+								}
+
+								if argexpr, ok := w.walkExpr(arg.BranchAt(2)); ok {
+									w.solver.AddConstraint(farg.Val.Type, argexpr.Type(), arg.Position())
+
+									argNodes[farg.Name] = argexpr
+									argDts[farg.Name] = argexpr.Type()
+								} else {
+									return nil, nil, nil, false
+								}
+
+								continue
+							}
+						}
+
+						// if we reach here, then no matching argument was found
+						w.logError(
+							fmt.Sprintf("No argument by name `%s`", idLeaf.Value),
+							logging.LMKArg,
+							idLeaf.Position(),
+						)
+
+						return nil, nil, nil, false
+					}
 				}
 			}
 		}
 	}
 
-	for _, farg := range fntype.Args {
-		if !farg.Optional && !farg.Indefinite {
-			// TODO: handle "unnamed" arguments (generated from first-class
-			// function types)
-			if _, ok := argDts[farg.Name]; !ok {
-				w.logError(
-					fmt.Sprintf("No value specified for required argument: `%s`", farg.Name),
-					logging.LMKArg,
-					branch.Position(),
-				)
-
-				return nil, false
-			}
-		}
-	}
-
-	return &common.HIRApp{
-		ExprBase:  common.NewExprBase(fntype.ReturnType, common.RValue, false),
-		Func:      root,
-		Arguments: argNodes,
-	}, true
+	return argDts, argNodes, indefArgs, true
 }
 
 // createImplicitGenericInstance creates a generic instance with all of the type
@@ -249,7 +329,7 @@ func (w *Walker) createImplicitGenericInstance(gt *typing.GenericType, root comm
 			initialCons = &typing.ConstraintType{Name: "", Types: tparam.Constraints}
 		}
 
-		uts[i] = w.solver.NewTypeVar(nil, typing.TVKTypeParam, opPos, initialCons)
+		uts[i] = w.solver.NewTypeVar(nil, opPos, func() { w.logUnsolvableGenericTypeParam(gt, tparam.Name, opPos) }, initialCons)
 	}
 
 	// no error should ever happen here
@@ -368,7 +448,7 @@ func (w *Walker) walkAtom(branch *syntax.ASTBranch) (common.HIRExpr, bool) {
 		case syntax.FLOATLIT:
 			return w.newConstrainedLiteral(atomCore, primitiveTypeTable[syntax.F32], w.getCoreType("Floating")), true
 		case syntax.NULL:
-			ut := w.solver.NewTypeVar(nil, typing.TVKLiteral, atomCore.Position(), nil)
+			ut := w.solver.NewTypeVar(nil, atomCore.Position(), func() { w.logUndeterminedNull(atomCore.Position()) }, nil)
 
 			return &common.HIRValue{
 				ExprBase: common.NewExprBase(ut, common.RValue, true),
@@ -408,7 +488,9 @@ func (w *Walker) newConstrainedLiteral(leaf *syntax.ASTLeaf, defaultValue typing
 		initialCons = &typing.ConstraintType{Name: "", Types: constraintTypes, Intrinsic: false}
 	}
 
-	ut := w.solver.NewTypeVar(defaultValue, typing.TVKLiteral, leaf.Position(), initialCons)
+	// These literals have a default value so there is no reason the unsolvable
+	// handler func should ever be called for them
+	ut := w.solver.NewTypeVar(defaultValue, leaf.Position(), func() {}, initialCons)
 
 	return &common.HIRValue{
 		ExprBase: common.NewExprBase(

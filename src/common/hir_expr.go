@@ -181,8 +181,9 @@ type HIROperApp struct {
 type HIRApp struct {
 	ExprBase
 
-	Func      HIRExpr
-	Arguments map[string]HIRExpr
+	Func           HIRExpr
+	Arguments      map[string]HIRExpr
+	IndefArguments []HIRExpr
 }
 
 // HIRSequence represents a sequence values
@@ -198,11 +199,10 @@ type HIRSequence struct {
 // generic is accessed in an expression (special variant of Hindley-Milner's
 // `var`)
 type HIRGenerate struct {
-	// `ExprBase` contains the generate returned in `dataType`
+	// `ExprBase` contains the generate returned in `dataType`.  Since all
+	// generates will be wrapped in a `GenericInstanceType` there is no need to
+	// store the root generic here either :)
 	ExprBase
-
-	// Generic contains the generic source for the generate
-	// TODO: Generic *typing.GenericType
 }
 
 // HIRDotAccess represents an application of the `.` operator for a field or

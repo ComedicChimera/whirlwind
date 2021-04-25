@@ -67,25 +67,15 @@ type TypeVariable struct {
 	// type exists.
 	DefaultType DataType
 
-	// Kind indicates what this type variable is standing in for: how it is used
-	// in the program.  For example, a type variable generated to fill in
-	// missing generic type parameters is different from one created for an
-	// integer literal. The kinds are enumerated below.  This is primarily used
-	// for error reporting.
-	Kind int
+	// LogUnsolvable is this type variable's error handler that is called if it
+	// can't be solved.  This may change for different type variables -- this
+	// allows the walker to specify error handling behavior
+	LogUnsolvable func()
 
-	// Position is the text position indicating where this variable was found in
-	// the source code.  It is used for error reporting.
-	Position *logging.TextPosition
+	// Unknown contains a reference to this type variable's corresponding
+	// unknown type
+	Unknown *UnknownType
 }
-
-// Kinds of type variable
-const (
-	TVKLiteral      = iota // An undetermined literal (eg. integer literal)
-	TVKTypeParam           // An undetermined type parameter
-	TVKLambdaArg           // An undetermined lambda argument
-	TVKLambdaReturn        // An undetermined lambda return type
-)
 
 // TypeConstraint is a data type representing a constraint equation
 type TypeConstraint struct {
@@ -124,10 +114,9 @@ func (ut *UnknownType) equals(other DataType) bool {
 }
 
 func (ut *UnknownType) copyTemplate() DataType {
-	if ut.EvalType == nil {
-		return ut.EvalType.copyTemplate()
-	}
-
+	// This method need not be anything more than an identity since unknowns can
+	// ever occur inside generics as something for which a "copyTemplate" would
+	// be required.
 	return ut
 }
 
@@ -137,13 +126,13 @@ func (ut *UnknownType) copyTemplate() DataType {
 // initial constraint can also be passed to be added to the solver.  It returns
 // an unknown type referencing the newly added type variable.  Both the
 // `defaultType` and `initialConstraint` arguments can be `nil` if there is no
-// known value for them.
-func (s *Solver) NewTypeVar(defaultType DataType, kind int, pos *logging.TextPosition, initialConstraint DataType) *UnknownType {
+// known value for them.  It accepts a text position to that it can be added to
+// the constraint (to log type mismatches)
+func (s *Solver) NewTypeVar(defaultType DataType, pos *logging.TextPosition, handler func(), initialConstraint DataType) *UnknownType {
 	tv := &TypeVariable{
-		ID:          len(s.Variables),
-		Kind:        kind,
-		Position:    pos,
-		DefaultType: defaultType,
+		ID:            len(s.Variables),
+		DefaultType:   defaultType,
+		LogUnsolvable: handler,
 	}
 
 	s.Variables[tv.ID] = tv
@@ -166,8 +155,41 @@ func (s *Solver) AddConstraint(lhs, rhs DataType, pos *logging.TextPosition) {
 // constraints have been built. It returns a flag indicating whether or not
 // solving succeeded.  This function also clears the current solving context.
 func (s *Solver) Solve() bool {
-	// TODO
-	return false
+	succeeded := true
+
+	// unify all constraints
+	for _, cons := range s.Constraints {
+		succeeded = succeeded && s.unify(cons.Lhs, cons.Rhs, cons.Position)
+	}
+
+	// test to see if all variables resolved
+	for _, tvar := range s.Variables {
+		if subbedType, ok := s.Substitutions[tvar.ID]; ok {
+			// if the best substituted type is a type constraint, then we
+			// attempt to find a default type.  If one can't be found, then this
+			// type is still unsolvable (something being `Numeric` doesn't
+			// really help much)
+			if _, ok := subbedType.(*ConstraintType); ok {
+				if tvar.DefaultType != nil {
+					tvar.Unknown.EvalType = tvar.DefaultType
+					continue
+				}
+			} else {
+				tvar.Unknown.EvalType = subbedType
+				continue
+			}
+		}
+
+		tvar.LogUnsolvable()
+		succeeded = false
+	}
+
+	// reset solver
+	s.Constraints = nil
+	s.Variables = make(map[int]*TypeVariable)
+	s.Substitutions = make(map[int]DataType)
+
+	return succeeded
 }
 
 // -----------------------------------------------------------------------------
@@ -281,5 +303,3 @@ func (s *Solver) logTypeMismatch(t1, t2 DataType, pos *logging.TextPosition) {
 		pos,
 	)
 }
-
-// Internal methods
