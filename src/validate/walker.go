@@ -73,6 +73,14 @@ type Walker struct {
 	// use its own scope/local symbol management system (since LLVM symbols are
 	// different from Whirlwind symbols)
 	scopeStack []*Scope
+
+	// intType stores a reference to the "base" integral type (`int`) for the given
+	// application (varys based on architecture)
+	intType typing.DataType
+
+	// uintType stores a reference to the "base" unsigned integral type (`uint`)
+	// for the given application (varys based on architecture)
+	uintType typing.DataType
 }
 
 // NewWalker creates a new walker for the given package and file
@@ -91,15 +99,11 @@ func NewWalker(pkg *common.WhirlPackage, file *common.WhirlFile, fpath string, o
 	file.Root = &common.HIRRoot{}
 
 	return &Walker{
-		SrcPackage: pkg,
-		SrcFile:    file,
-		Context:    lctx,
-		declStatus: common.DSInternal,
-		solver: &typing.Solver{
-			GlobalBindings: pkg.GlobalBindings,
-			LocalBindings:  file.LocalBindings,
-			Context:        lctx,
-		},
+		SrcPackage:              pkg,
+		SrcFile:                 file,
+		Context:                 lctx,
+		declStatus:              common.DSInternal,
+		solver:                  typing.NewSolver(lctx, file.LocalBindings, pkg.GlobalBindings),
 		resolving:               true, // start in resolution by default
 		sharedOpaqueSymbolTable: ost,
 	}
@@ -109,6 +113,21 @@ func NewWalker(pkg *common.WhirlPackage, file *common.WhirlFile, fpath string, o
 func (w *Walker) ResolutionDone() {
 	w.resolving = false
 	w.sharedOpaqueSymbolTable = nil
+
+	// only attempt to load `int` and `uint` if resolution suceeded
+	if logging.ShouldProceed() {
+		if intTypeSym, ok := w.globalLookup("int"); ok {
+			w.intType = intTypeSym.Type
+		} else {
+			logging.LogFatal("Missing definition for `int`")
+		}
+
+		if uintTypeSym, ok := w.globalLookup("uint"); ok {
+			w.uintType = uintTypeSym.Type
+		} else {
+			logging.LogFatal("Missing definition for `uint`")
+		}
+	}
 }
 
 // hasFlag checks if the given annotation is active (as a flag; eg. `#packed`)

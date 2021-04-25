@@ -313,7 +313,7 @@ func (w *Walker) walkStructSuffix(suffix *syntax.ASTBranch, name string, fieldIn
 		Name:         name,
 		SrcPackageID: w.SrcPackage.PackageID,
 		Packed:       w.hasFlag("packed"),
-		Fields:       make(map[string]*typing.TypeValue),
+		Fields:       make(map[string]*typing.TypedValue),
 	}
 
 	// set the selfType field and appropriate flag
@@ -376,8 +376,8 @@ func (w *Walker) walkStructSuffix(suffix *syntax.ASTBranch, name string, fieldIn
 // `const` modifiers and returns any initializers it finds.  The `nameKind`
 // parameter is the type of thing that the names in the type value are (eg.
 // `field` or `argument`) -- this function does check for duplicate identifiers.
-func (w *Walker) walkTypeValues(branch *syntax.ASTBranch, nameKind string) (map[string]*logging.TextPosition, *typing.TypeValue, common.HIRNode, bool) {
-	ctv := &typing.TypeValue{}
+func (w *Walker) walkTypeValues(branch *syntax.ASTBranch, nameKind string) (map[string]*logging.TextPosition, *typing.TypedValue, common.HIRNode, bool) {
+	ctv := &typing.TypedValue{}
 	var names map[string]*logging.TextPosition
 	var initializer common.HIRNode
 
@@ -540,7 +540,7 @@ func (w *Walker) walkSignature(branch *syntax.ASTBranch, isOperator bool) ([]*ty
 				if rt, ok := w.walkTypeExt(argBranch.BranchAt(2)); ok {
 					args = append(args, &typing.FuncArg{
 						Name: name,
-						Val: &typing.TypeValue{
+						Val: &typing.TypedValue{
 							Type: rt,
 						},
 						Indefinite: true,

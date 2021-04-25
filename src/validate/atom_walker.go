@@ -42,8 +42,9 @@ func (w *Walker) walkAtomExpr(branch *syntax.ASTBranch) (common.HIRExpr, bool) {
 // walkTrailer walks a `trailer` node an `atom_expr`
 func (w *Walker) walkTrailer(root common.HIRExpr, branch *syntax.ASTBranch) (common.HIRExpr, bool) {
 	opLeaf := branch.LeafAt(0)
-	rootType, isKnown := innerType(root.Type())
-	if !isKnown {
+
+	rootType, isKnown := definiteInnerType(root.Type())
+	if opLeaf.Kind != syntax.LBRACKET && !isKnown {
 		w.logError(
 			fmt.Sprintf("Unable to use `%s` operator on an undetermined type", opLeaf.Value),
 			logging.LMKTyping,
@@ -81,7 +82,7 @@ func (w *Walker) getFieldOrMethod(dt typing.DataType, fieldName string, opPos, n
 	// unknown types since they can't be used as operands for the `.` operator
 	// even if they are element types of a reference.
 	if rt, ok := dt.(*typing.RefType); ok {
-		if elemtype, ok := innerType(rt.ElemType); ok {
+		if elemtype, ok := definiteInnerType(rt.ElemType); ok {
 			dt = elemtype
 		} else {
 			w.logError(
@@ -135,11 +136,10 @@ func (w *Walker) walkFuncCall(root common.HIRExpr, rootInnerType typing.DataType
 	case *typing.FuncType:
 		fntype = v
 	case *typing.GenericType:
-		if gnode, ok := w.createImplicitGenericInstance(v, root, branch.Position()); ok {
-			if gfntype, ok := gnode.Type().(*typing.FuncType); ok {
-				fntype = gfntype
-				root = gnode
-			}
+		gnode := w.createImplicitGenericInstance(v, root, branch.Position())
+		if gfntype, ok := gnode.Type().(*typing.GenericInstanceType).MemoizedGenerate.(*typing.FuncType); ok {
+			fntype = gfntype
+			root = gnode
 		} else {
 			// ah yes, the classic `fallthrough` not allowed in type switches...
 			w.logError(
@@ -225,9 +225,8 @@ func (w *Walker) walkFuncCall(root common.HIRExpr, rootInnerType typing.DataType
 		}
 	}
 
-	rt := w.solver.DeduceApp(fntype, argDts)
 	return &common.HIRApp{
-		ExprBase:  common.NewExprBase(rt, common.RValue, false),
+		ExprBase:  common.NewExprBase(fntype.ReturnType, common.RValue, false),
 		Func:      root,
 		Arguments: argNodes,
 	}, true
@@ -237,15 +236,30 @@ func (w *Walker) walkFuncCall(root common.HIRExpr, rootInnerType typing.DataType
 // parameters filled out as unknown types.  It returns the expression node
 // representing the creation of the generic instance (whose return value is the
 // new generic instance)
-func (w *Walker) createImplicitGenericInstance(gt *typing.GenericType, root common.HIRExpr, opPos *logging.TextPosition) (common.HIRExpr, bool) {
-	// TODO -- notes:
-	// - how to give meaningful error messages?
-	// - create generic nstance without calling CoerceTo on unknowns?
-	// - deal with instance collisions -- unknown instance that ends up being
-	//   the same as other instances?
-	// - make sure unknowns share the constraints of their type parameters
+func (w *Walker) createImplicitGenericInstance(gt *typing.GenericType, root common.HIRExpr, opPos *logging.TextPosition) common.HIRExpr {
+	uts := make([]typing.DataType, len(gt.TypeParams))
+	for i, tparam := range gt.TypeParams {
+		var initialCons typing.DataType
+		switch len(tparam.Constraints) {
+		case 0:
+			initialCons = nil
+		case 1:
+			initialCons = tparam.Constraints[0]
+		default:
+			initialCons = &typing.ConstraintType{Name: "", Types: tparam.Constraints}
+		}
 
-	return nil, false
+		uts[i] = w.solver.NewTypeVar(nil, typing.TVKTypeParam, opPos, initialCons)
+	}
+
+	// no error should ever happen here
+	gi, _ := w.solver.CreateGenericInstance(gt, uts, nil)
+
+	return &common.HIRGenerate{
+		ExprBase: common.NewExprBase(
+			gi, common.RValue, false,
+		),
+	}
 }
 
 // getIdentifierFromExpr reinterprets an `expr` node as a literal identifier.
@@ -304,7 +318,7 @@ func (w *Walker) walkAtom(branch *syntax.ASTBranch) (common.HIRExpr, bool) {
 				return &common.HIRSequence{
 					ExprBase: common.NewExprBase(
 						typing.TupleType(typeListFromExprs(exprs)),
-						common.LValue,
+						common.RValue,
 						false,
 					),
 					Values: exprs,
@@ -335,6 +349,7 @@ func (w *Walker) walkAtom(branch *syntax.ASTBranch) (common.HIRExpr, bool) {
 				return newLiteral(atomCore, typing.PrimKindIntegral, typing.PrimIntU64), true
 			} else if unsigned {
 				return w.newConstrainedLiteral(atomCore,
+					w.uintType, // default value
 					primitiveTypeTable[syntax.U8],
 					primitiveTypeTable[syntax.U16],
 					primitiveTypeTable[syntax.U32],
@@ -342,17 +357,18 @@ func (w *Walker) walkAtom(branch *syntax.ASTBranch) (common.HIRExpr, bool) {
 				), true
 			} else if long {
 				return w.newConstrainedLiteral(atomCore,
+					primitiveTypeTable[syntax.I64], // default value
 					primitiveTypeTable[syntax.I64],
 					primitiveTypeTable[syntax.U64],
 				), true
 			} else {
 				// Integer literals can be either floats or ints depending on usage
-				return w.newConstrainedLiteral(atomCore, w.getCoreType("Numeric")), true
+				return w.newConstrainedLiteral(atomCore, w.intType, w.getCoreType("Numeric")), true
 			}
 		case syntax.FLOATLIT:
-			return w.newConstrainedLiteral(atomCore, w.getCoreType("Floating")), true
+			return w.newConstrainedLiteral(atomCore, primitiveTypeTable[syntax.F32], w.getCoreType("Floating")), true
 		case syntax.NULL:
-			ut := w.solver.CreateUnknown(atomCore.Position())
+			ut := w.solver.NewTypeVar(nil, typing.TVKLiteral, atomCore.Position(), nil)
 
 			return &common.HIRValue{
 				ExprBase: common.NewExprBase(ut, common.RValue, true),
@@ -374,7 +390,7 @@ func newLiteral(leaf *syntax.ASTLeaf, primKind, primSpec uint8) common.HIRExpr {
 				PrimSpec: primSpec,
 			},
 			common.RValue,
-			true,
+			false,
 		),
 		Value:    leaf.Value,
 		Position: leaf.Position(),
@@ -382,15 +398,23 @@ func newLiteral(leaf *syntax.ASTLeaf, primKind, primSpec uint8) common.HIRExpr {
 }
 
 // newConstrainedLiteral creates a new literal for an undetermined primitive
-// type with the given set of constraints
-func (w *Walker) newConstrainedLiteral(leaf *syntax.ASTLeaf, constraints ...typing.DataType) common.HIRExpr {
-	ut := w.solver.CreateUnknown(leaf.Position(), constraints...)
+// type with the given initial constraint.  This method allows multiple types to
+// be passed in which will be formed into an "aggregate constraint".
+func (w *Walker) newConstrainedLiteral(leaf *syntax.ASTLeaf, defaultValue typing.DataType, constraintTypes ...typing.DataType) common.HIRExpr {
+	var initialCons typing.DataType
+	if len(constraintTypes) == 1 {
+		initialCons = constraintTypes[0]
+	} else {
+		initialCons = &typing.ConstraintType{Name: "", Types: constraintTypes, Intrinsic: false}
+	}
+
+	ut := w.solver.NewTypeVar(defaultValue, typing.TVKLiteral, leaf.Position(), initialCons)
 
 	return &common.HIRValue{
 		ExprBase: common.NewExprBase(
 			ut,
 			common.RValue,
-			true,
+			false,
 		),
 		Value:    leaf.Value,
 		Position: leaf.Position(),

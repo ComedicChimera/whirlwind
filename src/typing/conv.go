@@ -16,14 +16,8 @@ package typing
 
 // CoerceTo implements coercion checking for the solver.  It checks if two types
 // are equal or can be made equal through implicit casting.  This function does
-// work for unknown types.
+// NOT work for unknown types.
 func (s *Solver) CoerceTo(src, dest DataType) bool {
-	// check for unknowns before equality -- equals calls `InnerType` which
-	// panics on any unknowns -- CoerceTo is meant to be used on unknowns
-	if performedCoercion, coercedOk := s.coerceUnknowns(src, dest); performedCoercion {
-		return coercedOk
-	}
-
 	if Equals(src, dest) {
 		return true
 	}

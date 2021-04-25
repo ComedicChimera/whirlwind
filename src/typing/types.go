@@ -65,7 +65,7 @@ func copyTemplateSlice(dtSlice []DataType) []DataType {
 	return newList
 }
 
-// -----------------------------------------------------
+// -----------------------------------------------------------------------------
 
 // Primitive Types
 type PrimitiveType struct {
@@ -163,7 +163,7 @@ func (pt *PrimitiveType) Numeric() bool {
 	return pt.PrimKind == PrimKindIntegral || pt.PrimKind == PrimKindFloating
 }
 
-// -----------------------------------------------------
+// -----------------------------------------------------------------------------
 
 // TupleType represents a tuple
 type TupleType []DataType
@@ -203,7 +203,7 @@ func (tt TupleType) copyTemplate() DataType {
 	return TupleType(copyTemplateSlice(tt))
 }
 
-// -----------------------------------------------------
+// -----------------------------------------------------------------------------
 
 // VectorType represents a vector
 type VectorType struct {
@@ -230,7 +230,7 @@ func (vt *VectorType) copyTemplate() DataType {
 	}
 }
 
-// -----------------------------------------------------
+// -----------------------------------------------------------------------------
 
 // RefType represents a reference type
 type RefType struct {
@@ -267,7 +267,7 @@ func (rt *RefType) copyTemplate() DataType {
 	}
 }
 
-// -----------------------------------------------------
+// -----------------------------------------------------------------------------
 
 // FuncType represents a function
 type FuncType struct {
@@ -280,7 +280,7 @@ type FuncType struct {
 // FuncArg represents a function parameter
 type FuncArg struct {
 	Name                 string
-	Val                  *TypeValue
+	Val                  *TypedValue
 	Optional, Indefinite bool
 }
 
@@ -384,19 +384,19 @@ func (ft *FuncType) copyTemplate() DataType {
 	}
 }
 
-// -----------------------------------------------------
+// -----------------------------------------------------------------------------
 // Equality for all defined types is trivial since two defined types must refer
 // to the same declaration if their name and package ID are the same since only
 // one such type by any particular name may be declared in the same package.
 // Thus, we can just compare the name and package ID to test for equality.  It
 // does make one wish could had generics though.
-// -----------------------------------------------------
+// -----------------------------------------------------------------------------
 
 // StructType represents a structure type
 type StructType struct {
 	Name         string
 	SrcPackageID uint
-	Fields       map[string]*TypeValue
+	Fields       map[string]*TypedValue
 	Packed       bool
 	Inherit      *StructType
 }
@@ -414,7 +414,7 @@ func (st *StructType) equals(other DataType) bool {
 }
 
 func (st *StructType) copyTemplate() DataType {
-	newFields := make(map[string]*TypeValue)
+	newFields := make(map[string]*TypedValue)
 
 	for name, field := range st.Fields {
 		newFields[name] = field.copyTemplate()
@@ -434,25 +434,25 @@ func (st *StructType) copyTemplate() DataType {
 	}
 }
 
-// TypeValue represents a value-like component of a type
-type TypeValue struct {
+// TypedValue represents a value-like component of a type
+type TypedValue struct {
 	Type               DataType
 	Constant, Volatile bool
 }
 
-func (tv *TypeValue) Equals(otv *TypeValue) bool {
+func (tv *TypedValue) Equals(otv *TypedValue) bool {
 	return Equals(tv.Type, otv.Type) && tv.Constant == otv.Constant && tv.Volatile == otv.Volatile
 }
 
-func (tv *TypeValue) copyTemplate() *TypeValue {
-	return &TypeValue{
+func (tv *TypedValue) copyTemplate() *TypedValue {
+	return &TypedValue{
 		Type:     tv.Type.copyTemplate(),
 		Constant: tv.Constant,
 		Volatile: tv.Volatile,
 	}
 }
 
-// -----------------------------------------------------
+// -----------------------------------------------------------------------------
 
 // InterfType represents an interface type
 type InterfType struct {
@@ -536,7 +536,7 @@ func (it *InterfType) copyTemplate() DataType {
 	}
 }
 
-// -----------------------------------------------------
+// -----------------------------------------------------------------------------
 
 // AlgebraicType represents an algebraic type
 type AlgebraicType struct {
@@ -649,7 +649,8 @@ func (av *AlgebraicVariant) copyTemplate() DataType {
 	return nil
 }
 
-// -----------------------------------------------------
+// -----------------------------------------------------------------------------
+
 // AliasType represents a type alias.  This type exists as a semantic construct
 // so that methods bound onto aliases can be distinguished from those bound onto
 // the type itself and to provide more informative error messages.  In all other

@@ -392,7 +392,7 @@ func (w *Walker) walkFuncType(branch *syntax.ASTBranch) (typing.DataType, bool) 
 					// both branches can be walked the same way
 					if adt, ok := w.walkTypeLabel(argbranch.LastBranch()); ok {
 						ft.Args = append(ft.Args, &typing.FuncArg{
-							Val: &typing.TypeValue{
+							Val: &typing.TypedValue{
 								Type: adt,
 							},
 							// has to be a regular arg to be optional and have a
