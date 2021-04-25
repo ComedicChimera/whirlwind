@@ -202,7 +202,10 @@ func (s *Solver) Solve() bool {
 func (s *Solver) unify(lhType, rhType DataType, pos *logging.TextPosition) bool {
 	// we start by testing the `rhType` to see if it is unknown before
 	// proceeding with unification -- the main unify switch tests based on the
-	// `rhType`.
+	// `lhType`.  Note that the `rhType` should always be deduced to the least
+	// general type possible (eg. prefer `u32` to `u64`) so we unify to the
+	// lhType and do not update the substitution after it is initially
+	// determined
 	if rut, ok := rhType.(*UnknownType); ok {
 		if subbedType, ok := s.Substitutions[rut.TypeVarID]; ok {
 			return s.unify(lhType, subbedType, pos)
@@ -215,6 +218,8 @@ func (s *Solver) unify(lhType, rhType DataType, pos *logging.TextPosition) bool 
 	// all types with constructors have to be tested for unification
 	switch v := lhType.(type) {
 	case *UnknownType:
+		// The `lhType` should always deduce to the most general
+		// type possible which means that... TODO
 		if subbedType, ok := s.Substitutions[v.TypeVarID]; ok {
 			return s.unify(subbedType, rhType, pos)
 		} else {
