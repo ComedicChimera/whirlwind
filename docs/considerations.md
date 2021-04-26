@@ -62,6 +62,12 @@ Two Notes:
   * Maybe just have file not just be a regular `Option` type...?
   * Merge multiple monadic binds into one?
 
+## Implicit Abstraction
+
+- Change back to the old style of partial function calling: `|f 2, 3, _)`
+- Add support for "ignore-remaining-args": `|f 2...)`
+- Add operator functions: `|+)` invokes the plus operator
+  * Should work with the other elements of the type solver
 
 
 

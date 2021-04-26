@@ -46,7 +46,7 @@ interf_bind = 'interf' [generic_tag] 'for' type ['is' type {',' type}] 'of' inte
 interf_body = 'INDENT' interf_member { interf_member } 'DEDENT' ;
 interf_member = func_def | special_def | annotated_method ;
 
-operator_def = 'operator' '(' operator_value ')' [generic_tag] signature decl_func_body ;
+operator_def = 'oper' '(' operator_value ')' [generic_tag] signature decl_func_body ;
 operator_value = '+' | '-' | '*' | '/' | '//'
   | '**' | '%' | '>' | '>>' | '<' | '<<' | '<=' | '>=' 
   | '==' | '!' | '!=' | '&' | '&&' | '|' | '||' | '^' 

@@ -40,7 +40,7 @@ const (
 	// function definitions
 	FUNC
 	ASYNC
-	OPERATOR
+	OPER
 	SPECIAL
 
 	// type definitions
@@ -176,7 +176,7 @@ var keywordPatterns = map[string]int{
 	"make":        MAKE,
 	"func":        FUNC,
 	"async":       ASYNC,
-	"operator":    OPERATOR,
+	"oper":        OPER,
 	"special":     SPECIAL,
 	"type":        TYPE,
 	"closed":      CLOSED,
