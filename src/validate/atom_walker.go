@@ -329,7 +329,7 @@ func (w *Walker) createImplicitGenericInstance(gt *typing.GenericType, root comm
 			initialCons = &typing.ConstraintType{Name: "", Types: tparam.Constraints}
 		}
 
-		uts[i] = w.solver.NewTypeVar(nil, opPos, func() { w.logUnsolvableGenericTypeParam(gt, tparam.Name, opPos) }, initialCons)
+		uts[i] = w.solver.NewTypeVar(nil, opPos, func() { w.logUnsolvableGenericTypeParam(gt, tparam.Name, opPos) }, initialCons, typing.TCGeneral)
 	}
 
 	// no error should ever happen here
@@ -448,7 +448,7 @@ func (w *Walker) walkAtom(branch *syntax.ASTBranch) (common.HIRExpr, bool) {
 		case syntax.FLOATLIT:
 			return w.newConstrainedLiteral(atomCore, primitiveTypeTable[syntax.F32], w.getCoreType("Floating")), true
 		case syntax.NULL:
-			ut := w.solver.NewTypeVar(nil, atomCore.Position(), func() { w.logUndeterminedNull(atomCore.Position()) }, nil)
+			ut := w.solver.NewTypeVar(nil, atomCore.Position(), func() { w.logUndeterminedNull(atomCore.Position()) }, nil, -1)
 
 			return &common.HIRValue{
 				ExprBase: common.NewExprBase(ut, common.RValue, true),
@@ -490,7 +490,7 @@ func (w *Walker) newConstrainedLiteral(leaf *syntax.ASTLeaf, defaultValue typing
 
 	// These literals have a default value so there is no reason the unsolvable
 	// handler func should ever be called for them
-	ut := w.solver.NewTypeVar(defaultValue, leaf.Position(), func() {}, initialCons)
+	ut := w.solver.NewTypeVar(defaultValue, leaf.Position(), func() {}, initialCons, typing.TCCoerce)
 
 	return &common.HIRValue{
 		ExprBase: common.NewExprBase(

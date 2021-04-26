@@ -139,9 +139,10 @@ func (ut *UnknownType) copyTemplate() DataType {
 // initial constraint can also be passed to be added to the solver.  It returns
 // an unknown type referencing the newly added type variable.  Both the
 // `defaultType` and `initialConstraint` arguments can be `nil` if there is no
-// known value for them.  It accepts a text position to that it can be added to
-// the constraint (to log type mismatches)
-func (s *Solver) NewTypeVar(defaultType DataType, pos *logging.TextPosition, handler func(), initialConstraint DataType) *UnknownType {
+// known value for them.  `initialConsKind` should be set if `initialConstraint`
+// is; if it isn't, `initialConsKind` should be -1.  It accepts a text position
+// to that it can be added to the constraint (to log type mismatches)
+func (s *Solver) NewTypeVar(defaultType DataType, pos *logging.TextPosition, handler func(), initialConstraint DataType, initialConsKind int) *UnknownType {
 	tv := &TypeVariable{
 		ID:            len(s.Variables),
 		DefaultType:   defaultType,
@@ -152,7 +153,7 @@ func (s *Solver) NewTypeVar(defaultType DataType, pos *logging.TextPosition, han
 
 	ut := &UnknownType{TypeVarID: tv.ID}
 	if initialConstraint != nil {
-		s.AddConstraint(ut, initialConstraint, TCEquality, pos)
+		s.AddConstraint(ut, initialConstraint, initialConsKind, pos)
 	}
 
 	return ut
@@ -232,9 +233,10 @@ func (s *Solver) unify(lhType, rhType DataType, consKind int, pos *logging.TextP
 	if rut, ok := rhType.(*UnknownType); ok {
 		if subbedType, ok := s.Substitutions[rut.TypeVarID]; ok {
 			if tr, ok := s.unify(lhType, subbedType, consKind, pos); ok {
-				// lh type was the dominant type of the two => we need to update
-				// the substitution for the rh type
-				if tr == ULeft {
+				// we only want to update substitutions if this variable is set
+				// to generalize. lh type was the dominant type of the two =>
+				// update to reflect most general type is lhType
+				if consKind == TCGeneral && tr == ULeft {
 					s.Substitutions[rut.TypeVarID] = lhType
 				}
 
@@ -255,9 +257,10 @@ func (s *Solver) unify(lhType, rhType DataType, consKind int, pos *logging.TextP
 	case *UnknownType:
 		if subbedType, ok := s.Substitutions[v.TypeVarID]; ok {
 			if tr, ok := s.unify(subbedType, rhType, consKind, pos); ok {
-				// rh type was the dominant type of the two => we need to update
-				// the substitution for the lh type
-				if tr == URight {
+				// we only want to update substitutions if this variable is set
+				// to generalize.  rh type was the dominant type of the two =>
+				// update to reflect most general type is rhType
+				if consKind == TCGeneral && tr == URight {
 					s.Substitutions[v.TypeVarID] = rhType
 				}
 
