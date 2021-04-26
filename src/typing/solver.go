@@ -108,10 +108,10 @@ type TypeSubstitution struct {
 
 // Type constraint kinds
 const (
-	TCEquality = iota // Lhs and Rhs must be exactly equal
-	TCSubset          // Rhs must be coercible to Lhs
-	TCSuperset        // Lhs must be coercible to Rhs
-	TCCast            // Rhs must be castable to Lhs
+	TCEquality    = iota // Lhs and Rhs must be exactly equal
+	TCLeftCoerce         // Rhs must be coercible to Lhs
+	TCRightCoerce        // Lhs must be coercible to Rhs
+	TCCast               // Rhs must be castable to Lhs
 )
 
 // UnknownType is a type that occurs in a code that is a placeholder for a type
@@ -288,18 +288,18 @@ func (s *Solver) unify(lhType, rhType DataType, consKind int, pos *logging.TextP
 	case *UnknownType:
 		if sub, ok := s.Substitutions[v.TypeVarID]; ok {
 			// because this type is on the left, we need to flip the constraint
-			// orientation for TCSubset and TCSuperset.  The understand why
-			// consider the example: `t1 <= Numeric`.  Any future substitutions
-			// must be subsets of `Numeric` so even the constraint says
-			// "superset", we need to have the substitution constraint be a
-			// subset constraint.  Casts never cause left substitution (since
-			// the known type we are casting to is always on the left) so we
-			// don't need to handle "flipping" them.
+			// orientation for TCLeftCoerce and TCRightCoerce.  The understand
+			// why consider the example: `t1 <= Numeric`.  Any future
+			// substitutions must be subsets of `Numeric` so even the constraint
+			// says "right coerce", we need to have the substitution constraint
+			// be a left coerce constraint.  Casts never cause left substitution
+			// (since the known type we are casting to is always on the left) so
+			// we don't need to handle "flipping" them.
 			switch consKind {
-			case TCSubset:
-				consKind = TCSuperset
-			case TCSuperset:
-				consKind = TCSubset
+			case TCLeftCoerce:
+				consKind = TCRightCoerce
+			case TCRightCoerce:
+				consKind = TCLeftCoerce
 			}
 
 			if tr, ok := s.unify(sub.SubbedType, rhType, consKind, pos); ok {
@@ -396,7 +396,7 @@ func (s *Solver) unify(lhType, rhType DataType, consKind int, pos *logging.TextP
 			if Equals(lhType, rhType) {
 				return UEqual, true
 			}
-		case TCSubset:
+		case TCLeftCoerce:
 			if s.CoerceTo(rhType, lhType) {
 				return ULeft, true
 			}
@@ -405,7 +405,7 @@ func (s *Solver) unify(lhType, rhType DataType, consKind int, pos *logging.TextP
 			if s.CastTo(rhType, lhType) {
 				return ULeft, true
 			}
-		case TCSuperset:
+		case TCRightCoerce:
 			if s.CoerceTo(lhType, rhType) {
 				return URight, true
 			}
@@ -424,9 +424,9 @@ func (s *Solver) logTypeMismatch(lhType, rhType DataType, consKind int, pos *log
 	switch consKind {
 	case TCEquality:
 		message = fmt.Sprintf("Type Mismatch: `%s` v `%s`", lhType.Repr(), rhType.Repr())
-	case TCSubset:
+	case TCLeftCoerce:
 		message = fmt.Sprintf("Invalid Coercion: `%s` to `%s`", rhType.Repr(), lhType.Repr())
-	case TCSuperset:
+	case TCRightCoerce:
 		message = fmt.Sprintf("Invalid Coercion: `%s` to `%s`", lhType.Repr(), rhType.Repr())
 	case TCCast:
 		message = fmt.Sprintf("Invalid Cast: `%s` to `%s`", rhType.Repr(), lhType.Repr())
