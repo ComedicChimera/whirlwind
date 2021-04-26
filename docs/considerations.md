@@ -45,8 +45,7 @@ For example, monadic file IO:
 
     with
         # open file
-        fres <- fopen("file.txt") ?? match to 
-            Err(e) -> println("Error opening file:", e)
+        fres <- fopen("file.txt") ?? handler_func
         # acquire file from "file resource"
         file <- fres  
     do
@@ -56,8 +55,6 @@ For example, monadic file IO:
 
 Two Notes:
 
-- Maybe clean up error handling syntax
-  * `?? match to` looks weird
 - Find a way to remove that middle stage (or acquiring the file)
   * Maybe just have file not just be a regular `Option` type...?
   * Merge multiple monadic binds into one?
