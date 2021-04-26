@@ -83,8 +83,21 @@ type TypeConstraint struct {
 	// concrete types, unknowns, or any combination of those things.
 	Lhs, Rhs DataType
 
+	// Kind indicates how the solver should treat this constraint during
+	// unification: different constraints require different kinds of unification
+	// (eg. type parameters must be exactly equal in a generic)
+	Kind int
+
 	Position *logging.TextPosition
 }
+
+// Type constraint kinds
+const (
+	TCEquality = iota // Lhs and Rhs must be exactly equal
+	TCCoerce          // Rhs must be coercible to Lhs
+	TCGeneral         // Most general type between Lhs and Rhs
+	TCCast            // Rhs must be castable to Lhs
+)
 
 // UnknownType is a type that occurs in a code that is a placeholder for a type
 // variable. This is distinct from a WildcardType which is only used to
@@ -139,15 +152,17 @@ func (s *Solver) NewTypeVar(defaultType DataType, pos *logging.TextPosition, han
 
 	ut := &UnknownType{TypeVarID: tv.ID}
 	if initialConstraint != nil {
-		s.AddConstraint(ut, initialConstraint, pos)
+		s.AddConstraint(ut, initialConstraint, TCEquality, pos)
 	}
 
 	return ut
 }
 
 // AddConstraint adds a new constraint to the given context.
-func (s *Solver) AddConstraint(lhs, rhs DataType, pos *logging.TextPosition) {
-	s.Constraints = append(s.Constraints, &TypeConstraint{Lhs: lhs, Rhs: rhs, Position: pos})
+func (s *Solver) AddConstraint(lhs, rhs DataType, consKind int, pos *logging.TextPosition) {
+	s.Constraints = append(s.Constraints, &TypeConstraint{
+		Lhs: lhs, Rhs: rhs, Kind: consKind, Position: pos,
+	})
 }
 
 // Solve performs all unification, erroring, and substituting for the current
@@ -159,7 +174,8 @@ func (s *Solver) Solve() bool {
 
 	// unify all constraints
 	for _, cons := range s.Constraints {
-		succeeded = succeeded && s.unify(cons.Lhs, cons.Rhs, cons.Position)
+		_, ok := s.unify(cons.Lhs, cons.Rhs, cons.Kind, cons.Position)
+		succeeded = succeeded && ok
 	}
 
 	// test to see if all variables resolved
@@ -194,37 +210,64 @@ func (s *Solver) Solve() bool {
 
 // -----------------------------------------------------------------------------
 
+// These values indicate positionally which type is most general of two types:
+// known as the type dominance.  These values are known as type relations.  They
+// are used in unification.
+const (
+	UEqual = iota // Equal Dominance
+	ULeft         // Left Dominant
+	URight        // Right Dominant
+)
+
 // unify implements type unification: it takes two types and finds a
-// substitution that makes them equal if such a substitution exists.  If both
-// types are known, this function checks if they are coercible according to
-// their "handedness".  This function does log errors -- it should not be called
-// as a "testing" function.
-func (s *Solver) unify(lhType, rhType DataType, pos *logging.TextPosition) bool {
+// substitution that satisfies the constraint between then if such a
+// substitution exists. `consKind` indicates the relationship between the two
+// types that must be deduced to satisfy the constraint (equal, coercible, etc)
+// -- it should be one of the enumerated constraint kinds.  This function does
+// log errors and should not be called as a "testing" function.
+func (s *Solver) unify(lhType, rhType DataType, consKind int, pos *logging.TextPosition) (int, bool) {
 	// we start by testing the `rhType` to see if it is unknown before
 	// proceeding with unification -- the main unify switch tests based on the
-	// `lhType`.  Note that the `rhType` should always be deduced to the least
-	// general type possible (eg. prefer `u32` to `u64`) so we unify to the
-	// lhType and do not update the substitution after it is initially
-	// determined
+	// `lhType`.
 	if rut, ok := rhType.(*UnknownType); ok {
 		if subbedType, ok := s.Substitutions[rut.TypeVarID]; ok {
-			return s.unify(lhType, subbedType, pos)
+			if tr, ok := s.unify(lhType, subbedType, consKind, pos); ok {
+				// lh type was the dominant type of the two => we need to update
+				// the substitution for the rh type
+				if tr == ULeft {
+					s.Substitutions[rut.TypeVarID] = lhType
+				}
+
+				return tr, true
+			} else {
+				return -1, false
+			}
 		} else {
 			s.Substitutions[rut.TypeVarID] = lhType
-			return true
+			return UEqual, true
 		}
 	}
 
-	// all types with constructors have to be tested for unification
+	// all types with constructors have to be tested for unification. Note that
+	// most types will assert strict equality on their subtypes for unification.
+	// The only types that propagate the constraint kind are unknowns
 	switch v := lhType.(type) {
 	case *UnknownType:
-		// The `lhType` should always deduce to the most general
-		// type possible which means that... TODO
 		if subbedType, ok := s.Substitutions[v.TypeVarID]; ok {
-			return s.unify(subbedType, rhType, pos)
+			if tr, ok := s.unify(subbedType, rhType, consKind, pos); ok {
+				// rh type was the dominant type of the two => we need to update
+				// the substitution for the lh type
+				if tr == URight {
+					s.Substitutions[v.TypeVarID] = rhType
+				}
+
+				return tr, true
+			} else {
+				return -1, false
+			}
 		} else {
 			s.Substitutions[v.TypeVarID] = rhType
-			return true
+			return UEqual, true
 		}
 	case TupleType:
 		if rtt, ok := rhType.(TupleType); ok {
@@ -232,22 +275,23 @@ func (s *Solver) unify(lhType, rhType DataType, pos *logging.TextPosition) bool 
 				result := true
 
 				for i, item := range v {
-					result = result && s.unify(item, rtt[i], pos)
+					_, ok := s.unify(item, rtt[i], TCEquality, pos)
+					result = result && ok
 				}
 
-				return result
+				return UEqual, result
 			}
 		}
 	case *VectorType:
 		if rvt, ok := rhType.(*VectorType); ok {
 			if v.Size == rvt.Size {
-				return s.unify(v.ElemType, rvt.ElemType, pos)
+				return s.unify(v.ElemType, rvt.ElemType, TCEquality, pos)
 			}
 		}
 	case *RefType:
 		if rrt, ok := rhType.(*RefType); ok {
 			if v.Constant == rrt.Constant {
-				return s.unify(v.ElemType, rrt.ElemType, pos)
+				return s.unify(v.ElemType, rrt.ElemType, TCEquality, pos)
 			}
 		}
 	case *FuncType:
@@ -257,14 +301,16 @@ func (s *Solver) unify(lhType, rhType DataType, pos *logging.TextPosition) bool 
 
 				for i, arg := range v.Args {
 					if rft.Args[i].Name != arg.Name || arg.Optional != rft.Args[i].Optional || arg.Indefinite != rft.Args[i].Indefinite {
-						s.logTypeMismatch(lhType, rhType, pos)
-						return false
+						s.logTypeMismatch(lhType, rhType, TCEquality, pos)
+						return -1, false
 					}
 
-					result = result && s.unify(arg.Val.Type, rft.Args[i].Val.Type, pos)
+					_, ok := s.unify(arg.Val.Type, rft.Args[i].Val.Type, TCEquality, pos)
+					result = result && ok
 				}
 
-				return result && s.unify(v.ReturnType, rft.ReturnType, pos)
+				_, ok := s.unify(v.ReturnType, rft.ReturnType, TCEquality, pos)
+				return UEqual, result && ok
 			}
 		}
 	case *GenericInstanceType:
@@ -279,10 +325,11 @@ func (s *Solver) unify(lhType, rhType DataType, pos *logging.TextPosition) bool 
 				result := true
 
 				for i, vtparam := range v.TypeParams {
-					result = result && s.unify(vtparam, rgi.TypeParams[i], pos)
+					_, ok := s.unify(vtparam, rgi.TypeParams[i], TCEquality, pos)
+					result = result && ok
 				}
 
-				return result
+				return UEqual, result
 			}
 		}
 	default:
@@ -290,20 +337,63 @@ func (s *Solver) unify(lhType, rhType DataType, pos *logging.TextPosition) bool 
 		// not going to require any additional unification because those
 		// subtypes will always be known since defined types that are not
 		// generic must specify known types in their definitions
-		if s.CoerceTo(rhType, lhType) {
-			return true
+		switch consKind {
+		case TCEquality:
+			if Equals(lhType, rhType) {
+				return UEqual, true
+			}
+		case TCCoerce:
+			if s.CoerceTo(rhType, lhType) {
+				return ULeft, true
+			}
+		case TCCast:
+			// TODO: check to see if this is ok...
+			if s.CastTo(rhType, lhType) {
+				return ULeft, true
+			}
+		case TCGeneral:
+			return s.generalize(lhType, rhType)
 		}
 	}
 
 	// all cases that reach here are type mismatches
-	s.logTypeMismatch(lhType, rhType, pos)
-	return false
+	s.logTypeMismatch(lhType, rhType, consKind, pos)
+	return -1, false
 }
 
-func (s *Solver) logTypeMismatch(t1, t2 DataType, pos *logging.TextPosition) {
+// generalize finds the most general type of a pair of two types and returns an
+// appropriate type relation (one of those enumerated above `unify`).  This
+// function will fail if no most general type exists.
+func (s *Solver) generalize(lhType, rhType DataType) (int, bool) {
+	if Equals(lhType, rhType) {
+		return UEqual, true
+	} else if s.CoerceTo(rhType, lhType) {
+		return ULeft, true
+	} else if s.CoerceTo(lhType, rhType) {
+		return URight, true
+	}
+
+	return -1, false
+}
+
+// logTypeMismatch logs a type mismatch error between two types.  It takes a
+// constraint kind to indicate what error it should log
+func (s *Solver) logTypeMismatch(lhType, rhType DataType, consKind int, pos *logging.TextPosition) {
+	var message string
+	switch consKind {
+	case TCEquality:
+		message = fmt.Sprintf("Type Mismatch: `%s` v `%s`", lhType.Repr(), rhType.Repr())
+	case TCCoerce:
+		message = fmt.Sprintf("Invalid Coercion: `%s` to `%s`", rhType.Repr(), lhType.Repr())
+	case TCGeneral:
+		message = fmt.Sprintf("Failed to Generalize: `%s` and `%s`", lhType.Repr(), rhType.Repr())
+	case TCCast:
+		message = fmt.Sprintf("Invalid Cast: `%s` to `%s`", rhType.Repr(), lhType.Repr())
+	}
+
 	logging.LogCompileError(
 		s.Context,
-		fmt.Sprintf("Type Mismatch: `%s` v `%s`", t1.Repr(), t2.Repr()),
+		message,
 		logging.LMKTyping,
 		pos,
 	)

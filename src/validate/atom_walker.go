@@ -241,7 +241,7 @@ func (w *Walker) walkFuncCallArgs(fntype *typing.FuncType, branch *syntax.ASTBra
 					}
 
 					if argexpr, ok := w.walkExpr(arg.BranchAt(0)); ok {
-						w.solver.AddConstraint(farg.Val.Type, argexpr.Type(), arg.Position())
+						w.solver.AddConstraint(farg.Val.Type, argexpr.Type(), typing.TCCoerce, arg.Position())
 
 						if farg.Indefinite {
 							indefArgs = append(indefArgs, argexpr)
@@ -283,7 +283,7 @@ func (w *Walker) walkFuncCallArgs(fntype *typing.FuncType, branch *syntax.ASTBra
 								}
 
 								if argexpr, ok := w.walkExpr(arg.BranchAt(2)); ok {
-									w.solver.AddConstraint(farg.Val.Type, argexpr.Type(), arg.Position())
+									w.solver.AddConstraint(farg.Val.Type, argexpr.Type(), typing.TCCoerce, arg.Position())
 
 									argNodes[farg.Name] = argexpr
 									argDts[farg.Name] = argexpr.Type()
