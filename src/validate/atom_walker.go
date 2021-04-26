@@ -241,7 +241,7 @@ func (w *Walker) walkFuncCallArgs(fntype *typing.FuncType, branch *syntax.ASTBra
 					}
 
 					if argexpr, ok := w.walkExpr(arg.BranchAt(0)); ok {
-						w.solver.AddConstraint(farg.Val.Type, argexpr.Type(), typing.TCCoerce, arg.Position())
+						w.solver.AddConstraint(farg.Val.Type, argexpr.Type(), typing.TCSubset, arg.Position())
 
 						if farg.Indefinite {
 							indefArgs = append(indefArgs, argexpr)
@@ -283,7 +283,7 @@ func (w *Walker) walkFuncCallArgs(fntype *typing.FuncType, branch *syntax.ASTBra
 								}
 
 								if argexpr, ok := w.walkExpr(arg.BranchAt(2)); ok {
-									w.solver.AddConstraint(farg.Val.Type, argexpr.Type(), typing.TCCoerce, arg.Position())
+									w.solver.AddConstraint(farg.Val.Type, argexpr.Type(), typing.TCSubset, arg.Position())
 
 									argNodes[farg.Name] = argexpr
 									argDts[farg.Name] = argexpr.Type()
@@ -329,7 +329,7 @@ func (w *Walker) createImplicitGenericInstance(gt *typing.GenericType, root comm
 			initialCons = &typing.ConstraintType{Name: "", Types: tparam.Constraints}
 		}
 
-		uts[i] = w.solver.NewTypeVar(nil, opPos, func() { w.logUnsolvableGenericTypeParam(gt, tparam.Name, opPos) }, initialCons, typing.TCGeneral)
+		uts[i] = w.solver.NewTypeVar(nil, opPos, func() { w.logUnsolvableGenericTypeParam(gt, tparam.Name, opPos) }, initialCons, typing.TCSuperset)
 	}
 
 	// no error should ever happen here
@@ -489,8 +489,9 @@ func (w *Walker) newConstrainedLiteral(leaf *syntax.ASTLeaf, defaultValue typing
 	}
 
 	// These literals have a default value so there is no reason the unsolvable
-	// handler func should ever be called for them
-	ut := w.solver.NewTypeVar(defaultValue, leaf.Position(), func() {}, initialCons, typing.TCCoerce)
+	// handler func should ever be called for them.  Our initial constraint is
+	// on the right, so we need to use TCSuperset (t1 <= initialCons)
+	ut := w.solver.NewTypeVar(defaultValue, leaf.Position(), func() {}, initialCons, typing.TCSuperset)
 
 	return &common.HIRValue{
 		ExprBase: common.NewExprBase(

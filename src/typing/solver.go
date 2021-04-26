@@ -38,7 +38,7 @@ type Solver struct {
 	// Substitutions contains a map of the type substitutions that the solver is
 	// using to "solve" the current type context.  These are essentially its
 	// "guesses" as to what an unknown type should be.
-	Substitutions map[int]DataType
+	Substitutions map[int]*TypeSubstitution
 }
 
 // NewSolver creates a new solver with the given context and binding registries.
@@ -48,7 +48,7 @@ func NewSolver(ctx *logging.LogContext, lb, gb *BindingRegistry) *Solver {
 		GlobalBindings: gb,
 		LocalBindings:  lb,
 		Variables:      make(map[int]*TypeVariable),
-		Substitutions:  make(map[int]DataType),
+		Substitutions:  make(map[int]*TypeSubstitution),
 	}
 }
 
@@ -91,11 +91,26 @@ type TypeConstraint struct {
 	Position *logging.TextPosition
 }
 
+// TypeSubstitution is a structure representing a type substitution made by the
+// solver. It determines how substitution should occur if multiple constraints
+// are applied to a type (as often are).
+type TypeSubstitution struct {
+	// SubbedType is the type that is currently being substituted
+	SubbedType DataType
+
+	// ConsKind indicates what kind of constraint applied this substitution.
+	// This is used to determine what substitutions should be used when two are
+	// suggested/in conflict.  This field assumes that this was a "left
+	// substitution"; that is a substitution where the constraint would apply as
+	// if this were the lhs type (since these constraints are directional)
+	ConsKind int
+}
+
 // Type constraint kinds
 const (
 	TCEquality = iota // Lhs and Rhs must be exactly equal
-	TCCoerce          // Rhs must be coercible to Lhs
-	TCGeneral         // Most general type between Lhs and Rhs
+	TCSubset          // Rhs must be coercible to Lhs
+	TCSuperset        // Lhs must be coercible to Rhs
 	TCCast            // Rhs must be castable to Lhs
 )
 
@@ -181,18 +196,18 @@ func (s *Solver) Solve() bool {
 
 	// test to see if all variables resolved
 	for _, tvar := range s.Variables {
-		if subbedType, ok := s.Substitutions[tvar.ID]; ok {
+		if sub, ok := s.Substitutions[tvar.ID]; ok {
 			// if the best substituted type is a type constraint, then we
 			// attempt to find a default type.  If one can't be found, then this
 			// type is still unsolvable (something being `Numeric` doesn't
 			// really help much)
-			if _, ok := subbedType.(*ConstraintType); ok {
+			if _, ok := sub.SubbedType.(*ConstraintType); ok {
 				if tvar.DefaultType != nil {
 					tvar.Unknown.EvalType = tvar.DefaultType
 					continue
 				}
 			} else {
-				tvar.Unknown.EvalType = subbedType
+				tvar.Unknown.EvalType = sub.SubbedType
 				continue
 			}
 		}
@@ -204,7 +219,7 @@ func (s *Solver) Solve() bool {
 	// reset solver
 	s.Constraints = nil
 	s.Variables = make(map[int]*TypeVariable)
-	s.Substitutions = make(map[int]DataType)
+	s.Substitutions = make(map[int]*TypeSubstitution)
 
 	return succeeded
 }
@@ -231,13 +246,26 @@ func (s *Solver) unify(lhType, rhType DataType, consKind int, pos *logging.TextP
 	// proceeding with unification -- the main unify switch tests based on the
 	// `lhType`.
 	if rut, ok := rhType.(*UnknownType); ok {
-		if subbedType, ok := s.Substitutions[rut.TypeVarID]; ok {
-			if tr, ok := s.unify(lhType, subbedType, consKind, pos); ok {
-				// we only want to update substitutions if this variable is set
-				// to generalize. lh type was the dominant type of the two =>
-				// update to reflect most general type is lhType
-				if consKind == TCGeneral && tr == ULeft {
-					s.Substitutions[rut.TypeVarID] = lhType
+		// we do NOT need to flip constraints here since we substituting to the
+		// right which doesn't change the "constraint orientation".  Eg.,
+		// consider we have the constraint `Numeric >= t1`.  It we are
+		// substituting `Numeric` for `t1`, we don't need to flip the constraint
+		// since any substitutions after this one must still be a subset of
+		// `Numeric`.
+		if sub, ok := s.Substitutions[rut.TypeVarID]; ok {
+			if tr, ok := s.unify(lhType, sub.SubbedType, sub.ConsKind, pos); ok {
+				// only if the left type was dominant, do we need to update the
+				// substitution. `unify` already checks that the conditions of
+				// this left substitution were met so we don't need to check
+				// them here
+				if tr == ULeft {
+					sub.SubbedType = lhType
+
+					// since we are performing a substitution against a
+					// different constraint, we need to update the substitution
+					// to indicate which constraint we are abiding by now (for
+					// the substitution)
+					sub.ConsKind = consKind
 				}
 
 				return tr, true
@@ -245,7 +273,10 @@ func (s *Solver) unify(lhType, rhType DataType, consKind int, pos *logging.TextP
 				return -1, false
 			}
 		} else {
-			s.Substitutions[rut.TypeVarID] = lhType
+			s.Substitutions[rut.TypeVarID] = &TypeSubstitution{
+				SubbedType: lhType,
+				ConsKind:   consKind,
+			}
 			return UEqual, true
 		}
 	}
@@ -255,13 +286,30 @@ func (s *Solver) unify(lhType, rhType DataType, consKind int, pos *logging.TextP
 	// The only types that propagate the constraint kind are unknowns
 	switch v := lhType.(type) {
 	case *UnknownType:
-		if subbedType, ok := s.Substitutions[v.TypeVarID]; ok {
-			if tr, ok := s.unify(subbedType, rhType, consKind, pos); ok {
-				// we only want to update substitutions if this variable is set
-				// to generalize.  rh type was the dominant type of the two =>
-				// update to reflect most general type is rhType
-				if consKind == TCGeneral && tr == URight {
-					s.Substitutions[v.TypeVarID] = rhType
+		if sub, ok := s.Substitutions[v.TypeVarID]; ok {
+			// because this type is on the left, we need to flip the constraint
+			// orientation for TCSubset and TCSuperset.  The understand why
+			// consider the example: `t1 <= Numeric`.  Any future substitutions
+			// must be subsets of `Numeric` so even the constraint says
+			// "superset", we need to have the substitution constraint be a
+			// subset constraint.  Casts never cause left substitution (since
+			// the known type we are casting to is always on the left) so we
+			// don't need to handle "flipping" them.
+			switch consKind {
+			case TCSubset:
+				consKind = TCSuperset
+			case TCSuperset:
+				consKind = TCSubset
+			}
+
+			if tr, ok := s.unify(sub.SubbedType, rhType, consKind, pos); ok {
+				// only if the right type was dominant, do we need to update the
+				// substitution. `unify` already checks that the conditions of
+				// this left substitution were met so we don't need to check
+				// them here
+				if tr == URight {
+					sub.SubbedType = rhType
+					sub.ConsKind = consKind
 				}
 
 				return tr, true
@@ -269,7 +317,10 @@ func (s *Solver) unify(lhType, rhType DataType, consKind int, pos *logging.TextP
 				return -1, false
 			}
 		} else {
-			s.Substitutions[v.TypeVarID] = rhType
+			s.Substitutions[v.TypeVarID] = &TypeSubstitution{
+				SubbedType: rhType,
+				ConsKind:   consKind,
+			}
 			return UEqual, true
 		}
 	case TupleType:
@@ -345,7 +396,7 @@ func (s *Solver) unify(lhType, rhType DataType, consKind int, pos *logging.TextP
 			if Equals(lhType, rhType) {
 				return UEqual, true
 			}
-		case TCCoerce:
+		case TCSubset:
 			if s.CoerceTo(rhType, lhType) {
 				return ULeft, true
 			}
@@ -354,28 +405,15 @@ func (s *Solver) unify(lhType, rhType DataType, consKind int, pos *logging.TextP
 			if s.CastTo(rhType, lhType) {
 				return ULeft, true
 			}
-		case TCGeneral:
-			return s.generalize(lhType, rhType)
+		case TCSuperset:
+			if s.CoerceTo(lhType, rhType) {
+				return URight, true
+			}
 		}
 	}
 
 	// all cases that reach here are type mismatches
 	s.logTypeMismatch(lhType, rhType, consKind, pos)
-	return -1, false
-}
-
-// generalize finds the most general type of a pair of two types and returns an
-// appropriate type relation (one of those enumerated above `unify`).  This
-// function will fail if no most general type exists.
-func (s *Solver) generalize(lhType, rhType DataType) (int, bool) {
-	if Equals(lhType, rhType) {
-		return UEqual, true
-	} else if s.CoerceTo(rhType, lhType) {
-		return ULeft, true
-	} else if s.CoerceTo(lhType, rhType) {
-		return URight, true
-	}
-
 	return -1, false
 }
 
@@ -386,10 +424,10 @@ func (s *Solver) logTypeMismatch(lhType, rhType DataType, consKind int, pos *log
 	switch consKind {
 	case TCEquality:
 		message = fmt.Sprintf("Type Mismatch: `%s` v `%s`", lhType.Repr(), rhType.Repr())
-	case TCCoerce:
+	case TCSubset:
 		message = fmt.Sprintf("Invalid Coercion: `%s` to `%s`", rhType.Repr(), lhType.Repr())
-	case TCGeneral:
-		message = fmt.Sprintf("Failed to Generalize: `%s` and `%s`", lhType.Repr(), rhType.Repr())
+	case TCSuperset:
+		message = fmt.Sprintf("Invalid Coercion: `%s` to `%s`", lhType.Repr(), rhType.Repr())
 	case TCCast:
 		message = fmt.Sprintf("Invalid Cast: `%s` to `%s`", rhType.Repr(), lhType.Repr())
 	}
