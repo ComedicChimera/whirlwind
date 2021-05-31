@@ -1,5 +1,7 @@
 # Whirlwind
 
+**HEY: Whirlwind has moved -> Check it out [https://github.com/ComedicChimera/chai](here)**
+
 Whirlwind is a compiled, modern, and multipurpose language designed with intentionality.
 It is strongly-typed, versatile, expressive, concurrent, and relatively easy to learn.
 It boasts numerous new and old features and is designed to represent the needs of any software developer.
